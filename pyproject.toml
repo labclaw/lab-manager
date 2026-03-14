@@ -19,6 +19,13 @@ dependencies = [
   "python-ulid>=3.0.0",
 ]
 
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [dependency-groups]
 dev = [
   "pytest>=8.4.0",
