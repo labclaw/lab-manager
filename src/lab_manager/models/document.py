@@ -15,7 +15,7 @@ class Document(AuditMixin, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     file_path: str = Field(max_length=1000)
-    file_name: str = Field(max_length=255)
+    file_name: str = Field(max_length=255, unique=True)
     document_type: Optional[str] = Field(default=None, max_length=50, index=True)
     vendor_name: Optional[str] = Field(default=None, max_length=255)
     ocr_text: Optional[str] = Field(default=None, sa_column=Column(Text))
@@ -25,4 +25,3 @@ class Document(AuditMixin, table=True):
     status: str = Field(default="pending", max_length=30, index=True)
     review_notes: Optional[str] = Field(default=None)
     reviewed_by: Optional[str] = Field(default=None, max_length=200)
-    order_id: Optional[int] = Field(default=None, foreign_key="orders.id")

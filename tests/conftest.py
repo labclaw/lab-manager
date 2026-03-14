@@ -21,6 +21,8 @@ def db_session():
         poolclass=StaticPool,
         connect_args={"check_same_thread": False},
     )
+    import lab_manager.models  # noqa: F401 — register all models with metadata
+
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         yield session

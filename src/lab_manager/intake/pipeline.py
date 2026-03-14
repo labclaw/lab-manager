@@ -58,6 +58,11 @@ def process_document(image_path: Path, db: Session) -> Document:
     4. Save Document record
     5. If high confidence, create Order + OrderItems
     """
+    # Dedupe: skip if this filename was already processed
+    existing = db.query(Document).filter(Document.file_name == image_path.name).first()
+    if existing:
+        return existing
+
     settings = get_settings()
 
     # 1. Copy to uploads
