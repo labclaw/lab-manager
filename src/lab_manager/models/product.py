@@ -1,13 +1,18 @@
 """Product / catalog item model."""
 
-from __future__ import annotations
+from typing import TYPE_CHECKING, List, Optional
 
-from typing import Optional
-
-from sqlmodel import Field, Column
-from sqlalchemy import JSON
+import sqlalchemy as sa
+from sqlalchemy import Column
+from sqlmodel import Field, Relationship
 
 from lab_manager.models.base import AuditMixin
+
+if TYPE_CHECKING:
+    from lab_manager.models.consumption import ConsumptionLog
+    from lab_manager.models.inventory import InventoryItem
+    from lab_manager.models.order import OrderItem
+    from lab_manager.models.vendor import Vendor
 
 
 class Product(AuditMixin, table=True):
@@ -16,10 +21,28 @@ class Product(AuditMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     catalog_number: str = Field(max_length=100, index=True)
     name: str = Field(max_length=500)
-    vendor_id: Optional[int] = Field(default=None, foreign_key="vendors.id", index=True)
+    vendor_id: Optional[int] = Field(
+        default=None,
+        sa_column=Column(
+            sa.Integer, sa.ForeignKey("vendors.id", ondelete="RESTRICT"), index=True
+        ),
+    )
     category: Optional[str] = Field(default=None, max_length=100, index=True)
     cas_number: Optional[str] = Field(default=None, max_length=30)
     storage_temp: Optional[str] = Field(default=None, max_length=50)
     unit: Optional[str] = Field(default=None, max_length=50)
     hazard_info: Optional[str] = Field(default=None, max_length=255)
-    extra: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    extra: dict = Field(default_factory=dict, sa_column=Column(sa.JSON))
+
+    min_stock_level: Optional[float] = Field(default=None)
+    max_stock_level: Optional[float] = Field(default=None)
+    reorder_quantity: Optional[float] = Field(default=None)
+    shelf_life_days: Optional[int] = Field(default=None)
+    storage_requirements: Optional[str] = Field(default=None, max_length=500)
+    is_hazardous: bool = Field(default=False)
+    is_controlled: bool = Field(default=False)
+
+    vendor: Optional["Vendor"] = Relationship(back_populates="products")
+    order_items: List["OrderItem"] = Relationship(back_populates="product")
+    inventory_items: List["InventoryItem"] = Relationship(back_populates="product")
+    consumption_logs: List["ConsumptionLog"] = Relationship(back_populates="product")

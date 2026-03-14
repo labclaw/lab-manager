@@ -5,10 +5,12 @@ from lab_manager.models.vendor import Vendor
 from lab_manager.models.product import Product
 from lab_manager.models.staff import Staff
 from lab_manager.models.location import StorageLocation
-from lab_manager.models.order import Order, OrderItem
-from lab_manager.models.inventory import InventoryItem
-from lab_manager.models.document import Document
+from lab_manager.models.order import Order, OrderItem, OrderStatus
+from lab_manager.models.inventory import InventoryItem, InventoryStatus
+from lab_manager.models.consumption import ConsumptionLog, ConsumptionAction
+from lab_manager.models.document import Document, DocumentStatus
 from lab_manager.models.audit import AuditLog, log_change
+from lab_manager.models.alert import Alert, AlertType, AlertSeverity
 
 __all__ = [
     "AuditMixin",
@@ -18,8 +20,16 @@ __all__ = [
     "StorageLocation",
     "Order",
     "OrderItem",
+    "OrderStatus",
     "InventoryItem",
+    "InventoryStatus",
+    "ConsumptionLog",
+    "ConsumptionAction",
     "Document",
+    "DocumentStatus",
     "AuditLog",
     "log_change",
+    "Alert",
+    "AlertType",
+    "AlertSeverity",
 ]

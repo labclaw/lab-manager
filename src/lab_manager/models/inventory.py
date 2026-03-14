@@ -1,31 +1,76 @@
 """Inventory stock model."""
 
-from __future__ import annotations
-
+import enum
 from datetime import date
-from typing import Optional
+from decimal import Decimal
+from typing import TYPE_CHECKING, List, Optional
 
-from sqlmodel import Field
+import sqlalchemy as sa
+from sqlalchemy import Column
+from sqlmodel import Field, Relationship
 
 from lab_manager.models.base import AuditMixin
+
+if TYPE_CHECKING:
+    from lab_manager.models.consumption import ConsumptionLog
+    from lab_manager.models.location import StorageLocation
+    from lab_manager.models.order import OrderItem
+    from lab_manager.models.product import Product
+
+
+class InventoryStatus(str, enum.Enum):
+    available = "available"
+    opened = "opened"
+    depleted = "depleted"
+    disposed = "disposed"
+    expired = "expired"
+    deleted = "deleted"
 
 
 class InventoryItem(AuditMixin, table=True):
     __tablename__ = "inventory"
+    __table_args__ = (
+        sa.CheckConstraint(
+            "status IN ('available','opened','depleted','disposed','expired','deleted')",
+            name="ck_inventory_status",
+        ),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     product_id: Optional[int] = Field(
-        default=None, foreign_key="products.id", index=True
+        default=None,
+        sa_column=Column(
+            sa.Integer, sa.ForeignKey("products.id", ondelete="RESTRICT"), index=True
+        ),
     )
     location_id: Optional[int] = Field(
-        default=None, foreign_key="locations.id", index=True
+        default=None,
+        sa_column=Column(
+            sa.Integer, sa.ForeignKey("locations.id", ondelete="SET NULL"), index=True
+        ),
     )
     lot_number: Optional[str] = Field(default=None, max_length=100)
-    quantity_on_hand: float = Field(default=0)
+    quantity_on_hand: Decimal = Field(
+        default=0, sa_column=Column(sa.Numeric(12, 4), default=0)
+    )
     unit: Optional[str] = Field(default=None, max_length=50)
     expiry_date: Optional[date] = Field(default=None, index=True)
     opened_date: Optional[date] = Field(default=None)
-    status: str = Field(default="available", max_length=30)
+    status: str = Field(default="available", max_length=30, index=True)
     notes: Optional[str] = Field(default=None)
     received_by: Optional[str] = Field(default=None, max_length=200)
-    order_item_id: Optional[int] = Field(default=None, foreign_key="order_items.id")
+    order_item_id: Optional[int] = Field(
+        default=None,
+        sa_column=Column(
+            sa.Integer, sa.ForeignKey("order_items.id", ondelete="SET NULL")
+        ),
+    )
+
+    product: Optional["Product"] = Relationship(back_populates="inventory_items")
+    location: Optional["StorageLocation"] = Relationship(
+        back_populates="inventory_items"
+    )
+    order_item: Optional["OrderItem"] = Relationship(back_populates="inventory_items")
+    consumption_logs: List["ConsumptionLog"] = Relationship(
+        back_populates="inventory_item"
+    )

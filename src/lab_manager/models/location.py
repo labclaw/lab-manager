@@ -1,12 +1,13 @@
 """Storage location model."""
 
-from __future__ import annotations
+from typing import TYPE_CHECKING, List, Optional
 
-from typing import Optional
-
-from sqlmodel import Field
+from sqlmodel import Field, Relationship
 
 from lab_manager.models.base import AuditMixin
+
+if TYPE_CHECKING:
+    from lab_manager.models.inventory import InventoryItem
 
 
 class StorageLocation(AuditMixin, table=True):
@@ -18,3 +19,5 @@ class StorageLocation(AuditMixin, table=True):
     building: Optional[str] = Field(default=None, max_length=100)
     temperature: Optional[int] = Field(default=None)
     description: Optional[str] = Field(default=None)
+
+    inventory_items: List["InventoryItem"] = Relationship(back_populates="location")
