@@ -1,15 +1,29 @@
 [project]
 name = "lab-manager"
 version = "0.1.0"
-description = "OCR-first benchmark and ingestion foundation for lab consumables management"
+description = "Lab inventory management with OCR document intake"
 requires-python = ">=3.12"
 dependencies = [
-  "openai>=2.0.0",
+  "fastapi[standard]>=0.115.0",
+  "sqlmodel>=0.0.22",
+  "sqlalchemy[asyncio]>=2.0.0",
+  "psycopg[binary]>=3.2.0",
+  "alembic>=1.14.0",
+  "sqladmin>=0.20.0",
+  "pydantic-settings>=2.6.0",
+  "meilisearch>=0.33.0",
+  "instructor>=1.7.0",
+  "google-genai>=1.0.0",
   "pillow>=11.2.1",
+  "python-multipart>=0.0.18",
+  "python-ulid>=3.0.0",
 ]
 
 [dependency-groups]
 dev = [
   "pytest>=8.4.0",
+  "pytest-asyncio>=0.24.0",
+  "httpx>=0.28.0",
   "ruff>=0.11.0",
+  "testcontainers[postgres]>=4.0.0",
 ]
