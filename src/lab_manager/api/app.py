@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
+from lab_manager.api.admin import setup_admin
+from lab_manager.database import get_engine
+
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -24,5 +27,8 @@ def create_app() -> FastAPI:
     app.include_router(orders.router, prefix="/api/orders", tags=["orders"])
     app.include_router(inventory.router, prefix="/api/inventory", tags=["inventory"])
     app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
+
+    # Wire up SQLAdmin UI at /admin/
+    setup_admin(app, get_engine())
 
     return app
