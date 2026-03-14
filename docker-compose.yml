@@ -1,0 +1,24 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: labmanager
+      POSTGRES_PASSWORD: labmanager
+      POSTGRES_DB: labmanager
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  search:
+    image: getmeili/meilisearch:v1.12
+    ports:
+      - "7700:7700"
+    volumes:
+      - msdata:/meili_data
+    environment:
+      MEILI_ENV: development
+
+volumes:
+  pgdata:
+  msdata:
