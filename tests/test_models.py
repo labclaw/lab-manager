@@ -76,3 +76,28 @@ def test_inventory_item_model():
         lot_number="4361991",
     )
     assert inv.quantity_on_hand == 5
+
+
+from lab_manager.models.document import Document
+from lab_manager.models.audit import AuditLog
+
+
+def test_document_model():
+    doc = Document(
+        file_path="uploads/scan001.jpg",
+        file_name="scan001.jpg",
+        document_type="packing_list",
+        status="pending",
+    )
+    assert doc.status == "pending"
+
+
+def test_audit_log_model():
+    log = AuditLog(
+        table_name="orders",
+        record_id=1,
+        action="create",
+        changed_by="sshen",
+        changes={"po_number": {"old": None, "new": "PO-123"}},
+    )
+    assert log.action == "create"
