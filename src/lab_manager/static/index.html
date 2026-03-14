@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LabClaw - Lab Manager</title>
+<style>
+  :root {
+    --bg: #f8f9fa; --card: #fff; --border: #e0e0e0;
+    --primary: #2563eb; --primary-light: #dbeafe; --primary-dark: #1d4ed8;
+    --success: #16a34a; --success-bg: #dcfce7;
+    --warning: #d97706; --warning-bg: #fef3c7;
+    --danger: #dc2626; --danger-bg: #fee2e2;
+    --text: #1e293b; --text-muted: #64748b;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); }
+
+  /* Top nav */
+  .navbar {
+    background: var(--primary); color: #fff; padding: 12px 24px;
+    display: flex; align-items: center; gap: 24px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .navbar h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+  .navbar .nav-links { display: flex; gap: 4px; }
+  .navbar .nav-links button {
+    background: transparent; color: rgba(255,255,255,0.8); border: none;
+    padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;
+    transition: all 0.15s;
+  }
+  .navbar .nav-links button:hover, .navbar .nav-links button.active {
+    background: rgba(255,255,255,0.2); color: #fff;
+  }
+
+  /* Layout */
+  .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+  /* Stats cards */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px; margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--card); border-radius: 12px; padding: 20px;
+    border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .stat-card .label { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
+  .stat-card .value { font-size: 28px; font-weight: 700; }
+  .stat-card .sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Filters */
+  .filters {
+    display: flex; gap: 12px; margin-bottom: 16px; align-items: center; flex-wrap: wrap;
+  }
+  .filters input, .filters select {
+    padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: 14px; background: var(--card);
+  }
+  .filters input { width: 260px; }
+  .filter-btn {
+    padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
+    cursor: pointer; border: 1px solid var(--border); background: var(--card);
+    transition: all 0.15s;
+  }
+  .filter-btn:hover { border-color: var(--primary); color: var(--primary); }
+  .filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  /* Document list */
+  .doc-list {
+    background: var(--card); border-radius: 12px; border: 1px solid var(--border);
+    overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .doc-row {
+    display: grid; grid-template-columns: 60px 1fr 140px 120px 80px 100px;
+    align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border);
+    cursor: pointer; transition: background 0.1s;
+  }
+  .doc-row:hover { background: var(--primary-light); }
+  .doc-row.selected { background: #bfdbfe; }
+  .doc-row .id { color: var(--text-muted); font-size: 13px; }
+  .doc-row .filename { font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .doc-row .vendor { font-size: 13px; color: var(--text-muted); }
+  .doc-row .type { font-size: 12px; }
+  .doc-row .conf { font-size: 13px; font-weight: 600; }
+
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 600;
+  }
+  .badge-approved { background: var(--success-bg); color: var(--success); }
+  .badge-needs_review { background: var(--warning-bg); color: var(--warning); }
+  .badge-rejected { background: var(--danger-bg); color: var(--danger); }
+  .badge-empty { background: #f1f5f9; color: #94a3b8; }
+
+  .doc-header {
+    display: grid; grid-template-columns: 60px 1fr 140px 120px 80px 100px;
+    padding: 10px 16px; font-size: 12px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--border);
+  }
+
+  /* Detail panel */
+  .detail-panel {
+    position: fixed; top: 0; right: -600px; width: 600px; height: 100vh;
+    background: var(--card); box-shadow: -4px 0 20px rgba(0,0,0,0.15);
+    z-index: 200; transition: right 0.3s ease; overflow-y: auto;
+  }
+  .detail-panel.open { right: 0; }
+  .detail-header {
+    position: sticky; top: 0; background: var(--card); z-index: 10;
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .detail-header h2 { font-size: 16px; }
+  .close-btn {
+    background: none; border: none; font-size: 24px; cursor: pointer;
+    color: var(--text-muted); padding: 4px 8px; border-radius: 4px;
+  }
+  .close-btn:hover { background: #f1f5f9; }
+  .detail-body { padding: 20px; }
+
+  /* Scan image */
+  .scan-image {
+    width: 100%; max-height: 400px; object-fit: contain;
+    border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px;
+    background: #f1f5f9;
+  }
+
+  /* Extracted data */
+  .field-group { margin-bottom: 16px; }
+  .field-group h3 {
+    font-size: 13px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+    padding-bottom: 4px; border-bottom: 1px solid var(--border);
+  }
+  .field-row {
+    display: flex; justify-content: space-between; padding: 6px 0;
+    border-bottom: 1px solid #f1f5f9; font-size: 14px;
+  }
+  .field-label { color: var(--text-muted); flex: 0 0 140px; }
+  .field-value { font-weight: 500; text-align: right; word-break: break-all; }
+
+  /* Items table */
+  .items-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  .items-table th {
+    text-align: left; padding: 6px 8px; background: #f8fafc;
+    font-weight: 600; color: var(--text-muted); border-bottom: 2px solid var(--border);
+  }
+  .items-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; }
+
+  /* OCR text */
+  .ocr-text {
+    background: #f8fafc; border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; font-family: 'Courier New', monospace; font-size: 12px;
+    max-height: 300px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5;
+  }
+
+  /* Action buttons */
+  .actions { display: flex; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--border); position: sticky; bottom: 0; background: var(--card); }
+  .btn {
+    padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    cursor: pointer; border: none; transition: all 0.15s;
+  }
+  .btn-approve { background: var(--success); color: #fff; }
+  .btn-approve:hover { background: #15803d; }
+  .btn-reject { background: var(--danger); color: #fff; }
+  .btn-reject:hover { background: #b91c1c; }
+  .btn-secondary { background: #f1f5f9; color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: #e2e8f0; }
+
+  /* Pagination */
+  .pagination {
+    display: flex; justify-content: center; align-items: center; gap: 8px;
+    padding: 16px; border-top: 1px solid var(--border);
+  }
+  .pagination button {
+    padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--card); cursor: pointer; font-size: 13px;
+  }
+  .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .pagination span { font-size: 13px; color: var(--text-muted); }
+
+  /* Top vendors chart */
+  .vendor-bar {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px;
+  }
+  .vendor-bar .name { width: 180px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vendor-bar .bar { height: 20px; background: var(--primary); border-radius: 4px; min-width: 4px; transition: width 0.5s; }
+  .vendor-bar .count { width: 30px; font-weight: 600; }
+
+  /* Overlay */
+  .overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.3); z-index: 150; display: none;
+  }
+  .overlay.show { display: block; }
+
+  /* Tab toggle */
+  .tab-bar { display: flex; gap: 2px; margin-bottom: 12px; }
+  .tab-bar button {
+    padding: 6px 14px; border: 1px solid var(--border); background: var(--card);
+    cursor: pointer; font-size: 13px; border-radius: 6px;
+  }
+  .tab-bar button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  .hidden { display: none !important; }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    padding: 12px 24px; border-radius: 8px; font-weight: 500; font-size: 14px;
+    z-index: 300; animation: fadeInUp 0.3s;
+  }
+  .toast-success { background: var(--success); color: #fff; }
+  .toast-error { background: var(--danger); color: #fff; }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <h1>LabClaw</h1>
+  <div class="nav-links">
+    <button class="active" onclick="showView('dashboard')">Dashboard</button>
+    <button onclick="showView('documents')">Documents</button>
+    <button onclick="showView('review')">Review Queue</button>
+    <button onclick="window.open('/admin/', '_blank')">Admin</button>
+  </div>
+</nav>
+
+<div class="container">
+  <!-- Dashboard View -->
+  <div id="view-dashboard">
+    <div class="stats-grid" id="stats-grid"></div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+      <div class="stat-card">
+        <div class="label">Top Vendors</div>
+        <div id="vendor-chart" style="margin-top: 12px;"></div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Document Types</div>
+        <div id="type-chart" style="margin-top: 12px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Documents View -->
+  <div id="view-documents" class="hidden">
+    <div class="filters">
+      <input type="text" id="search-input" placeholder="Search vendor or filename..." oninput="debounceSearch()">
+      <div style="display:flex; gap:4px;">
+        <button class="filter-btn active" data-status="" onclick="setFilter(this, '')">All</button>
+        <button class="filter-btn" data-status="approved" onclick="setFilter(this, 'approved')">Approved</button>
+        <button class="filter-btn" data-status="needs_review" onclick="setFilter(this, 'needs_review')">Needs Review</button>
+        <button class="filter-btn" data-status="rejected" onclick="setFilter(this, 'rejected')">Rejected</button>
+      </div>
+    </div>
+    <div class="doc-list">
+      <div class="doc-header">
+        <div>ID</div><div>File / Vendor</div><div>Type</div><div>Status</div><div>Conf.</div><div></div>
+      </div>
+      <div id="doc-rows"></div>
+      <div class="pagination">
+        <button onclick="changePage(-1)" id="prev-btn" disabled>&laquo; Prev</button>
+        <span id="page-info">Page 1</span>
+        <button onclick="changePage(1)" id="next-btn">Next &raquo;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Review Queue View -->
+  <div id="view-review" class="hidden">
+    <div style="margin-bottom: 16px;">
+      <h2 style="font-size: 18px; margin-bottom: 4px;">Review Queue</h2>
+      <p style="color: var(--text-muted); font-size: 14px;">Documents that need human verification before entering the database.</p>
+    </div>
+    <div class="doc-list">
+      <div class="doc-header">
+        <div>ID</div><div>File / Vendor</div><div>Type</div><div>Status</div><div>Conf.</div><div></div>
+      </div>
+      <div id="review-rows"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail side panel -->
+<div class="overlay" id="overlay" onclick="closeDetail()"></div>
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-header">
+    <h2 id="detail-title">Document</h2>
+    <button class="close-btn" onclick="closeDetail()">&times;</button>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+  <div class="actions" id="detail-actions"></div>
+</div>
+
+<script>
+const API = '/api/documents';
+let currentPage = 0;
+const PAGE_SIZE = 30;
+let currentFilter = '';
+let currentSearch = '';
+let searchTimer = null;
+let stats = null;
+
+// --- Init ---
+async function init() {
+  await loadStats();
+  showView('dashboard');
+}
+
+// --- Views ---
+function showView(view) {
+  document.querySelectorAll('.navbar .nav-links button').forEach((b, i) => {
+    b.classList.toggle('active', b.textContent.toLowerCase().includes(view === 'review' ? 'review' : view));
+  });
+  ['dashboard', 'documents', 'review'].forEach(v => {
+    document.getElementById('view-' + v).classList.toggle('hidden', v !== view);
+  });
+  if (view === 'documents') loadDocuments();
+  if (view === 'review') loadReviewQueue();
+}
+
+// --- Stats ---
+async function loadStats() {
+  const r = await fetch(API + '/stats');
+  stats = await r.json();
+  renderStats();
+}
+
+function renderStats() {
+  const s = stats;
+  const grid = document.getElementById('stats-grid');
+  grid.innerHTML = `
+    <div class="stat-card">
+      <div class="label">Total Documents</div>
+      <div class="value">${s.total_documents}</div>
+      <div class="sub">scanned lab documents</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Approved</div>
+      <div class="value" style="color:var(--success)">${s.by_status.approved || 0}</div>
+      <div class="sub">${((s.by_status.approved || 0) / s.total_documents * 100).toFixed(0)}% auto-approved</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Needs Review</div>
+      <div class="value" style="color:var(--warning)">${s.by_status.needs_review || 0}</div>
+      <div class="sub">awaiting scientist verification</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Orders Created</div>
+      <div class="value">${s.total_orders}</div>
+      <div class="sub">${s.total_items} line items</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Vendors</div>
+      <div class="value">${s.total_vendors}</div>
+      <div class="sub">discovered from scans</div>
+    </div>
+  `;
+
+  // Vendor chart
+  const vc = document.getElementById('vendor-chart');
+  const maxCount = Math.max(...s.top_vendors.map(v => v.count));
+  vc.innerHTML = s.top_vendors.map(v => `
+    <div class="vendor-bar">
+      <div class="name" title="${escapeHtml(v.name || '')}">${escapeHtml(v.name || '')}</div>
+      <div class="bar" style="width: ${v.count / maxCount * 200}px"></div>
+      <div class="count">${v.count}</div>
+    </div>
+  `).join('');
+
+  // Type chart
+  const tc = document.getElementById('type-chart');
+  const types = Object.entries(s.by_type).filter(([k]) => k && k !== 'null' && k !== 'None').sort((a, b) => b[1] - a[1]);
+  const maxType = Math.max(...types.map(([, c]) => c));
+  tc.innerHTML = types.map(([name, count]) => `
+    <div class="vendor-bar">
+      <div class="name">${escapeHtml(name || '')}</div>
+      <div class="bar" style="width: ${count / maxType * 200}px; background: #8b5cf6"></div>
+      <div class="count">${count}</div>
+    </div>
+  `).join('');
+}
+
+// --- Documents ---
+async function loadDocuments() {
+  const params = new URLSearchParams({ skip: currentPage * PAGE_SIZE, limit: PAGE_SIZE });
+  if (currentFilter) params.set('status', currentFilter);
+  if (currentSearch) params.set('search', currentSearch);
+  const r = await fetch(API + '?' + params);
+  const docs = await r.json();
+  renderDocRows('doc-rows', docs);
+  document.getElementById('prev-btn').disabled = currentPage === 0;
+  document.getElementById('next-btn').disabled = docs.length < PAGE_SIZE;
+  document.getElementById('page-info').textContent = `Page ${currentPage + 1}`;
+}
+
+async function loadReviewQueue() {
+  const r = await fetch(API + '?status=needs_review&limit=200');
+  const docs = await r.json();
+  renderDocRows('review-rows', docs);
+}
+
+function renderDocRows(containerId, docs) {
+  const c = document.getElementById(containerId);
+  if (docs.length === 0) {
+    c.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted);">No documents found</div>';
+    return;
+  }
+  c.innerHTML = docs.map(d => `
+    <div class="doc-row" onclick="openDetail(${d.id})">
+      <div class="id">#${d.id}</div>
+      <div>
+        <div class="filename">${escapeHtml(d.file_name || '')}</div>
+        <div class="vendor">${escapeHtml(d.vendor_name || '—')}</div>
+      </div>
+      <div class="type">${escapeHtml(d.document_type || '—')}</div>
+      <div><span class="badge badge-${escapeHtml(d.status || '')}">${escapeHtml((d.status || '').replace('_', ' '))}</span></div>
+      <div class="conf">${d.extraction_confidence != null ? (d.extraction_confidence * 100).toFixed(0) + '%' : '—'}</div>
+      <div style="text-align:right"><button class="btn btn-secondary" style="padding:4px 10px; font-size:12px;" onclick="event.stopPropagation(); openDetail(${d.id})">View</button></div>
+    </div>
+  `).join('');
+}
+
+// --- Detail ---
+async function openDetail(id) {
+  const r = await fetch(API + '/' + id);
+  const doc = await r.json();
+  document.getElementById('detail-title').textContent = doc.file_name || '';
+  const body = document.getElementById('detail-body');
+  const data = doc.extracted_data || {};
+
+  // Build items table
+  let itemsHtml = '';
+  if (data.items && data.items.length > 0) {
+    itemsHtml = `
+      <div class="field-group">
+        <h3>Line Items (${data.items.length})</h3>
+        <table class="items-table">
+          <thead><tr><th>Catalog #</th><th>Description</th><th>Qty</th><th>Unit</th><th>Lot #</th></tr></thead>
+          <tbody>
+            ${data.items.map(it => `<tr>
+              <td><strong>${escapeHtml(it.catalog_number || '—')}</strong></td>
+              <td>${escapeHtml(it.description || '—')}</td>
+              <td>${escapeHtml(String(it.quantity || '—'))}</td>
+              <td>${escapeHtml(it.unit || '')}</td>
+              <td>${escapeHtml(it.lot_number || '—')}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  body.innerHTML = `
+    <img class="scan-image" src="/scans/${encodeURIComponent(doc.file_name || '')}" onerror="this.style.display='none'" alt="scan">
+
+    <div style="display:flex; gap:8px; margin-bottom:16px; align-items:center;">
+      <span class="badge badge-${escapeHtml(doc.status || '')}" style="font-size:14px; padding:5px 14px;">${escapeHtml((doc.status || '').replace('_', ' '))}</span>
+      <span style="color:var(--text-muted); font-size:13px;">Confidence: <strong>${doc.extraction_confidence != null ? (doc.extraction_confidence * 100).toFixed(0) + '%' : 'N/A'}</strong></span>
+    </div>
+
+    <div class="field-group">
+      <h3>Document Info</h3>
+      ${fieldRow('Vendor', escapeHtml(data.vendor_name || ''))}
+      ${fieldRow('Type', escapeHtml(data.document_type || ''))}
+      ${fieldRow('PO Number', escapeHtml(data.po_number || ''))}
+      ${fieldRow('Order Number', escapeHtml(data.order_number || ''))}
+      ${fieldRow('Invoice #', escapeHtml(data.invoice_number || ''))}
+      ${fieldRow('Delivery #', escapeHtml(data.delivery_number || ''))}
+    </div>
+
+    <div class="field-group">
+      <h3>Dates</h3>
+      ${fieldRow('Order Date', escapeHtml(data.order_date || ''))}
+      ${fieldRow('Ship Date', escapeHtml(data.ship_date || ''))}
+      ${fieldRow('Received Date', escapeHtml(data.received_date || ''))}
+      ${fieldRow('Received By', escapeHtml(data.received_by || ''))}
+    </div>
+
+    <div class="field-group">
+      <h3>Addresses</h3>
+      ${fieldRow('Ship To', escapeHtml(data.ship_to_address || ''))}
+      ${fieldRow('Bill To', escapeHtml(data.bill_to_address || ''))}
+    </div>
+
+    ${itemsHtml}
+
+    <div class="field-group">
+      <h3>OCR Text</h3>
+      <div class="tab-bar">
+        <button class="active" onclick="toggleOcr(this, 'extracted')">Extracted Data</button>
+        <button onclick="toggleOcr(this, 'raw')">Raw OCR Text</button>
+      </div>
+      <div id="ocr-extracted"><pre style="font-size:12px; max-height:200px; overflow:auto; background:#f8fafc; padding:8px; border-radius:6px;">${escapeHtml(JSON.stringify(data, null, 2))}</pre></div>
+      <div id="ocr-raw" class="hidden"><div class="ocr-text">${escapeHtml(doc.ocr_text || '')}</div></div>
+    </div>
+  `;
+
+  // Actions
+  const actions = document.getElementById('detail-actions');
+  if (doc.status === 'needs_review') {
+    actions.innerHTML = `
+      <button class="btn btn-approve" onclick="reviewDoc(${doc.id}, 'approve')">Approve & Create Order</button>
+      <button class="btn btn-reject" onclick="reviewDoc(${doc.id}, 'reject')">Reject</button>
+      <div style="flex:1"></div>
+    `;
+  } else {
+    actions.innerHTML = `<span style="color:var(--text-muted); font-size:13px;">Status: ${escapeHtml(doc.status || '')}${doc.reviewed_by ? ' by ' + escapeHtml(doc.reviewed_by) : ''}</span>`;
+  }
+
+  document.getElementById('detail-panel').classList.add('open');
+  document.getElementById('overlay').classList.add('show');
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function fieldRow(label, value) {
+  return `<div class="field-row"><div class="field-label">${escapeHtml(label)}</div><div class="field-value">${value || '—'}</div></div>`;
+}
+
+function toggleOcr(btn, mode) {
+  btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('ocr-extracted').classList.toggle('hidden', mode !== 'extracted');
+  document.getElementById('ocr-raw').classList.toggle('hidden', mode !== 'raw');
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// --- Review ---
+async function reviewDoc(id, action) {
+  const r = await fetch(API + '/' + id + '/review', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, reviewed_by: 'scientist' }),
+  });
+  if (r.ok) {
+    showToast(action === 'approve' ? 'Document approved, order created!' : 'Document rejected', 'success');
+    closeDetail();
+    await loadStats();
+    // Refresh current view
+    const reviewView = document.getElementById('view-review');
+    if (!reviewView.classList.contains('hidden')) loadReviewQueue();
+    const docsView = document.getElementById('view-documents');
+    if (!docsView.classList.contains('hidden')) loadDocuments();
+  } else {
+    showToast('Error: ' + (await r.text()), 'error');
+  }
+}
+
+// --- Helpers ---
+function setFilter(btn, status) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = status;
+  currentPage = 0;
+  loadDocuments();
+}
+
+function changePage(delta) {
+  currentPage = Math.max(0, currentPage + delta);
+  loadDocuments();
+}
+
+function debounceSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    currentSearch = document.getElementById('search-input').value;
+    currentPage = 0;
+    loadDocuments();
+  }, 300);
+}
+
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDetail();
+});
+
+init();
+</script>
+</body>
+</html>

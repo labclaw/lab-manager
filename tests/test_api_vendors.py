@@ -17,7 +17,13 @@ def test_list_vendors(client):
     client.post("/api/vendors/", json={"name": "Sigma"})
     resp = client.get("/api/vendors/")
     assert resp.status_code == 200
-    assert len(resp.json()) >= 1
+    data = resp.json()
+    assert "items" in data
+    assert "total" in data
+    assert "page" in data
+    assert "page_size" in data
+    assert "pages" in data
+    assert len(data["items"]) >= 1
 
 
 def test_get_vendor_not_found(client):
