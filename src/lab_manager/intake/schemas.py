@@ -4,7 +4,18 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+VALID_DOC_TYPES = {
+    "packing_list",
+    "invoice",
+    "certificate_of_analysis",
+    "shipping_label",
+    "quote",
+    "receipt",
+    "mta",
+    "other",
+}
 
 
 class ExtractedItem(BaseModel):
@@ -32,7 +43,7 @@ class ExtractedDocument(BaseModel):
 
     vendor_name: str = Field(description="Supplier / vendor company name")
     document_type: str = Field(
-        description="Type: packing_list, invoice, package, shipping_label"
+        description="Type: packing_list, invoice, certificate_of_analysis, shipping_label, quote, receipt, mta, other"
     )
     po_number: Optional[str] = Field(None, description="Purchase order number")
     order_number: Optional[str] = Field(None, description="Sales or order number")
@@ -52,3 +63,12 @@ class ExtractedDocument(BaseModel):
     bill_to_address: Optional[str] = Field(None, description="Billing address")
     items: list[ExtractedItem] = Field(default_factory=list, description="Line items")
     confidence: Optional[float] = Field(None, description="Extraction confidence 0-1")
+
+    @field_validator("document_type")
+    @classmethod
+    def check_document_type(cls, v: str) -> str:
+        if v not in VALID_DOC_TYPES:
+            raise ValueError(
+                f"invalid document_type: {v!r}, must be one of {VALID_DOC_TYPES}"
+            )
+        return v

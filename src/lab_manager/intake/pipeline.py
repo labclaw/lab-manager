@@ -9,11 +9,11 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from lab_manager.config import get_settings
-from lab_manager.intake.ocr import extract_text_from_image
 from lab_manager.intake.extractor import extract_from_text
+from lab_manager.intake.ocr import extract_text_from_image
 from lab_manager.intake.schemas import ExtractedDocument
-from lab_manager.models.document import Document
-from lab_manager.models.order import Order, OrderItem
+from lab_manager.models.document import Document, DocumentStatus
+from lab_manager.models.order import Order, OrderItem, OrderStatus
 from lab_manager.models.vendor import Vendor
 
 
@@ -88,18 +88,13 @@ def process_document(image_path: Path, db: Session) -> Document:
         extracted_data=extracted.model_dump(),
         extraction_model=settings.extraction_model,
         extraction_confidence=extracted.confidence,
-        status="extracted",
+        status=DocumentStatus.extracted,
     )
     db.add(doc)
     db.flush()
 
-    # 5. Auto-create order if confidence is high enough
-    threshold = settings.auto_approve_threshold
-    if extracted.confidence and extracted.confidence >= threshold:
-        _create_order_from_extraction(extracted, doc, db)
-        doc.status = "approved"
-    else:
-        doc.status = "needs_review"
+    # 5. All documents require human review before approval
+    doc.status = DocumentStatus.needs_review
 
     db.commit()
     db.refresh(doc)
@@ -122,7 +117,7 @@ def _create_order_from_extraction(
         vendor_id=vendor.id,
         delivery_number=extracted.delivery_number,
         invoice_number=extracted.invoice_number,
-        status="received",
+        status=OrderStatus.received,
         document_id=doc.id,
         received_by=extracted.received_by,
     )
