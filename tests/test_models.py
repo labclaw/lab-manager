@@ -40,3 +40,39 @@ def test_staff_model():
 def test_location_model():
     loc = StorageLocation(name="Freezer -80C #1", temperature=-80, room="CNY 149")
     assert loc.temperature == -80
+
+
+from datetime import date
+from lab_manager.models.order import Order, OrderItem
+from lab_manager.models.inventory import InventoryItem
+
+
+def test_order_model():
+    o = Order(
+        po_number="PO-10997931",
+        vendor_id=1,
+        order_date=date(2026, 3, 4),
+        status="received",
+    )
+    assert o.po_number == "PO-10997931"
+
+
+def test_order_item_model():
+    item = OrderItem(
+        order_id=1,
+        catalog_number="AB1031",
+        description="AGGRECAN, RBX MS-50UG",
+        quantity=1,
+        lot_number="4361991",
+    )
+    assert item.lot_number == "4361991"
+
+
+def test_inventory_item_model():
+    inv = InventoryItem(
+        product_id=1,
+        location_id=1,
+        quantity_on_hand=5,
+        lot_number="4361991",
+    )
+    assert inv.quantity_on_hand == 5
