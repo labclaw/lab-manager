@@ -5,14 +5,30 @@ from __future__ import annotations
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db
-from lab_manager.models.order import Order
+from lab_manager.api.pagination import apply_sort, escape_like, paginate
+from lab_manager.models.order import Order, OrderItem, OrderStatus
 
 router = APIRouter()
+
+_ORDER_SORTABLE = {
+    "id",
+    "created_at",
+    "updated_at",
+    "po_number",
+    "order_date",
+    "ship_date",
+    "received_date",
+    "status",
+    "vendor_id",
+}
+
+
+# --- Order schemas ---
 
 
 class OrderCreate(BaseModel):
@@ -22,16 +38,89 @@ class OrderCreate(BaseModel):
     ship_date: Optional[date] = None
     received_date: Optional[date] = None
     received_by: Optional[str] = None
-    status: str = "pending"
+    status: str = OrderStatus.pending
     delivery_number: Optional[str] = None
     invoice_number: Optional[str] = None
     document_id: Optional[int] = None
     extra: dict = {}
 
 
+class OrderUpdate(BaseModel):
+    po_number: Optional[str] = None
+    vendor_id: Optional[int] = None
+    order_date: Optional[date] = None
+    ship_date: Optional[date] = None
+    received_date: Optional[date] = None
+    received_by: Optional[str] = None
+    status: Optional[str] = None
+    delivery_number: Optional[str] = None
+    invoice_number: Optional[str] = None
+    document_id: Optional[int] = None
+    extra: Optional[dict] = None
+
+
+# --- OrderItem schemas ---
+
+
+class OrderItemCreate(BaseModel):
+    order_id: int
+    catalog_number: Optional[str] = None
+    description: Optional[str] = None
+    quantity: float = 1
+    unit: Optional[str] = None
+    lot_number: Optional[str] = None
+    batch_number: Optional[str] = None
+    unit_price: Optional[float] = None
+    product_id: Optional[int] = None
+    extra: dict = {}
+
+
+class OrderItemUpdate(BaseModel):
+    catalog_number: Optional[str] = None
+    description: Optional[str] = None
+    quantity: Optional[float] = None
+    unit: Optional[str] = None
+    lot_number: Optional[str] = None
+    batch_number: Optional[str] = None
+    unit_price: Optional[float] = None
+    product_id: Optional[int] = None
+    extra: Optional[dict] = None
+
+
+# =====================
+#  Order endpoints
+# =====================
+
+
 @router.get("/")
-def list_orders(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(Order).offset(skip).limit(limit).all()
+def list_orders(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    vendor_id: Optional[int] = Query(None),
+    status: Optional[str] = Query(None),
+    po_number: Optional[str] = Query(None),
+    date_from: Optional[date] = Query(None),
+    date_to: Optional[date] = Query(None),
+    received_by: Optional[str] = Query(None),
+    sort_by: str = Query("id"),
+    sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
+    db: Session = Depends(get_db),
+):
+    q = db.query(Order)
+    if vendor_id is not None:
+        q = q.filter(Order.vendor_id == vendor_id)
+    if status:
+        q = q.filter(Order.status == status)
+    if po_number:
+        q = q.filter(Order.po_number.ilike(f"%{escape_like(po_number)}%"))
+    if date_from:
+        q = q.filter(Order.order_date >= date_from)
+    if date_to:
+        q = q.filter(Order.order_date <= date_to)
+    if received_by:
+        q = q.filter(Order.received_by.ilike(f"%{escape_like(received_by)}%"))
+    q = apply_sort(q, Order, sort_by, sort_dir, _ORDER_SORTABLE)
+    return paginate(q, page, page_size)
 
 
 @router.post("/", status_code=201)
@@ -49,3 +138,148 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     return order
+
+
+@router.patch("/{order_id}")
+def update_order(order_id: int, body: OrderUpdate, db: Session = Depends(get_db)):
+    order = db.get(Order, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    for key, value in body.model_dump(exclude_unset=True).items():
+        setattr(order, key, value)
+    db.commit()
+    db.refresh(order)
+    return order
+
+
+@router.delete("/{order_id}", status_code=204)
+def delete_order(order_id: int, db: Session = Depends(get_db)):
+    """Soft-delete: set status to 'deleted'."""
+    order = db.get(Order, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    order.status = OrderStatus.deleted
+    db.commit()
+    return None
+
+
+# =====================
+#  Order Items sub-endpoints
+# =====================
+
+
+@router.get("/{order_id}/items")
+def list_order_items(
+    order_id: int,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    catalog_number: Optional[str] = Query(None),
+    lot_number: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    order = db.get(Order, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    q = db.query(OrderItem).filter(OrderItem.order_id == order_id)
+    if catalog_number:
+        q = q.filter(OrderItem.catalog_number.ilike(f"%{escape_like(catalog_number)}%"))
+    if lot_number:
+        q = q.filter(OrderItem.lot_number.ilike(f"%{escape_like(lot_number)}%"))
+    q = q.order_by(OrderItem.id)
+    return paginate(q, page, page_size)
+
+
+@router.post("/{order_id}/items", status_code=201)
+def create_order_item(
+    order_id: int, body: OrderItemCreate, db: Session = Depends(get_db)
+):
+    order = db.get(Order, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    item = OrderItem(**body.model_dump())
+    item.order_id = order_id
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.get("/{order_id}/items/{item_id}")
+def get_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)):
+    item = (
+        db.query(OrderItem)
+        .filter(OrderItem.id == item_id, OrderItem.order_id == order_id)
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="Order item not found")
+    return item
+
+
+@router.patch("/{order_id}/items/{item_id}")
+def update_order_item(
+    order_id: int, item_id: int, body: OrderItemUpdate, db: Session = Depends(get_db)
+):
+    item = (
+        db.query(OrderItem)
+        .filter(OrderItem.id == item_id, OrderItem.order_id == order_id)
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="Order item not found")
+    for key, value in body.model_dump(exclude_unset=True).items():
+        setattr(item, key, value)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.delete("/{order_id}/items/{item_id}", status_code=204)
+def delete_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)):
+    item = (
+        db.query(OrderItem)
+        .filter(OrderItem.id == item_id, OrderItem.order_id == order_id)
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="Order item not found")
+    db.delete(item)
+    db.commit()
+    return None
+
+
+# =====================
+#  Receive shipment
+# =====================
+
+
+class ReceiveItemEntry(BaseModel):
+    order_item_id: Optional[int] = None
+    product_id: Optional[int] = None
+    quantity: float = 1
+    lot_number: Optional[str] = None
+    unit: Optional[str] = None
+    expiry_date: Optional[date] = None
+
+
+class ReceiveBody(BaseModel):
+    items: list[ReceiveItemEntry]
+    location_id: int
+    received_by: str
+
+
+@router.post("/{order_id}/receive", status_code=201)
+def receive_order(order_id: int, body: ReceiveBody, db: Session = Depends(get_db)):
+    """Receive a shipment — creates inventory records from order items."""
+    from lab_manager.services import inventory as inv_svc
+    from lab_manager.services.inventory import InventoryError, NotFoundError
+
+    items_dicts = [item.model_dump() for item in body.items]
+    try:
+        return inv_svc.receive_items(
+            order_id, items_dicts, body.location_id, body.received_by, db
+        )
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except InventoryError as e:
+        raise HTTPException(status_code=400, detail=str(e))

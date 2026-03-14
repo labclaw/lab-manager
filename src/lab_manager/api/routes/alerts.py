@@ -1,0 +1,96 @@
+"""Alert management endpoints."""
+
+from __future__ import annotations
+
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+
+from lab_manager.api.deps import get_db
+from lab_manager.api.pagination import paginate
+from lab_manager.models.alert import Alert
+from lab_manager.models.base import utcnow
+from lab_manager.services.alerts import get_alert_summary, persist_alerts
+
+router = APIRouter()
+
+
+@router.get("/")
+def list_alerts(
+    alert_type: Optional[str] = Query(None),
+    severity: Optional[str] = Query(None),
+    acknowledged: Optional[bool] = Query(None),
+    resolved: Optional[bool] = Query(None, description="Filter by resolved status"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    """List alerts with optional filters. Defaults to unresolved."""
+    q = db.query(Alert)
+    if alert_type:
+        q = q.filter(Alert.alert_type == alert_type)
+    if severity:
+        q = q.filter(Alert.severity == severity)
+    if acknowledged is not None:
+        q = q.filter(Alert.is_acknowledged == acknowledged)
+    if resolved is not None:
+        q = q.filter(Alert.is_resolved == resolved)
+    else:
+        # Default: only show unresolved alerts
+        q = q.filter(Alert.is_resolved.is_(False))
+    q = q.order_by(Alert.created_at.desc())
+    return paginate(q, page, page_size)
+
+
+@router.get("/summary")
+def alert_summary(db: Session = Depends(get_db)):
+    """Return alert counts grouped by type and severity."""
+    return get_alert_summary(db)
+
+
+@router.post("/check")
+def run_alert_check(db: Session = Depends(get_db)):
+    """Trigger alert checks, persist new alerts, return summary."""
+    created, current = persist_alerts(db)
+    summary = get_alert_summary(db, alerts=current)
+    return {
+        "new_alerts": len(created),
+        "summary": summary,
+    }
+
+
+@router.post("/{alert_id}/acknowledge")
+def acknowledge_alert(
+    alert_id: int,
+    acknowledged_by: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """Mark an alert as acknowledged."""
+    alert = db.get(Alert, alert_id)
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    alert.is_acknowledged = True
+    alert.acknowledged_by = acknowledged_by
+    alert.acknowledged_at = utcnow()
+    db.commit()
+    db.refresh(alert)
+    return alert
+
+
+@router.post("/{alert_id}/resolve")
+def resolve_alert(
+    alert_id: int,
+    db: Session = Depends(get_db),
+):
+    """Mark an alert as resolved."""
+    alert = db.get(Alert, alert_id)
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    alert.is_resolved = True
+    if not alert.is_acknowledged:
+        alert.is_acknowledged = True
+        alert.acknowledged_at = utcnow()
+    db.commit()
+    db.refresh(alert)
+    return alert
