@@ -11,6 +11,7 @@ from lab_manager.models.location import StorageLocation
 from lab_manager.models.order import Order, OrderItem
 from lab_manager.models.inventory import InventoryItem
 from lab_manager.models.document import Document
+from lab_manager.models.alert import Alert
 from lab_manager.models.audit import AuditLog
 
 
@@ -90,8 +91,66 @@ class AuditLogAdmin(ModelView, model=AuditLog):
     ]
 
 
+class AlertAdmin(ModelView, model=Alert):
+    column_list = [
+        Alert.id,
+        Alert.alert_type,
+        Alert.severity,
+        Alert.entity_type,
+        Alert.entity_id,
+        Alert.is_acknowledged,
+        Alert.is_resolved,
+        Alert.created_at,
+    ]
+    column_searchable_list = [Alert.alert_type, Alert.severity]
+
+
+def _make_auth_backend():
+    import hmac
+
+    from sqladmin.authentication import AuthenticationBackend
+
+    class AdminAuthBackend(AuthenticationBackend):
+        async def login(self, request) -> bool:
+            from lab_manager.config import get_settings
+
+            settings = get_settings()
+            if not settings.auth_enabled:
+                request.session["authenticated"] = True
+                return True
+            form = await request.form()
+            username = form.get("username", "")
+            password = form.get("password", "")
+            if hmac.compare_digest(username, "admin") and hmac.compare_digest(
+                password, settings.api_key or ""
+            ):
+                request.session["authenticated"] = True
+                return True
+            return False
+
+        async def logout(self, request) -> bool:
+            request.session.clear()
+            return True
+
+        async def authenticate(self, request) -> bool:
+            from lab_manager.config import get_settings
+
+            settings = get_settings()
+            if not settings.auth_enabled:
+                return True
+            return request.session.get("authenticated", False)
+
+    from lab_manager.config import get_settings
+
+    settings = get_settings()
+    return AdminAuthBackend(secret_key=settings.api_key or "dev-secret-change-me")
+
+
 def setup_admin(app, engine):
-    admin = Admin(app, engine, title="LabClaw Manager")
+    auth_backend = _make_auth_backend()
+    admin = Admin(
+        app, engine, title="LabClaw Manager", authentication_backend=auth_backend
+    )
     admin.add_view(VendorAdmin)
     admin.add_view(ProductAdmin)
     admin.add_view(StaffAdmin)
@@ -101,3 +160,4 @@ def setup_admin(app, engine):
     admin.add_view(InventoryAdmin)
     admin.add_view(DocumentAdmin)
     admin.add_view(AuditLogAdmin)
+    admin.add_view(AlertAdmin)
