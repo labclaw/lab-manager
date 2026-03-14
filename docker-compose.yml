@@ -19,6 +19,20 @@ services:
     environment:
       MEILI_ENV: development
 
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://labmanager:labmanager@db:5432/labmanager
+      MEILISEARCH_URL: http://search:7700
+    depends_on:
+      - db
+      - search
+    volumes:
+      - uploads:/app/uploads
+
 volumes:
   pgdata:
   msdata:
+  uploads:

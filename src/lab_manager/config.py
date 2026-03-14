@@ -10,7 +10,9 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """Application configuration."""
 
-    database_url: str = "postgresql://labmanager:labmanager@localhost:5432/labmanager"
+    database_url: str = (
+        "postgresql+psycopg://labmanager:labmanager@localhost:5432/labmanager"
+    )
     meilisearch_url: str = "http://localhost:7700"
     meilisearch_api_key: str = ""
 
