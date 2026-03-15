@@ -82,6 +82,10 @@ def receive_items(
     for ri in items_received:
         order_item_id = ri.get("order_item_id")
         order_item = db.get(OrderItem, order_item_id) if order_item_id else None
+        if order_item and order_item.order_id != order_id:
+            raise InventoryError(
+                f"Order item {order_item_id} belongs to order {order_item.order_id}, not {order_id}"
+            )
 
         inv = InventoryItem(
             product_id=order_item.product_id if order_item else ri.get("product_id"),

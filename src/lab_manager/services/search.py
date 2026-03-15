@@ -232,7 +232,9 @@ def sync_inventory(db: Session) -> int:
         d: dict = {"id": item.id}
         if item.lot_number:
             d["lot_number"] = item.lot_number
-        d["quantity_on_hand"] = item.quantity_on_hand
+        d["quantity_on_hand"] = (
+            float(item.quantity_on_hand) if item.quantity_on_hand is not None else 0
+        )
         if item.unit:
             d["unit"] = item.unit
         if item.expiry_date:
@@ -250,7 +252,16 @@ def sync_inventory(db: Session) -> int:
 
 
 def sync_all(db: Session) -> dict[str, int]:
-    """Full reindex of all tables into Meilisearch. Returns counts per index."""
+    """Full reindex of all tables into Meilisearch. Returns counts per index.
+
+    Deletes stale records by clearing each index before re-adding.
+    """
+    client = get_search_client()
+    for index_name in INDEX_CONFIG:
+        try:
+            client.index(index_name).delete_all_documents()
+        except Exception:
+            pass  # index may not exist yet
     counts: dict[str, int] = {}
     counts["products"] = sync_products(db)
     counts["vendors"] = sync_vendors(db)

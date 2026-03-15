@@ -4,10 +4,21 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Query
 
+# Escape character used in all LIKE patterns.
+LIKE_ESCAPE = "\\"
+
 
 def escape_like(value: str) -> str:
-    """Escape special characters for SQL LIKE patterns."""
-    return value.replace("\\", "\\\\").replace("%", "\\%")
+    """Escape special characters for SQL LIKE patterns.
+
+    All callers MUST pass ``escape=LIKE_ESCAPE`` (or use ``ilike_escaped``)
+    so the database honours the backslash escapes.
+    """
+    return (
+        value.replace(LIKE_ESCAPE, LIKE_ESCAPE + LIKE_ESCAPE)
+        .replace("%", LIKE_ESCAPE + "%")
+        .replace("_", LIKE_ESCAPE + "_")
+    )
 
 
 def apply_sort(query, model, sort_by: str, sort_dir: str, allowed: set[str]):

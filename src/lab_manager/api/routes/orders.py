@@ -63,7 +63,6 @@ class OrderUpdate(BaseModel):
 
 
 class OrderItemCreate(BaseModel):
-    order_id: int
     catalog_number: Optional[str] = None
     description: Optional[str] = None
     quantity: float = 1
@@ -112,13 +111,15 @@ def list_orders(
     if status:
         q = q.filter(Order.status == status)
     if po_number:
-        q = q.filter(Order.po_number.ilike(f"%{escape_like(po_number)}%"))
+        q = q.filter(Order.po_number.ilike(f"%{escape_like(po_number)}%", escape="\\"))
     if date_from:
         q = q.filter(Order.order_date >= date_from)
     if date_to:
         q = q.filter(Order.order_date <= date_to)
     if received_by:
-        q = q.filter(Order.received_by.ilike(f"%{escape_like(received_by)}%"))
+        q = q.filter(
+            Order.received_by.ilike(f"%{escape_like(received_by)}%", escape="\\")
+        )
     q = apply_sort(q, Order, sort_by, sort_dir, _ORDER_SORTABLE)
     return paginate(q, page, page_size)
 
@@ -182,9 +183,15 @@ def list_order_items(
         raise HTTPException(status_code=404, detail="Order not found")
     q = db.query(OrderItem).filter(OrderItem.order_id == order_id)
     if catalog_number:
-        q = q.filter(OrderItem.catalog_number.ilike(f"%{escape_like(catalog_number)}%"))
+        q = q.filter(
+            OrderItem.catalog_number.ilike(
+                f"%{escape_like(catalog_number)}%", escape="\\"
+            )
+        )
     if lot_number:
-        q = q.filter(OrderItem.lot_number.ilike(f"%{escape_like(lot_number)}%"))
+        q = q.filter(
+            OrderItem.lot_number.ilike(f"%{escape_like(lot_number)}%", escape="\\")
+        )
     q = q.order_by(OrderItem.id)
     return paginate(q, page, page_size)
 

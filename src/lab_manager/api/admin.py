@@ -143,7 +143,12 @@ def _make_auth_backend():
     from lab_manager.config import get_settings
 
     settings = get_settings()
-    return AdminAuthBackend(secret_key=settings.api_key or "dev-secret-change-me")
+    secret = settings.admin_secret_key or settings.api_key
+    if not secret:
+        import secrets
+
+        secret = secrets.token_hex(32)
+    return AdminAuthBackend(secret_key=secret)
 
 
 def setup_admin(app, engine):

@@ -279,7 +279,7 @@ def top_products(db: Session, limit: int = 20) -> list[dict]:
             "name": r.description,
             "vendor": r.vendor,
             "times_ordered": int(r.times_ordered),
-            "total_quantity": int(r.total_quantity),
+            "total_quantity": float(r.total_quantity),
         }
         for r in rows
     ]
@@ -471,7 +471,6 @@ def document_processing_stats(db: Session) -> dict:
         .scalar()
     )
 
-    error_count = by_status.get(DocumentStatus.rejected, 0)
     rejected_count = by_status.get(DocumentStatus.rejected, 0)
 
     return {
@@ -479,7 +478,6 @@ def document_processing_stats(db: Session) -> dict:
         "by_status": by_status,
         "by_type": by_type,
         "average_confidence": _money(avg_confidence) if avg_confidence else None,
-        "error_count": error_count,
         "rejected_count": rejected_count,
-        "error_rate": _money(error_count / total * 100) if total > 0 else 0.0,
+        "rejection_rate": _money(rejected_count / total * 100) if total > 0 else 0.0,
     }

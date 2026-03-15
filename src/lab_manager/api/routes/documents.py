@@ -41,7 +41,6 @@ class DocumentCreate(BaseModel):
     status: str = DocumentStatus.pending
     review_notes: Optional[str] = None
     reviewed_by: Optional[str] = None
-    order_id: Optional[int] = None
 
 
 class DocumentUpdate(BaseModel):
@@ -56,7 +55,6 @@ class DocumentUpdate(BaseModel):
     status: Optional[str] = None
     review_notes: Optional[str] = None
     reviewed_by: Optional[str] = None
-    order_id: Optional[int] = None
 
 
 class ReviewAction(BaseModel):
@@ -120,14 +118,16 @@ def list_documents(
     if document_type:
         q = q.filter(Document.document_type == document_type)
     if vendor_name:
-        q = q.filter(Document.vendor_name.ilike(f"%{escape_like(vendor_name)}%"))
+        q = q.filter(
+            Document.vendor_name.ilike(f"%{escape_like(vendor_name)}%", escape="\\")
+        )
     if extraction_model:
         q = q.filter(Document.extraction_model == extraction_model)
     if search:
         escaped = escape_like(search)
         q = q.filter(
-            Document.vendor_name.ilike(f"%{escaped}%")
-            | Document.file_name.ilike(f"%{escaped}%")
+            Document.vendor_name.ilike(f"%{escaped}%", escape="\\")
+            | Document.file_name.ilike(f"%{escaped}%", escape="\\")
         )
     q = apply_sort(q, Document, sort_by, sort_dir, _DOC_SORTABLE)
     return paginate(q, page, page_size)

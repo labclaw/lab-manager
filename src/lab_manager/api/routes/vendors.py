@@ -49,13 +49,13 @@ def list_vendors(
 ):
     q = db.query(Vendor)
     if name:
-        q = q.filter(Vendor.name.ilike(f"%{escape_like(name)}%"))
+        q = q.filter(Vendor.name.ilike(f"%{escape_like(name)}%", escape="\\"))
     if search:
         escaped = escape_like(search)
         q = q.filter(
-            Vendor.name.ilike(f"%{escaped}%")
-            | Vendor.email.ilike(f"%{escaped}%")
-            | Vendor.notes.ilike(f"%{escaped}%")
+            Vendor.name.ilike(f"%{escaped}%", escape="\\")
+            | Vendor.email.ilike(f"%{escaped}%", escape="\\")
+            | Vendor.notes.ilike(f"%{escaped}%", escape="\\")
         )
     q = apply_sort(q, Vendor, sort_by, sort_dir, _VENDOR_SORTABLE)
     return paginate(q, page, page_size)
@@ -95,8 +95,15 @@ def delete_vendor(vendor_id: int, db: Session = Depends(get_db)):
     vendor = db.get(Vendor, vendor_id)
     if not vendor:
         raise HTTPException(status_code=404, detail="Vendor not found")
-    db.delete(vendor)
-    db.commit()
+    try:
+        db.delete(vendor)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete vendor: it is referenced by products or orders",
+        )
     return None
 
 

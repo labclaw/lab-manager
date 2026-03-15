@@ -117,8 +117,8 @@ def list_inventory(
     if search:
         escaped = escape_like(search)
         q = q.filter(
-            InventoryItem.lot_number.ilike(f"%{escaped}%")
-            | InventoryItem.notes.ilike(f"%{escaped}%")
+            InventoryItem.lot_number.ilike(f"%{escaped}%", escape="\\")
+            | InventoryItem.notes.ilike(f"%{escaped}%", escape="\\")
         )
     q = apply_sort(q, InventoryItem, sort_by, sort_dir, _INV_SORTABLE)
     return paginate(q, page, page_size)

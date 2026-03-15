@@ -166,8 +166,6 @@ def _before_flush(session: Session, flush_context: object, instances: object) ->
         )
 
     # Store on session info dict so after_flush can retrieve it.
-    if not hasattr(session, "info"):
-        session.info = {}  # type: ignore[assignment]
     session.info[_PENDING_KEY] = pending
 
 

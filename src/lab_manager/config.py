@@ -19,6 +19,7 @@ class Settings(BaseSettings):
 
     # Auth
     api_key: str = ""
+    admin_secret_key: str = ""
     auth_enabled: bool = False
 
     # Document intake

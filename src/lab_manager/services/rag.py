@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import logging
 import re
 
@@ -15,7 +16,13 @@ from lab_manager.services.serialization import serialize_value as _serialize_val
 logger = logging.getLogger(__name__)
 
 # Model used for NL->SQL and answer formatting (API-compatible, see CLAUDE.md)
-MODEL = "gemini-2.5-flash-preview"
+MODEL = "gemini-2.5-flash"
+
+# Max question length to prevent cost amplification
+MAX_QUESTION_LENGTH = 2000
+
+# SQL execution timeout (seconds)
+SQL_TIMEOUT_S = 10
 
 DB_SCHEMA = """\
 -- PostgreSQL schema for a lab inventory management system
@@ -154,6 +161,9 @@ DATABASE SCHEMA:
 RULES:
 - Output ONLY the SQL query, nothing else. No markdown, no explanation.
 - Only SELECT queries. Never use INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE, GRANT, or REVOKE.
+- Only query these tables: vendors, products, staff, locations, documents, orders, order_items, inventory.
+- Do NOT access system catalogs (pg_shadow, pg_authid, information_schema, pg_catalog).
+- Do NOT call functions with side effects (pg_terminate_backend, set_config, dblink, lo_import, etc.).
 - Use JOINs when the question involves related tables (e.g., vendor name for a product).
 - Use ILIKE for case-insensitive text matching.
 - For date-relative queries, use CURRENT_DATE (e.g., "this month" = date_trunc('month', CURRENT_DATE)).
@@ -183,19 +193,38 @@ Be concise but complete. Format numbers and dates nicely. \
 If there are many rows, summarize the key findings.
 """
 
-# Dangerous SQL keywords that must never appear in generated queries
+# Dangerous SQL keywords/functions that must never appear in generated queries
 _FORBIDDEN_PATTERN = re.compile(
     r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|EXEC|EXECUTE"
-    r"|INTO\s+OUTFILE|COPY|pg_read_file|pg_write_file|lo_import|lo_export)\b",
+    r"|INTO\s+OUTFILE|COPY|DO\s*\$"
+    r"|SET\s+ROLE|SET\s+SESSION\s+AUTHORIZATION"
+    r"|pg_read_file|pg_write_file|pg_ls_dir|pg_stat_file"
+    r"|pg_terminate_backend|pg_cancel_backend"
+    r"|lo_import|lo_export|dblink|set_config"
+    r"|pg_shadow|pg_authid|pg_roles"
+    r"|pg_catalog|information_schema|pg_stat_activity|current_setting)\b",
     re.IGNORECASE,
 )
+
+# Allowed table names for FROM/JOIN clauses
+_ALLOWED_TABLES = {
+    "vendors",
+    "products",
+    "staff",
+    "locations",
+    "documents",
+    "orders",
+    "order_items",
+    "inventory",
+}
 
 # Allow only SELECT (including WITH/CTE)
 _ALLOWED_START = re.compile(r"^\s*(SELECT|WITH)\b", re.IGNORECASE)
 
 
+@functools.lru_cache(maxsize=1)
 def _get_client() -> genai.Client:
-    """Create a Gemini API client."""
+    """Create (and cache) a Gemini API client."""
     settings = get_settings()
     api_key = settings.extraction_api_key
     if not api_key:
@@ -249,13 +278,27 @@ def _generate_sql(client: genai.Client, question: str) -> str:
     return _validate_sql(raw)
 
 
+MAX_RESULT_ROWS = 200
+
+
 def _execute_sql(db: Session, sql: str) -> list[dict]:
-    """Execute a read-only SQL query and return results as list of dicts."""
-    db.execute(text("SET TRANSACTION READ ONLY"))
-    result = db.execute(text(sql))
-    columns = list(result.keys())
-    rows = [dict(zip(columns, row)) for row in result.fetchall()]
-    return _serialize_rows(rows)
+    """Execute a read-only SQL query inside a SAVEPOINT and return results.
+
+    Uses a nested transaction (SAVEPOINT) so failures don't poison the
+    outer session.  Enforces a row limit to prevent memory exhaustion.
+    """
+    nested = db.begin_nested()
+    try:
+        db.execute(text(f"SET LOCAL statement_timeout = '{SQL_TIMEOUT_S}s'"))
+        db.execute(text("SET TRANSACTION READ ONLY"))
+        result = db.execute(text(sql))
+        columns = list(result.keys())
+        rows = [dict(zip(columns, row)) for row in result.fetchmany(MAX_RESULT_ROWS)]
+        nested.commit()
+        return _serialize_rows(rows)
+    except Exception:
+        nested.rollback()
+        raise
 
 
 def _format_answer(
@@ -300,7 +343,7 @@ def _fallback_search(question: str) -> dict:
         logger.warning("Meilisearch fallback also failed: %s", e)
         return {
             "question": question,
-            "answer": f"Search is currently unavailable: {e}",
+            "answer": "Search is currently unavailable.",
             "raw_results": [],
             "source": "search",
         }
@@ -326,6 +369,9 @@ def ask(question: str, db: Session) -> dict:
         }
 
     question = question.strip()
+
+    if len(question) > MAX_QUESTION_LENGTH:
+        question = question[:MAX_QUESTION_LENGTH]
 
     try:
         client = _get_client()
@@ -354,12 +400,11 @@ def ask(question: str, db: Session) -> dict:
         answer = _format_answer(client, question, sql, results)
     except Exception as e:
         logger.warning("Answer formatting failed: %s", e)
-        # Still return raw results even if formatting fails
-        answer = f"Query returned {len(results)} results but formatting failed: {e}"
+        answer = f"Query returned {len(results)} results but answer formatting failed."
 
     return {
         "question": question,
         "answer": answer,
-        "raw_results": results,
+        "row_count": len(results),
         "source": "sql",
     }

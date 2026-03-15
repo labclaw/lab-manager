@@ -67,15 +67,19 @@ def list_products(
     if vendor_id is not None:
         q = q.filter(Product.vendor_id == vendor_id)
     if category:
-        q = q.filter(Product.category.ilike(f"%{escape_like(category)}%"))
+        q = q.filter(Product.category.ilike(f"%{escape_like(category)}%", escape="\\"))
     if catalog_number:
-        q = q.filter(Product.catalog_number.ilike(f"%{escape_like(catalog_number)}%"))
+        q = q.filter(
+            Product.catalog_number.ilike(
+                f"%{escape_like(catalog_number)}%", escape="\\"
+            )
+        )
     if search:
         escaped = escape_like(search)
         q = q.filter(
-            Product.name.ilike(f"%{escaped}%")
-            | Product.catalog_number.ilike(f"%{escaped}%")
-            | Product.cas_number.ilike(f"%{escaped}%")
+            Product.name.ilike(f"%{escaped}%", escape="\\")
+            | Product.catalog_number.ilike(f"%{escaped}%", escape="\\")
+            | Product.cas_number.ilike(f"%{escaped}%", escape="\\")
         )
     q = apply_sort(q, Product, sort_by, sort_dir, _PRODUCT_SORTABLE)
     return paginate(q, page, page_size)
@@ -115,8 +119,15 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
     product = db.get(Product, product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    db.delete(product)
-    db.commit()
+    try:
+        db.delete(product)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete product: it is referenced by inventory or order items",
+        )
     return None
 
 

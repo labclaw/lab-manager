@@ -58,7 +58,9 @@ def _check_expired(db: Session) -> list[dict]:
         .filter(
             InventoryItem.expiry_date.isnot(None),
             InventoryItem.expiry_date < today,
-            InventoryItem.status == InventoryStatus.available,
+            InventoryItem.status.in_(
+                [InventoryStatus.available, InventoryStatus.opened]
+            ),
         )
         .all()
     )
@@ -89,7 +91,9 @@ def _check_expiring_soon(db: Session, days: int = 30) -> list[dict]:
             InventoryItem.expiry_date.isnot(None),
             InventoryItem.expiry_date >= today,
             InventoryItem.expiry_date <= cutoff,
-            InventoryItem.status == InventoryStatus.available,
+            InventoryItem.status.in_(
+                [InventoryStatus.available, InventoryStatus.opened]
+            ),
         )
         .all()
     )
