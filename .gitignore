@@ -28,3 +28,14 @@ ocr-benchmark/tmp/
 # Environment files
 .env
 .env.local
+
+# Claude Code
+.claude/
+
+# Data files (large, not tracked)
+shenlab-docs/
+shenlab-docs.zip
+pipeline_v2_output/
+benchmarks/
+ocr-benchmark/data/scans/
+ocr-benchmark/reports/
