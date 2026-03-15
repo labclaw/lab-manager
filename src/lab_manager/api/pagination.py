@@ -37,11 +37,18 @@ def paginate(query: Query, page: int = 1, page_size: int = 50) -> dict:
         dict with keys: items, total, page, page_size, pages
     """
     skip = (page - 1) * page_size
-    items = query.offset(skip).limit(page_size).all()
-    if len(items) < page_size and (skip == 0 or len(items) > 0):
+    # Fetch one extra row to detect whether more pages exist without a COUNT.
+    items = query.offset(skip).limit(page_size + 1).all()
+    has_more = len(items) > page_size
+    if has_more:
+        items = items[:page_size]
+
+    if not has_more and (skip == 0 or len(items) > 0):
+        # We know the exact total without an extra query.
         total = skip + len(items)
     else:
-        total = query.count()
+        # Need COUNT on the *original* query (no offset/limit applied yet).
+        total = query.order_by(None).count()
     return {
         "items": items,
         "total": total,

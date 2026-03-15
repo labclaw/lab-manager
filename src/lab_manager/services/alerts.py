@@ -208,6 +208,7 @@ def _check_pending_review(db: Session) -> list[dict]:
                 ]
             )
         )
+        .limit(200)
         .all()
     )
     return [

@@ -23,6 +23,15 @@ class NotFoundError(InventoryError):
     pass
 
 
+def _to_decimal(value: float) -> Decimal:
+    """Convert float to Decimal, rejecting NaN and Infinity."""
+    import math
+
+    if math.isnan(value) or math.isinf(value):
+        raise InventoryError("Quantity must be a finite number")
+    return Decimal(str(value))
+
+
 def _log_consumption(
     db: Session,
     *,
@@ -137,7 +146,7 @@ def consume(
     db: Session,
 ) -> InventoryItem:
     """Reduce quantity on hand. Mark depleted if 0."""
-    quantity = Decimal(str(quantity))
+    quantity = _to_decimal(quantity)
     item = _get_inventory_or_404(db, inventory_id)
 
     if item.status in (InventoryStatus.disposed, InventoryStatus.depleted):
@@ -212,7 +221,7 @@ def adjust(
     db: Session,
 ) -> InventoryItem:
     """Physical count adjustment."""
-    new_quantity = Decimal(str(new_quantity))
+    new_quantity = _to_decimal(new_quantity)
     item = _get_inventory_or_404(db, inventory_id)
     old_quantity = item.quantity_on_hand
     delta = new_quantity - old_quantity
@@ -253,7 +262,7 @@ def dispose(
     item = _get_inventory_or_404(db, inventory_id)
 
     remaining = item.quantity_on_hand
-    item.quantity_on_hand = Decimal(0)
+    item.quantity_on_hand = Decimal("0")
     item.status = InventoryStatus.disposed
 
     _log_consumption(
