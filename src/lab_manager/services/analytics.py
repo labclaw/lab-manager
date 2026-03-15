@@ -17,6 +17,9 @@ from lab_manager.models.staff import Staff
 from lab_manager.models.vendor import Vendor
 from lab_manager.services.serialization import serialize_value as _iso
 
+# Statuses considered "active" for stock and expiry calculations.
+_ACTIVE_STATUSES = [InventoryStatus.available, InventoryStatus.opened]
+
 
 def _money(val) -> float:
     """Round a numeric value to 2 decimal places, treating None as 0."""
@@ -97,9 +100,7 @@ def dashboard_summary(db: Session) -> dict:
         .filter(
             InventoryItem.expiry_date.isnot(None),
             InventoryItem.expiry_date <= cutoff,
-            InventoryItem.status.in_(
-                [InventoryStatus.available, InventoryStatus.opened]
-            ),
+            InventoryItem.status.in_(_ACTIVE_STATUSES),
         )
         .order_by(InventoryItem.expiry_date)
         .limit(100)
@@ -124,11 +125,7 @@ def dashboard_summary(db: Session) -> dict:
             InventoryItem.product_id,
             func.sum(InventoryItem.quantity_on_hand).label("total"),
         )
-        .filter(
-            InventoryItem.status.in_(
-                [InventoryStatus.available, InventoryStatus.opened]
-            )
-        )
+        .filter(InventoryItem.status.in_(_ACTIVE_STATUSES))
         .group_by(InventoryItem.product_id)
         .subquery()
     )
