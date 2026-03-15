@@ -97,9 +97,12 @@ def dashboard_summary(db: Session) -> dict:
         .filter(
             InventoryItem.expiry_date.isnot(None),
             InventoryItem.expiry_date <= cutoff,
-            InventoryItem.status != InventoryStatus.depleted,
+            InventoryItem.status.in_(
+                [InventoryStatus.available, InventoryStatus.opened]
+            ),
         )
         .order_by(InventoryItem.expiry_date)
+        .limit(100)
         .all()
     )
     expiring_soon = []
@@ -121,7 +124,11 @@ def dashboard_summary(db: Session) -> dict:
             InventoryItem.product_id,
             func.sum(InventoryItem.quantity_on_hand).label("total"),
         )
-        .filter(InventoryItem.status == InventoryStatus.available)
+        .filter(
+            InventoryItem.status.in_(
+                [InventoryStatus.available, InventoryStatus.opened]
+            )
+        )
         .group_by(InventoryItem.product_id)
         .subquery()
     )
@@ -130,7 +137,7 @@ def dashboard_summary(db: Session) -> dict:
         .join(stock_sub, Product.id == stock_sub.c.product_id)
         .filter(
             Product.min_stock_level.isnot(None),
-            stock_sub.c.total <= Product.min_stock_level,
+            stock_sub.c.total < Product.min_stock_level,
         )
         .scalar()
         or 0
@@ -315,7 +322,7 @@ def order_history(
     if date_to:
         q = q.filter(Order.order_date <= date_to)
 
-    q = q.group_by(Order.id, Vendor.name).order_by(Order.id.desc())
+    q = q.group_by(Order.id, Vendor.name).order_by(Order.id.desc()).limit(500)
 
     return [
         {
@@ -426,7 +433,7 @@ def inventory_report(db: Session, location_id: Optional[int] = None) -> list[dic
     if location_id is not None:
         q = q.filter(InventoryItem.location_id == location_id)
 
-    q = q.order_by(InventoryItem.id)
+    q = q.order_by(InventoryItem.id).limit(1000)
 
     return [
         {

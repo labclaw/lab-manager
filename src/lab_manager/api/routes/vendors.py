@@ -6,6 +6,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db
@@ -97,7 +98,7 @@ def delete_vendor(vendor_id: int, db: Session = Depends(get_db)):
     try:
         db.delete(vendor)
         db.commit()
-    except Exception:
+    except IntegrityError:
         db.rollback()
         raise HTTPException(
             status_code=409,

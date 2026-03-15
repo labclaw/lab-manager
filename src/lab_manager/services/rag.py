@@ -199,7 +199,7 @@ _FORBIDDEN_PATTERN = re.compile(
     r"|INTO\s+OUTFILE|COPY|DO\s*\$"
     r"|SET\s+ROLE|SET\s+SESSION\s+AUTHORIZATION"
     r"|pg_read_file|pg_write_file|pg_ls_dir|pg_stat_file"
-    r"|pg_terminate_backend|pg_cancel_backend"
+    r"|pg_terminate_backend|pg_cancel_backend|pg_sleep"
     r"|lo_import|lo_export|dblink|set_config"
     r"|pg_shadow|pg_authid|pg_roles"
     r"|pg_catalog|information_schema|pg_stat_activity|current_setting)\b",
@@ -245,11 +245,24 @@ def _validate_sql(sql: str) -> str:
     if ";" in sql:
         raise ValueError("Stacked queries not allowed")
 
+    # Block SQL comments that could hide forbidden tokens.
+    if "--" in sql or "/*" in sql:
+        raise ValueError("SQL comments are not allowed")
+
     if not _ALLOWED_START.match(sql):
         raise ValueError(f"Query must start with SELECT or WITH, got: {sql[:60]}...")
 
     if _FORBIDDEN_PATTERN.search(sql):
         raise ValueError(f"Query contains forbidden keywords: {sql[:120]}...")
+
+    # Enforce table allowlist: every FROM/JOIN target must be in _ALLOWED_TABLES.
+    table_refs = re.findall(
+        r"\b(?:FROM|JOIN)\s+([A-Za-z_][A-Za-z0-9_.]*)", sql, re.IGNORECASE
+    )
+    for ref in table_refs:
+        table_name = ref.split(".")[-1].lower()
+        if table_name not in _ALLOWED_TABLES:
+            raise ValueError(f"Table '{ref}' is not allowed")
 
     return sql
 
@@ -287,10 +300,11 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
     Uses a nested transaction (SAVEPOINT) so failures don't poison the
     outer session.  Enforces a row limit to prevent memory exhaustion.
     """
+    # READ ONLY must be set on the outer transaction (not inside a SAVEPOINT).
+    db.execute(text("SET TRANSACTION READ ONLY"))
+    db.execute(text(f"SET LOCAL statement_timeout = '{SQL_TIMEOUT_S}s'"))
     nested = db.begin_nested()
     try:
-        db.execute(text(f"SET LOCAL statement_timeout = '{SQL_TIMEOUT_S}s'"))
-        db.execute(text("SET TRANSACTION READ ONLY"))
         result = db.execute(text(sql))
         columns = list(result.keys())
         rows = [dict(zip(columns, row)) for row in result.fetchmany(MAX_RESULT_ROWS)]
@@ -405,6 +419,7 @@ def ask(question: str, db: Session) -> dict:
     return {
         "question": question,
         "answer": answer,
+        "raw_results": [],
         "row_count": len(results),
         "source": "sql",
     }
