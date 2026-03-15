@@ -9,16 +9,17 @@ LIKE_ESCAPE = "\\"
 
 
 def escape_like(value: str) -> str:
-    """Escape special characters for SQL LIKE patterns.
-
-    All callers MUST pass ``escape=LIKE_ESCAPE`` (or use ``ilike_escaped``)
-    so the database honours the backslash escapes.
-    """
+    """Escape special characters for SQL LIKE patterns."""
     return (
         value.replace(LIKE_ESCAPE, LIKE_ESCAPE + LIKE_ESCAPE)
         .replace("%", LIKE_ESCAPE + "%")
         .replace("_", LIKE_ESCAPE + "_")
     )
+
+
+def ilike_col(column, value: str):
+    """Apply ILIKE with properly escaped pattern and ESCAPE clause."""
+    return column.ilike(f"%{escape_like(value)}%", escape=LIKE_ESCAPE)
 
 
 def apply_sort(query, model, sort_by: str, sort_dir: str, allowed: set[str]):

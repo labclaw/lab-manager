@@ -10,7 +10,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db
-from lab_manager.api.pagination import apply_sort, escape_like, paginate
+from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.document import Document, DocumentStatus
 from lab_manager.models.order import Order, OrderItem, OrderStatus
 from lab_manager.models.vendor import Vendor
@@ -118,16 +118,13 @@ def list_documents(
     if document_type:
         q = q.filter(Document.document_type == document_type)
     if vendor_name:
-        q = q.filter(
-            Document.vendor_name.ilike(f"%{escape_like(vendor_name)}%", escape="\\")
-        )
+        q = q.filter(ilike_col(Document.vendor_name, vendor_name))
     if extraction_model:
         q = q.filter(Document.extraction_model == extraction_model)
     if search:
-        escaped = escape_like(search)
         q = q.filter(
-            Document.vendor_name.ilike(f"%{escaped}%", escape="\\")
-            | Document.file_name.ilike(f"%{escaped}%", escape="\\")
+            ilike_col(Document.vendor_name, search)
+            | ilike_col(Document.file_name, search)
         )
     q = apply_sort(q, Document, sort_by, sort_dir, _DOC_SORTABLE)
     return paginate(q, page, page_size)

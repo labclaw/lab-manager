@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db
-from lab_manager.api.pagination import apply_sort, escape_like, paginate
+from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.product import Product
 from lab_manager.models.inventory import InventoryItem
 from lab_manager.models.order import OrderItem
@@ -67,19 +67,14 @@ def list_products(
     if vendor_id is not None:
         q = q.filter(Product.vendor_id == vendor_id)
     if category:
-        q = q.filter(Product.category.ilike(f"%{escape_like(category)}%", escape="\\"))
+        q = q.filter(ilike_col(Product.category, category))
     if catalog_number:
-        q = q.filter(
-            Product.catalog_number.ilike(
-                f"%{escape_like(catalog_number)}%", escape="\\"
-            )
-        )
+        q = q.filter(ilike_col(Product.catalog_number, catalog_number))
     if search:
-        escaped = escape_like(search)
         q = q.filter(
-            Product.name.ilike(f"%{escaped}%", escape="\\")
-            | Product.catalog_number.ilike(f"%{escaped}%", escape="\\")
-            | Product.cas_number.ilike(f"%{escaped}%", escape="\\")
+            ilike_col(Product.name, search)
+            | ilike_col(Product.catalog_number, search)
+            | ilike_col(Product.cas_number, search)
         )
     q = apply_sort(q, Product, sort_by, sort_dir, _PRODUCT_SORTABLE)
     return paginate(q, page, page_size)

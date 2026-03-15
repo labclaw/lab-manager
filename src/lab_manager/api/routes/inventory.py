@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db
-from lab_manager.api.pagination import apply_sort, escape_like, paginate
+from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.inventory import InventoryItem, InventoryStatus
 from lab_manager.services import inventory as inv_svc
 
@@ -115,10 +115,9 @@ def list_inventory(
     if expiring_before:
         q = q.filter(InventoryItem.expiry_date <= expiring_before)
     if search:
-        escaped = escape_like(search)
         q = q.filter(
-            InventoryItem.lot_number.ilike(f"%{escaped}%", escape="\\")
-            | InventoryItem.notes.ilike(f"%{escaped}%", escape="\\")
+            ilike_col(InventoryItem.lot_number, search)
+            | ilike_col(InventoryItem.notes, search)
         )
     q = apply_sort(q, InventoryItem, sort_by, sort_dir, _INV_SORTABLE)
     return paginate(q, page, page_size)

@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db
-from lab_manager.api.pagination import apply_sort, escape_like, paginate
+from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.vendor import Vendor
 from lab_manager.models.product import Product
 from lab_manager.models.order import Order
@@ -49,13 +49,12 @@ def list_vendors(
 ):
     q = db.query(Vendor)
     if name:
-        q = q.filter(Vendor.name.ilike(f"%{escape_like(name)}%", escape="\\"))
+        q = q.filter(ilike_col(Vendor.name, name))
     if search:
-        escaped = escape_like(search)
         q = q.filter(
-            Vendor.name.ilike(f"%{escaped}%", escape="\\")
-            | Vendor.email.ilike(f"%{escaped}%", escape="\\")
-            | Vendor.notes.ilike(f"%{escaped}%", escape="\\")
+            ilike_col(Vendor.name, search)
+            | ilike_col(Vendor.email, search)
+            | ilike_col(Vendor.notes, search)
         )
     q = apply_sort(q, Vendor, sort_by, sort_dir, _VENDOR_SORTABLE)
     return paginate(q, page, page_size)

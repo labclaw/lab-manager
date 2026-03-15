@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db
-from lab_manager.api.pagination import apply_sort, escape_like, paginate
+from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.order import Order, OrderItem, OrderStatus
 
 router = APIRouter()
@@ -111,15 +111,13 @@ def list_orders(
     if status:
         q = q.filter(Order.status == status)
     if po_number:
-        q = q.filter(Order.po_number.ilike(f"%{escape_like(po_number)}%", escape="\\"))
+        q = q.filter(ilike_col(Order.po_number, po_number))
     if date_from:
         q = q.filter(Order.order_date >= date_from)
     if date_to:
         q = q.filter(Order.order_date <= date_to)
     if received_by:
-        q = q.filter(
-            Order.received_by.ilike(f"%{escape_like(received_by)}%", escape="\\")
-        )
+        q = q.filter(ilike_col(Order.received_by, received_by))
     q = apply_sort(q, Order, sort_by, sort_dir, _ORDER_SORTABLE)
     return paginate(q, page, page_size)
 
@@ -183,15 +181,9 @@ def list_order_items(
         raise HTTPException(status_code=404, detail="Order not found")
     q = db.query(OrderItem).filter(OrderItem.order_id == order_id)
     if catalog_number:
-        q = q.filter(
-            OrderItem.catalog_number.ilike(
-                f"%{escape_like(catalog_number)}%", escape="\\"
-            )
-        )
+        q = q.filter(ilike_col(OrderItem.catalog_number, catalog_number))
     if lot_number:
-        q = q.filter(
-            OrderItem.lot_number.ilike(f"%{escape_like(lot_number)}%", escape="\\")
-        )
+        q = q.filter(ilike_col(OrderItem.lot_number, lot_number))
     q = q.order_by(OrderItem.id)
     return paginate(q, page, page_size)
 
