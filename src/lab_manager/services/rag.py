@@ -221,6 +221,11 @@ _ALLOWED_TABLES = {
 # Allow only SELECT (including WITH/CTE)
 _ALLOWED_START = re.compile(r"^\s*(SELECT|WITH)\b", re.IGNORECASE)
 
+# Extract table names from FROM/JOIN clauses
+_TABLE_REF_PATTERN = re.compile(
+    r"\b(?:FROM|JOIN)\s+([A-Za-z_][A-Za-z0-9_.]*)", re.IGNORECASE
+)
+
 
 @functools.lru_cache(maxsize=1)
 def _get_client() -> genai.Client:
@@ -256,9 +261,7 @@ def _validate_sql(sql: str) -> str:
         raise ValueError(f"Query contains forbidden keywords: {sql[:120]}...")
 
     # Enforce table allowlist: every FROM/JOIN target must be in _ALLOWED_TABLES.
-    table_refs = re.findall(
-        r"\b(?:FROM|JOIN)\s+([A-Za-z_][A-Za-z0-9_.]*)", sql, re.IGNORECASE
-    )
+    table_refs = _TABLE_REF_PATTERN.findall(sql)
     for ref in table_refs:
         table_name = ref.split(".")[-1].lower()
         if table_name not in _ALLOWED_TABLES:

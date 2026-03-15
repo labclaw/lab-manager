@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from datetime import date, timedelta
 from decimal import Decimal
 from typing import Optional
@@ -25,7 +26,6 @@ class NotFoundError(InventoryError):
 
 def _to_decimal(value: float) -> Decimal:
     """Convert float to Decimal, rejecting NaN and Infinity."""
-    import math
 
     if math.isnan(value) or math.isinf(value):
         raise InventoryError("Quantity must be a finite number")
