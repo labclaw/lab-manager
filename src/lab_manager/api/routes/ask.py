@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db
@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 class AskRequest(BaseModel):
-    question: str
+    question: str = Field(..., max_length=2000)
 
 
 class AskResponse(BaseModel):
