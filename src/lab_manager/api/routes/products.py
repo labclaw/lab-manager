@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import re
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field as PydanticField
+from pydantic import BaseModel, Field as PydanticField, field_validator
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -27,6 +28,21 @@ _PRODUCT_SORTABLE = {
     "vendor_id",
 }
 
+_CAS_RE = re.compile(r"^\d{2,7}-\d{2}-\d$")
+
+
+def _validate_cas(v: str | None) -> str | None:
+    if v is None:
+        return v
+    v = v.strip()
+    if not v:
+        return None
+    if not _CAS_RE.match(v):
+        raise ValueError(
+            f"Invalid CAS number format: {v!r}. Expected format: NNNNN-NN-N"
+        )
+    return v
+
 
 class ProductCreate(BaseModel):
     catalog_number: str = PydanticField(..., min_length=1, max_length=100)
@@ -39,6 +55,11 @@ class ProductCreate(BaseModel):
     hazard_info: Optional[str] = PydanticField(default=None, max_length=255)
     extra: dict = {}
 
+    @field_validator("cas_number")
+    @classmethod
+    def validate_cas(cls, v: str | None) -> str | None:
+        return _validate_cas(v)
+
 
 class ProductUpdate(BaseModel):
     catalog_number: Optional[str] = PydanticField(default=None, max_length=100)
@@ -50,6 +71,11 @@ class ProductUpdate(BaseModel):
     unit: Optional[str] = PydanticField(default=None, max_length=50)
     hazard_info: Optional[str] = PydanticField(default=None, max_length=255)
     extra: Optional[dict] = None
+
+    @field_validator("cas_number")
+    @classmethod
+    def validate_cas(cls, v: str | None) -> str | None:
+        return _validate_cas(v)
 
 
 @router.get("/")
@@ -117,7 +143,16 @@ def update_product(product_id: int, body: ProductUpdate, db: Session = Depends(g
         raise HTTPException(status_code=404, detail="Product not found")
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(product, key, value)
-    db.commit()
+    try:
+        db.flush()
+    except IntegrityError as e:
+        db.rollback()
+        if "uq_product_catalog_vendor" in str(e.orig):
+            raise HTTPException(
+                status_code=409,
+                detail=f"catalog_number {body.catalog_number!r} already exists for this vendor",
+            )
+        raise HTTPException(status_code=409, detail="Constraint violation")
     db.refresh(product)
     return product
 
