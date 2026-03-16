@@ -34,33 +34,44 @@ def _money(val) -> float:
 
 
 def dashboard_summary(db: Session) -> dict:
-    total_products = db.query(func.count(Product.id)).scalar() or 0
-    total_vendors = db.query(func.count(Vendor.id)).scalar() or 0
-    total_orders = db.query(func.count(Order.id)).scalar() or 0
-    total_inventory_items = db.query(func.count(InventoryItem.id)).scalar() or 0
-    total_documents = db.query(func.count(Document.id)).scalar() or 0
-    total_staff = db.query(func.count(Staff.id)).scalar() or 0
+    # Consolidate 8 separate COUNT queries into 1 round-trip via scalar subqueries.
+    from sqlalchemy import select
 
-    documents_pending_review = (
-        db.query(func.count(Document.id))
-        .filter(
-            Document.status.in_(
-                [
-                    DocumentStatus.pending,
-                    DocumentStatus.needs_review,
-                    DocumentStatus.extracted,
-                ]
+    counts = db.execute(
+        select(
+            select(func.count(Product.id)).scalar_subquery().label("products"),
+            select(func.count(Vendor.id)).scalar_subquery().label("vendors"),
+            select(func.count(Order.id)).scalar_subquery().label("orders"),
+            select(func.count(InventoryItem.id)).scalar_subquery().label("inventory"),
+            select(func.count(Document.id)).scalar_subquery().label("documents"),
+            select(func.count(Staff.id)).scalar_subquery().label("staff"),
+            select(func.count(Document.id))
+            .where(
+                Document.status.in_(
+                    [
+                        DocumentStatus.pending,
+                        DocumentStatus.needs_review,
+                        DocumentStatus.extracted,
+                    ]
+                )
             )
+            .scalar_subquery()
+            .label("docs_pending"),
+            select(func.count(Document.id))
+            .where(Document.status == DocumentStatus.approved)
+            .scalar_subquery()
+            .label("docs_approved"),
         )
-        .scalar()
-        or 0
-    )
-    documents_approved = (
-        db.query(func.count(Document.id))
-        .filter(Document.status == DocumentStatus.approved)
-        .scalar()
-        or 0
-    )
+    ).one()
+
+    total_products = counts.products or 0
+    total_vendors = counts.vendors or 0
+    total_orders = counts.orders or 0
+    total_inventory_items = counts.inventory or 0
+    total_documents = counts.documents or 0
+    total_staff = counts.staff or 0
+    documents_pending_review = counts.docs_pending or 0
+    documents_approved = counts.docs_approved or 0
 
     orders_by_status = dict(
         db.query(Order.status, func.count(Order.id)).group_by(Order.status).all()
