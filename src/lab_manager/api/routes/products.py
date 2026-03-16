@@ -60,11 +60,14 @@ def list_products(
     category: Optional[str] = Query(None),
     catalog_number: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
+    include_inactive: bool = Query(False),
     sort_by: str = Query("id"),
     sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
 ):
     q = db.query(Product)
+    if not include_inactive:
+        q = q.filter(Product.is_active == True)  # noqa: E712
     if vendor_id is not None:
         q = q.filter(Product.vendor_id == vendor_id)
     if category:
