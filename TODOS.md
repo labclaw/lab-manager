@@ -54,6 +54,45 @@
 - Consolidated 8 separate COUNT queries → 1 round-trip using scalar subqueries
 - Works on both SQLite and PostgreSQL
 
+## v0.1.1–v0.1.2 (2026-03-16) — Security hardening + UX
+
+### TODO-11: Pre-release security hardening ✅ (PR #10, v0.1.1)
+- SQLAdmin empty-password bypass guard
+- RAG password_hash exposure prevention (removed from DB_SCHEMA)
+- UNION/EXPLAIN/CALL/PREPARE/LISTEN/NOTIFY added to SQL forbidden patterns
+- LIMIT(500) on 3 unbounded alert queries
+- Path traversal validator on DocumentUpdate
+- CSV escape fix for lab temperatures (-20C)
+- Logout added to auth allowlist
+
+### TODO-12: Login UI + review workflow ✅ (PR #11, v0.1.2)
+- Login screen with email/password form + error display
+- /api/auth/me endpoint for session verification
+- Logout button in navbar with user name
+- Rejection reason modal (review_notes)
+- Auto-redirect to login on 401
+
+## Future — Post v0.1.2
+
+### P1: Data editing before approval
+- Allow scientists to correct OCR errors in extracted data before creating orders
+- Prevents polluted orders from day one
+
+### P2: Bulk review operations
+- Select multiple documents, approve/reject in batch
+- Critical for initial 279-document backlog
+
+### P3: Better pagination
+- Jump-to-page, total page count display
+- Current Prev/Next only is slow for 9+ pages
+
+### P4: Search improvements
+- Empty-state guidance ("Did you mean...?" / suggest filters)
+- Search analytics (track which queries fail)
+
+### P5: RAG query visualization
+- Show generated SQL to advanced users for debugging
+
 ## Cross-reference: Existing review-fixes plan
 
 The following 31 issues are tracked in `docs/superpowers/plans/2026-03-16-full-review-fixes.md`:
