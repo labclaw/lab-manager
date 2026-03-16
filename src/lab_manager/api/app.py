@@ -16,10 +16,12 @@ from sqlalchemy import text
 from lab_manager.api.admin import setup_admin
 from lab_manager.config import get_settings
 from lab_manager.database import get_engine
+from lab_manager.logging_config import configure_logging
 
 # Import to register SQLAlchemy event listeners on module load.
 import lab_manager.services.audit as _audit_svc  # noqa: F401
 
+configure_logging()
 logger = logging.getLogger(__name__)
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
@@ -77,6 +79,9 @@ def create_app() -> FastAPI:
     #
     @app.middleware("http")
     async def auth_and_audit_middleware(request: Request, call_next):
+        from lab_manager.logging_config import generate_request_id
+
+        request_id = generate_request_id()
         path = request.url.path
         settings = get_settings()
         user = "system"
@@ -141,6 +146,10 @@ def create_app() -> FastAPI:
             response = await call_next(request)
         finally:
             _audit_svc.set_current_user(None)
+            from lab_manager.logging_config import request_id_var
+
+            request_id_var.set(None)
+        response.headers["X-Request-ID"] = request_id
         return response
 
     # --- Health endpoint (no auth required — in allowlist) ---
