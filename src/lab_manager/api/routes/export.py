@@ -60,34 +60,66 @@ def export_orders(
 
 @router.get("/products.csv")
 def export_products(db: Session = Depends(get_db)):
-    products = db.query(Product).order_by(Product.id).all()
-    rows = [
-        {
-            "id": p.id,
-            "catalog_number": p.catalog_number,
-            "name": p.name,
-            "vendor_id": p.vendor_id,
-            "category": p.category,
-            "cas_number": p.cas_number,
-            "storage_temp": p.storage_temp,
-            "unit": p.unit,
-        }
-        for p in products
+    fieldnames = [
+        "id",
+        "catalog_number",
+        "name",
+        "vendor_id",
+        "category",
+        "cas_number",
+        "storage_temp",
+        "unit",
+        "hazard_info",
+        "min_stock_level",
+        "is_hazardous",
+        "is_controlled",
     ]
-    return _csv_response(rows, "products.csv")
+    query = db.query(Product).order_by(Product.id).yield_per(100)
+
+    def generate():
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+        yield output.getvalue()
+        output.truncate(0)
+        output.seek(0)
+
+        for product in query:
+            row = {f: getattr(product, f, None) for f in fieldnames}
+            writer.writerow(row)
+            yield output.getvalue()
+            output.truncate(0)
+            output.seek(0)
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="products.csv"'},
+    )
 
 
 @router.get("/vendors.csv")
 def export_vendors(db: Session = Depends(get_db)):
-    vendors = db.query(Vendor).order_by(Vendor.id).all()
-    rows = [
-        {
-            "id": v.id,
-            "name": v.name,
-            "website": v.website,
-            "phone": v.phone,
-            "email": v.email,
-        }
-        for v in vendors
-    ]
-    return _csv_response(rows, "vendors.csv")
+    fieldnames = ["id", "name", "website", "phone", "email", "notes"]
+    query = db.query(Vendor).order_by(Vendor.id).yield_per(100)
+
+    def generate():
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+        yield output.getvalue()
+        output.truncate(0)
+        output.seek(0)
+
+        for vendor in query:
+            row = {f: getattr(vendor, f, None) for f in fieldnames}
+            writer.writerow(row)
+            yield output.getvalue()
+            output.truncate(0)
+            output.seek(0)
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="vendors.csv"'},
+    )
