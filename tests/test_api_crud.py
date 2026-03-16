@@ -320,9 +320,17 @@ def test_order_items_filter(client):
 # =====================
 
 
+def _make_product(client, catalog="TEST-INV", name="InvTestProduct"):
+    """Helper to create a product and return its id."""
+    resp = client.post("/api/products/", json={"catalog_number": catalog, "name": name})
+    return resp.json()["id"]
+
+
 def test_inventory_update(client):
+    pid = _make_product(client, "UPD-INV")
     resp = client.post(
-        "/api/inventory/", json={"quantity_on_hand": 10, "status": "available"}
+        "/api/inventory/",
+        json={"product_id": pid, "quantity_on_hand": 10, "status": "available"},
     )
     iid = resp.json()["id"]
     resp = client.patch(f"/api/inventory/{iid}", json={"quantity_on_hand": 5})
@@ -331,8 +339,10 @@ def test_inventory_update(client):
 
 
 def test_inventory_soft_delete(client):
+    pid = _make_product(client, "DEL-INV")
     resp = client.post(
-        "/api/inventory/", json={"quantity_on_hand": 3, "status": "available"}
+        "/api/inventory/",
+        json={"product_id": pid, "quantity_on_hand": 3, "status": "available"},
     )
     iid = resp.json()["id"]
     resp = client.delete(f"/api/inventory/{iid}")
@@ -347,6 +357,7 @@ def test_inventory_list_filters(client):
         "/api/products/", json={"catalog_number": "FP1", "name": "FilterProd"}
     )
     pid = pr.json()["id"]
+    pid2 = _make_product(client, "FP2", "ExpiredProd")
     client.post(
         "/api/inventory/",
         json={
@@ -358,7 +369,7 @@ def test_inventory_list_filters(client):
     )
     client.post(
         "/api/inventory/",
-        json={"status": "expired", "quantity_on_hand": 0},
+        json={"product_id": pid2, "status": "expired", "quantity_on_hand": 0},
     )
 
     # filter by product_id
