@@ -34,13 +34,19 @@ class InventoryItem(AuditMixin, table=True):
             "status IN ('available','opened','depleted','disposed','expired','deleted')",
             name="ck_inventory_status",
         ),
+        sa.CheckConstraint(
+            "quantity_on_hand >= 0",
+            name="ck_inventory_qty_nonneg",
+        ),
     )
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    product_id: Optional[int] = Field(
-        default=None,
+    product_id: int = Field(
         sa_column=Column(
-            sa.Integer, sa.ForeignKey("products.id", ondelete="RESTRICT"), index=True
+            sa.Integer,
+            sa.ForeignKey("products.id", ondelete="RESTRICT"),
+            index=True,
+            nullable=False,
         ),
     )
     location_id: Optional[int] = Field(
@@ -66,7 +72,7 @@ class InventoryItem(AuditMixin, table=True):
         ),
     )
 
-    product: Optional["Product"] = Relationship(back_populates="inventory_items")
+    product: "Product" = Relationship(back_populates="inventory_items")
     location: Optional["StorageLocation"] = Relationship(
         back_populates="inventory_items"
     )

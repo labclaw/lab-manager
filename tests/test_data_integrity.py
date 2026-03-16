@@ -117,3 +117,35 @@ def test_product_same_catalog_different_vendor_ok(db_session):
     db_session.add_all([p1, p2])
     db_session.flush()  # Should not raise
     assert p1.id != p2.id
+
+
+# ---------------------------------------------------------------------------
+# Task 1.3: Inventory constraints
+# ---------------------------------------------------------------------------
+
+from decimal import Decimal  # noqa: E402
+
+from lab_manager.models.inventory import InventoryItem  # noqa: E402
+
+
+def test_inventory_negative_quantity_rejected(db_session):
+    """quantity_on_hand < 0 should be rejected by CHECK constraint."""
+    v = Vendor(name="Constraint Vendor")
+    db_session.add(v)
+    db_session.flush()
+    p = Product(catalog_number="C-100", name="Test", vendor_id=v.id)
+    db_session.add(p)
+    db_session.flush()
+
+    item = InventoryItem(product_id=p.id, quantity_on_hand=Decimal("-1"))
+    db_session.add(item)
+    with pytest.raises(IntegrityError):
+        db_session.flush()
+    db_session.rollback()
+
+
+def test_inventory_product_id_not_nullable():
+    """product_id field should be non-nullable in the model definition."""
+
+    col = InventoryItem.__table__.columns["product_id"]
+    assert col.nullable is False
