@@ -28,3 +28,18 @@ def test_extracted_document_optional_fields():
     """Minimal valid document."""
     doc = ExtractedDocument(vendor_name="Unknown", document_type="other", items=[])
     assert doc.po_number is None
+
+
+def test_extraction_prompt_matches_valid_doc_types():
+    """EXTRACTION_PROMPT doc_type list must match VALID_DOC_TYPES in schemas."""
+    import re
+
+    from lab_manager.intake.extractor import EXTRACTION_PROMPT
+    from lab_manager.intake.schemas import VALID_DOC_TYPES
+
+    match = re.search(r"document_type:\s*one of\s+(.+)", EXTRACTION_PROMPT)
+    assert match, "EXTRACTION_PROMPT must contain a 'document_type: one of ...' line"
+    prompt_types = {t.strip() for t in match.group(1).split(",")}
+    assert prompt_types == VALID_DOC_TYPES, (
+        f"Prompt types {prompt_types} != schema types {VALID_DOC_TYPES}"
+    )
