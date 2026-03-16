@@ -118,7 +118,7 @@ def _check_expiring_soon(db: Session, days: int = 30) -> list[dict]:
 
 
 def _check_out_of_stock(db: Session) -> list[dict]:
-    """Products with zero total inventory (critical)."""
+    """Products with zero total inventory that have min_stock_level set (critical)."""
     # Sub-query: sum of quantity_on_hand per product for available items.
     stock = (
         db.query(
@@ -130,9 +130,11 @@ def _check_out_of_stock(db: Session) -> list[dict]:
         .subquery()
     )
     # Products that either have zero stock or no inventory rows at all.
+    # Only alert for products with min_stock_level set (tracked products).
     products_with_stock = (
         db.query(Product, stock.c.total)
         .outerjoin(stock, Product.id == stock.c.product_id)
+        .filter(Product.min_stock_level.isnot(None))
         .filter((stock.c.total == 0) | (stock.c.total.is_(None)))
         .all()
     )
