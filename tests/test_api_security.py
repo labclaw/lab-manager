@@ -43,3 +43,52 @@ def test_create_product_name_too_long_rejected(client):
         },
     )
     assert resp.status_code == 422
+
+
+# --- Document path traversal & status validation ---
+
+
+def test_create_document_path_traversal_rejected(client):
+    resp = client.post(
+        "/api/documents/",
+        json={
+            "file_path": "../../../etc/passwd",
+            "file_name": "traversal.pdf",
+        },
+    )
+    assert resp.status_code == 422
+
+
+def test_create_document_etc_path_rejected(client):
+    resp = client.post(
+        "/api/documents/",
+        json={
+            "file_path": "/etc/shadow",
+            "file_name": "shadow.pdf",
+        },
+    )
+    assert resp.status_code == 422
+
+
+def test_create_document_status_invalid_rejected(client):
+    resp = client.post(
+        "/api/documents/",
+        json={
+            "file_path": "/uploads/test.pdf",
+            "file_name": "test.pdf",
+            "status": "hacked",
+        },
+    )
+    assert resp.status_code == 422
+
+
+def test_create_document_valid_status_accepted(client):
+    resp = client.post(
+        "/api/documents/",
+        json={
+            "file_path": "/uploads/ok.pdf",
+            "file_name": "ok.pdf",
+            "status": "pending",
+        },
+    )
+    assert resp.status_code == 201

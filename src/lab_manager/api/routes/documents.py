@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -28,6 +28,8 @@ _DOC_SORTABLE = {
     "extraction_confidence",
 }
 
+_VALID_STATUSES = {s.value for s in DocumentStatus}
+
 
 class DocumentCreate(BaseModel):
     file_path: str
@@ -41,6 +43,20 @@ class DocumentCreate(BaseModel):
     status: str = DocumentStatus.pending
     review_notes: Optional[str] = None
     reviewed_by: Optional[str] = None
+
+    @field_validator("file_path")
+    @classmethod
+    def no_path_traversal(cls, v: str) -> str:
+        if ".." in v or v.startswith("/etc") or v.startswith("/proc"):
+            raise ValueError("Path traversal not allowed")
+        return v
+
+    @field_validator("status")
+    @classmethod
+    def valid_status(cls, v: str) -> str:
+        if v not in _VALID_STATUSES:
+            raise ValueError(f"status must be one of {_VALID_STATUSES}")
+        return v
 
 
 class DocumentUpdate(BaseModel):
