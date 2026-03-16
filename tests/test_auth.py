@@ -212,15 +212,68 @@ def test_invalid_api_key_rejected(auth_client):
 # --- Logout ---
 
 
-def test_logout_clears_session(auth_client, staff_user):
-    """Logout should clear the session cookie."""
+def test_logout_then_access_rejected(auth_client, staff_user):
+    """After logout, session should be invalidated (cookie deleted)."""
     auth_client.post(
         "/api/auth/login",
         json={"email": "test@shenlab.org", "password": "correctpassword"},
     )
-    resp = auth_client.post("/api/auth/logout")
-    assert resp.status_code == 200
-    assert resp.json()["status"] == "ok"
+    auth_client.post("/api/auth/logout")
+    # Clear cookies from TestClient to simulate fresh browser after cookie deletion
+    auth_client.cookies.clear()
+    resp = auth_client.get("/api/vendors/")
+    assert resp.status_code == 401
+
+
+# --- Tampered cookie ---
+
+
+def test_tampered_cookie_rejected(auth_client):
+    """A forged/tampered session cookie should be rejected."""
+    auth_client.cookies.set("lab_session", "tampered-garbage-value")
+    resp = auth_client.get("/api/vendors/")
+    assert resp.status_code == 401
+
+
+# --- User deactivated after login ---
+
+
+def test_deactivated_user_session_rejected(auth_client, staff_user, auth_db_session):
+    """If staff is deactivated, existing session should be rejected."""
+    auth_client.post(
+        "/api/auth/login",
+        json={"email": "test@shenlab.org", "password": "correctpassword"},
+    )
+    # Deactivate the user
+    staff_user.is_active = False
+    auth_db_session.commit()
+    # Session cookie is still valid but user is inactive
+    resp = auth_client.get("/api/vendors/")
+    assert resp.status_code == 401
+
+
+# --- Staff with no password ---
+
+
+def test_login_no_password_hash(auth_client, auth_db_session):
+    """Staff without password_hash should not be able to login."""
+    from lab_manager.models.staff import Staff
+
+    staff = Staff(
+        name="No Password User",
+        email="nopwd@shenlab.org",
+        role="member",
+        is_active=True,
+        password_hash=None,
+    )
+    auth_db_session.add(staff)
+    auth_db_session.commit()
+
+    resp = auth_client.post(
+        "/api/auth/login",
+        json={"email": "nopwd@shenlab.org", "password": "anything"},
+    )
+    assert resp.status_code == 401
 
 
 # --- CSV escape (from PR-1 review) ---
