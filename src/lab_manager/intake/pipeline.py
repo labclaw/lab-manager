@@ -1,7 +1,9 @@
-"""Document intake pipeline: image → OCR → extract → store."""
+"""Document intake pipeline: image -> OCR -> extract -> store."""
 
 from __future__ import annotations
 
+import hashlib
+import logging
 import shutil
 from pathlib import Path
 
@@ -11,10 +13,10 @@ from sqlalchemy.orm import Session
 from lab_manager.config import get_settings
 from lab_manager.intake.extractor import extract_from_text
 from lab_manager.intake.ocr import extract_text_from_image
-from lab_manager.intake.schemas import ExtractedDocument
 from lab_manager.models.document import Document, DocumentStatus
-from lab_manager.models.order import Order, OrderItem, OrderStatus
 from lab_manager.models.vendor import Vendor
+
+logger = logging.getLogger(__name__)
 
 
 def _find_vendor(vendor_name: str, db: Session) -> Vendor | None:
@@ -52,98 +54,71 @@ def _find_vendor(vendor_name: str, db: Session) -> Vendor | None:
 def process_document(image_path: Path, db: Session) -> Document:
     """Process a scanned document image end-to-end.
 
-    1. Copy file to uploads/
+    1. Copy file to uploads/ (with content-hash dedup for same-name files)
     2. Run OCR
     3. Extract structured data
-    4. Save Document record
-    5. If high confidence, create Order + OrderItems
+    4. Save Document record in needs_review status
+
+    OCR or extraction failures are recorded in review_notes rather than
+    propagated, so every submitted file gets a trackable Document record.
     """
-    # Dedupe: skip if this filename was already processed
-    existing = db.query(Document).filter(Document.file_name == image_path.name).first()
+    # Dedupe: use content hash to detect true duplicates (not just filename)
+    file_bytes = image_path.read_bytes()
+    file_hash = hashlib.sha256(file_bytes).hexdigest()[:16]
+
+    settings = get_settings()
+    upload_dir = Path(settings.upload_dir)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    # Build unique dest filename: if same name already exists, append hash
+    dest = upload_dir / image_path.name
+    dest_name = image_path.name
+    if dest.exists():
+        dest_name = f"{image_path.stem}_{file_hash}{image_path.suffix}"
+        dest = upload_dir / dest_name
+
+    # Check by dest_name (the actual name that will be stored)
+    existing = db.query(Document).filter(Document.file_name == dest_name).first()
     if existing:
         return existing
 
-    settings = get_settings()
-
-    # 1. Copy to uploads
-    upload_dir = Path(settings.upload_dir)
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    dest = upload_dir / image_path.name
     if not dest.exists():
         shutil.copy2(image_path, dest)
 
-    # 2. OCR
-    ocr_text = extract_text_from_image(image_path)
-
-    # 3. Extract structured data
-    extracted = extract_from_text(ocr_text)
-
-    # 4. Save Document
+    # Create document record immediately so failures are tracked
     doc = Document(
         file_path=str(dest),
-        file_name=image_path.name,
-        document_type=extracted.document_type,
-        vendor_name=extracted.vendor_name,
-        ocr_text=ocr_text,
-        extracted_data=extracted.model_dump(),
-        extraction_model=settings.extraction_model,
-        extraction_confidence=extracted.confidence,
-        status=DocumentStatus.extracted,
+        file_name=dest_name,
+        status=DocumentStatus.pending,
     )
     db.add(doc)
     db.flush()
 
-    # 5. All documents require human review before approval
-    doc.status = DocumentStatus.needs_review
+    # OCR
+    try:
+        ocr_text = extract_text_from_image(image_path)
+        doc.ocr_text = ocr_text
+    except Exception as e:
+        logger.error("OCR failed for %s: %s", image_path.name, e)
+        doc.status = DocumentStatus.needs_review
+        doc.review_notes = f"OCR failed: {e}"
+        db.commit()
+        return doc
+
+    # Extract structured data
+    try:
+        extracted = extract_from_text(ocr_text)
+        doc.document_type = extracted.document_type
+        doc.vendor_name = extracted.vendor_name
+        doc.extracted_data = extracted.model_dump()
+        doc.extraction_model = settings.extraction_model
+        doc.extraction_confidence = extracted.confidence
+        doc.status = DocumentStatus.needs_review
+    except Exception as e:
+        logger.error("Extraction failed for %s: %s", image_path.name, e)
+        doc.status = DocumentStatus.needs_review
+        doc.review_notes = f"Extraction failed: {e}"
 
     db.commit()
     db.refresh(doc)
     return doc
-
-
-def _create_order_from_extraction(
-    extracted: ExtractedDocument, doc: Document, db: Session
-) -> Order:
-    """Create Order + OrderItems from extracted data."""
-    # Find or create vendor
-    vendor = _find_vendor(extracted.vendor_name, db) if extracted.vendor_name else None
-    if not vendor and extracted.vendor_name:
-        vendor = Vendor(name=extracted.vendor_name)
-        db.add(vendor)
-        db.flush()
-
-    order = Order(
-        po_number=extracted.po_number,
-        vendor_id=vendor.id,
-        delivery_number=extracted.delivery_number,
-        invoice_number=extracted.invoice_number,
-        status=OrderStatus.received,
-        document_id=doc.id,
-        received_by=extracted.received_by,
-    )
-
-    # Parse dates safely
-    if extracted.order_date:
-        try:
-            from datetime import date
-
-            order.order_date = date.fromisoformat(extracted.order_date)
-        except ValueError:
-            pass
-
-    db.add(order)
-    db.flush()
-
-    for item_data in extracted.items:
-        order_item = OrderItem(
-            order_id=order.id,
-            catalog_number=item_data.catalog_number,
-            description=item_data.description,
-            quantity=item_data.quantity or 1,
-            unit=item_data.unit,
-            lot_number=item_data.lot_number,
-            batch_number=item_data.batch_number,
-        )
-        db.add(order_item)
-
-    return order
