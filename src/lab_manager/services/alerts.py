@@ -62,6 +62,7 @@ def _check_expired(db: Session) -> list[dict]:
                 [InventoryStatus.available, InventoryStatus.opened]
             ),
         )
+        .limit(500)
         .all()
     )
     return [
@@ -95,6 +96,7 @@ def _check_expiring_soon(db: Session, days: int = 30) -> list[dict]:
                 [InventoryStatus.available, InventoryStatus.opened]
             ),
         )
+        .limit(500)
         .all()
     )
     return [
@@ -240,6 +242,7 @@ def _check_stale_orders(db: Session, stale_days: int = 30) -> list[dict]:
             Order.created_at
             <= datetime(cutoff.year, cutoff.month, cutoff.day, tzinfo=timezone.utc),
         )
+        .limit(500)
         .all()
     )
     return [

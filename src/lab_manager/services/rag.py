@@ -66,8 +66,7 @@ CREATE TABLE staff (
     role VARCHAR(50) DEFAULT 'member',
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ,
-    updated_at TIMESTAMPTZ,
-    created_by VARCHAR(100)
+    updated_at TIMESTAMPTZ
 );
 
 CREATE TABLE locations (
@@ -199,7 +198,8 @@ If there are many rows, summarize the key findings.
 # Dangerous SQL keywords/functions that must never appear in generated queries
 _FORBIDDEN_PATTERN = re.compile(
     r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|EXEC|EXECUTE"
-    r"|INTO\s+OUTFILE|COPY|DO\s*\$"
+    r"|UNION|INTO\s+OUTFILE|COPY|DO\s*\$"
+    r"|EXPLAIN|CALL|PREPARE|LISTEN|NOTIFY"
     r"|SET\s+ROLE|SET\s+SESSION\s+AUTHORIZATION"
     r"|pg_read_file|pg_write_file|pg_ls_dir|pg_stat_file"
     r"|pg_terminate_backend|pg_cancel_backend|pg_sleep"
@@ -426,7 +426,7 @@ def ask(question: str, db: Session) -> dict:
     try:
         sql = _generate_sql(client, question)
         logger.info("Generated SQL for question '%s': %s", question[:80], sql)
-    except (ValueError, Exception) as e:
+    except Exception as e:
         logger.warning("SQL generation failed: %s — falling back to search", e)
         return _fallback_search(question)
 

@@ -22,11 +22,19 @@ _DANGEROUS_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
 
 
 def _escape_cell(value):
-    """Prefix formula-like cell values with a single quote to prevent Excel injection."""
+    """Prefix formula-like cell values with a single quote to prevent Excel injection.
+
+    Minus is only safe when followed by a digit (e.g., '-20C' freezer temps).
+    '-cmd' style strings are still escaped as they could be formula injection.
+    """
     if value is None:
         return ""
-    if isinstance(value, str) and value and value[0] in _DANGEROUS_PREFIXES:
-        return "'" + value
+    if isinstance(value, str) and value:
+        first = value[0]
+        if first in ("=", "+", "@", "\t", "\r", "\n"):
+            return "'" + value
+        if first == "-" and len(value) > 1 and not value[1].isdigit():
+            return "'" + value
     return value
 
 
