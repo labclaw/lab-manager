@@ -63,10 +63,16 @@ def _get_serializer() -> URLSafeTimedSerializer:
 
 
 def create_app() -> FastAPI:
+    settings = get_settings()
+    # Disable interactive docs in production (exposes full API schema)
+    docs_kwargs = {}
+    if settings.auth_enabled:
+        docs_kwargs = dict(docs_url=None, redoc_url=None, openapi_url=None)
     app = FastAPI(
         title="LabClaw Lab Manager",
         description="Lab inventory management with OCR document intake",
         version="0.1.2",
+        **docs_kwargs,
     )
 
     # --- Merged auth + audit middleware ---
@@ -197,16 +203,19 @@ def create_app() -> FastAPI:
 
         # Disk space: warn if uploads partition has less than 500MB free
         try:
-            usage = shutil.disk_usage(settings.upload_dir)
+            upload_path = Path(settings.upload_dir)
+            upload_path.mkdir(parents=True, exist_ok=True)
+            usage = shutil.disk_usage(upload_path)
             free_mb = usage.free / (1024 * 1024)
             checks["disk"] = "ok" if free_mb >= 500 else "warning"
         except Exception as e:
             logger.error("Health check: disk check failed: %s", e)
             checks["disk"] = "error"
 
-        # Optional services don't degrade overall health
-        required = {k: v for k, v in checks.items() if k != "llm"}
-        all_ok = all(v == "ok" for v in required.values())
+        # Only core services (postgresql, meilisearch) can degrade health.
+        # LLM and disk are informational — don't take service out of rotation.
+        core = {k: v for k, v in checks.items() if k in ("postgresql", "meilisearch")}
+        all_ok = all(v == "ok" for v in core.values())
         return JSONResponse(
             {"status": "ok" if all_ok else "degraded", "services": checks},
             status_code=200 if all_ok else 503,

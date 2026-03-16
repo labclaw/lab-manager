@@ -3,6 +3,7 @@
 # Usage: scripts/backup_db.sh
 # Cron:  0 2 * * * /path/to/lab-manager/scripts/backup_db.sh
 set -euo pipefail
+umask 077
 
 BACKUP_DIR="${BACKUP_DIR:-/backups/labmanager}"
 DATABASE_URL="${DATABASE_URL:?DATABASE_URL must be set}"

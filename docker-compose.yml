@@ -28,6 +28,11 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/init-readonly-user.sh:/docker-entrypoint-initdb.d/01-readonly-user.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-labmanager}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   search:
@@ -39,6 +44,11 @@ services:
     environment:
       MEILI_ENV: ${MEILI_ENV:-production}
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?Set MEILI_MASTER_KEY in .env}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   app:
@@ -59,8 +69,10 @@ services:
       RAG_MODEL: ${RAG_MODEL:-gemini-2.5-flash}
       UPLOAD_DIR: /app/uploads
     depends_on:
-      - db
-      - search
+      db:
+        condition: service_healthy
+      search:
+        condition: service_healthy
     volumes:
       - uploads:/app/uploads
       - backups:/backups/labmanager
