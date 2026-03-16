@@ -17,3 +17,4 @@ class Staff(AuditMixin, table=True):
     email: Optional[str] = Field(default=None, max_length=255, unique=True)
     role: str = Field(default="member", max_length=50)
     is_active: bool = Field(default=True)
+    password_hash: Optional[str] = Field(default=None, max_length=255)
