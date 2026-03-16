@@ -35,6 +35,7 @@ _MAX_USER_LEN = 100
 _AUTH_ALLOWLIST = {
     "/api/health",
     "/api/auth/login",
+    "/api/auth/logout",
     "/docs",
     "/openapi.json",
     "/redoc",
@@ -62,7 +63,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="LabClaw Lab Manager",
         description="Lab inventory management with OCR document intake",
-        version="0.1.0",
+        version="0.1.1",
     )
 
     # --- Merged auth + audit middleware ---

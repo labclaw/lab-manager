@@ -72,6 +72,15 @@ class DocumentUpdate(BaseModel):
     review_notes: Optional[str] = None
     reviewed_by: Optional[str] = None
 
+    @field_validator("file_path")
+    @classmethod
+    def no_path_traversal(cls, v: str | None) -> str | None:
+        if v is not None and (
+            ".." in v or v.startswith("/etc") or v.startswith("/proc")
+        ):
+            raise ValueError("Path traversal not allowed")
+        return v
+
 
 class ReviewAction(BaseModel):
     action: Literal["approve", "reject"]
