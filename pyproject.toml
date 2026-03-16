@@ -17,6 +17,8 @@ dependencies = [
   "pillow>=11.2.1",
   "python-multipart>=0.0.18",
   "python-ulid>=3.0.0",
+  "bcrypt>=4.0.0",
+  "itsdangerous>=2.2.0",
 ]
 
 [build-system]

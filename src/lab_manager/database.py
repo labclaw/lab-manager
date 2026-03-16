@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import threading
 from collections.abc import Generator
+from contextlib import contextmanager
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -86,5 +87,16 @@ def get_db() -> Generator[Session, None, None]:
     except Exception:
         session.rollback()
         raise
+    finally:
+        session.close()
+
+
+@contextmanager
+def get_db_session() -> Generator[Session, None, None]:
+    """Context manager for DB sessions outside of FastAPI dependency injection."""
+    factory = get_session_factory()
+    session = factory()
+    try:
+        yield session
     finally:
         session.close()
