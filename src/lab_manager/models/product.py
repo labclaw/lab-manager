@@ -53,6 +53,7 @@ class Product(AuditMixin, table=True):
     storage_requirements: Optional[str] = Field(default=None, max_length=500)
     is_hazardous: bool = Field(default=False)
     is_controlled: bool = Field(default=False)
+    is_active: bool = Field(default=True)
 
     vendor: Optional["Vendor"] = Relationship(back_populates="products")
     order_items: List["OrderItem"] = Relationship(back_populates="product")

@@ -208,3 +208,31 @@ def test_adjust_decimal_precision(db_session):
 
     db_session.refresh(item)
     assert item.quantity_on_hand == Decimal("3.5000")
+
+
+# ---------------------------------------------------------------------------
+# Task 1.6: Product is_active soft delete
+# ---------------------------------------------------------------------------
+
+
+def test_product_has_is_active_field():
+    """Product should have an is_active boolean field defaulting to True."""
+    assert hasattr(Product, "is_active")
+    col = Product.__table__.columns["is_active"]
+    assert col.default.arg is True
+
+
+def test_soft_delete_product(db_session):
+    """Deactivating a product should keep it in DB but mark inactive."""
+    v = Vendor(name="SoftDel Vendor")
+    db_session.add(v)
+    db_session.flush()
+    p = Product(catalog_number="SD-001", name="Will Deactivate", vendor_id=v.id)
+    db_session.add(p)
+    db_session.flush()
+
+    p.is_active = False
+    db_session.flush()
+    db_session.refresh(p)
+    assert p.is_active is False
+    assert p.id is not None  # Still in DB
