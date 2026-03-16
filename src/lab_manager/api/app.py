@@ -79,78 +79,83 @@ def create_app() -> FastAPI:
     #
     @app.middleware("http")
     async def auth_and_audit_middleware(request: Request, call_next):
-        from lab_manager.logging_config import generate_request_id
+        from lab_manager.logging_config import generate_request_id, request_id_var
 
         request_id = generate_request_id()
-        path = request.url.path
-        settings = get_settings()
-        user = "system"
-
-        # Allowlisted paths — no auth required.
-        is_allowed = path in _AUTH_ALLOWLIST or path.startswith(
-            _AUTH_ALLOWLIST_PREFIXES
-        )
-
-        if settings.auth_enabled and not is_allowed:
-            authenticated = False
-
-            # 1. Try session cookie
-            session_cookie = request.cookies.get(_SESSION_COOKIE)
-            if session_cookie:
-                try:
-                    serializer = _get_serializer()
-                    data = serializer.loads(session_cookie, max_age=_SESSION_MAX_AGE)
-                    staff_id = data.get("staff_id")
-                    staff_name = data.get("name", "unknown")
-
-                    # Verify staff is still active (DB check on every request)
-                    from lab_manager.database import get_db_session
-
-                    with get_db_session() as db:
-                        from lab_manager.models.staff import Staff
-
-                        staff = db.get(Staff, staff_id)
-                        if staff and staff.is_active:
-                            user = staff.name
-                            authenticated = True
-                        else:
-                            logger.warning(
-                                "Session for inactive/missing staff_id=%s name=%s",
-                                staff_id,
-                                staff_name,
-                            )
-                except BadSignature:
-                    logger.warning("Invalid session cookie signature")
-
-            # 2. Fallback: API key header
-            if not authenticated:
-                api_key = request.headers.get("X-Api-Key", "")
-                if settings.api_key and api_key:
-                    if hmac.compare_digest(api_key, settings.api_key):
-                        user = request.headers.get("X-User", "api-client")
-                        user = _CONTROL_CHARS.sub("", user)[:_MAX_USER_LEN]
-                        authenticated = True
-
-            if not authenticated:
-                return JSONResponse(
-                    status_code=401, content={"detail": "Authentication required"}
-                )
-        elif not settings.auth_enabled:
-            # Dev mode: use X-User header for audit context
-            raw = request.headers.get("X-User", "system")
-            user = _CONTROL_CHARS.sub("", raw)[:_MAX_USER_LEN]
-
-        # Set audit context
-        _audit_svc.set_current_user(user)
         try:
-            response = await call_next(request)
-        finally:
-            _audit_svc.set_current_user(None)
-            from lab_manager.logging_config import request_id_var
+            path = request.url.path
+            settings = get_settings()
+            user = "system"
 
+            # Allowlisted paths — no auth required.
+            is_allowed = path in _AUTH_ALLOWLIST or path.startswith(
+                _AUTH_ALLOWLIST_PREFIXES
+            )
+
+            if settings.auth_enabled and not is_allowed:
+                authenticated = False
+
+                # 1. Try session cookie
+                session_cookie = request.cookies.get(_SESSION_COOKIE)
+                if session_cookie:
+                    try:
+                        serializer = _get_serializer()
+                        data = serializer.loads(
+                            session_cookie, max_age=_SESSION_MAX_AGE
+                        )
+                        staff_id = data.get("staff_id")
+                        staff_name = data.get("name", "unknown")
+
+                        # Verify staff is still active (DB check on every request)
+                        from lab_manager.database import get_db_session
+
+                        with get_db_session() as db:
+                            from lab_manager.models.staff import Staff
+
+                            staff = db.get(Staff, staff_id)
+                            if staff and staff.is_active:
+                                user = staff.name
+                                authenticated = True
+                            else:
+                                logger.warning(
+                                    "Session for inactive/missing staff_id=%s name=%s",
+                                    staff_id,
+                                    staff_name,
+                                )
+                    except BadSignature:
+                        logger.warning("Invalid session cookie signature")
+
+                # 2. Fallback: API key header
+                if not authenticated:
+                    api_key = request.headers.get("X-Api-Key", "")
+                    if settings.api_key and api_key:
+                        if hmac.compare_digest(api_key, settings.api_key):
+                            user = request.headers.get("X-User", "api-client")
+                            user = _CONTROL_CHARS.sub("", user)[:_MAX_USER_LEN]
+                            authenticated = True
+
+                if not authenticated:
+                    resp = JSONResponse(
+                        status_code=401,
+                        content={"detail": "Authentication required"},
+                    )
+                    resp.headers["X-Request-ID"] = request_id
+                    return resp
+            elif not settings.auth_enabled:
+                # Dev mode: use X-User header for audit context
+                raw = request.headers.get("X-User", "system")
+                user = _CONTROL_CHARS.sub("", raw)[:_MAX_USER_LEN]
+
+            # Set audit context
+            _audit_svc.set_current_user(user)
+            try:
+                response = await call_next(request)
+            finally:
+                _audit_svc.set_current_user(None)
+            response.headers["X-Request-ID"] = request_id
+            return response
+        finally:
             request_id_var.set(None)
-        response.headers["X-Request-ID"] = request_id
-        return response
 
     # --- Health endpoint (no auth required — in allowlist) ---
 
