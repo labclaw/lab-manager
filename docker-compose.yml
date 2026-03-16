@@ -9,6 +9,7 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./docker/init-readonly-user.sql:/docker-entrypoint-initdb.d/01-readonly-user.sql:ro
 
   search:
     image: getmeili/meilisearch:v1.12
@@ -25,6 +26,7 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+psycopg://labmanager:labmanager@db:5432/labmanager
+      DATABASE_READONLY_URL: postgresql+psycopg://labmanager_ro:labmanager_ro@db:5432/labmanager
       MEILISEARCH_URL: http://search:7700
     depends_on:
       - db
