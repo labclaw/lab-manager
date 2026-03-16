@@ -31,6 +31,10 @@ def db_session():
 
 @pytest.fixture
 def client(db_session):
+    # Ensure auth is disabled for standard tests (test_auth.py manages its own).
+    os.environ["AUTH_ENABLED"] = "false"
+    get_settings.cache_clear()
+
     from lab_manager.api.app import create_app
     from lab_manager.api.deps import get_db
 

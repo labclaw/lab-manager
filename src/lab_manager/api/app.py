@@ -7,14 +7,13 @@ import logging
 import re
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, FastAPI, Request
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from sqlalchemy import text
 
 from lab_manager.api.admin import setup_admin
-from lab_manager.api.deps import verify_api_key
 from lab_manager.config import get_settings
 from lab_manager.database import get_engine
 
@@ -187,7 +186,7 @@ def create_app() -> FastAPI:
         email: str = Body(...),
         password: str = Body(...),
     ):
-        from passlib.hash import bcrypt
+        import bcrypt as _bcrypt
 
         from lab_manager.database import get_db_session
         from lab_manager.models.staff import Staff
@@ -202,12 +201,13 @@ def create_app() -> FastAPI:
                 content={"detail": "Service temporarily unavailable"},
             )
 
-        if (
-            not staff
-            or not staff.is_active
-            or not staff.password_hash
-            or not bcrypt.verify(password, staff.password_hash)
-        ):
+        password_ok = False
+        if staff and staff.is_active and staff.password_hash:
+            password_ok = _bcrypt.checkpw(
+                password.encode("utf-8"), staff.password_hash.encode("utf-8")
+            )
+
+        if not password_ok:
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Invalid email or password"},
@@ -251,7 +251,8 @@ def create_app() -> FastAPI:
         vendors,
     )
 
-    api_router = APIRouter(dependencies=[Depends(verify_api_key)])
+    # Auth is handled by auth_and_audit_middleware — no per-route dependency needed.
+    api_router = APIRouter()
     api_router.include_router(vendors.router, prefix="/api/vendors", tags=["vendors"])
     api_router.include_router(
         products.router, prefix="/api/products", tags=["products"]

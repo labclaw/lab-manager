@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import sys
 
-from passlib.hash import bcrypt
+import bcrypt
 
 
 def main() -> None:
@@ -33,7 +33,9 @@ def main() -> None:
             print(f"Error: no staff found with email '{email}'", file=sys.stderr)
             sys.exit(1)
 
-        staff.password_hash = bcrypt.hash(password)
+        staff.password_hash = bcrypt.hashpw(
+            password.encode("utf-8"), bcrypt.gensalt()
+        ).decode("utf-8")
         db.commit()
         print(f"Password set for {staff.name} ({email})")
 
