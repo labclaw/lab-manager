@@ -15,8 +15,11 @@ from lab_manager.services.serialization import serialize_value as _serialize_val
 
 logger = logging.getLogger(__name__)
 
-# Model used for NL->SQL and answer formatting (API-compatible, see CLAUDE.md)
-MODEL = "gemini-2.5-flash"
+
+def _get_model() -> str:
+    """Return the RAG model name from settings (configurable via RAG_MODEL env var)."""
+    return get_settings().rag_model
+
 
 # Max question length to prevent cost amplification
 MAX_QUESTION_LENGTH = 2000
@@ -283,7 +286,7 @@ def _generate_sql(client: genai.Client, question: str) -> str:
     """Ask Gemini to translate a natural language question to SQL."""
     prompt = NL_TO_SQL_PROMPT.format(schema=DB_SCHEMA, question=question)
     response = client.models.generate_content(
-        model=MODEL,
+        model=_get_model(),
         contents=prompt,
     )
     raw = response.text.strip()
@@ -334,7 +337,7 @@ def _format_answer(
         results=display_results,
     )
     response = client.models.generate_content(
-        model=MODEL,
+        model=_get_model(),
         contents=prompt,
     )
     return response.text.strip()
