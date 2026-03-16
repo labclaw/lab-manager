@@ -36,6 +36,7 @@ _AUTH_ALLOWLIST = {
     "/api/health",
     "/api/auth/login",
     "/api/auth/logout",
+    "/api/auth/me",
     "/docs",
     "/openapi.json",
     "/redoc",
@@ -251,6 +252,23 @@ def create_app() -> FastAPI:
         )
         logger.info("Login successful for %s (staff_id=%s)", staff.email, staff.id)
         return response
+
+    @app.get("/api/auth/me")
+    def auth_me(request: Request):
+        """Return current user info from session cookie. Used by frontend to check auth state."""
+        session_cookie = request.cookies.get(_SESSION_COOKIE)
+        if not session_cookie:
+            return JSONResponse(
+                status_code=401, content={"detail": "Not authenticated"}
+            )
+        try:
+            serializer = _get_serializer()
+            data = serializer.loads(session_cookie, max_age=_SESSION_MAX_AGE)
+            return {
+                "user": {"id": data.get("staff_id"), "name": data.get("name", "User")}
+            }
+        except BadSignature:
+            return JSONResponse(status_code=401, content={"detail": "Invalid session"})
 
     @app.post("/api/auth/logout")
     def logout():
