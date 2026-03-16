@@ -40,9 +40,14 @@ def get_session_factory():
 
 
 def get_db() -> Generator[Session, None, None]:
+    """Yield a DB session that auto-commits on success, rolls back on error."""
     factory = get_session_factory()
     session = factory()
     try:
         yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
     finally:
         session.close()
