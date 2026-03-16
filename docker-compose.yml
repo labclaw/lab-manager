@@ -1,40 +1,75 @@
+# docker-compose.yml — Production deployment
+# Copy .env.production.template to .env and fill in values before running.
 services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    depends_on:
+      - app
+    restart: unless-stopped
+
   db:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: labmanager
-      POSTGRES_PASSWORD: labmanager
-      POSTGRES_DB: labmanager
+      POSTGRES_USER: ${POSTGRES_USER:-labmanager}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-labmanager}
+      POSTGRES_RO_PASSWORD: ${POSTGRES_RO_PASSWORD:?Set POSTGRES_RO_PASSWORD in .env}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./docker/init-readonly-user.sql:/docker-entrypoint-initdb.d/01-readonly-user.sql:ro
+      - ./docker/init-readonly-user.sh:/docker-entrypoint-initdb.d/01-readonly-user.sh:ro
+    restart: unless-stopped
 
   search:
     image: getmeili/meilisearch:v1.12
     ports:
-      - "7700:7700"
+      - "127.0.0.1:7700:7700"
     volumes:
       - msdata:/meili_data
     environment:
-      MEILI_ENV: development
+      MEILI_ENV: ${MEILI_ENV:-production}
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?Set MEILI_MASTER_KEY in .env}
+    restart: unless-stopped
 
   app:
     build: .
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     environment:
-      DATABASE_URL: postgresql+psycopg://labmanager:labmanager@db:5432/labmanager
-      DATABASE_READONLY_URL: postgresql+psycopg://labmanager_ro:labmanager_ro@db:5432/labmanager
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-labmanager}:${POSTGRES_PASSWORD:?err}@db:5432/${POSTGRES_DB:-labmanager}
+      DATABASE_READONLY_URL: postgresql+psycopg://labmanager_ro:${POSTGRES_RO_PASSWORD:?err}@db:5432/${POSTGRES_DB:-labmanager}
       MEILISEARCH_URL: http://search:7700
+      MEILISEARCH_API_KEY: ${MEILI_MASTER_KEY:?err}
+      ADMIN_SECRET_KEY: ${ADMIN_SECRET_KEY:?Set ADMIN_SECRET_KEY in .env}
+      AUTH_ENABLED: "true"
+      SECURE_COOKIES: "true"
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      EXTRACTION_API_KEY: ${GEMINI_API_KEY:-}
+      EXTRACTION_MODEL: ${EXTRACTION_MODEL:-gemini-3.1-flash-preview}
+      RAG_MODEL: ${RAG_MODEL:-gemini-2.5-flash}
+      UPLOAD_DIR: /app/uploads
     depends_on:
       - db
       - search
     volumes:
       - uploads:/app/uploads
+      - backups:/backups/labmanager
+    restart: unless-stopped
 
 volumes:
   pgdata:
   msdata:
   uploads:
+  backups:
+  caddy_data:
+  caddy_config:
