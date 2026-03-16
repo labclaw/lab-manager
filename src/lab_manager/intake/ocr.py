@@ -27,6 +27,25 @@ Critical rules:
 """
 
 
+_MIME_MAP = {
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "png": "image/png",
+    "tif": "image/tiff",
+    "tiff": "image/tiff",
+    "bmp": "image/bmp",
+    "webp": "image/webp",
+    "pdf": "application/pdf",
+    "gif": "image/gif",
+}
+
+
+def _get_mime_type(filename: str) -> str:
+    """Get MIME type from filename extension."""
+    suffix = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    return _MIME_MAP.get(suffix, f"image/{suffix}")
+
+
 def extract_text_from_image(image_path: Path) -> str:
     """Run OCR on a document image and return raw text."""
     settings = get_settings()
@@ -34,8 +53,7 @@ def extract_text_from_image(image_path: Path) -> str:
 
     image_bytes = image_path.read_bytes()
     b64 = base64.b64encode(image_bytes).decode()
-    suffix = image_path.suffix.lower().lstrip(".")
-    mime = "image/jpeg" if suffix in ("jpg", "jpeg") else f"image/{suffix}"
+    mime = _get_mime_type(image_path.name)
 
     response = client.models.generate_content(
         model=settings.extraction_model,
