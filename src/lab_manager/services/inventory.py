@@ -153,12 +153,13 @@ def consume(
         raise InventoryError(f"Cannot consume from {item.status} item")
     if quantity <= 0:
         raise InventoryError("Quantity must be positive")
-    if quantity > item.quantity_on_hand:
+    current_qty = Decimal(str(item.quantity_on_hand))  # ensure Decimal
+    if quantity > current_qty:
         raise InventoryError(
-            f"Insufficient stock: {item.quantity_on_hand} available, {quantity} requested"
+            f"Insufficient stock: {current_qty} available, {quantity} requested"
         )
 
-    item.quantity_on_hand -= quantity
+    item.quantity_on_hand = current_qty - quantity
     if item.quantity_on_hand <= Decimal("0.0001"):
         item.status = InventoryStatus.depleted
 
@@ -222,8 +223,10 @@ def adjust(
 ) -> InventoryItem:
     """Physical count adjustment."""
     new_quantity = _to_decimal(new_quantity)
+    if new_quantity < Decimal("0"):
+        raise InventoryError("Adjusted quantity cannot be negative")
     item = _get_inventory_or_404(db, inventory_id)
-    old_quantity = item.quantity_on_hand
+    old_quantity = Decimal(str(item.quantity_on_hand))  # ensure Decimal
     delta = new_quantity - old_quantity
 
     item.quantity_on_hand = new_quantity

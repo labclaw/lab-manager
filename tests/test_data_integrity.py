@@ -149,3 +149,62 @@ def test_inventory_product_id_not_nullable():
 
     col = InventoryItem.__table__.columns["product_id"]
     assert col.nullable is False
+
+
+# ---------------------------------------------------------------------------
+# Task 1.4: Decimal consistency in inventory service
+# ---------------------------------------------------------------------------
+
+
+def test_consume_decimal_precision(db_session):
+    """consume() should handle Decimal comparison without float/Decimal mismatch."""
+    from lab_manager.services.inventory import consume
+
+    v = Vendor(name="Decimal Vendor")
+    db_session.add(v)
+    db_session.flush()
+    p = Product(catalog_number="D-001", name="Decimal Test", vendor_id=v.id)
+    db_session.add(p)
+    db_session.flush()
+
+    item = InventoryItem(
+        product_id=p.id,
+        quantity_on_hand=Decimal("1.0000"),
+        status="available",
+    )
+    db_session.add(item)
+    db_session.flush()
+
+    # This should NOT raise "insufficient stock" due to float/Decimal mismatch
+    consume(item.id, Decimal("1.0000"), "test", None, db_session)
+    db_session.flush()
+
+    db_session.refresh(item)
+    assert item.quantity_on_hand == Decimal("0")
+    assert item.status == "depleted"
+
+
+def test_adjust_decimal_precision(db_session):
+    """adjust() should handle Decimal values correctly."""
+    from lab_manager.services.inventory import adjust
+
+    v = Vendor(name="Adjust Vendor")
+    db_session.add(v)
+    db_session.flush()
+    p = Product(catalog_number="A-001", name="Adjust Test", vendor_id=v.id)
+    db_session.add(p)
+    db_session.flush()
+
+    item = InventoryItem(
+        product_id=p.id,
+        quantity_on_hand=Decimal("5.0000"),
+        status="available",
+    )
+    db_session.add(item)
+    db_session.flush()
+
+    adjust(item.id, Decimal("3.5000"), "cycle count", "test", db_session)
+    db_session.flush()
+
+    db_session.refresh(item)
+    assert item.quantity_on_hand == Decimal("3.5000")
