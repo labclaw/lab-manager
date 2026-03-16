@@ -204,6 +204,63 @@
   }
   .tab-bar button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
+  /* Login screen */
+  .login-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; background: var(--bg);
+  }
+  .login-card {
+    background: var(--card); border-radius: 16px; padding: 40px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.1); width: 380px; text-align: center;
+  }
+  .login-card h1 { font-size: 28px; margin-bottom: 4px; color: var(--primary); }
+  .login-card .subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 28px; }
+  .login-card input {
+    width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: 14px; margin-bottom: 12px; background: var(--bg);
+  }
+  .login-card input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+  .login-card .btn-login {
+    width: 100%; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: 600;
+    cursor: pointer; border: none; background: var(--primary); color: #fff; margin-top: 4px;
+  }
+  .login-card .btn-login:hover { background: var(--primary-dark); }
+  .login-card .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
+  .login-error {
+    background: var(--danger-bg); color: var(--danger); padding: 10px; border-radius: 8px;
+    font-size: 13px; margin-bottom: 12px; display: none;
+  }
+
+  /* User info in navbar */
+  .navbar .user-info {
+    margin-left: auto; display: flex; align-items: center; gap: 12px; font-size: 13px;
+  }
+  .navbar .user-info .user-name { opacity: 0.9; }
+  .navbar .user-info .btn-logout {
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+    color: #fff; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;
+  }
+  .navbar .user-info .btn-logout:hover { background: rgba(255,255,255,0.25); }
+
+  /* Reject modal */
+  .modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); z-index: 300; display: none;
+    align-items: center; justify-content: center;
+  }
+  .modal.show { display: flex; }
+  .modal-card {
+    background: var(--card); border-radius: 12px; padding: 24px; width: 420px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+  .modal-card h3 { margin-bottom: 12px; }
+  .modal-card textarea {
+    width: 100%; min-height: 80px; padding: 10px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: 14px; resize: vertical; margin-bottom: 16px;
+    font-family: var(--font);
+  }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
   .hidden { display: none !important; }
   .toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -220,6 +277,22 @@
 </head>
 <body>
 
+<!-- Login screen -->
+<div id="login-screen" class="login-screen">
+  <div class="login-card">
+    <h1>LabClaw</h1>
+    <div class="subtitle">Lab Manager</div>
+    <div id="login-error" class="login-error"></div>
+    <form id="login-form" onsubmit="handleLogin(event)">
+      <input type="email" id="login-email" placeholder="Email" required autocomplete="email" autofocus>
+      <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
+      <button type="submit" class="btn-login" id="login-btn">Sign In</button>
+    </form>
+  </div>
+</div>
+
+<!-- Main app (hidden until authenticated) -->
+<div id="main-app" class="hidden">
 <nav class="navbar">
   <h1>LabClaw</h1>
   <div class="nav-links">
@@ -227,6 +300,10 @@
     <button onclick="showView('documents')">Documents</button>
     <button onclick="showView('review')">Review Queue</button>
     <button onclick="window.open('/admin/', '_blank')">Admin</button>
+  </div>
+  <div class="user-info">
+    <span class="user-name" id="user-name"></span>
+    <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
   </div>
 </nav>
 
@@ -296,8 +373,24 @@
   <div class="actions" id="detail-actions"></div>
 </div>
 
+<!-- Reject reason modal -->
+<div id="reject-modal" class="modal">
+  <div class="modal-card">
+    <h3>Reject Document</h3>
+    <p style="color:var(--text-muted); font-size:14px; margin-bottom:12px;">Optionally provide a reason for rejecting this document.</p>
+    <textarea id="reject-reason" placeholder="Reason for rejection (optional)..."></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeRejectModal()">Cancel</button>
+      <button class="btn btn-reject" onclick="confirmReject()">Reject</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main-app -->
+
 <script>
 const API = '/api/documents';
+let currentUser = null;
 let currentPage = 0;
 const PAGE_SIZE = 30;
 let currentFilter = '';
@@ -305,10 +398,70 @@ let currentSearch = '';
 let searchTimer = null;
 let stats = null;
 
+// --- Auth ---
+async function handleLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('login-btn');
+  const errDiv = document.getElementById('login-error');
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+  errDiv.style.display = 'none';
+  try {
+    const r = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: document.getElementById('login-email').value,
+        password: document.getElementById('login-password').value,
+      }),
+    });
+    if (r.ok) {
+      const data = await r.json();
+      currentUser = data.user;
+      showApp();
+    } else {
+      const err = await r.json().catch(() => ({ detail: 'Login failed' }));
+      errDiv.textContent = err.detail || 'Invalid email or password';
+      errDiv.style.display = 'block';
+    }
+  } catch {
+    errDiv.textContent = 'Network error. Please try again.';
+    errDiv.style.display = 'block';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Sign In';
+}
+
+async function handleLogout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  currentUser = null;
+  document.getElementById('main-app').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-password').value = '';
+}
+
+function showApp() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('main-app').classList.remove('hidden');
+  document.getElementById('user-name').textContent = currentUser ? currentUser.name : '';
+  loadStats();
+  showView('dashboard');
+}
+
 // --- Init ---
 async function init() {
-  await loadStats();
-  showView('dashboard');
+  // Check if already authenticated via session cookie
+  try {
+    const r = await fetch('/api/auth/me');
+    if (r.ok) {
+      const data = await r.json();
+      currentUser = data.user;
+      showApp();
+      return;
+    }
+  } catch {}
+  // Not authenticated — show login
+  document.getElementById('login-screen').classList.remove('hidden');
 }
 
 // --- Views ---
@@ -323,9 +476,22 @@ function showView(view) {
   if (view === 'review') loadReviewQueue();
 }
 
+// --- API helper (auto-redirect to login on 401) ---
+async function apiFetch(url, opts) {
+  const r = await fetch(url, opts);
+  if (r.status === 401) {
+    currentUser = null;
+    document.getElementById('main-app').classList.add('hidden');
+    document.getElementById('login-screen').classList.remove('hidden');
+    showToast('Session expired. Please sign in again.', 'error');
+    throw new Error('Unauthorized');
+  }
+  return r;
+}
+
 // --- Stats ---
 async function loadStats() {
-  const r = await fetch(API + '/stats');
+  const r = await apiFetch(API + '/stats');
   stats = await r.json();
   renderStats();
 }
@@ -390,7 +556,7 @@ async function loadDocuments() {
   const params = new URLSearchParams({ skip: currentPage * PAGE_SIZE, limit: PAGE_SIZE });
   if (currentFilter) params.set('status', currentFilter);
   if (currentSearch) params.set('search', currentSearch);
-  const r = await fetch(API + '?' + params);
+  const r = await apiFetch(API + '?' + params);
   const docs = await r.json();
   renderDocRows('doc-rows', docs);
   document.getElementById('prev-btn').disabled = currentPage === 0;
@@ -399,7 +565,7 @@ async function loadDocuments() {
 }
 
 async function loadReviewQueue() {
-  const r = await fetch(API + '?status=needs_review&limit=200');
+  const r = await apiFetch(API + '?status=needs_review&limit=200');
   const docs = await r.json();
   renderDocRows('review-rows', docs);
 }
@@ -427,7 +593,7 @@ function renderDocRows(containerId, docs) {
 
 // --- Detail ---
 async function openDetail(id) {
-  const r = await fetch(API + '/' + id);
+  const r = await apiFetch(API + '/' + id);
   const doc = await r.json();
   document.getElementById('detail-title').textContent = doc.file_name || '';
   const body = document.getElementById('detail-body');
@@ -505,7 +671,7 @@ async function openDetail(id) {
   if (doc.status === 'needs_review') {
     actions.innerHTML = `
       <button class="btn btn-approve" onclick="reviewDoc(${doc.id}, 'approve')">Approve & Create Order</button>
-      <button class="btn btn-reject" onclick="reviewDoc(${doc.id}, 'reject')">Reject</button>
+      <button class="btn btn-reject" onclick="openRejectModal(${doc.id})">Reject</button>
       <div style="flex:1"></div>
     `;
   } else {
@@ -538,11 +704,34 @@ function escapeHtml(s) {
 }
 
 // --- Review ---
-async function reviewDoc(id, action) {
-  const r = await fetch(API + '/' + id + '/review', {
+let pendingRejectId = null;
+
+function openRejectModal(id) {
+  pendingRejectId = id;
+  document.getElementById('reject-reason').value = '';
+  document.getElementById('reject-modal').classList.add('show');
+}
+
+function closeRejectModal() {
+  pendingRejectId = null;
+  document.getElementById('reject-modal').classList.remove('show');
+}
+
+async function confirmReject() {
+  if (!pendingRejectId) return;
+  const reason = document.getElementById('reject-reason').value.trim();
+  await reviewDoc(pendingRejectId, 'reject', reason || null);
+  closeRejectModal();
+}
+
+async function reviewDoc(id, action, reviewNotes) {
+  const reviewer = currentUser ? currentUser.name : 'scientist';
+  const body = { action, reviewed_by: reviewer };
+  if (reviewNotes) body.review_notes = reviewNotes;
+  const r = await apiFetch(API + '/' + id + '/review', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, reviewed_by: 'scientist' }),
+    body: JSON.stringify(body),
   });
   if (r.ok) {
     showToast(action === 'approve' ? 'Document approved, order created!' : 'Document rejected', 'success');
@@ -586,7 +775,7 @@ function showToast(msg, type) {
   t.className = `toast toast-${type}`;
   t.textContent = msg;
   document.body.appendChild(t);
-  setTimeout(() => t.remove(), 3000);
+  setTimeout(() => t.remove(), 5000);
 }
 
 // Keyboard shortcuts
