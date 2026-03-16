@@ -38,8 +38,7 @@ _AUTH_ALLOWLIST = {
     "/redoc",
 }
 _AUTH_ALLOWLIST_PREFIXES = (
-    "/admin/",
-    "/scans/",
+    "/admin/",  # SQLAdmin has its own authentication backend
 )
 
 # Session cookie config
@@ -49,8 +48,12 @@ _SESSION_MAX_AGE = 86400 * 7  # 7 days
 
 def _get_serializer() -> URLSafeTimedSerializer:
     settings = get_settings()
-    secret = settings.admin_secret_key or "dev-secret-change-me"
-    return URLSafeTimedSerializer(secret, salt="lab-session")
+    if not settings.admin_secret_key:
+        raise RuntimeError(
+            "ADMIN_SECRET_KEY must be set when auth is enabled. "
+            'Generate one with: python -c "import secrets; print(secrets.token_hex(32))"'
+        )
+    return URLSafeTimedSerializer(settings.admin_secret_key, salt="lab-session")
 
 
 def create_app() -> FastAPI:
@@ -154,7 +157,7 @@ def create_app() -> FastAPI:
             checks["postgresql"] = "ok"
         except Exception as e:
             logger.error("Health check: PostgreSQL failed: %s", e)
-            checks["postgresql"] = str(e)
+            checks["postgresql"] = "error"
 
         # Meilisearch
         try:
@@ -165,7 +168,7 @@ def create_app() -> FastAPI:
             checks["meilisearch"] = "ok"
         except Exception as e:
             logger.error("Health check: Meilisearch failed: %s", e)
-            checks["meilisearch"] = str(e)
+            checks["meilisearch"] = "error"
 
         # Gemini: config-only check (no API call to save cost)
         settings = get_settings()
@@ -201,11 +204,15 @@ def create_app() -> FastAPI:
                 content={"detail": "Service temporarily unavailable"},
             )
 
+        # Constant-time: always run bcrypt to prevent timing oracle on user existence.
+        _DUMMY_HASH = b"$2b$12$LJ3m4ys3Lg2VBe7MaBSW2.P68rAGkMgGMfkCGKEKeDqz4rMpWsSi6"
         password_ok = False
         if staff and staff.is_active and staff.password_hash:
             password_ok = _bcrypt.checkpw(
                 password.encode("utf-8"), staff.password_hash.encode("utf-8")
             )
+        else:
+            _bcrypt.checkpw(password.encode("utf-8"), _DUMMY_HASH)
 
         if not password_ok:
             return JSONResponse(
