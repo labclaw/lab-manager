@@ -28,12 +28,12 @@ def test_valid_select_with_cte():
         "WITH orders AS (SELECT * FROM orders WHERE order_date > '2025-01-01') "
         "SELECT * FROM orders"
     )
-    result = _validate_sql(sql)
-    assert result.startswith("WITH")
+    assert _validate_sql(sql) == sql
 
 
-def test_valid_select_all_allowed_tables():
-    for table in [
+@pytest.mark.parametrize(
+    "table",
+    [
         "vendors",
         "products",
         "staff",
@@ -42,9 +42,11 @@ def test_valid_select_all_allowed_tables():
         "orders",
         "order_items",
         "inventory",
-    ]:
-        sql = f"SELECT * FROM {table} LIMIT 10"
-        assert _validate_sql(sql) == sql.strip()
+    ],
+)
+def test_valid_select_allowed_table(table):
+    sql = f"SELECT * FROM {table} LIMIT 10"
+    assert _validate_sql(sql) == sql.strip()
 
 
 def test_valid_aggregate_query():
@@ -60,65 +62,77 @@ def test_valid_subquery_in_where():
     assert _validate_sql(sql) == sql.strip()
 
 
+def test_valid_multiline_select():
+    sql = "SELECT *\nFROM vendors\nWHERE id > 1\nLIMIT 10"
+    assert _validate_sql(sql) == sql.strip()
+
+
+def test_valid_trailing_semicolon_stripped():
+    assert _validate_sql("SELECT 1 FROM vendors;") == "SELECT 1 FROM vendors"
+
+
 # --- Forbidden keywords that SHOULD be rejected ---
 
 
-def test_forbidden_drop():
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "DROP TABLE vendors",
+        "DELETE FROM vendors WHERE id = 1",
+        "INSERT INTO vendors (name) VALUES ('evil')",
+        "UPDATE vendors SET name = 'evil' WHERE id = 1",
+        "ALTER TABLE vendors ADD COLUMN evil TEXT",
+        "TRUNCATE vendors",
+        "CREATE TABLE evil (id INT)",
+        "GRANT ALL ON vendors TO evil",
+        "REVOKE SELECT ON vendors FROM labmanager_ro",
+    ],
+    ids=[
+        "drop",
+        "delete",
+        "insert",
+        "update",
+        "alter",
+        "truncate",
+        "create",
+        "grant",
+        "revoke",
+    ],
+)
+def test_forbidden_keyword_rejected(sql):
     with pytest.raises(ValueError):
-        _validate_sql("DROP TABLE vendors")
+        _validate_sql(sql)
 
 
-def test_forbidden_delete():
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT COPY 'vendors' TO '/tmp/out'",
+        "SELECT 1; EXEC sp_configure",
+        "SELECT 1; EXECUTE 'DROP TABLE vendors'",
+    ],
+    ids=["copy", "exec", "execute"],
+)
+def test_forbidden_keyword_in_pattern(sql):
+    """Keywords in _FORBIDDEN_PATTERN that are not start-of-query."""
     with pytest.raises(ValueError):
-        _validate_sql("DELETE FROM vendors WHERE id = 1")
-
-
-def test_forbidden_insert():
-    with pytest.raises(ValueError):
-        _validate_sql("INSERT INTO vendors (name) VALUES ('evil')")
-
-
-def test_forbidden_update():
-    with pytest.raises(ValueError):
-        _validate_sql("UPDATE vendors SET name = 'evil' WHERE id = 1")
-
-
-def test_forbidden_alter():
-    with pytest.raises(ValueError):
-        _validate_sql("ALTER TABLE vendors ADD COLUMN evil TEXT")
-
-
-def test_forbidden_truncate():
-    with pytest.raises(ValueError):
-        _validate_sql("TRUNCATE vendors")
-
-
-def test_forbidden_create():
-    with pytest.raises(ValueError):
-        _validate_sql("CREATE TABLE evil (id INT)")
-
-
-def test_forbidden_grant():
-    with pytest.raises(ValueError):
-        _validate_sql("GRANT ALL ON vendors TO evil")
-
-
-def test_forbidden_revoke():
-    with pytest.raises(ValueError):
-        _validate_sql("REVOKE SELECT ON vendors FROM labmanager_ro")
+        _validate_sql(sql)
 
 
 # --- Case insensitive blocking ---
 
 
-def test_case_insensitive_drop():
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "DRoP TABLE vendors",
+        "dElEtE FROM vendors",
+    ],
+    ids=["drop", "delete"],
+)
+def test_case_insensitive_forbidden(sql):
     with pytest.raises(ValueError):
-        _validate_sql("DRoP TABLE vendors")
-
-
-def test_case_insensitive_delete():
-    with pytest.raises(ValueError):
-        _validate_sql("dElEtE FROM vendors")
+        _validate_sql(sql)
 
 
 # --- Stacked queries ---
@@ -146,7 +160,8 @@ def test_comment_block_rejected():
 
 
 def test_dollar_quoting_rejected():
-    with pytest.raises(ValueError):
+    """Dollar quoting with semicolon — caught by stacked-query check."""
+    with pytest.raises(ValueError, match="Stacked"):
         _validate_sql("SELECT 1; DO $$ BEGIN EXECUTE 'DROP TABLE vendors'; END $$")
 
 
@@ -166,34 +181,33 @@ def test_must_start_with_select_show():
 # --- Disallowed tables ---
 
 
-def test_disallowed_table_pg_shadow():
-    with pytest.raises(ValueError, match="forbidden"):
-        _validate_sql("SELECT * FROM pg_shadow")
+@pytest.mark.parametrize(
+    "sql,match_pattern",
+    [
+        ("SELECT * FROM pg_shadow", "forbidden"),
+        ("SELECT * FROM pg_catalog.pg_class", "forbidden"),
+        ("SELECT * FROM information_schema.tables", "forbidden"),
+        ("SELECT * FROM pg_authid", "forbidden"),
+        ("SELECT * FROM pg_roles", "forbidden"),
+        ("SELECT * FROM audit_log", "not allowed"),
+    ],
+    ids=[
+        "pg_shadow",
+        "pg_catalog",
+        "information_schema",
+        "pg_authid",
+        "pg_roles",
+        "unlisted_table",
+    ],
+)
+def test_disallowed_table(sql, match_pattern):
+    with pytest.raises(ValueError, match=match_pattern):
+        _validate_sql(sql)
 
 
-def test_disallowed_table_pg_catalog():
-    with pytest.raises(ValueError, match="forbidden"):
-        _validate_sql("SELECT * FROM pg_catalog.pg_class")
-
-
-def test_disallowed_table_information_schema():
-    with pytest.raises(ValueError, match="forbidden"):
-        _validate_sql("SELECT * FROM information_schema.tables")
-
-
-def test_disallowed_table_pg_authid():
-    with pytest.raises(ValueError, match="forbidden"):
-        _validate_sql("SELECT * FROM pg_authid")
-
-
-def test_disallowed_table_pg_roles():
-    with pytest.raises(ValueError, match="forbidden"):
-        _validate_sql("SELECT * FROM pg_roles")
-
-
-def test_disallowed_table_random_table():
+def test_cte_with_non_allowed_alias_rejected():
     with pytest.raises(ValueError, match="not allowed"):
-        _validate_sql("SELECT * FROM audit_log")
+        _validate_sql("WITH tmp AS (SELECT * FROM vendors) SELECT * FROM tmp")
 
 
 # --- Unicode bypass attempts ---
@@ -214,36 +228,46 @@ def test_unicode_fullwidth_chars():
 # --- Dangerous functions ---
 
 
-def test_forbidden_pg_read_file():
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT pg_read_file('/etc/passwd')",
+        "SELECT pg_terminate_backend(1234)",
+        "SELECT pg_sleep(10)",
+        "SELECT * FROM dblink('host=evil', 'SELECT 1')",
+        "SELECT lo_import('/etc/passwd')",
+        "SELECT set_config('log_statement', 'all', true)",
+        "SELECT current_setting('server_version')",
+    ],
+    ids=[
+        "pg_read_file",
+        "pg_terminate_backend",
+        "pg_sleep",
+        "dblink",
+        "lo_import",
+        "set_config",
+        "current_setting",
+    ],
+)
+def test_forbidden_function(sql):
     with pytest.raises(ValueError, match="forbidden"):
-        _validate_sql("SELECT pg_read_file('/etc/passwd')")
+        _validate_sql(sql)
 
 
-def test_forbidden_pg_terminate_backend():
-    with pytest.raises(ValueError, match="forbidden"):
-        _validate_sql("SELECT pg_terminate_backend(1234)")
+# --- Edge cases ---
 
 
-def test_forbidden_pg_sleep():
-    with pytest.raises(ValueError, match="forbidden"):
-        _validate_sql("SELECT pg_sleep(10)")
+def test_empty_input_rejected():
+    with pytest.raises(ValueError):
+        _validate_sql("")
 
 
-def test_forbidden_dblink():
-    with pytest.raises(ValueError, match="forbidden"):
-        _validate_sql("SELECT * FROM dblink('host=evil', 'SELECT 1')")
+def test_whitespace_only_rejected():
+    with pytest.raises(ValueError):
+        _validate_sql("   ")
 
 
-def test_forbidden_lo_import():
-    with pytest.raises(ValueError, match="forbidden"):
-        _validate_sql("SELECT lo_import('/etc/passwd')")
-
-
-def test_forbidden_set_config():
-    with pytest.raises(ValueError, match="forbidden"):
-        _validate_sql("SELECT set_config('log_statement', 'all', true)")
-
-
-def test_forbidden_current_setting():
-    with pytest.raises(ValueError, match="forbidden"):
-        _validate_sql("SELECT current_setting('server_version')")
+def test_mixed_case_table_name_passes():
+    """Allowed tables should match case-insensitively."""
+    sql = "SELECT * FROM VENDORS"
+    assert _validate_sql(sql) == sql.strip()
