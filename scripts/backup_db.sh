@@ -8,6 +8,10 @@ BACKUP_DIR="${BACKUP_DIR:-/backups/labmanager}"
 DATABASE_URL="${DATABASE_URL:?DATABASE_URL must be set}"
 RETENTION_DAYS="${RETENTION_DAYS:-7}"
 
+# Strip SQLAlchemy dialect suffix (+psycopg, +asyncpg, etc.) for pg_dump compatibility.
+# SQLAlchemy uses "postgresql+psycopg://..." but pg_dump expects "postgresql://...".
+PG_URL=$(echo "$DATABASE_URL" | sed 's|postgresql+[a-z_]*://|postgresql://|')
+
 mkdir -p "$BACKUP_DIR"
 
 # Pre-flight: check disk space (need at least 1GB free for backup)
@@ -22,7 +26,7 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 DEST="$BACKUP_DIR/labmanager_${TIMESTAMP}.sql.gz"
 
 echo "[$(date -Iseconds)] Starting backup → $DEST"
-pg_dump "$DATABASE_URL" | gzip > "$DEST"
+pg_dump "$PG_URL" | gzip > "$DEST"
 echo "[$(date -Iseconds)] Backup complete: $(du -h "$DEST" | cut -f1)"
 
 # Remove backups older than retention period
