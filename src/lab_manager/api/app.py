@@ -246,7 +246,7 @@ def create_app() -> FastAPI:
             max_age=_SESSION_MAX_AGE,
             httponly=True,
             samesite="lax",
-            secure=False,  # Set True in production behind HTTPS
+            secure=get_settings().secure_cookies,
         )
         logger.info("Login successful for %s (staff_id=%s)", staff.email, staff.id)
         return response

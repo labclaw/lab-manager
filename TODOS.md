@@ -5,74 +5,54 @@
 
 ## P1 — Must fix before production deploy
 
-### TODO-1: Basic authentication layer
-- **What:** Add username/password login with session cookies, using existing Staff table.
-- **Why:** X-User header is honor-system — anyone on the lab network can spoof any user in audit logs. Audit trail integrity is zero without auth.
-- **Effort:** M (~2hr)
-- **Depends on:** Staff model already has `name`, `email`, `role`, `is_active` fields.
-- **How to apply:** Add login/logout endpoints, session middleware, protect all routes. Remove X-User header trust.
+### TODO-1: Basic authentication layer ✅ (PR-3, #6)
+- Session cookie auth (itsdangerous signed), bcrypt password hashing, timing-safe login
+- Merged auth+audit middleware: session cookies → API key fallback → dev-mode X-User
+- Login/logout endpoints, set_staff_password.py CLI tool
 
-### TODO-2: Read-only PostgreSQL user for RAG queries
-- **What:** Create a PostgreSQL user with SELECT-only grants. RAG `_execute_sql()` uses this connection instead of the main read-write connection.
-- **Why:** Regex-based SQL blocklist is fundamentally bypassable (unicode normalization, comment injection, dollar-quoting). A DB-level read-only user is the only defense that can't be bypassed.
-- **Effort:** S (~30min)
-- **Depends on:** Database setup / Docker Compose changes.
-- **How to apply:** Add `DATABASE_READONLY_URL` to config, create `labmanager_ro` user in init SQL, use separate engine in `rag.py`.
+### TODO-2: Read-only PostgreSQL user for RAG queries ✅ (PR-1, #4)
+- Dedicated `labmanager_ro` user with SELECT-only grants on 8 tables
+- `DATABASE_READONLY_URL` config, fallback to main engine + READ ONLY with warning log
+- `docker/init-readonly-user.sql` for Docker Compose setup
 
-### TODO-3: RAG SQL validation unit tests
-- **What:** Test `_validate_sql()` with known attack patterns: unicode bypass, comment injection (`/* */`, `--`), dollar-quoting, case tricks, `UNION` injection.
-- **Why:** The highest-risk codepath in the system has zero tests. Even with read-only user (TODO-2), tests document known attack vectors.
-- **Effort:** S (~1hr)
-- **Depends on:** None (pure unit tests, mock Gemini).
+### TODO-3: RAG SQL validation unit tests ✅ (PR-2 + PR-4, #5 + #7)
+- 54 unit tests for `_validate_sql()` attack patterns (PR-2)
+- 7 PG-only integration tests for `_execute_sql()` with real read-only enforcement (PR-4)
+- Covers: forbidden keywords, stacked queries, comment injection, dollar quoting, Unicode bypass, dangerous functions, disallowed tables, statement timeout
 
-### TODO-4: PostgreSQL backup script
-- **What:** Daily `pg_dump` to local backup directory with 7-day rotation. Add `scripts/backup_db.sh` and document cron setup.
-- **Why:** Database contains 279 processed documents extracted via expensive VLM processing. Losing this data means re-running the entire intake pipeline ($$$).
-- **Effort:** S (~15min)
-- **Depends on:** None.
+### TODO-4: PostgreSQL backup script ✅ (PR-1, #4)
+- `scripts/backup_db.sh` — daily pg_dump with 7-day rotation, gzip compression
 
 ## P2 — Should fix before production deploy
 
-### TODO-5: Health endpoint with explicit service errors
-- **What:** Add `GET /api/health` checking PostgreSQL + Meilisearch + Gemini API availability. Return 503 with service name when downstream is down. Search/RAG endpoints return explicit errors instead of empty results.
-- **Why:** Silent failures violate zero-silent-failures principle. Users can't distinguish "no results" from "search is broken."
-- **Effort:** S (~1hr)
-- **Depends on:** None.
+### TODO-5: Health endpoint with explicit service errors ✅ (PR-3, #6)
+- `GET /api/health` checks PostgreSQL (SELECT 1), Meilisearch, Gemini config
+- Returns 200 (all ok) or 503 (degraded) with per-service status
+- Generic "error" messages — no exception string leakage
 
-### TODO-6: CSV formula injection escaping
-- **What:** Prefix CSV cells starting with `=`, `+`, `-`, `@`, or tab with a single quote (`'`). Standard defense against Excel formula injection.
-- **Why:** OCR could extract formula-like text from scanned documents. Low risk but trivial fix.
-- **Effort:** S (~15min)
-- **Depends on:** None.
-- **File:** `src/lab_manager/api/routes/export.py`
+### TODO-6: CSV formula injection escaping ✅ (PR-1, #4)
+- Cells starting with `=`, `+`, `-`, `@`, `\t` prefixed with `'`
+- Applied to all CSV export endpoints
 
-### TODO-7: Short-circuit pipeline on empty OCR text
-- **What:** If OCR returns empty/whitespace-only text, set `status='ocr_failed'`, skip VLM extraction. Don't waste 3 API calls on blank pages.
-- **Why:** Saves API costs, keeps review queue clean.
-- **Effort:** S (~15min)
-- **Depends on:** None.
-- **File:** `src/lab_manager/intake/pipeline.py`
+### TODO-7: Short-circuit pipeline on empty OCR text ✅ (PR-1, #4)
+- Empty/whitespace-only OCR → `status='ocr_failed'`, skip VLM extraction
+- Added `DocumentStatus.ocr_failed` enum value
 
-### TODO-8: Use PostgreSQL in CI tests
-- **What:** Update `tests/conftest.py` to use `DATABASE_URL` env var when set (CI has PostgreSQL service). Keep SQLite as local fallback.
-- **Why:** Tests use SQLite but production uses PostgreSQL. JSONB, CHECK constraints, FOR UPDATE all behave differently. CI already has PostgreSQL configured but tests don't use it.
-- **Effort:** S (~30min)
-- **Depends on:** CI already configured with PostgreSQL service.
+### TODO-8: Use PostgreSQL in CI tests ✅ (PR-4, #7)
+- Dual-engine conftest: auto-detects DATABASE_URL, PG for CI, SQLite for local dev
+- `db_engine` fixture exposed for PG-only tests
+- `pytestmark = pytest.mark.skipif(not _IS_PG)` pattern for PG-only tests
 
 ## P3 — Nice to have
 
-### TODO-9: Structured logging with request_id
-- **What:** Add structlog or python-json-logger. Generate UUID per request, attach to all log lines as `{request_id, user, timestamp, level}`.
-- **Why:** When debugging a production issue, need to correlate log lines across middleware → route → service → DB. Currently impossible.
-- **Effort:** M (~2hr)
-- **Depends on:** None.
+### TODO-9: Structured logging with request_id ✅ (PR-5, #8)
+- structlog with per-request UUID correlation via contextvars
+- X-Request-ID response header on all responses (including 401)
+- Contextvar cleanup in try/finally — no stale IDs leak between requests
 
-### TODO-10: Dashboard query optimization
-- **What:** Consolidate `dashboard_summary()` from 12+ separate COUNT queries into 1-2 combined queries with subqueries or CTEs.
-- **Why:** At scale (10K+ records), 12 round-trips to PostgreSQL will make the dashboard visibly slow. Not a current problem at 300 records.
-- **Effort:** M (~1hr)
-- **Depends on:** None.
-- **File:** `src/lab_manager/services/analytics.py`
+### TODO-10: Dashboard query optimization ✅ (PR-5, #8)
+- Consolidated 8 separate COUNT queries → 1 round-trip using scalar subqueries
+- Works on both SQLite and PostgreSQL
 
 ## Cross-reference: Existing review-fixes plan
 
