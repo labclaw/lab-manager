@@ -51,11 +51,8 @@ def create_app() -> FastAPI:
         if request.url.path == "/scans" or request.url.path.startswith("/scans/"):
             settings = get_settings()
             if settings.auth_enabled and settings.api_key:
-                # Accept key via header or query param (for <img> tags).
-                key = request.headers.get("X-Api-Key") or request.query_params.get(
-                    "api_key"
-                )
-                if not key or not hmac.compare_digest(key, settings.api_key):
+                api_key = request.headers.get("X-Api-Key", "")
+                if not hmac.compare_digest(api_key, settings.api_key):
                     return JSONResponse(
                         status_code=401, content={"detail": "Unauthorized"}
                     )
