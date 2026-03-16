@@ -112,25 +112,35 @@ def _configure_index(client: meilisearch.Client, index_name: str) -> None:
         idx.update_sortable_attributes(cfg["sortableAttributes"])
 
 
+_BATCH_SIZE = 500
+
+
 def sync_products(db: Session) -> int:
     """Sync all products to Meilisearch."""
     client = get_search_client()
     fields = ["id", "catalog_number", "name", "category", "cas_number", "vendor_id"]
-    products = db.query(Product).all()
-    docs = [_make_doc(p, fields) for p in products]
-    if docs:
-        client.index("products").add_documents(docs, primary_key="id")
+    count = 0
+    batch: list[dict] = []
+    for product in db.query(Product).yield_per(_BATCH_SIZE):
+        batch.append(_make_doc(product, fields))
+        if len(batch) >= _BATCH_SIZE:
+            client.index("products").add_documents(batch, primary_key="id")
+            count += len(batch)
+            batch = []
+    if batch:
+        client.index("products").add_documents(batch, primary_key="id")
+        count += len(batch)
     _configure_index(client, "products")
-    logger.info("Indexed %d products", len(docs))
-    return len(docs)
+    logger.info("Indexed %d products", count)
+    return count
 
 
 def sync_vendors(db: Session) -> int:
     """Sync all vendors to Meilisearch."""
     client = get_search_client()
-    vendors = db.query(Vendor).all()
-    docs = []
-    for v in vendors:
+    count = 0
+    batch: list[dict] = []
+    for v in db.query(Vendor).yield_per(_BATCH_SIZE):
         d: dict = {"id": v.id}
         if v.name:
             d["name"] = v.name
@@ -143,12 +153,17 @@ def sync_vendors(db: Session) -> int:
             d["website"] = v.website
         if v.email:
             d["email"] = v.email
-        docs.append(d)
-    if docs:
-        client.index("vendors").add_documents(docs, primary_key="id")
+        batch.append(d)
+        if len(batch) >= _BATCH_SIZE:
+            client.index("vendors").add_documents(batch, primary_key="id")
+            count += len(batch)
+            batch = []
+    if batch:
+        client.index("vendors").add_documents(batch, primary_key="id")
+        count += len(batch)
     _configure_index(client, "vendors")
-    logger.info("Indexed %d vendors", len(docs))
-    return len(docs)
+    logger.info("Indexed %d vendors", count)
+    return count
 
 
 def sync_orders(db: Session) -> int:
@@ -166,13 +181,20 @@ def sync_orders(db: Session) -> int:
         "invoice_number",
         "vendor_id",
     ]
-    orders = db.query(Order).all()
-    docs = [_make_doc(o, fields) for o in orders]
-    if docs:
-        client.index("orders").add_documents(docs, primary_key="id")
+    count = 0
+    batch: list[dict] = []
+    for order in db.query(Order).yield_per(_BATCH_SIZE):
+        batch.append(_make_doc(order, fields))
+        if len(batch) >= _BATCH_SIZE:
+            client.index("orders").add_documents(batch, primary_key="id")
+            count += len(batch)
+            batch = []
+    if batch:
+        client.index("orders").add_documents(batch, primary_key="id")
+        count += len(batch)
     _configure_index(client, "orders")
-    logger.info("Indexed %d orders", len(docs))
-    return len(docs)
+    logger.info("Indexed %d orders", count)
+    return count
 
 
 def sync_order_items(db: Session) -> int:
@@ -189,21 +211,28 @@ def sync_order_items(db: Session) -> int:
         "unit_price",
         "order_id",
     ]
-    items = db.query(OrderItem).all()
-    docs = [_make_doc(i, fields) for i in items]
-    if docs:
-        client.index("order_items").add_documents(docs, primary_key="id")
+    count = 0
+    batch: list[dict] = []
+    for item in db.query(OrderItem).yield_per(_BATCH_SIZE):
+        batch.append(_make_doc(item, fields))
+        if len(batch) >= _BATCH_SIZE:
+            client.index("order_items").add_documents(batch, primary_key="id")
+            count += len(batch)
+            batch = []
+    if batch:
+        client.index("order_items").add_documents(batch, primary_key="id")
+        count += len(batch)
     _configure_index(client, "order_items")
-    logger.info("Indexed %d order_items", len(docs))
-    return len(docs)
+    logger.info("Indexed %d order_items", count)
+    return count
 
 
 def sync_documents(db: Session) -> int:
     """Sync documents to Meilisearch (ocr_text truncated to 5000 chars)."""
     client = get_search_client()
-    documents = db.query(Document).all()
-    docs = []
-    for doc in documents:
+    count = 0
+    batch: list[dict] = []
+    for doc in db.query(Document).yield_per(_BATCH_SIZE):
         d: dict = {"id": doc.id}
         if doc.file_name:
             d["file_name"] = doc.file_name
@@ -215,20 +244,25 @@ def sync_documents(db: Session) -> int:
             d["status"] = doc.status
         if doc.ocr_text:
             d["ocr_text"] = doc.ocr_text[:5000]
-        docs.append(d)
-    if docs:
-        client.index("documents").add_documents(docs, primary_key="id")
+        batch.append(d)
+        if len(batch) >= _BATCH_SIZE:
+            client.index("documents").add_documents(batch, primary_key="id")
+            count += len(batch)
+            batch = []
+    if batch:
+        client.index("documents").add_documents(batch, primary_key="id")
+        count += len(batch)
     _configure_index(client, "documents")
-    logger.info("Indexed %d documents", len(docs))
-    return len(docs)
+    logger.info("Indexed %d documents", count)
+    return count
 
 
 def sync_inventory(db: Session) -> int:
     """Sync inventory items to Meilisearch."""
     client = get_search_client()
-    items = db.query(InventoryItem).all()
-    docs = []
-    for item in items:
+    count = 0
+    batch: list[dict] = []
+    for item in db.query(InventoryItem).yield_per(_BATCH_SIZE):
         d: dict = {"id": item.id}
         if item.lot_number:
             d["lot_number"] = item.lot_number
@@ -243,12 +277,17 @@ def sync_inventory(db: Session) -> int:
             d["status"] = item.status
         if item.notes:
             d["notes"] = item.notes
-        docs.append(d)
-    if docs:
-        client.index("inventory").add_documents(docs, primary_key="id")
+        batch.append(d)
+        if len(batch) >= _BATCH_SIZE:
+            client.index("inventory").add_documents(batch, primary_key="id")
+            count += len(batch)
+            batch = []
+    if batch:
+        client.index("inventory").add_documents(batch, primary_key="id")
+        count += len(batch)
     _configure_index(client, "inventory")
-    logger.info("Indexed %d inventory items", len(docs))
-    return len(docs)
+    logger.info("Indexed %d inventory items", count)
+    return count
 
 
 def sync_all(db: Session) -> dict[str, int]:
