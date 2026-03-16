@@ -1,5 +1,6 @@
 """Product / catalog item model."""
 
+from decimal import Decimal  # noqa: F401 — used in Field type annotations
 from typing import TYPE_CHECKING, List, Optional
 
 import sqlalchemy as sa
@@ -17,6 +18,11 @@ if TYPE_CHECKING:
 
 class Product(AuditMixin, table=True):
     __tablename__ = "products"
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "catalog_number", "vendor_id", name="uq_product_catalog_vendor"
+        ),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     catalog_number: str = Field(max_length=100, index=True)
@@ -34,9 +40,15 @@ class Product(AuditMixin, table=True):
     hazard_info: Optional[str] = Field(default=None, max_length=255)
     extra: dict = Field(default_factory=dict, sa_column=Column(sa.JSON))
 
-    min_stock_level: Optional[float] = Field(default=None)
-    max_stock_level: Optional[float] = Field(default=None)
-    reorder_quantity: Optional[float] = Field(default=None)
+    min_stock_level: Optional[Decimal] = Field(
+        default=None, sa_column=Column(sa.Numeric(12, 4), nullable=True)
+    )
+    max_stock_level: Optional[Decimal] = Field(
+        default=None, sa_column=Column(sa.Numeric(12, 4), nullable=True)
+    )
+    reorder_quantity: Optional[Decimal] = Field(
+        default=None, sa_column=Column(sa.Numeric(12, 4), nullable=True)
+    )
     shelf_life_days: Optional[int] = Field(default=None)
     storage_requirements: Optional[str] = Field(default=None, max_length=500)
     is_hazardous: bool = Field(default=False)

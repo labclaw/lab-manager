@@ -1,8 +1,11 @@
 """Tests for data integrity: session management, constraints."""
 
-from sqlmodel import SQLModel, create_engine, Session
+import pytest  # noqa: F401 — used in later tests
+from sqlalchemy.exc import IntegrityError  # noqa: F401
 from sqlalchemy.pool import StaticPool
+from sqlmodel import SQLModel, Session, create_engine
 
+from lab_manager.models.product import Product  # noqa: F401
 from lab_manager.models.vendor import Vendor
 
 
@@ -78,3 +81,39 @@ def test_get_db_rollback_on_exception():
             assert vendor is None, "Vendor should NOT be committed after error"
     finally:
         db_mod._session_factory = original_factory
+
+
+# ---------------------------------------------------------------------------
+# Task 1.2: Product unique constraint + Decimal stock levels
+# ---------------------------------------------------------------------------
+
+
+def test_product_duplicate_catalog_vendor_rejected(db_session):
+    """Same catalog_number + vendor_id should be rejected."""
+    v = Vendor(name="DupTest Vendor")
+    db_session.add(v)
+    db_session.flush()
+
+    p1 = Product(catalog_number="CAT-001", name="Product A", vendor_id=v.id)
+    db_session.add(p1)
+    db_session.flush()
+
+    p2 = Product(catalog_number="CAT-001", name="Product B", vendor_id=v.id)
+    db_session.add(p2)
+    with pytest.raises(IntegrityError):
+        db_session.flush()
+    db_session.rollback()
+
+
+def test_product_same_catalog_different_vendor_ok(db_session):
+    """Same catalog_number but different vendor_id should be allowed."""
+    v1 = Vendor(name="Vendor Alpha")
+    v2 = Vendor(name="Vendor Beta")
+    db_session.add_all([v1, v2])
+    db_session.flush()
+
+    p1 = Product(catalog_number="CAT-001", name="Product A", vendor_id=v1.id)
+    p2 = Product(catalog_number="CAT-001", name="Product A", vendor_id=v2.id)
+    db_session.add_all([p1, p2])
+    db_session.flush()  # Should not raise
+    assert p1.id != p2.id
