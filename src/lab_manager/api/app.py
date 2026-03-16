@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hmac
 import logging
+import os
 import re
 import shutil
 from pathlib import Path
@@ -187,9 +188,12 @@ def create_app() -> FastAPI:
             logger.error("Health check: Meilisearch failed: %s", e)
             checks["meilisearch"] = "error"
 
-        # Gemini: config-only check (no API call to save cost)
+        # VLM/LLM: config-only check — Gemini or OpenAI key suffices
         settings = get_settings()
-        checks["gemini"] = "ok" if settings.extraction_api_key else "not configured"
+        has_llm_key = bool(
+            settings.extraction_api_key or os.environ.get("OPENAI_API_KEY")
+        )
+        checks["llm"] = "ok" if has_llm_key else "not configured"
 
         # Disk space: warn if uploads partition has less than 500MB free
         try:
@@ -200,7 +204,9 @@ def create_app() -> FastAPI:
             logger.error("Health check: disk check failed: %s", e)
             checks["disk"] = "error"
 
-        all_ok = all(v == "ok" for v in checks.values())
+        # Optional services don't degrade overall health
+        required = {k: v for k, v in checks.items() if k != "llm"}
+        all_ok = all(v == "ok" for v in required.values())
         return JSONResponse(
             {"status": "ok" if all_ok else "degraded", "services": checks},
             status_code=200 if all_ok else 503,

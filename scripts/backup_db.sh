@@ -16,7 +16,7 @@ mkdir -p "$BACKUP_DIR"
 
 # Pre-flight: check disk space (need at least 1GB free for backup)
 MIN_FREE_KB="${MIN_FREE_KB:-1048576}"  # 1GB in KB
-AVAIL_KB=$(df -k "$BACKUP_DIR" | tail -1 | awk '{print $4}')
+AVAIL_KB=$(df -Pk "$BACKUP_DIR" | tail -1 | awk '{print $4}')
 if [ "$AVAIL_KB" -lt "$MIN_FREE_KB" ]; then
     echo "[$(date -Iseconds)] ERROR: Insufficient disk space. Available: ${AVAIL_KB}KB, Required: ${MIN_FREE_KB}KB"
     exit 1
@@ -25,8 +25,13 @@ fi
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 DEST="$BACKUP_DIR/labmanager_${TIMESTAMP}.sql.gz"
 
+TMPFILE=$(mktemp "$BACKUP_DIR/.backup_XXXXXX.sql.gz")
+trap 'rm -f "$TMPFILE"' EXIT
+
 echo "[$(date -Iseconds)] Starting backup → $DEST"
-pg_dump "$PG_URL" | gzip > "$DEST"
+pg_dump "$PG_URL" | gzip > "$TMPFILE"
+mv "$TMPFILE" "$DEST"
+trap - EXIT
 echo "[$(date -Iseconds)] Backup complete: $(du -h "$DEST" | cut -f1)"
 
 # Remove backups older than retention period

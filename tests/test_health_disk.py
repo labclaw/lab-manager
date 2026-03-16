@@ -29,20 +29,30 @@ def health_client():
         yield c
 
     os.environ.pop("AUTH_ENABLED", None)
+    os.environ.pop("ADMIN_SECRET_KEY", None)
     os.environ.pop("DATABASE_URL", None)
     get_settings.cache_clear()
 
 
 def test_health_includes_disk_check(health_client):
-    """Health endpoint should include disk space status."""
-    resp = health_client.get("/api/health")
+    """Health endpoint should include disk and llm status."""
+    mock_result = _DiskUsage(
+        total=100_000_000_000, used=50_000_000_000, free=50_000_000_000
+    )
+    with patch.object(shutil, "disk_usage", return_value=mock_result):
+        resp = health_client.get("/api/health")
     data = resp.json()
     assert "disk" in data["services"]
+    assert "llm" in data["services"]
 
 
 def test_health_disk_ok_when_sufficient(health_client):
     """Disk check should report 'ok' when space is sufficient."""
-    resp = health_client.get("/api/health")
+    mock_result = _DiskUsage(
+        total=100_000_000_000, used=50_000_000_000, free=50_000_000_000
+    )
+    with patch.object(shutil, "disk_usage", return_value=mock_result):
+        resp = health_client.get("/api/health")
     data = resp.json()
     assert data["services"]["disk"] == "ok"
 
