@@ -12,7 +12,10 @@ def test_escape_cell_formula_plus():
 
 
 def test_escape_cell_formula_minus():
-    assert _escape_cell("-1+1") == "'-1+1"
+    # -cmd is dangerous (letter after minus), -1+1 is safe (digit after minus)
+    assert _escape_cell("-cmd|' /C calc'!A0") == "'-cmd|' /C calc'!A0"
+    assert _escape_cell("-1+1") == "-1+1"
+    assert _escape_cell("-20C") == "-20C"
 
 
 def test_escape_cell_formula_at():
