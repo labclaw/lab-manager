@@ -121,8 +121,10 @@ def _make_auth_backend():
             form = await request.form()
             username = form.get("username", "")
             password = form.get("password", "")
-            if hmac.compare_digest(username, "admin") and hmac.compare_digest(
-                password, settings.api_key or ""
+            if (
+                settings.api_key
+                and hmac.compare_digest(username, "admin")
+                and hmac.compare_digest(password, settings.api_key)
             ):
                 request.session["authenticated"] = True
                 return True
