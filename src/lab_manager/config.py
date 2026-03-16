@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     extraction_model: str = "gemini-3.1-flash-preview"
     extraction_api_key: str = ""
 
+    # RAG
+    rag_model: str = "gemini-2.5-flash"
+
     # File storage
     upload_dir: str = "uploads"
 
