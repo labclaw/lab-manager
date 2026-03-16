@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     api_key: str = ""
     admin_secret_key: str = ""
     auth_enabled: bool = True
+    secure_cookies: bool = False
 
     # Document intake
     ocr_model: str = "Qwen/Qwen3-VL-4B-Instruct"
