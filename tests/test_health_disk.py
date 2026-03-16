@@ -1,6 +1,7 @@
 """Test disk space health check."""
 
 import os
+import shutil
 from collections import namedtuple
 from unittest.mock import patch
 
@@ -43,16 +44,16 @@ def test_health_disk_ok_when_sufficient(health_client):
     """Disk check should report 'ok' when space is sufficient."""
     resp = health_client.get("/api/health")
     data = resp.json()
-    assert data["services"]["disk"] in ("ok", "warning", "error")
+    assert data["services"]["disk"] == "ok"
 
 
-@patch("lab_manager.api.app.shutil.disk_usage")
-def test_health_disk_warning_when_low(mock_disk, health_client):
+def test_health_disk_warning_when_low(health_client):
     """Disk check should report 'warning' when space is below threshold."""
-    # shutil.disk_usage returns a named tuple with total, used, free
-    mock_disk.return_value = _DiskUsage(
+    # Simulate 100MB free (below 500MB threshold)
+    mock_result = _DiskUsage(
         total=100_000_000_000, used=99_900_000_000, free=100_000_000
     )
-    resp = health_client.get("/api/health")
+    with patch.object(shutil, "disk_usage", return_value=mock_result):
+        resp = health_client.get("/api/health")
     data = resp.json()
     assert data["services"]["disk"] == "warning"
