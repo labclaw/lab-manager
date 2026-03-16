@@ -153,3 +153,28 @@ def test_empty_extractions():
     assert isinstance(result, dict)
     assert result["_needs_human"] is False
     assert result["_model_count"] == 3
+
+
+def test_model_priority_exact_name_wins():
+    """Exact model names should take priority over partial matches."""
+    extractions = {
+        "opus_4_6": {"vendor_name": "A"},
+        "gemini_3_1_pro": {"vendor_name": "B"},
+        "gpt_5_4": {"vendor_name": "C"},
+    }
+    result = consensus_merge(extractions)
+    # All disagree -> priority fallback picks opus_4_6 (index 0 in MODEL_PRIORITY)
+    assert result["vendor_name"] == "A"
+    assert result["_consensus"]["vendor_name"]["agreement"] == "none"
+
+
+def test_model_priority_no_false_substring_match():
+    """'opus_review_bot' should NOT get opus priority -- it's not the real opus."""
+    extractions = {
+        "opus_review_bot": {"vendor_name": "A"},
+        "gemini_3_1_pro": {"vendor_name": "B"},
+        "random_model": {"vendor_name": "C"},
+    }
+    result = consensus_merge(extractions)
+    # gemini_3_1_pro should win (real model match), not opus_review_bot
+    assert result["vendor_name"] == "B"

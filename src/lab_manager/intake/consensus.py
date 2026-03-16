@@ -13,12 +13,12 @@ log = logging.getLogger(__name__)
 
 MODEL_PRIORITY = [
     "opus_4_6",
-    "opus",
     "gemini_3_1_pro",
+    "gpt_5_4",
     "gemini_pro",
     "gemini",
-    "gpt_5_4",
     "codex",
+    "opus",
 ]
 
 
@@ -118,7 +118,12 @@ def consensus_merge(extractions: dict[str, Optional[dict]]) -> dict:
                 for model in sorted(
                     values.keys(),
                     key=lambda m: next(
-                        (i for i, p in enumerate(MODEL_PRIORITY) if p in m), 999
+                        (
+                            i
+                            for i, p in enumerate(MODEL_PRIORITY)
+                            if m == p or m.startswith(p + "_")
+                        ),
+                        999,
                     ),
                 ):
                     if values[model] is not None:
