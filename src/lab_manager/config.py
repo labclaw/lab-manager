@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     # Auth
     api_key: str = ""
     admin_secret_key: str = ""
-    auth_enabled: bool = False
+    auth_enabled: bool = True
 
     # Document intake
     ocr_model: str = "Qwen/Qwen3-VL-4B-Instruct"
