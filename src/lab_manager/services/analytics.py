@@ -299,6 +299,7 @@ def order_history(
     vendor_id: Optional[int] = None,
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
+    limit: int = 500,
 ) -> list[dict]:
     q = (
         db.query(
@@ -319,7 +320,7 @@ def order_history(
     if date_to:
         q = q.filter(Order.order_date <= date_to)
 
-    q = q.group_by(Order.id, Vendor.name).order_by(Order.id.desc()).limit(500)
+    q = q.group_by(Order.id, Vendor.name).order_by(Order.id.desc()).limit(limit)
 
     return [
         {
