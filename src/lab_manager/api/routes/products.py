@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field as PydanticField
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -29,26 +29,26 @@ _PRODUCT_SORTABLE = {
 
 
 class ProductCreate(BaseModel):
-    catalog_number: str
-    name: str
+    catalog_number: str = PydanticField(..., min_length=1, max_length=100)
+    name: str = PydanticField(..., min_length=1, max_length=500)
     vendor_id: Optional[int] = None
-    category: Optional[str] = None
-    cas_number: Optional[str] = None
-    storage_temp: Optional[str] = None
-    unit: Optional[str] = None
-    hazard_info: Optional[str] = None
+    category: Optional[str] = PydanticField(default=None, max_length=100)
+    cas_number: Optional[str] = PydanticField(default=None, max_length=30)
+    storage_temp: Optional[str] = PydanticField(default=None, max_length=50)
+    unit: Optional[str] = PydanticField(default=None, max_length=50)
+    hazard_info: Optional[str] = PydanticField(default=None, max_length=255)
     extra: dict = {}
 
 
 class ProductUpdate(BaseModel):
-    catalog_number: Optional[str] = None
-    name: Optional[str] = None
+    catalog_number: Optional[str] = PydanticField(default=None, max_length=100)
+    name: Optional[str] = PydanticField(default=None, max_length=500)
     vendor_id: Optional[int] = None
-    category: Optional[str] = None
-    cas_number: Optional[str] = None
-    storage_temp: Optional[str] = None
-    unit: Optional[str] = None
-    hazard_info: Optional[str] = None
+    category: Optional[str] = PydanticField(default=None, max_length=100)
+    cas_number: Optional[str] = PydanticField(default=None, max_length=30)
+    storage_temp: Optional[str] = PydanticField(default=None, max_length=50)
+    unit: Optional[str] = PydanticField(default=None, max_length=50)
+    hazard_info: Optional[str] = PydanticField(default=None, max_length=255)
     extra: Optional[dict] = None
 
 
@@ -88,7 +88,16 @@ def list_products(
 def create_product(body: ProductCreate, db: Session = Depends(get_db)):
     product = Product(**body.model_dump())
     db.add(product)
-    db.commit()
+    try:
+        db.flush()
+    except IntegrityError as e:
+        db.rollback()
+        if "uq_product_catalog_vendor" in str(e.orig):
+            raise HTTPException(
+                status_code=409,
+                detail=f"Product with catalog_number={body.catalog_number!r} already exists for this vendor",
+            )
+        raise HTTPException(status_code=409, detail="Duplicate or constraint violation")
     db.refresh(product)
     return product
 
