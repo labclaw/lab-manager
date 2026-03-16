@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hmac
 import logging
-import os
 import re
 import shutil
 from pathlib import Path
@@ -64,6 +63,8 @@ def _get_serializer() -> URLSafeTimedSerializer:
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    # Ensure upload directory exists at startup (not per-request in health check)
+    Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
     # Disable interactive docs in production (exposes full API schema)
     docs_kwargs = {}
     if settings.auth_enabled:
@@ -196,16 +197,12 @@ def create_app() -> FastAPI:
 
         # VLM/LLM: config-only check — Gemini or OpenAI key suffices
         settings = get_settings()
-        has_llm_key = bool(
-            settings.extraction_api_key or os.environ.get("OPENAI_API_KEY")
-        )
+        has_llm_key = bool(settings.extraction_api_key or settings.openai_api_key)
         checks["llm"] = "ok" if has_llm_key else "not configured"
 
         # Disk space: warn if uploads partition has less than 500MB free
         try:
-            upload_path = Path(settings.upload_dir)
-            upload_path.mkdir(parents=True, exist_ok=True)
-            usage = shutil.disk_usage(upload_path)
+            usage = shutil.disk_usage(settings.upload_dir)
             free_mb = usage.free / (1024 * 1024)
             checks["disk"] = "ok" if free_mb >= 500 else "warning"
         except Exception as e:
