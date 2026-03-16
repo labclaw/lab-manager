@@ -1,12 +1,18 @@
 """Shared test fixtures."""
 
 import os
+
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import SQLModel, create_engine, Session
 from sqlalchemy.pool import StaticPool
+from sqlmodel import Session, SQLModel, create_engine
 
-os.environ["DATABASE_URL"] = "sqlite://"
+# Default to SQLite for local dev; CI sets DATABASE_URL to PostgreSQL.
+_DB_URL = os.environ.get("DATABASE_URL", "sqlite://")
+_IS_PG = _DB_URL.startswith("postgresql")
+
+if not _IS_PG:
+    os.environ["DATABASE_URL"] = "sqlite://"
 os.environ["MEILISEARCH_URL"] = "http://localhost:7700"
 os.environ["AUTH_ENABLED"] = "false"
 
@@ -15,17 +21,33 @@ from lab_manager.config import get_settings
 get_settings.cache_clear()
 
 
-@pytest.fixture
-def db_session():
-    engine = create_engine(
+def _make_engine():
+    """Create a test engine: PG if DATABASE_URL points to it, else SQLite."""
+    if _IS_PG:
+        return create_engine(_DB_URL)
+    return create_engine(
         "sqlite://",
         poolclass=StaticPool,
         connect_args={"check_same_thread": False},
     )
-    import lab_manager.models  # noqa: F401 — register all models with metadata
+
+
+@pytest.fixture
+def db_engine():
+    """Expose the test engine (needed by PG-only tests)."""
+    engine = _make_engine()
+    import lab_manager.models  # noqa: F401
 
     SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
+    yield engine
+    if _IS_PG:
+        SQLModel.metadata.drop_all(engine)
+    engine.dispose()
+
+
+@pytest.fixture
+def db_session(db_engine):
+    with Session(db_engine) as session:
         yield session
 
 
