@@ -88,3 +88,14 @@ def get_db() -> Generator[Session, None, None]:
         raise
     finally:
         session.close()
+
+
+@contextmanager
+def get_db_session() -> Generator[Session, None, None]:
+    """Context manager for DB sessions outside of FastAPI dependency injection."""
+    factory = get_session_factory()
+    session = factory()
+    try:
+        yield session
+    finally:
+        session.close()
