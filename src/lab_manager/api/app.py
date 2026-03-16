@@ -5,6 +5,7 @@ from __future__ import annotations
 import hmac
 import logging
 import re
+import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, Request
@@ -189,6 +190,15 @@ def create_app() -> FastAPI:
         # Gemini: config-only check (no API call to save cost)
         settings = get_settings()
         checks["gemini"] = "ok" if settings.extraction_api_key else "not configured"
+
+        # Disk space: warn if uploads partition has less than 500MB free
+        try:
+            usage = shutil.disk_usage(settings.upload_dir)
+            free_mb = usage.free / (1024 * 1024)
+            checks["disk"] = "ok" if free_mb >= 500 else "warning"
+        except Exception as e:
+            logger.error("Health check: disk check failed: %s", e)
+            checks["disk"] = "error"
 
         all_ok = all(v == "ok" for v in checks.values())
         return JSONResponse(
