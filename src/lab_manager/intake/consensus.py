@@ -149,14 +149,13 @@ def cross_model_review(
 
     prompt = f"""You are reviewing an extraction from a scanned lab document.
 
-Original image: {image_path}
 OCR text (for reference):
 {ocr_text[:2000] if ocr_text else "(none)"}
 
 Current extraction:
 {review_json}
 
-Compare EACH field against the actual image. Output corrected JSON.
+Compare EACH field against the OCR text. Output corrected JSON.
 Add "review_notes" listing any corrections and why.
 Output ONLY valid JSON."""
 
