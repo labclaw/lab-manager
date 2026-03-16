@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     meilisearch_url: str = "http://localhost:7700"
     meilisearch_api_key: str = ""
 
+    # Read-only DB for RAG queries (falls back to main engine + SET TRANSACTION READ ONLY)
+    database_readonly_url: str = ""
+
     # Auth
     api_key: str = ""
     admin_secret_key: str = ""
