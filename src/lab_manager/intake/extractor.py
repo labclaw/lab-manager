@@ -8,13 +8,13 @@ from google import genai
 from lab_manager.config import get_settings
 from lab_manager.intake.schemas import ExtractedDocument
 
-EXTRACTION_PROMPT = """You are extracting structured data from OCR text of a lab supply document (packing list, invoice, or shipping label).
+EXTRACTION_PROMPT = """You are extracting structured data from OCR text of a lab supply document.
 
 Extract ALL fields you can find. Be precise — use exact text from the document.
 
 Rules:
 - vendor_name: the supplier company (e.g., "Sigma-Aldrich", "EMD Millipore Corporation")
-- document_type: one of packing_list, invoice, package, shipping_label
+- document_type: one of packing_list, invoice, certificate_of_analysis, shipping_label, quote, receipt, mta, other
 - dates: convert to ISO format (YYYY-MM-DD) when possible
 - catalog_number: exact product ID as printed
 - lot_number / batch_number: exact as printed
