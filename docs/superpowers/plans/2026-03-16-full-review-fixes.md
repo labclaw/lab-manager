@@ -938,12 +938,12 @@ Expected: FAIL
 
 - [ ] **Step 3: Add validation to ProductCreate and conflict handling**
 
-In `src/lab_manager/api/routes/products.py`:
+In `src/lab_manager/api/routes/products.py` (keep `BaseModel` — matches existing pattern):
 
 ```python
 from pydantic import Field as PydanticField
 
-class ProductCreate(SQLModel):
+class ProductCreate(BaseModel):
     catalog_number: str = PydanticField(..., min_length=1, max_length=100)
     name: str = PydanticField(..., min_length=1, max_length=500)
     vendor_id: Optional[int] = None
@@ -1028,31 +1028,37 @@ Expected: FAIL — 201 or 200 (no validation)
 
 - [ ] **Step 3: Add validation**
 
-In `src/lab_manager/api/routes/documents.py`, add to `DocumentCreate`:
+In `src/lab_manager/api/routes/documents.py`, add validators to the **existing** `DocumentCreate` class (do NOT remove existing fields like ocr_text, extracted_data, etc.):
 
 ```python
 from pydantic import field_validator
 
-class DocumentCreate(SQLModel):
-    file_path: str = PydanticField(..., max_length=1000)
-    file_name: str = PydanticField(..., max_length=255)
+class DocumentCreate(BaseModel):
+    file_path: str
+    file_name: str
     document_type: Optional[str] = None
     vendor_name: Optional[str] = None
-    status: Optional[str] = "pending"
+    ocr_text: Optional[str] = None
+    extracted_data: Optional[dict] = None
+    extraction_model: Optional[str] = None
+    extraction_confidence: Optional[float] = None
+    status: str = DocumentStatus.pending
+    review_notes: Optional[str] = None
+    reviewed_by: Optional[str] = None
 
     @field_validator("file_path")
     @classmethod
     def no_path_traversal(cls, v: str) -> str:
-        if ".." in v:
+        if ".." in v or v.startswith("/etc") or v.startswith("/proc"):
             raise ValueError("Path traversal not allowed")
         return v
 
     @field_validator("status")
     @classmethod
     def valid_status(cls, v: str) -> str:
-        allowed = {"pending", "extracted", "needs_review", "approved", "rejected", "deleted"}
-        if v not in allowed:
-            raise ValueError(f"status must be one of {allowed}")
+        valid = {s.value for s in DocumentStatus}
+        if v not in valid:
+            raise ValueError(f"status must be one of {valid}")
         return v
 ```
 
@@ -1537,31 +1543,32 @@ logger = logging.getLogger(__name__)
 
 def process_document(image_path: Path, db: Session) -> Document:
     """Process a scanned document image end-to-end."""
-    # Dedupe: use file content hash to detect true duplicates
-    file_hash = hashlib.sha256(image_path.read_bytes()).hexdigest()[:16]
-    # Also check by filename for backward compat
-    existing = db.query(Document).filter(Document.file_name == image_path.name).first()
-    if existing:
-        return existing
+    # Dedupe: use content hash to detect true duplicates (not just filename)
+    file_bytes = image_path.read_bytes()
+    file_hash = hashlib.sha256(file_bytes).hexdigest()[:16]
 
+    # Build unique dest filename: if same name already exists, append hash
     settings = get_settings()
-
-    # Copy to uploads
     upload_dir = Path(settings.upload_dir)
     upload_dir.mkdir(parents=True, exist_ok=True)
     dest = upload_dir / image_path.name
-    # If same filename from different path, use hash suffix
+    dest_name = image_path.name
     if dest.exists():
-        stem = image_path.stem
-        suffix = image_path.suffix
-        dest = upload_dir / f"{stem}_{file_hash}{suffix}"
+        dest_name = f"{image_path.stem}_{file_hash}{image_path.suffix}"
+        dest = upload_dir / dest_name
+
+    # Check by dest_name (the actual name that will be stored)
+    existing = db.query(Document).filter(Document.file_name == dest_name).first()
+    if existing:
+        return existing
+
     if not dest.exists():
         shutil.copy2(image_path, dest)
 
     # Create document record immediately so failures are tracked
     doc = Document(
         file_path=str(dest),
-        file_name=dest.name,  # Use dest name (may include hash suffix)
+        file_name=dest_name,  # Use dest name (may include hash suffix)
         status=DocumentStatus.pending,
     )
     db.add(doc)
@@ -1714,19 +1721,29 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 Append to `tests/test_consensus.py`:
 
 ```python
-def test_model_priority_no_false_match():
-    """Model name 'opus_review' should not match 'opus' priority."""
+def test_model_priority_exact_name_wins():
+    """Exact model names should take priority over partial matches."""
+    extractions = {
+        "opus_4_6": {"vendor_name": "A"},
+        "gemini_3_1_pro": {"vendor_name": "B"},
+        "gpt_5_4": {"vendor_name": "C"},
+    }
+    result = consensus_merge(extractions)
+    # All disagree → priority fallback picks opus_4_6 (index 0 in MODEL_PRIORITY)
+    assert result["vendor_name"] == "A"
+    assert result["_consensus"]["vendor_name"]["agreement"] == "none"
+
+
+def test_model_priority_no_false_substring_match():
+    """'opus_review_bot' should NOT get opus priority — it's not the real opus."""
     extractions = {
         "opus_review_bot": {"vendor_name": "A"},
-        "gemini_3_1_pro_fast": {"vendor_name": "B"},
+        "gemini_3_1_pro": {"vendor_name": "B"},
         "random_model": {"vendor_name": "C"},
     }
-    # Should prefer gemini_3_1_pro_fast (matches gemini_pro/gemini)
-    # NOT opus_review_bot (should not match "opus" since it's a review bot, not the real opus)
     result = consensus_merge(extractions)
-    # Actually, the current substring match would match opus_review_bot to "opus"
-    # The fix: use exact prefix matching instead
-    assert result["_consensus"]["vendor_name"]["agreement"] == "none"
+    # gemini_3_1_pro should win (real model match), not opus_review_bot
+    assert result["vendor_name"] == "B"
 ```
 
 - [ ] **Step 2: Fix priority matching**
@@ -1753,7 +1770,7 @@ MODEL_PRIORITY = [
                 ):
 ```
 
-Use `startswith` instead of `in` to prevent false substring matches.
+Use exact match (`==`) first, then `startswith` with underscore boundary. Also match full model name before shorter prefixes (opus_4_6 before opus):
 
 - [ ] **Step 3: Run tests**
 
@@ -1872,24 +1889,41 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 
 - [ ] **Step 1: Fix _check_out_of_stock**
 
-In `src/lab_manager/services/alerts.py`, modify `_check_out_of_stock()` to only alert for products that have `min_stock_level` set or have had inventory before:
+In `src/lab_manager/services/alerts.py`, modify `_check_out_of_stock()` to only alert for products that have `min_stock_level` set (line 120-152):
 
 ```python
 def _check_out_of_stock(db: Session) -> list[dict]:
-    """Check for products with zero stock that have min_stock_level set."""
-    # Only alert for products where stock tracking is expected
+    """Products with zero total inventory that have min_stock_level set (critical)."""
     stock = (
         db.query(
-            Product.id, Product.name, Product.catalog_number,
+            InventoryItem.product_id,
             func.coalesce(func.sum(InventoryItem.quantity_on_hand), 0).label("total"),
         )
-        .outerjoin(InventoryItem, ...)
-        .filter(Product.min_stock_level.isnot(None))  # Only products with stock tracking
-        .group_by(Product.id, Product.name, Product.catalog_number)
-        .having(func.coalesce(func.sum(InventoryItem.quantity_on_hand), 0) == 0)
+        .filter(InventoryItem.status == InventoryStatus.available)
+        .group_by(InventoryItem.product_id)
+        .subquery()
+    )
+    products_with_stock = (
+        db.query(Product, stock.c.total)
+        .outerjoin(stock, Product.id == stock.c.product_id)
+        .filter(Product.min_stock_level.isnot(None))  # Only tracked products
+        .filter((stock.c.total == 0) | (stock.c.total.is_(None)))
         .all()
     )
-    # ... build alerts
+    return [
+        {
+            "type": "out_of_stock",
+            "severity": "critical",
+            "message": f"Product {p.id} ({p.catalog_number}) is out of stock",
+            "entity_type": "product",
+            "entity_id": p.id,
+            "details": {
+                "catalog_number": p.catalog_number,
+                "name": p.name,
+            },
+        }
+        for p, _ in products_with_stock
+    ]
 ```
 
 - [ ] **Step 2: Run tests**
@@ -1918,21 +1952,50 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 
 - [ ] **Step 1: Add truncation indicator**
 
-In `src/lab_manager/services/analytics.py`, find `order_history()` and add:
+In `src/lab_manager/services/analytics.py`, find `order_history()` (line 297-335). Keep the return type as `list[dict]` to avoid breaking `export.py` and the analytics API route. Instead, add a `limit` parameter and log when truncated:
 
 ```python
-def order_history(db, vendor_id=None, date_from=None, date_to=None, limit=500):
-    # ... existing query ...
-    rows = query.limit(limit + 1).all()
-    truncated = len(rows) > limit
-    rows = rows[:limit]
-    # ... build result ...
-    return {
-        "items": [...],
-        "count": len(rows),
-        "truncated": truncated,
-    }
+def order_history(
+    db: Session,
+    vendor_id: Optional[int] = None,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    limit: int = 500,
+) -> list[dict]:
+    q = (
+        db.query(
+            Order,
+            Vendor.name.label("vendor_name"),
+            func.count(OrderItem.id).label("item_count"),
+            func.coalesce(func.sum(OrderItem.unit_price * OrderItem.quantity), 0).label("total_value"),
+        )
+        .outerjoin(Vendor, Order.vendor_id == Vendor.id)
+        .outerjoin(OrderItem, OrderItem.order_id == Order.id)
+    )
+    if vendor_id is not None:
+        q = q.filter(Order.vendor_id == vendor_id)
+    if date_from:
+        q = q.filter(Order.order_date >= date_from)
+    if date_to:
+        q = q.filter(Order.order_date <= date_to)
+
+    q = q.group_by(Order.id, Vendor.name).order_by(Order.id.desc()).limit(limit)
+
+    return [
+        {
+            "id": order.id,
+            "po_number": order.po_number,
+            "vendor_name": vendor_name,
+            "order_date": _iso(order.order_date),
+            "status": order.status,
+            "item_count": int(item_count),
+            "total_value": _money(total_value),
+        }
+        for order, vendor_name, item_count, total_value in q.all()
+    ]
 ```
+
+The analytics API route can add a `truncated` field in the response wrapper, not in the service layer.
 
 - [ ] **Step 2: Run tests**
 
