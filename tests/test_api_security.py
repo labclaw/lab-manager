@@ -157,3 +157,41 @@ def test_create_product_null_cas_accepted(client):
         },
     )
     assert resp.status_code == 201
+
+
+# --- Product update conflict ---
+
+
+def test_update_product_catalog_conflict_returns_409(client, db_session):
+    """PATCH catalog_number to collide with existing product should 409."""
+    from lab_manager.models.vendor import Vendor
+    from lab_manager.models.product import Product
+
+    v = Vendor(name="Update Conflict Vendor")
+    db_session.add(v)
+    db_session.flush()
+    p1 = Product(catalog_number="UPD-001", name="First", vendor_id=v.id)
+    p2 = Product(catalog_number="UPD-002", name="Second", vendor_id=v.id)
+    db_session.add_all([p1, p2])
+    db_session.commit()
+
+    resp = client.patch(
+        f"/api/products/{p2.id}",
+        json={"catalog_number": "UPD-001"},  # conflicts with p1
+    )
+    assert resp.status_code == 409
+
+
+def test_update_product_invalid_cas_rejected(client, db_session):
+    """PATCH with invalid CAS number should be rejected."""
+    from lab_manager.models.product import Product
+
+    p = Product(catalog_number="CAS-UPD", name="CAS Update Test")
+    db_session.add(p)
+    db_session.commit()
+
+    resp = client.patch(
+        f"/api/products/{p.id}",
+        json={"cas_number": "invalid-cas"},
+    )
+    assert resp.status_code == 422
