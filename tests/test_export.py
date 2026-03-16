@@ -32,7 +32,7 @@ def test_escape_cell_empty_string():
 
 
 def test_escape_cell_none():
-    assert _escape_cell(None) is None
+    assert _escape_cell(None) == ""
 
 
 def test_escape_cell_integer():
@@ -41,3 +41,11 @@ def test_escape_cell_integer():
 
 def test_escape_cell_float():
     assert _escape_cell(3.14) == 3.14
+
+
+def test_escape_cell_formula_cr():
+    assert _escape_cell("\r=cmd") == "'\r=cmd"
+
+
+def test_escape_cell_formula_newline():
+    assert _escape_cell("\n=cmd") == "'\n=cmd"

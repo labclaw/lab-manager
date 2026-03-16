@@ -18,11 +18,13 @@ from lab_manager.models.vendor import Vendor
 
 router = APIRouter()
 
-_DANGEROUS_PREFIXES = ("=", "+", "-", "@", "\t")
+_DANGEROUS_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
 
 
 def _escape_cell(value):
     """Prefix formula-like cell values with a single quote to prevent Excel injection."""
+    if value is None:
+        return ""
     if isinstance(value, str) and value and value[0] in _DANGEROUS_PREFIXES:
         return "'" + value
     return value
