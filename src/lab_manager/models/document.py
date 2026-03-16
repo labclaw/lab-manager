@@ -19,6 +19,7 @@ class DocumentStatus(str, enum.Enum):
     needs_review = "needs_review"
     approved = "approved"
     rejected = "rejected"
+    ocr_failed = "ocr_failed"
     deleted = "deleted"
 
 
@@ -26,7 +27,7 @@ class Document(AuditMixin, table=True):
     __tablename__ = "documents"
     __table_args__ = (
         sa.CheckConstraint(
-            "status IN ('pending','extracted','needs_review','approved','rejected','deleted')",
+            "status IN ('pending','extracted','needs_review','approved','rejected','ocr_failed','deleted')",
             name="ck_documents_status",
         ),
     )

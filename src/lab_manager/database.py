@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from lab_manager.config import get_settings
 
 _engine = None
+_readonly_engine = None
 _session_factory = None
 _lock = threading.Lock()
 
@@ -28,6 +29,42 @@ def get_engine():
                     kwargs.update(pool_size=10, max_overflow=20, pool_pre_ping=True)
                 _engine = create_engine(settings.database_url, **kwargs)
     return _engine
+
+
+def get_readonly_engine():
+    """Return a read-only engine for RAG queries.
+
+    Falls back to the main engine if DATABASE_READONLY_URL is not configured.
+    """
+    global _readonly_engine
+    if _readonly_engine is None:
+        with _lock:
+            if _readonly_engine is None:
+                settings = get_settings()
+                if settings.database_readonly_url:
+                    try:
+                        _readonly_engine = create_engine(
+                            settings.database_readonly_url,
+                            echo=False,
+                            pool_size=5,
+                            max_overflow=5,
+                            pool_pre_ping=True,
+                        )
+                    except Exception:
+                        import logging
+
+                        logging.getLogger(__name__).warning(
+                            "Failed to create readonly engine, falling back to main engine"
+                        )
+                        _readonly_engine = get_engine()
+                else:
+                    import logging
+
+                    logging.getLogger(__name__).warning(
+                        "DATABASE_READONLY_URL not set, RAG queries use main engine + SET TRANSACTION READ ONLY"
+                    )
+                    _readonly_engine = get_engine()
+    return _readonly_engine
 
 
 def get_session_factory():

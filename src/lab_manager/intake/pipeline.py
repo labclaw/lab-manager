@@ -105,6 +105,14 @@ def process_document(image_path: Path, db: Session) -> Document:
         db.commit()
         return doc
 
+    # Short-circuit on empty OCR — don't waste VLM API calls on blank pages
+    if not ocr_text or not ocr_text.strip():
+        logger.warning("Empty OCR text for %s, marking as ocr_failed", image_path.name)
+        doc.status = DocumentStatus.ocr_failed
+        doc.review_notes = "OCR returned empty text"
+        db.commit()
+        return doc
+
     # Extract structured data
     try:
         extracted = extract_from_text(ocr_text)

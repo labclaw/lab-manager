@@ -135,3 +135,67 @@ def test_process_document_success(db_session, tmp_path):
     assert doc.document_type == "packing_list"
     assert doc.ocr_text == "Sigma-Aldrich PO-123"
     assert doc.extraction_confidence == 0.95
+
+
+def test_process_document_empty_ocr_shortcircuits(db_session, tmp_path):
+    """Empty OCR text should mark document as ocr_failed without calling VLM."""
+    img = tmp_path / "blank_page.png"
+    img.write_bytes(b"fake blank image")
+
+    with (
+        patch(
+            "lab_manager.intake.pipeline.extract_text_from_image",
+            return_value="",
+        ) as mock_ocr,
+        patch(
+            "lab_manager.intake.pipeline.extract_from_text",
+        ) as mock_extract,
+    ):
+        doc = process_document(img, db_session)
+
+    mock_ocr.assert_called_once()
+    mock_extract.assert_not_called()
+    assert doc.status == DocumentStatus.ocr_failed
+    assert "empty" in (doc.review_notes or "").lower()
+
+
+def test_process_document_none_ocr_shortcircuits(db_session, tmp_path):
+    """None OCR text should mark document as ocr_failed."""
+    img = tmp_path / "bad_scan.png"
+    img.write_bytes(b"fake bad scan")
+
+    with (
+        patch(
+            "lab_manager.intake.pipeline.extract_text_from_image",
+            return_value=None,
+        ) as mock_ocr,
+        patch(
+            "lab_manager.intake.pipeline.extract_from_text",
+        ) as mock_extract,
+    ):
+        doc = process_document(img, db_session)
+
+    mock_ocr.assert_called_once()
+    mock_extract.assert_not_called()
+    assert doc.status == DocumentStatus.ocr_failed
+
+
+def test_process_document_whitespace_ocr_shortcircuits(db_session, tmp_path):
+    """Whitespace-only OCR should mark document as ocr_failed."""
+    img = tmp_path / "white_page.png"
+    img.write_bytes(b"fake white page")
+
+    with (
+        patch(
+            "lab_manager.intake.pipeline.extract_text_from_image",
+            return_value="   \n\t  ",
+        ) as mock_ocr,
+        patch(
+            "lab_manager.intake.pipeline.extract_from_text",
+        ) as mock_extract,
+    ):
+        doc = process_document(img, db_session)
+
+    mock_ocr.assert_called_once()
+    mock_extract.assert_not_called()
+    assert doc.status == DocumentStatus.ocr_failed
