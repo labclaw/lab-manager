@@ -118,3 +118,42 @@ def test_rag_subquery_table_blocked():
 
     with pytest.raises(ValueError):
         _validate_sql("SELECT * FROM (SELECT * FROM pg_shadow) AS t")
+
+
+# --- CAS number validation ---
+
+
+def test_create_product_invalid_cas_rejected(client):
+    """CAS numbers must match NNNNN-NN-N format or be null."""
+    resp = client.post(
+        "/api/products/",
+        json={
+            "catalog_number": "CAS-TEST",
+            "name": "CAS Test",
+            "cas_number": "not-a-cas-number",
+        },
+    )
+    assert resp.status_code == 422
+
+
+def test_create_product_valid_cas_accepted(client):
+    resp = client.post(
+        "/api/products/",
+        json={
+            "catalog_number": "CAS-OK",
+            "name": "CAS Ok",
+            "cas_number": "7732-18-5",
+        },
+    )
+    assert resp.status_code == 201
+
+
+def test_create_product_null_cas_accepted(client):
+    resp = client.post(
+        "/api/products/",
+        json={
+            "catalog_number": "CAS-NULL",
+            "name": "No CAS",
+        },
+    )
+    assert resp.status_code == 201
