@@ -305,24 +305,43 @@ MAX_RESULT_ROWS = 200
 
 
 def _execute_sql(db: Session, sql: str) -> list[dict]:
-    """Execute a read-only SQL query inside a SAVEPOINT and return results.
+    """Execute a read-only SQL query and return results.
 
-    Uses a nested transaction (SAVEPOINT) so failures don't poison the
-    outer session.  Enforces a row limit to prevent memory exhaustion.
+    Uses the readonly engine when available (DATABASE_READONLY_URL).
+    Falls back to the main engine with SET TRANSACTION READ ONLY.
+    Enforces a row limit to prevent memory exhaustion.
     """
-    # READ ONLY must be set on the outer transaction (not inside a SAVEPOINT).
-    db.execute(text("SET TRANSACTION READ ONLY"))
-    db.execute(text(f"SET LOCAL statement_timeout = '{SQL_TIMEOUT_S}s'"))
-    nested = db.begin_nested()
-    try:
-        result = db.execute(text(sql))
-        columns = list(result.keys())
-        rows = [dict(zip(columns, row)) for row in result.fetchmany(MAX_RESULT_ROWS)]
-        nested.commit()
-        return _serialize_rows(rows)
-    except Exception:
-        nested.rollback()
-        raise
+    from lab_manager.database import get_readonly_engine, get_engine
+
+    readonly_engine = get_readonly_engine()
+    use_dedicated_readonly = readonly_engine is not get_engine()
+
+    if use_dedicated_readonly:
+        # Dedicated readonly PG user — DB enforces SELECT-only
+        with readonly_engine.connect() as conn:
+            conn.execute(text(f"SET LOCAL statement_timeout = '{SQL_TIMEOUT_S}s'"))
+            result = conn.execute(text(sql))
+            columns = list(result.keys())
+            rows = [
+                dict(zip(columns, row)) for row in result.fetchmany(MAX_RESULT_ROWS)
+            ]
+            return _serialize_rows(rows)
+    else:
+        # Fallback: main engine with application-level READ ONLY
+        db.execute(text("SET TRANSACTION READ ONLY"))
+        db.execute(text(f"SET LOCAL statement_timeout = '{SQL_TIMEOUT_S}s'"))
+        nested = db.begin_nested()
+        try:
+            result = db.execute(text(sql))
+            columns = list(result.keys())
+            rows = [
+                dict(zip(columns, row)) for row in result.fetchmany(MAX_RESULT_ROWS)
+            ]
+            nested.commit()
+            return _serialize_rows(rows)
+        except Exception:
+            nested.rollback()
+            raise
 
 
 def _format_answer(

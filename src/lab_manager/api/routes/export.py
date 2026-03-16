@@ -18,6 +18,21 @@ from lab_manager.models.vendor import Vendor
 
 router = APIRouter()
 
+_DANGEROUS_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
+
+
+def _escape_cell(value):
+    """Prefix formula-like cell values with a single quote to prevent Excel injection."""
+    if value is None:
+        return ""
+    if isinstance(value, str) and value and value[0] in _DANGEROUS_PREFIXES:
+        return "'" + value
+    return value
+
+
+def _escape_row(row: dict) -> dict:
+    return {k: _escape_cell(v) for k, v in row.items()}
+
 
 def _csv_response(rows: list[dict], filename: str) -> StreamingResponse:
     """Build a StreamingResponse with CSV content from a list of dicts."""
@@ -27,7 +42,7 @@ def _csv_response(rows: list[dict], filename: str) -> StreamingResponse:
     else:
         writer = csv.DictWriter(buf, fieldnames=rows[0].keys())
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows([_escape_row(r) for r in rows])
     buf.seek(0)
     return StreamingResponse(
         iter([buf.getvalue()]),
@@ -85,7 +100,7 @@ def export_products(db: Session = Depends(get_db)):
         output.seek(0)
 
         for product in query:
-            row = {f: getattr(product, f, None) for f in fieldnames}
+            row = _escape_row({f: getattr(product, f, None) for f in fieldnames})
             writer.writerow(row)
             yield output.getvalue()
             output.truncate(0)
@@ -112,7 +127,7 @@ def export_vendors(db: Session = Depends(get_db)):
         output.seek(0)
 
         for vendor in query:
-            row = {f: getattr(vendor, f, None) for f in fieldnames}
+            row = _escape_row({f: getattr(vendor, f, None) for f in fieldnames})
             writer.writerow(row)
             yield output.getvalue()
             output.truncate(0)
