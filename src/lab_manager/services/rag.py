@@ -245,6 +245,10 @@ def _get_client() -> genai.Client:
 
 def _validate_sql(sql: str) -> str:
     """Validate that the SQL is a read-only SELECT. Raises ValueError if not."""
+    import unicodedata
+
+    # Normalize Unicode to ASCII-safe form — blocks fullwidth chars, homoglyphs
+    sql = unicodedata.normalize("NFKC", sql)
     sql = sql.strip().rstrip(";").strip()
 
     if ";" in sql:

@@ -92,3 +92,29 @@ def test_create_document_valid_status_accepted(client):
         },
     )
     assert resp.status_code == 201
+
+
+# --- RAG SQL validation ---
+
+
+def test_rag_unicode_bypass_blocked():
+    """Unicode tricks should not bypass the SQL validator."""
+    import pytest
+    from lab_manager.services.rag import _validate_sql
+
+    # Fullwidth semicolon (U+FF1B) normalizes to ASCII ';' under NFKC
+    with pytest.raises(ValueError):
+        _validate_sql("SELECT * FROM vendors\uff1bDROP TABLE vendors")
+
+    # pg_catalog should be blocked
+    with pytest.raises(ValueError):
+        _validate_sql("SELECT * FROM pg_catalog.pg_shadow")
+
+
+def test_rag_subquery_table_blocked():
+    """Subqueries referencing disallowed tables should be blocked."""
+    import pytest
+    from lab_manager.services.rag import _validate_sql
+
+    with pytest.raises(ValueError):
+        _validate_sql("SELECT * FROM (SELECT * FROM pg_shadow) AS t")
