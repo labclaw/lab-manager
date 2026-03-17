@@ -10,7 +10,9 @@
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 body { font-family: var(--font); background: var(--bg); color: var(--text); }
+h1 { font-size: 24px; } h2 { font-size: 18px; } h3 { font-size: 15px; }
 
 /* Top nav */
 .navbar {
@@ -52,7 +54,9 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); }
 .stat-card {
   background: var(--card); border-radius: 12px; padding: 20px;
   border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: box-shadow 0.15s, transform 0.15s;
 }
+.stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateY(-1px); }
 .stat-card .label { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
 .stat-card .value { font-size: 28px; font-weight: 700; }
 .stat-card .sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
