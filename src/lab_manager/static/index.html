@@ -262,6 +262,23 @@
   .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
   .hidden { display: none !important; }
+
+  /* Responsive: mobile */
+  @media (max-width: 768px) {
+    .navbar { flex-wrap: wrap; padding: 10px 16px; gap: 8px; }
+    .navbar .nav-links { flex-wrap: wrap; gap: 2px; }
+    .navbar .nav-links button { padding: 6px 10px; font-size: 12px; }
+    .navbar .user-info { font-size: 12px; gap: 8px; }
+    .container { padding: 12px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .detail-panel { width: 100vw; right: -100vw; }
+    .detail-panel.open { right: 0; }
+    .doc-row { grid-template-columns: 40px 1fr 100px 80px; font-size: 13px; }
+    .doc-header { grid-template-columns: 40px 1fr 100px 80px; }
+    .doc-row .type, .doc-row .conf, .doc-header div:nth-child(5), .doc-header div:nth-child(6) { display: none; }
+    .filters input { width: 100%; }
+  }
+
   .toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
     padding: 12px 24px; border-radius: 8px; font-weight: 500; font-size: 14px;
