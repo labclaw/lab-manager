@@ -467,6 +467,7 @@ def create_app() -> FastAPI:
         ask,
         audit,
         documents,
+        equipment,
         export,
         inventory,
         orders,
@@ -484,6 +485,9 @@ def create_app() -> FastAPI:
         products.router, prefix="/api/v1/products", tags=["products"]
     )
     api_router.include_router(orders.router, prefix="/api/v1/orders", tags=["orders"])
+    api_router.include_router(
+        equipment.router, prefix="/api/v1/equipment", tags=["equipment"]
+    )
     api_router.include_router(
         inventory.router, prefix="/api/v1/inventory", tags=["inventory"]
     )
