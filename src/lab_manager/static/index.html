@@ -525,7 +525,7 @@ function renderStats() {
     <div class="stat-card">
       <div class="label">Approved</div>
       <div class="value" style="color:var(--success)">${s.by_status.approved || 0}</div>
-      <div class="sub">${((s.by_status.approved || 0) / s.total_documents * 100).toFixed(0)}% auto-approved</div>
+      <div class="sub">${s.total_documents > 0 ? ((s.by_status.approved || 0) / s.total_documents * 100).toFixed(0) : 0}% auto-approved</div>
     </div>
     <div class="stat-card">
       <div class="label">Needs Review</div>
