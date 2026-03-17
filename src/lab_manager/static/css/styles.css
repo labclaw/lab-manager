@@ -23,7 +23,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); }
 .navbar .nav-links { display: flex; gap: 4px; }
 .navbar .nav-links button {
   background: transparent; color: rgba(255,255,255,0.8); border: none;
-  padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;
+  padding: 12px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; min-height: 44px;
   transition: all 0.15s;
 }
 .navbar .nav-links button:hover, .navbar .nav-links button.active {
@@ -34,9 +34,9 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); }
   position: relative;
 }
 .navbar .nav-search input {
-  width: 100%; padding: 7px 12px; border-radius: 6px; border: none;
+  width: 100%; padding: 10px 12px; border-radius: 6px; border: none;
   font-size: 14px; background: rgba(255,255,255,0.2); color: #fff;
-  outline: none;
+  outline: none; min-height: 44px;
 }
 .navbar .nav-search input::placeholder { color: rgba(255,255,255,0.6); }
 .navbar .nav-search input:focus { background: rgba(255,255,255,0.3); }
@@ -312,7 +312,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); }
 .navbar .user-info .user-name { opacity: 0.9; }
 .navbar .user-info .btn-logout {
   background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
-  color: #fff; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;
+  color: #fff; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; min-height: 44px;
 }
 .navbar .user-info .btn-logout:hover { background: rgba(255,255,255,0.25); }
 
