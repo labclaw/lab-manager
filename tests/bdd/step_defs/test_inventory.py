@@ -284,7 +284,7 @@ def check_log_with_qty(api, test_item, action, qty):
     r = api.get(f"/api/inventory/{test_item['id']}/history")
     assert r.status_code == 200
     logs = r.json()
-    matching = [l for l in logs if l.get("action") == action]
+    matching = [entry for entry in logs if entry.get("action") == action]
     assert len(matching) > 0
 
 
@@ -293,7 +293,7 @@ def check_log(api, test_item, action):
     r = api.get(f"/api/inventory/{test_item['id']}/history")
     assert r.status_code == 200
     logs = r.json()
-    matching = [l for l in logs if l.get("action") == action]
+    matching = [entry for entry in logs if entry.get("action") == action]
     assert len(matching) > 0
 
 

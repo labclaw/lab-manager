@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import logging
 from abc import ABC, abstractmethod
-from pathlib import Path
 from typing import Optional
 
 log = logging.getLogger(__name__)
@@ -60,7 +59,7 @@ def parse_json_response(text: str) -> Optional[dict]:
     cleaned = text.strip()
     if cleaned.startswith("```"):
         lines = cleaned.split("\n")
-        lines = [l for l in lines if not l.strip().startswith("```")]
+        lines = [line for line in lines if not line.strip().startswith("```")]
         cleaned = "\n".join(lines)
     try:
         return json.loads(cleaned)

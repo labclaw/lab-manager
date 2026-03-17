@@ -295,7 +295,7 @@ def _generate_sql(client: genai.Client, question: str) -> str:
     if raw.startswith("```"):
         lines = raw.split("\n")
         # Remove first and last fence lines
-        lines = [l for l in lines if not l.strip().startswith("```")]
+        lines = [line for line in lines if not line.strip().startswith("```")]
         raw = "\n".join(lines).strip()
 
     return _validate_sql(raw)
