@@ -1,6 +1,6 @@
 # Deployment Guide — LabClaw Lab Manager
 
-Private deployment for the Shen Lab (MGH neuroscience).
+Production deployment guide.
 
 ## Prerequisites
 

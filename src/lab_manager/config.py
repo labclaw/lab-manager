@@ -42,6 +42,8 @@ class Settings(BaseSettings):
 
     # File storage
     upload_dir: str = "uploads"
+    scans_dir: str = ""
+    devices_dir: str = ""
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 

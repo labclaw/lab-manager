@@ -4,7 +4,7 @@
 
 ## What is this project?
 
-Lab inventory management system for a 10-person neuroscience lab (MGH Shen Lab). FastAPI + SQLModel + PostgreSQL 17 + Meilisearch. OCR document intake pipeline using 3 VLMs (Claude Opus 4.6, Gemini 3.1 Pro, GPT-5.4) with consensus voting.
+Lab inventory management system for a neuroscience research lab. FastAPI + SQLModel + PostgreSQL 17 + Meilisearch. OCR document intake pipeline using 3 VLMs (Claude Opus 4.6, Gemini 3.1 Pro, GPT-5.4) with consensus voting.
 
 **Current state:** All features built (6,057 LOC, 87 tests, CI green), but NOT production-ready due to security and operational gaps.
 

@@ -1,6 +1,6 @@
-# 库存生命周期 — Shen Lab 日常最高频操作
+# 库存生命周期 — high-frequency daily operations
 Feature: Inventory Lifecycle
-  As a lab scientist at Shen Lab
+  As a lab scientist at the lab
   I want to manage inventory items through their full lifecycle
   So that I always know what reagents we have, where they are, and when they expire
 
