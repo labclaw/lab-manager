@@ -115,6 +115,9 @@ function route() {
     return;
   }
 
+  // Close any open detail panel when switching views
+  Lab.components.closePanel();
+
   // Toggle view visibility
   VIEWS.forEach(function (v) {
     var el = document.getElementById('view-' + v);
