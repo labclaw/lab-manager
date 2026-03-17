@@ -278,6 +278,9 @@ def create_app() -> FastAPI:
     @app.get("/api/auth/me")
     def auth_me(request: Request):
         """Return current user info from session cookie. Used by frontend to check auth state."""
+        settings = get_settings()
+        if not settings.auth_enabled:
+            return {"user": {"id": 0, "name": "Lab User"}}
         session_cookie = request.cookies.get(_SESSION_COOKIE)
         if not session_cookie:
             return JSONResponse(

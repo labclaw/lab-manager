@@ -14,7 +14,7 @@ from lab_manager.config import get_settings
 _engine = None
 _readonly_engine = None
 _session_factory = None
-_lock = threading.Lock()
+_lock = threading.RLock()
 
 
 def get_engine():
