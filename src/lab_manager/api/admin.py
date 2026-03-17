@@ -27,6 +27,8 @@ class ProductAdmin(ModelView, model=Product):
 
 class StaffAdmin(ModelView, model=Staff):
     column_list = [Staff.id, Staff.name, Staff.email, Staff.role, Staff.is_active]
+    column_details_exclude_list = [Staff.password_hash]
+    form_excluded_columns = [Staff.password_hash]
 
 
 class LocationAdmin(ModelView, model=StorageLocation):
