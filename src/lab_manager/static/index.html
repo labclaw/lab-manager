@@ -553,21 +553,22 @@ function renderStats() {
 
 // --- Documents ---
 async function loadDocuments() {
-  const params = new URLSearchParams({ skip: currentPage * PAGE_SIZE, limit: PAGE_SIZE });
+  const params = new URLSearchParams({ page: currentPage + 1, page_size: PAGE_SIZE });
   if (currentFilter) params.set('status', currentFilter);
   if (currentSearch) params.set('search', currentSearch);
   const r = await apiFetch(API + '?' + params);
-  const docs = await r.json();
+  const data = await r.json();
+  const docs = data.items || [];
   renderDocRows('doc-rows', docs);
   document.getElementById('prev-btn').disabled = currentPage === 0;
-  document.getElementById('next-btn').disabled = docs.length < PAGE_SIZE;
-  document.getElementById('page-info').textContent = `Page ${currentPage + 1}`;
+  document.getElementById('next-btn').disabled = (data.page || 1) >= (data.pages || 1);
+  document.getElementById('page-info').textContent = `Page ${data.page || 1} of ${data.pages || 1}`;
 }
 
 async function loadReviewQueue() {
-  const r = await apiFetch(API + '?status=needs_review&limit=200');
-  const docs = await r.json();
-  renderDocRows('review-rows', docs);
+  const r = await apiFetch(API + '?status=needs_review&page_size=200');
+  const data = await r.json();
+  renderDocRows('review-rows', data.items || []);
 }
 
 function renderDocRows(containerId, docs) {
