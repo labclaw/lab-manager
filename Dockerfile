@@ -7,14 +7,14 @@ RUN pip install uv \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml uv.lock ./
+COPY src/ src/
 RUN uv sync --frozen --no-dev
 
-COPY src/ src/
 COPY alembic/ alembic/
 COPY alembic.ini .
 COPY scripts/ scripts/
 
-RUN groupadd -r app && useradd -r -g app app \
+RUN groupadd -r app && useradd -r -g app -d /home/app -m app \
     && mkdir -p /app/uploads /backups/labmanager \
     && chown -R app:app /app /backups
 USER app
