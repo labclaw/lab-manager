@@ -5,10 +5,11 @@ from __future__ import annotations
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db
+from lab_manager.exceptions import NotFoundError
 from lab_manager.services import analytics as svc
 
 router = APIRouter()
@@ -78,7 +79,7 @@ def get_staff_activity(db: Session = Depends(get_db)):
 def get_vendor_summary(vendor_id: int, db: Session = Depends(get_db)):
     result = svc.vendor_summary(db, vendor_id)
     if result is None:
-        raise HTTPException(status_code=404, detail="Vendor not found")
+        raise NotFoundError("Vendor", vendor_id)
     return result
 
 

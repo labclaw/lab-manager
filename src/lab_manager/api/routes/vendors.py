@@ -4,16 +4,17 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from lab_manager.api.deps import get_db
+from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
-from lab_manager.models.vendor import Vendor
-from lab_manager.models.product import Product
+from lab_manager.exceptions import ConflictError
 from lab_manager.models.order import Order
+from lab_manager.models.product import Product
+from lab_manager.models.vendor import Vendor
 
 router = APIRouter()
 
@@ -72,17 +73,12 @@ def create_vendor(body: VendorCreate, db: Session = Depends(get_db)):
 
 @router.get("/{vendor_id}")
 def get_vendor(vendor_id: int, db: Session = Depends(get_db)):
-    vendor = db.get(Vendor, vendor_id)
-    if not vendor:
-        raise HTTPException(status_code=404, detail="Vendor not found")
-    return vendor
+    return get_or_404(db, Vendor, vendor_id, "Vendor")
 
 
 @router.patch("/{vendor_id}")
 def update_vendor(vendor_id: int, body: VendorUpdate, db: Session = Depends(get_db)):
-    vendor = db.get(Vendor, vendor_id)
-    if not vendor:
-        raise HTTPException(status_code=404, detail="Vendor not found")
+    vendor = get_or_404(db, Vendor, vendor_id, "Vendor")
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(vendor, key, value)
     db.commit()
@@ -92,17 +88,14 @@ def update_vendor(vendor_id: int, body: VendorUpdate, db: Session = Depends(get_
 
 @router.delete("/{vendor_id}", status_code=204)
 def delete_vendor(vendor_id: int, db: Session = Depends(get_db)):
-    vendor = db.get(Vendor, vendor_id)
-    if not vendor:
-        raise HTTPException(status_code=404, detail="Vendor not found")
+    vendor = get_or_404(db, Vendor, vendor_id, "Vendor")
     try:
         db.delete(vendor)
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(
-            status_code=409,
-            detail="Cannot delete vendor: it is referenced by products or orders",
+        raise ConflictError(
+            "Cannot delete vendor: it is referenced by products or orders"
         )
     return None
 
@@ -114,9 +107,7 @@ def list_vendor_products(
     page_size: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
-    vendor = db.get(Vendor, vendor_id)
-    if not vendor:
-        raise HTTPException(status_code=404, detail="Vendor not found")
+    get_or_404(db, Vendor, vendor_id, "Vendor")
     q = db.query(Product).filter(Product.vendor_id == vendor_id).order_by(Product.id)
     return paginate(q, page, page_size)
 
@@ -128,8 +119,6 @@ def list_vendor_orders(
     page_size: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
-    vendor = db.get(Vendor, vendor_id)
-    if not vendor:
-        raise HTTPException(status_code=404, detail="Vendor not found")
+    get_or_404(db, Vendor, vendor_id, "Vendor")
     q = db.query(Order).filter(Order.vendor_id == vendor_id).order_by(Order.id)
     return paginate(q, page, page_size)
