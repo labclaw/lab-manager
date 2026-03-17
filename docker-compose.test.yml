@@ -1,0 +1,74 @@
+# docker-compose.test.yml — BDD test environment
+# Usage:
+#   docker compose -f docker-compose.test.yml run --rm bdd
+#   docker compose -f docker-compose.test.yml run --rm bdd -k "inventory"
+#   docker compose -f docker-compose.test.yml down -v
+services:
+  db-test:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: labmanager
+      POSTGRES_PASSWORD: testpass
+      POSTGRES_DB: labmanager_test
+    tmpfs: /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U labmanager"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+  search-test:
+    image: getmeili/meilisearch:v1.12
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: test-master-key
+      MEILI_NO_ANALYTICS: "true"
+    tmpfs: /meili_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+  app-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    environment:
+      DATABASE_URL: postgresql+psycopg://labmanager:testpass@db-test:5432/labmanager_test
+      MEILISEARCH_URL: http://search-test:7700
+      MEILISEARCH_API_KEY: test-master-key
+      AUTH_ENABLED: "false"
+      ADMIN_SECRET_KEY: test-secret-key-not-for-production
+      UPLOAD_DIR: /tmp/uploads
+    depends_on:
+      db-test: { condition: service_healthy }
+      search-test: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 3s
+      timeout: 5s
+      retries: 15
+
+  bdd:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    environment:
+      DATABASE_URL: postgresql+psycopg://labmanager:testpass@db-test:5432/labmanager_test
+      MEILISEARCH_URL: http://search-test:7700
+      MEILISEARCH_API_KEY: test-master-key
+      AUTH_ENABLED: "false"
+      ADMIN_SECRET_KEY: test-secret-key-not-for-production
+      UPLOAD_DIR: /tmp/uploads
+      # For Playwright E2E tests against the running app
+      APP_BASE_URL: http://app-test:8000
+    depends_on:
+      app-test: { condition: service_healthy }
+    volumes:
+      - ./tests:/app/tests:ro
+      - bdd-results:/app/results
+    entrypoint: ["uv", "run", "pytest", "tests/bdd/", "-v", "--tb=short"]
+
+volumes:
+  bdd-results:
