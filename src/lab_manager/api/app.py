@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
 SCANS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "shenlab-docs"
+DEVICES_DIR = Path(__file__).resolve().parent.parent.parent.parent / "shenlab-devices"
 
 # Strip control characters from X-User header to prevent log injection.
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
@@ -528,6 +529,12 @@ def create_app() -> FastAPI:
         StaticFiles(directory=str(upload_path)),
         name="uploads",
     )
+
+    # Serve device photos
+    if DEVICES_DIR.exists():  # pragma: no cover — depends on deployment
+        app.mount(
+            "/lab-devices", StaticFiles(directory=str(DEVICES_DIR)), name="devices"
+        )
 
     # Wire up SQLAdmin UI at /admin/
     setup_admin(app, get_engine())
