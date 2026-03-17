@@ -16,9 +16,15 @@ window.Lab.components = (function () {
 
   // ---- Humanize snake_case ----
 
+  var ABBREVIATIONS = { mta: 'MTA', coa: 'COA', po: 'PO', id: 'ID', ocr: 'OCR', api: 'API', url: 'URL' };
+
   function humanize(s) {
     if (!s) return '';
-    return String(s).replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+    return String(s).replace(/_/g, ' ').replace(/\b\w+\b/g, function (w) {
+      var lower = w.toLowerCase();
+      if (ABBREVIATIONS[lower]) return ABBREVIATIONS[lower];
+      return w.charAt(0).toUpperCase() + w.slice(1);
+    });
   }
 
   // ---- Badge ----
