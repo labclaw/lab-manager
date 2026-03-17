@@ -61,8 +61,8 @@ services:
       MEILISEARCH_URL: http://search:7700
       MEILISEARCH_API_KEY: ${MEILI_MASTER_KEY:?err}
       ADMIN_SECRET_KEY: ${ADMIN_SECRET_KEY:?Set ADMIN_SECRET_KEY in .env}
-      AUTH_ENABLED: "true"
-      SECURE_COOKIES: "true"
+      AUTH_ENABLED: ${AUTH_ENABLED:-true}
+      SECURE_COOKIES: ${SECURE_COOKIES:-true}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       EXTRACTION_API_KEY: ${GEMINI_API_KEY:-}
       EXTRACTION_MODEL: ${EXTRACTION_MODEL:-gemini-3.1-flash-preview}

@@ -44,11 +44,16 @@ def main() -> None:
     )
 
     tokenizer = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True)
-    model = AutoModel.from_pretrained(
-        args.model,
-        trust_remote_code=True,
-        use_safetensors=True,
-    ).eval().cuda().to(torch.bfloat16)
+    model = (
+        AutoModel.from_pretrained(
+            args.model,
+            trust_remote_code=True,
+            use_safetensors=True,
+        )
+        .eval()
+        .cuda()
+        .to(torch.bfloat16)
+    )
 
     input_dir = Path(args.input_dir)
     output_json = Path(args.output_json)
@@ -56,7 +61,13 @@ def main() -> None:
     docs = []
     with tempfile.TemporaryDirectory(prefix="deepseek-ocr2-") as tmpdir:
         for image_path in sorted(input_dir.iterdir()):
-            if image_path.suffix.lower() not in {".png", ".jpg", ".jpeg", ".tif", ".tiff"}:
+            if image_path.suffix.lower() not in {
+                ".png",
+                ".jpg",
+                ".jpeg",
+                ".tif",
+                ".tiff",
+            }:
                 continue
             print(f"processing {image_path.name}")
             result = model.infer(

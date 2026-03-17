@@ -131,13 +131,13 @@ def ocr_codex_gpt(image_path: str) -> str:
     if result.returncode == 0:
         lines = result.stdout.strip().split("\n")
         text_lines = [
-            l
-            for l in lines
-            if not l.startswith("codex")
-            and not l.startswith("🌐")
-            and not l.startswith("mcp:")
-            and not l.startswith("deprecated:")
-            and not l.startswith("mcp startup:")
+            line
+            for line in lines
+            if not line.startswith("codex")
+            and not line.startswith("🌐")
+            and not line.startswith("mcp:")
+            and not line.startswith("deprecated:")
+            and not line.startswith("mcp startup:")
         ]
         return "\n".join(text_lines).strip()
     raise RuntimeError(f"Codex failed: {result.stderr[:200]}")

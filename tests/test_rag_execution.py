@@ -31,7 +31,8 @@ def pg_session(db_engine):
         )
         session.commit()
         yield session
-        # Cleanup
+        # Cleanup — rollback any read-only transaction left by _execute_sql
+        session.rollback()
         session.execute(text("DELETE FROM vendors WHERE created_by = 'test'"))
         session.commit()
 

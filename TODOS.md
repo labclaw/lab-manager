@@ -93,6 +93,12 @@
 ### P5: RAG query visualization
 - Show generated SQL to advanced users for debugging
 
+### P6: BDD shared step definitions (DRY cleanup)
+- Extract common vendor/product/order creation steps into `tests/bdd/step_defs/common.py`
+- Currently duplicated in 4+ step def files — any API schema change requires fixing all of them
+- Also convert `test_alerts.py` setup entities (vendor, product, inventory, document) from `db.add()` to API calls for consistency (alert creation itself stays DB-direct — no API endpoint)
+- Effort: M | Depends on: nothing
+
 ## Cross-reference: Existing review-fixes plan
 
 The following 31 issues are tracked in `docs/superpowers/plans/2026-03-16-full-review-fixes.md`:
