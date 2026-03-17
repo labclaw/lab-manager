@@ -13,8 +13,8 @@ _IS_PG = _DB_URL.startswith("postgresql")
 
 if not _IS_PG:
     os.environ["DATABASE_URL"] = "sqlite://"
-os.environ["MEILISEARCH_URL"] = "http://localhost:7700"
-os.environ["AUTH_ENABLED"] = "false"
+os.environ.setdefault("MEILISEARCH_URL", "http://localhost:7700")
+os.environ.setdefault("AUTH_ENABLED", "false")
 
 from lab_manager.config import get_settings
 
