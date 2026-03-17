@@ -45,6 +45,7 @@ _AUTH_ALLOWLIST = {
 }
 _AUTH_ALLOWLIST_PREFIXES = (
     "/admin/",  # SQLAdmin has its own authentication backend
+    "/static/",  # CSS/JS assets must load before auth check
 )
 
 # Session cookie config
@@ -350,6 +351,9 @@ def create_app() -> FastAPI:
     api_router.include_router(audit.router, prefix="/api/audit", tags=["audit"])
     api_router.include_router(alerts.router, prefix="/api/alerts", tags=["alerts"])
     app.include_router(api_router)
+
+    # Serve static assets (CSS, JS) — must be before scans mount
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
     # Serve scan images (protected by auth middleware when auth is enabled)
     if SCANS_DIR.exists():
