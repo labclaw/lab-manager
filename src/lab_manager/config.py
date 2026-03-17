@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     ocr_model: str = "Qwen/Qwen3-VL-4B-Instruct"
     extraction_model: str = "gemini-3.1-flash-preview"
     extraction_api_key: str = ""
+    openai_api_key: str = ""
 
     # RAG
     rag_model: str = "gemini-2.5-flash"
