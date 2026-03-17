@@ -127,7 +127,7 @@ def test_health_reports_service_status(auth_client):
     data = resp.json()
     assert "postgresql" in data["services"]
     assert "meilisearch" in data["services"]
-    assert "gemini" in data["services"]
+    assert "llm" in data["services"]
 
 
 # --- Login endpoint ---

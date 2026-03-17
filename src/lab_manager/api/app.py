@@ -5,6 +5,7 @@ from __future__ import annotations
 import hmac
 import logging
 import re
+import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, Request
@@ -61,10 +62,18 @@ def _get_serializer() -> URLSafeTimedSerializer:
 
 
 def create_app() -> FastAPI:
+    settings = get_settings()
+    # Ensure upload directory exists at startup (not per-request in health check)
+    Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
+    # Disable interactive docs in production (exposes full API schema)
+    docs_kwargs = {}
+    if settings.auth_enabled:
+        docs_kwargs = dict(docs_url=None, redoc_url=None, openapi_url=None)
     app = FastAPI(
         title="LabClaw Lab Manager",
         description="Lab inventory management with OCR document intake",
         version="0.1.2",
+        **docs_kwargs,
     )
 
     # --- Merged auth + audit middleware ---
@@ -186,11 +195,24 @@ def create_app() -> FastAPI:
             logger.error("Health check: Meilisearch failed: %s", e)
             checks["meilisearch"] = "error"
 
-        # Gemini: config-only check (no API call to save cost)
+        # VLM/LLM: config-only check — Gemini or OpenAI key suffices
         settings = get_settings()
-        checks["gemini"] = "ok" if settings.extraction_api_key else "not configured"
+        has_llm_key = bool(settings.extraction_api_key or settings.openai_api_key)
+        checks["llm"] = "ok" if has_llm_key else "not configured"
 
-        all_ok = all(v == "ok" for v in checks.values())
+        # Disk space: warn if uploads partition has less than 500MB free
+        try:
+            usage = shutil.disk_usage(settings.upload_dir)
+            free_mb = usage.free / (1024 * 1024)
+            checks["disk"] = "ok" if free_mb >= 500 else "warning"
+        except Exception as e:
+            logger.error("Health check: disk check failed: %s", e)
+            checks["disk"] = "error"
+
+        # Only core services (postgresql, meilisearch) can degrade health.
+        # LLM and disk are informational — don't take service out of rotation.
+        core = {k: v for k, v in checks.items() if k in ("postgresql", "meilisearch")}
+        all_ok = all(v == "ok" for v in core.values())
         return JSONResponse(
             {"status": "ok" if all_ok else "degraded", "services": checks},
             status_code=200 if all_ok else 503,
