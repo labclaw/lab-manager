@@ -14,6 +14,13 @@ window.Lab.components = (function () {
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  // ---- Humanize snake_case ----
+
+  function humanize(s) {
+    if (!s) return '';
+    return String(s).replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+  }
+
   // ---- Badge ----
 
   function badge(status) {
@@ -225,7 +232,7 @@ window.Lab.components = (function () {
       { key: 'file_name', label: 'File / Vendor', width: '1fr', render: function (v, row) {
         return '<div><div class="name">' + esc(v || '') + '</div><div class="sub-text">' + esc(row.vendor_name || '') + '</div></div>';
       }},
-      { key: 'document_type', label: 'Type', width: '140px', render: function (v) { return esc(v || ''); } },
+      { key: 'document_type', label: 'Type', width: '140px', render: function (v) { return esc(humanize(v || '')); } },
       { key: 'status', label: 'Status', width: '120px', render: function (v) { return badge(v); } },
       { key: 'extraction_confidence', label: 'Conf.', width: '80px', render: function (v) {
         return v != null ? (v * 100).toFixed(0) + '%' : '&mdash;';
@@ -242,6 +249,7 @@ window.Lab.components = (function () {
 
   return {
     esc: esc,
+    humanize: humanize,
     badge: badge,
     toast: toast,
     renderTable: renderTable,

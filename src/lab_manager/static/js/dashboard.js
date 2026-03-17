@@ -83,7 +83,7 @@ window.Lab.dashboard = (function () {
         var maxType = Math.max.apply(null, types.map(function (e) { return e[1]; }));
         tc.innerHTML = types.map(function (e) {
           return '<div class="vendor-bar">' +
-            '<div class="name">' + C.esc(e[0]) + '</div>' +
+            '<div class="name">' + C.esc(C.humanize(e[0])) + '</div>' +
             '<div class="bar" style="width:' + (e[1] / maxType * 200) + 'px; background:var(--chart-secondary)"></div>' +
             '<div class="count">' + e[1] + '</div></div>';
         }).join('');
