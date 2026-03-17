@@ -5,16 +5,17 @@ from __future__ import annotations
 import re
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field as PydanticField, field_validator
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from lab_manager.api.deps import get_db
+from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
-from lab_manager.models.product import Product
+from lab_manager.exceptions import ConflictError
 from lab_manager.models.inventory import InventoryItem
 from lab_manager.models.order import OrderItem
+from lab_manager.models.product import Product
 
 router = APIRouter()
 
@@ -119,28 +120,22 @@ def create_product(body: ProductCreate, db: Session = Depends(get_db)):
     except IntegrityError as e:
         db.rollback()
         if "uq_product_catalog_vendor" in str(e.orig):
-            raise HTTPException(
-                status_code=409,
-                detail=f"Product with catalog_number={body.catalog_number!r} already exists for this vendor",
+            raise ConflictError(
+                f"Product with catalog_number={body.catalog_number!r} already exists for this vendor"
             )
-        raise HTTPException(status_code=409, detail="Duplicate or constraint violation")
+        raise ConflictError("Duplicate or constraint violation")
     db.refresh(product)
     return product
 
 
 @router.get("/{product_id}")
 def get_product(product_id: int, db: Session = Depends(get_db)):
-    product = db.get(Product, product_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    return product
+    return get_or_404(db, Product, product_id, "Product")
 
 
 @router.patch("/{product_id}")
 def update_product(product_id: int, body: ProductUpdate, db: Session = Depends(get_db)):
-    product = db.get(Product, product_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
+    product = get_or_404(db, Product, product_id, "Product")
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(product, key, value)
     try:
@@ -148,28 +143,24 @@ def update_product(product_id: int, body: ProductUpdate, db: Session = Depends(g
     except IntegrityError as e:
         db.rollback()
         if "uq_product_catalog_vendor" in str(e.orig):
-            raise HTTPException(
-                status_code=409,
-                detail=f"catalog_number {body.catalog_number!r} already exists for this vendor",
+            raise ConflictError(
+                f"catalog_number {body.catalog_number!r} already exists for this vendor"
             )
-        raise HTTPException(status_code=409, detail="Constraint violation")
+        raise ConflictError("Constraint violation")
     db.refresh(product)
     return product
 
 
 @router.delete("/{product_id}", status_code=204)
 def delete_product(product_id: int, db: Session = Depends(get_db)):
-    product = db.get(Product, product_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
+    product = get_or_404(db, Product, product_id, "Product")
     try:
         db.delete(product)
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(
-            status_code=409,
-            detail="Cannot delete product: it is referenced by inventory or order items",
+        raise ConflictError(
+            "Cannot delete product: it is referenced by inventory or order items"
         )
     return None
 
@@ -181,9 +172,7 @@ def list_product_inventory(
     page_size: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
-    product = db.get(Product, product_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
+    get_or_404(db, Product, product_id, "Product")
     q = (
         db.query(InventoryItem)
         .filter(InventoryItem.product_id == product_id)
@@ -199,9 +188,7 @@ def list_product_orders(
     page_size: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
-    product = db.get(Product, product_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
+    get_or_404(db, Product, product_id, "Product")
     q = (
         db.query(OrderItem)
         .filter(OrderItem.product_id == product_id)

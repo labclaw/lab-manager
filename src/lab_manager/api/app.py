@@ -17,6 +17,7 @@ from sqlalchemy import text
 from lab_manager.api.admin import setup_admin
 from lab_manager.config import get_settings
 from lab_manager.database import get_engine
+from lab_manager.exceptions import BusinessError
 from lab_manager.logging_config import configure_logging
 
 # Import to register SQLAlchemy event listeners on module load.
@@ -48,7 +49,7 @@ _AUTH_ALLOWLIST_PREFIXES = (
 
 # Session cookie config
 _SESSION_COOKIE = "lab_session"
-_SESSION_MAX_AGE = 86400 * 7  # 7 days
+_SESSION_MAX_AGE = 86400  # 24 hours
 
 
 def _get_serializer() -> URLSafeTimedSerializer:
@@ -76,88 +77,27 @@ def create_app() -> FastAPI:
         **docs_kwargs,
     )
 
-    # --- Merged auth + audit middleware ---
+    # --- Domain exception → HTTP response handler ---
+    @app.exception_handler(BusinessError)
+    async def _business_error_handler(request: Request, exc: BusinessError):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.message},
+        )
+
+    # --- Audit middleware (inner — registered first) ---
     #
-    #   Auth flow:
-    #     1. Allowlisted paths → skip auth
-    #     2. auth_enabled=True:
-    #        a. Check session cookie → load Staff → verify is_active
-    #        b. Fallback: check X-Api-Key header (programmatic access)
-    #        c. Neither → 401
-    #     3. auth_enabled=False (dev mode):
-    #        a. Read X-User header for audit context
-    #     4. Set current_user for audit trail
+    # In Starlette, last-registered middleware is outermost. Registering audit
+    # first makes it inner: auth runs first (sets request.state.user), then
+    # audit reads it and sets the audit context for SQLAlchemy event listeners.
     #
     @app.middleware("http")
-    async def auth_and_audit_middleware(request: Request, call_next):
+    async def audit_middleware(request: Request, call_next):
         from lab_manager.logging_config import generate_request_id, request_id_var
 
         request_id = generate_request_id()
         try:
-            path = request.url.path
-            settings = get_settings()
-            user = "system"
-
-            # Allowlisted paths — no auth required.
-            is_allowed = path in _AUTH_ALLOWLIST or path.startswith(
-                _AUTH_ALLOWLIST_PREFIXES
-            )
-
-            if settings.auth_enabled and not is_allowed:
-                authenticated = False
-
-                # 1. Try session cookie
-                session_cookie = request.cookies.get(_SESSION_COOKIE)
-                if session_cookie:
-                    try:
-                        serializer = _get_serializer()
-                        data = serializer.loads(
-                            session_cookie, max_age=_SESSION_MAX_AGE
-                        )
-                        staff_id = data.get("staff_id")
-                        staff_name = data.get("name", "unknown")
-
-                        # Verify staff is still active (DB check on every request)
-                        from lab_manager.database import get_db_session
-
-                        with get_db_session() as db:
-                            from lab_manager.models.staff import Staff
-
-                            staff = db.get(Staff, staff_id)
-                            if staff and staff.is_active:
-                                user = staff.name
-                                authenticated = True
-                            else:
-                                logger.warning(
-                                    "Session for inactive/missing staff_id=%s name=%s",
-                                    staff_id,
-                                    staff_name,
-                                )
-                    except BadSignature:
-                        logger.warning("Invalid session cookie signature")
-
-                # 2. Fallback: API key header
-                if not authenticated:
-                    api_key = request.headers.get("X-Api-Key", "")
-                    if settings.api_key and api_key:
-                        if hmac.compare_digest(api_key, settings.api_key):
-                            user = request.headers.get("X-User", "api-client")
-                            user = _CONTROL_CHARS.sub("", user)[:_MAX_USER_LEN]
-                            authenticated = True
-
-                if not authenticated:
-                    resp = JSONResponse(
-                        status_code=401,
-                        content={"detail": "Authentication required"},
-                    )
-                    resp.headers["X-Request-ID"] = request_id
-                    return resp
-            elif not settings.auth_enabled:
-                # Dev mode: use X-User header for audit context
-                raw = request.headers.get("X-User", "system")
-                user = _CONTROL_CHARS.sub("", raw)[:_MAX_USER_LEN]
-
-            # Set audit context
+            user = getattr(request.state, "user", "system")
             _audit_svc.set_current_user(user)
             try:
                 response = await call_next(request)
@@ -167,6 +107,78 @@ def create_app() -> FastAPI:
             return response
         finally:
             request_id_var.set(None)
+
+    # --- Auth middleware (outer — registered second, runs first) ---
+    #
+    #   1. Allowlisted paths → skip auth
+    #   2. auth_enabled=True:
+    #      a. Check session cookie → load Staff → verify is_active
+    #      b. Fallback: check X-Api-Key header (programmatic access)
+    #      c. Neither → 401
+    #   3. auth_enabled=False (dev mode):
+    #      a. Read X-User header for audit context
+    #
+    @app.middleware("http")
+    async def auth_middleware(request: Request, call_next):
+        path = request.url.path
+        settings = get_settings()
+        user = "system"
+
+        # Allowlisted paths — no auth required.
+        is_allowed = path in _AUTH_ALLOWLIST or path.startswith(
+            _AUTH_ALLOWLIST_PREFIXES
+        )
+
+        if settings.auth_enabled and not is_allowed:
+            authenticated = False
+
+            # 1. Try session cookie
+            session_cookie = request.cookies.get(_SESSION_COOKIE)
+            if session_cookie:
+                try:
+                    serializer = _get_serializer()
+                    data = serializer.loads(session_cookie, max_age=_SESSION_MAX_AGE)
+                    staff_id = data.get("staff_id")
+                    staff_name = data.get("name", "unknown")
+
+                    from lab_manager.database import get_db_session
+
+                    with get_db_session() as db:
+                        from lab_manager.models.staff import Staff
+
+                        staff = db.get(Staff, staff_id)
+                        if staff and staff.is_active:
+                            user = staff.name
+                            authenticated = True
+                        else:
+                            logger.warning(
+                                "Session for inactive/missing staff_id=%s name=%s",
+                                staff_id,
+                                staff_name,
+                            )
+                except BadSignature:
+                    logger.warning("Invalid session cookie signature")
+
+            # 2. Fallback: API key header
+            if not authenticated:
+                api_key = request.headers.get("X-Api-Key", "")
+                if settings.api_key and api_key:
+                    if hmac.compare_digest(api_key, settings.api_key):
+                        user = request.headers.get("X-User", "api-client")
+                        user = _CONTROL_CHARS.sub("", user)[:_MAX_USER_LEN]
+                        authenticated = True
+
+            if not authenticated:
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Authentication required"},
+                )
+        elif not settings.auth_enabled:
+            raw = request.headers.get("X-User", "system")
+            user = _CONTROL_CHARS.sub("", raw)[:_MAX_USER_LEN]
+
+        request.state.user = user
+        return await call_next(request)
 
     # --- Health endpoint (no auth required — in allowlist) ---
 
@@ -316,7 +328,7 @@ def create_app() -> FastAPI:
         vendors,
     )
 
-    # Auth is handled by auth_and_audit_middleware — no per-route dependency needed.
+    # Auth is handled by auth_middleware — no per-route dependency needed.
     api_router = APIRouter()
     api_router.include_router(vendors.router, prefix="/api/vendors", tags=["vendors"])
     api_router.include_router(

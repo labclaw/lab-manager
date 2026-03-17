@@ -5,11 +5,11 @@ from __future__ import annotations
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from lab_manager.api.deps import get_db
+from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.inventory import InventoryItem, InventoryStatus
 from lab_manager.services import inventory as inv_svc
@@ -151,19 +151,14 @@ def expiring(days: int = Query(30, ge=1), db: Session = Depends(get_db)):
 
 @router.get("/{item_id}")
 def get_inventory_item(item_id: int, db: Session = Depends(get_db)):
-    item = db.get(InventoryItem, item_id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Inventory item not found")
-    return item
+    return get_or_404(db, InventoryItem, item_id, "Inventory item")
 
 
 @router.patch("/{item_id}")
 def update_inventory_item(
     item_id: int, body: InventoryItemUpdate, db: Session = Depends(get_db)
 ):
-    item = db.get(InventoryItem, item_id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Inventory item not found")
+    item = get_or_404(db, InventoryItem, item_id, "Inventory item")
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
     db.commit()
@@ -174,9 +169,7 @@ def update_inventory_item(
 @router.delete("/{item_id}", status_code=204)
 def delete_inventory_item(item_id: int, db: Session = Depends(get_db)):
     """Soft-delete: set status to 'deleted'."""
-    item = db.get(InventoryItem, item_id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Inventory item not found")
+    item = get_or_404(db, InventoryItem, item_id, "Inventory item")
     item.status = InventoryStatus.deleted
     db.commit()
     return None
@@ -190,57 +183,24 @@ def item_history(item_id: int, db: Session = Depends(get_db)):
 
 @router.post("/{item_id}/consume")
 def consume_item(item_id: int, body: ConsumeBody, db: Session = Depends(get_db)):
-    from lab_manager.services.inventory import InventoryError, NotFoundError
-
-    try:
-        return inv_svc.consume(
-            item_id, body.quantity, body.consumed_by, body.purpose, db
-        )
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except InventoryError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return inv_svc.consume(item_id, body.quantity, body.consumed_by, body.purpose, db)
 
 
 @router.post("/{item_id}/transfer")
 def transfer_item(item_id: int, body: TransferBody, db: Session = Depends(get_db)):
-    from lab_manager.services.inventory import NotFoundError
-
-    try:
-        return inv_svc.transfer(item_id, body.location_id, body.transferred_by, db)
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    return inv_svc.transfer(item_id, body.location_id, body.transferred_by, db)
 
 
 @router.post("/{item_id}/adjust")
 def adjust_item(item_id: int, body: AdjustBody, db: Session = Depends(get_db)):
-    from lab_manager.services.inventory import NotFoundError
-
-    try:
-        return inv_svc.adjust(
-            item_id, body.new_quantity, body.reason, body.adjusted_by, db
-        )
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    return inv_svc.adjust(item_id, body.new_quantity, body.reason, body.adjusted_by, db)
 
 
 @router.post("/{item_id}/dispose")
 def dispose_item(item_id: int, body: DisposeBody, db: Session = Depends(get_db)):
-    from lab_manager.services.inventory import NotFoundError
-
-    try:
-        return inv_svc.dispose(item_id, body.reason, body.disposed_by, db)
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    return inv_svc.dispose(item_id, body.reason, body.disposed_by, db)
 
 
 @router.post("/{item_id}/open")
 def open_item(item_id: int, body: OpenBody, db: Session = Depends(get_db)):
-    from lab_manager.services.inventory import InventoryError, NotFoundError
-
-    try:
-        return inv_svc.open_item(item_id, body.opened_by, db)
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except InventoryError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return inv_svc.open_item(item_id, body.opened_by, db)

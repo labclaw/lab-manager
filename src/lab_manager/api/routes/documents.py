@@ -4,18 +4,19 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, field_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from lab_manager.api.deps import get_db
+from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.document import Document, DocumentStatus
 from lab_manager.models.order import Order, OrderItem, OrderStatus
 from lab_manager.models.vendor import Vendor
 
 router = APIRouter()
+
 
 _DOC_SORTABLE = {
     "id",
@@ -29,6 +30,20 @@ _DOC_SORTABLE = {
 }
 
 _VALID_STATUSES = {s.value for s in DocumentStatus}
+
+_BLOCKED_PREFIXES = ("/etc/", "/proc/", "/sys/", "/var/", "/root/", "/home/")
+
+
+def _validate_file_path(v: str) -> str:
+    """Check for path traversal and blocked system directories."""
+    from pathlib import PurePosixPath
+
+    parts = PurePosixPath(v).parts
+    if ".." in parts:
+        raise ValueError("Path traversal not allowed")
+    if any(v.startswith(b) for b in _BLOCKED_PREFIXES):
+        raise ValueError("Path traversal not allowed")
+    return v
 
 
 class DocumentCreate(BaseModel):
@@ -47,9 +62,7 @@ class DocumentCreate(BaseModel):
     @field_validator("file_path")
     @classmethod
     def no_path_traversal(cls, v: str) -> str:
-        if ".." in v or v.startswith("/etc") or v.startswith("/proc"):
-            raise ValueError("Path traversal not allowed")
-        return v
+        return _validate_file_path(v)
 
     @field_validator("status")
     @classmethod
@@ -75,10 +88,8 @@ class DocumentUpdate(BaseModel):
     @field_validator("file_path")
     @classmethod
     def no_path_traversal(cls, v: str | None) -> str | None:
-        if v is not None and (
-            ".." in v or v.startswith("/etc") or v.startswith("/proc")
-        ):
-            raise ValueError("Path traversal not allowed")
+        if v is not None:
+            _validate_file_path(v)
         return v
 
 
@@ -166,10 +177,7 @@ def create_document(body: DocumentCreate, db: Session = Depends(get_db)):
 
 @router.get("/{document_id}")
 def get_document(document_id: int, db: Session = Depends(get_db)):
-    document = db.get(Document, document_id)
-    if not document:
-        raise HTTPException(status_code=404, detail="Document not found")
-    return document
+    return get_or_404(db, Document, document_id, "Document")
 
 
 @router.patch("/{document_id}")
@@ -177,9 +185,7 @@ def update_document(
     document_id: int, body: DocumentUpdate, db: Session = Depends(get_db)
 ):
     """Partial update any document fields."""
-    doc = db.get(Document, document_id)
-    if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
+    doc = get_or_404(db, Document, document_id, "Document")
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(doc, key, value)
     db.commit()
@@ -190,9 +196,7 @@ def update_document(
 @router.delete("/{document_id}", status_code=204)
 def delete_document(document_id: int, db: Session = Depends(get_db)):
     """Soft-delete: set status to 'deleted'."""
-    doc = db.get(Document, document_id)
-    if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
+    doc = get_or_404(db, Document, document_id, "Document")
     doc.status = DocumentStatus.deleted
     db.commit()
     return None
@@ -203,9 +207,7 @@ def review_document(
     document_id: int, body: ReviewAction, db: Session = Depends(get_db)
 ):
     """Approve or reject a document extraction."""
-    doc = db.get(Document, document_id)
-    if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
+    doc = get_or_404(db, Document, document_id, "Document")
 
     if body.action == "approve":
         doc.status = DocumentStatus.approved
@@ -219,8 +221,6 @@ def review_document(
         doc.status = DocumentStatus.rejected
         doc.reviewed_by = body.reviewed_by
         doc.review_notes = body.review_notes
-    else:
-        raise HTTPException(status_code=400, detail="action must be approve or reject")
 
     db.commit()
     db.refresh(doc)
