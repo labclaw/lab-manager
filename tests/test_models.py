@@ -1,6 +1,16 @@
 """Test database models."""
 
+from datetime import date
+
+from lab_manager.models.audit import AuditLog
 from lab_manager.models.base import AuditMixin
+from lab_manager.models.document import Document
+from lab_manager.models.inventory import InventoryItem
+from lab_manager.models.location import StorageLocation
+from lab_manager.models.order import Order, OrderItem
+from lab_manager.models.product import Product
+from lab_manager.models.staff import Staff
+from lab_manager.models.vendor import Vendor
 
 
 def test_audit_mixin_has_timestamps():
@@ -9,12 +19,6 @@ def test_audit_mixin_has_timestamps():
     assert "created_at" in fields
     assert "updated_at" in fields
     assert "created_by" in fields
-
-
-from lab_manager.models.vendor import Vendor
-from lab_manager.models.product import Product
-from lab_manager.models.staff import Staff
-from lab_manager.models.location import StorageLocation
 
 
 def test_vendor_model():
@@ -40,11 +44,6 @@ def test_staff_model():
 def test_location_model():
     loc = StorageLocation(name="Freezer -80C #1", temperature=-80, room="CNY 149")
     assert loc.temperature == -80
-
-
-from datetime import date
-from lab_manager.models.order import Order, OrderItem
-from lab_manager.models.inventory import InventoryItem
 
 
 def test_order_model():
@@ -76,10 +75,6 @@ def test_inventory_item_model():
         lot_number="4361991",
     )
     assert inv.quantity_on_hand == 5
-
-
-from lab_manager.models.document import Document
-from lab_manager.models.audit import AuditLog
 
 
 def test_document_model():
