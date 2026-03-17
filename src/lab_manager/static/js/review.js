@@ -9,19 +9,24 @@ window.Lab.review = (function () {
 
   var selected = new Set();
   var docs = [];
+  var currentPage = 1;
+  var lastData = null;
+  var PAGE_SIZE = 50;
 
   async function init() {
     selected.clear();
+    currentPage = 1;
     await loadQueue();
   }
 
   async function loadQueue() {
     var data;
     try {
-      data = await Lab.api.documents.list({ status: 'needs_review', page_size: 200 });
+      data = await Lab.api.documents.list({ status: 'needs_review', page: currentPage, page_size: PAGE_SIZE });
     } catch (_) {
       return;
     }
+    lastData = data;
     docs = data.items || [];
     render();
   }
@@ -47,6 +52,11 @@ window.Lab.review = (function () {
       rows: docs,
       onRowClick: function (id) { Lab.documents.openDetail(id); },
       emptyMsg: 'No documents need review',
+      pagination: lastData ? {
+        page: lastData.page || 1,
+        pages: lastData.pages || 1,
+        onChange: function (p) { currentPage = p; loadQueue(); },
+      } : null,
       checkbox: {
         selected: selected,
         onToggle: function (id) {
@@ -98,19 +108,15 @@ window.Lab.review = (function () {
   async function executeBulk(action, notes) {
     var ids = Array.from(selected);
     var reviewer = Lab.auth.userName();
-    var succeeded = 0;
-    var failed = 0;
 
-    for (var i = 0; i < ids.length; i++) {
+    var results = await Promise.allSettled(ids.map(function (id) {
       var body = { action: action, reviewed_by: reviewer };
       if (notes) body.review_notes = notes;
-      try {
-        await Lab.api.documents.review(ids[i], body);
-        succeeded++;
-      } catch (_) {
-        failed++;
-      }
-    }
+      return Lab.api.documents.review(id, body);
+    }));
+
+    var succeeded = results.filter(function (r) { return r.status === 'fulfilled'; }).length;
+    var failed = results.length - succeeded;
 
     selected.clear();
 

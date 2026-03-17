@@ -13,6 +13,7 @@ window.Lab.inventory = (function () {
   var PAGE_SIZE = 30;
 
   async function init() {
+    clearTimeout(searchTimer);
     setupEvents();
     await loadInventory();
   }

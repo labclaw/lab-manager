@@ -16,6 +16,7 @@ window.Lab.documents = (function () {
   var originalDoc = null; // snapshot before edits
 
   async function init() {
+    clearTimeout(searchTimer);
     setupEvents();
     await loadDocuments();
   }

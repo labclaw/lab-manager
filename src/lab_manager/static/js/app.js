@@ -106,7 +106,8 @@ function route() {
 
   var parts = hash.split('/');
   var view = parts[0];
-  var id = parts[1] ? parseInt(parts[1]) : null;
+  var id = parts[1] ? parseInt(parts[1], 10) : null;
+  if (isNaN(id)) id = null;
 
   // Unknown route: redirect to dashboard
   if (VIEWS.indexOf(view) === -1) {

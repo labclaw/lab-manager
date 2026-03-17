@@ -9,7 +9,7 @@ window.Lab.components = (function () {
   // ---- HTML escaping ----
 
   function esc(s) {
-    if (!s) return '';
+    if (s == null || s === '') return '';
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
@@ -165,10 +165,12 @@ window.Lab.components = (function () {
     };
 
     modal.onclick = function (e) {
-      if (e.target.dataset.action === 'modal-confirm') {
+      var btn = e.target.closest('[data-action]');
+      var action = btn ? btn.dataset.action : null;
+      if (action === 'modal-confirm') {
         cleanup();
         if (opts.onConfirm) opts.onConfirm(card);
-      } else if (e.target.dataset.action === 'modal-cancel' || e.target === modal) {
+      } else if (action === 'modal-cancel' || e.target === modal) {
         cleanup();
         if (opts.onCancel) opts.onCancel();
       }

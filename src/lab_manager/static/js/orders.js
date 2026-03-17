@@ -13,6 +13,7 @@ window.Lab.orders = (function () {
   var PAGE_SIZE = 30;
 
   async function init() {
+    clearTimeout(searchTimer);
     setupEvents();
     await loadOrders();
   }
@@ -85,6 +86,8 @@ window.Lab.orders = (function () {
       var e = results[0].reason;
       if (e && e.message && e.message.indexOf('404') >= 0) {
         C.openPanel('Not Found', '<p style="color:var(--text-muted); padding:20px;">Order not found.</p>', '');
+      } else {
+        C.openPanel('Error', '<p style="color:var(--text-muted); padding:20px;">Failed to load order.</p>', '');
       }
       return;
     }

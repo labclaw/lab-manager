@@ -31,6 +31,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); }
 }
 .navbar .nav-search {
   flex: 0 0 260px;
+  position: relative;
 }
 .navbar .nav-search input {
   width: 100%; padding: 7px 12px; border-radius: 6px; border: none;
