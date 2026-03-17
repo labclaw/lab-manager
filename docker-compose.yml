@@ -76,6 +76,7 @@ services:
     volumes:
       - uploads:/app/uploads
       - backups:/backups/labmanager
+      - ./shenlab-docs:/app/shenlab-docs:ro
     restart: unless-stopped
 
 volumes:
