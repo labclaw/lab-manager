@@ -43,17 +43,7 @@ window.Lab.review = (function () {
     }
 
     C.renderTable('review-table', {
-      columns: [
-        { key: 'id', label: 'ID', width: '60px', render: function (v) { return '<span class="id">#' + v + '</span>'; } },
-        { key: 'file_name', label: 'File / Vendor', width: '1fr', render: function (v, row) {
-          return '<div><div class="name">' + C.esc(v || '') + '</div><div class="sub-text">' + C.esc(row.vendor_name || '') + '</div></div>';
-        }},
-        { key: 'document_type', label: 'Type', width: '140px', render: function (v) { return C.esc(v || ''); } },
-        { key: 'status', label: 'Status', width: '120px', render: function (v) { return C.badge(v); } },
-        { key: 'extraction_confidence', label: 'Conf.', width: '80px', render: function (v) {
-          return v != null ? (v * 100).toFixed(0) + '%' : '&mdash;';
-        }},
-      ],
+      columns: C.docColumns(),
       rows: docs,
       onRowClick: function (id) { Lab.documents.openDetail(id); },
       emptyMsg: 'No documents need review',
@@ -107,8 +97,7 @@ window.Lab.review = (function () {
 
   async function executeBulk(action, notes) {
     var ids = Array.from(selected);
-    var user = Lab.auth.currentUser;
-    var reviewer = user ? user.name : 'scientist';
+    var reviewer = Lab.auth.userName();
     var succeeded = 0;
     var failed = 0;
 
@@ -132,7 +121,7 @@ window.Lab.review = (function () {
     }
 
     loadQueue();
-    Lab.dashboard.init();
+    if (!document.getElementById('view-dashboard').classList.contains('hidden')) Lab.dashboard.init();
   }
 
   return {

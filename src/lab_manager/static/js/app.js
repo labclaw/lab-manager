@@ -76,12 +76,17 @@ window.Lab.auth = (function () {
     showLogin();
   }
 
+  function userName() {
+    return currentUser ? currentUser.name : 'scientist';
+  }
+
   return {
     init: init,
     showApp: showApp,
     showLogin: showLogin,
     handleLogin: handleLogin,
     handleLogout: handleLogout,
+    userName: userName,
     get currentUser() { return currentUser; },
   };
 })();

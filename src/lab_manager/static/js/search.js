@@ -7,6 +7,7 @@ window.Lab.search = (function () {
   'use strict';
   var C = Lab.components;
   var suggestTimer = null;
+  var navSearchInitialized = false;
 
   function init(query) {
     if (query) {
@@ -18,6 +19,9 @@ window.Lab.search = (function () {
   }
 
   function setupNavSearch() {
+    if (navSearchInitialized) return;
+    navSearchInitialized = true;
+
     var navInput = document.getElementById('nav-search-input');
     if (!navInput) return;
 

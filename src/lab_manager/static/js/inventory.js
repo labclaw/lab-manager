@@ -150,13 +150,17 @@ window.Lab.inventory = (function () {
   // ---- Detail panel ----
 
   async function openDetail(id) {
-    var item;
-    try {
-      item = await Lab.api.inventory.get(id);
-    } catch (_) {
+    var results = await Promise.allSettled([
+      Lab.api.inventory.get(id),
+      Lab.api.inventory.history(id),
+    ]);
+
+    if (results[0].status !== 'fulfilled') {
       C.openPanel('Not Found', '<p>Inventory item not found.</p>', '');
       return;
     }
+
+    var item = results[0].value;
 
     var bodyHtml = '';
     bodyHtml += '<div class="field-group"><h3>Item Info</h3>';
@@ -169,8 +173,8 @@ window.Lab.inventory = (function () {
     bodyHtml += '</div>';
 
     // History
-    try {
-      var history = await Lab.api.inventory.history(id);
+    if (results[1].status === 'fulfilled') {
+      var history = results[1].value;
       var entries = Array.isArray(history) ? history : (history.items || []);
       if (entries.length > 0) {
         bodyHtml += '<div class="field-group"><h3>Activity History</h3><div class="history-list">';
@@ -183,7 +187,7 @@ window.Lab.inventory = (function () {
         });
         bodyHtml += '</div></div>';
       }
-    } catch (_) {}
+    }
 
     // Actions
     var actionsHtml = '';
@@ -214,7 +218,7 @@ window.Lab.inventory = (function () {
         try {
           await Lab.api.inventory.consume(id, {
             quantity: qty,
-            consumed_by: (Lab.auth.currentUser || {}).name || 'scientist',
+            consumed_by: Lab.auth.userName(),
             purpose: reason,
           });
           C.toast('Consumed ' + qty + ' units', 'success');
@@ -238,7 +242,7 @@ window.Lab.inventory = (function () {
         try {
           await Lab.api.inventory.transfer(id, {
             location_id: locId,
-            transferred_by: (Lab.auth.currentUser || {}).name || 'scientist',
+            transferred_by: Lab.auth.userName(),
           });
           C.toast('Transferred successfully', 'success');
           C.closePanel();
@@ -262,7 +266,7 @@ window.Lab.inventory = (function () {
           await Lab.api.inventory.adjust(id, {
             new_quantity: qty,
             reason: reason,
-            adjusted_by: (Lab.auth.currentUser || {}).name || 'scientist',
+            adjusted_by: Lab.auth.userName(),
           });
           C.toast('Adjusted to ' + qty, 'success');
           C.closePanel();
@@ -283,7 +287,7 @@ window.Lab.inventory = (function () {
         try {
           await Lab.api.inventory.dispose(id, {
             reason: reason,
-            disposed_by: (Lab.auth.currentUser || {}).name || 'scientist',
+            disposed_by: Lab.auth.userName(),
           });
           C.toast('Item disposed', 'success');
           C.closePanel();
@@ -297,10 +301,10 @@ window.Lab.inventory = (function () {
     C.showModal({
       title: 'More Actions',
       body: '<div style="display:flex; flex-direction:column; gap:8px;">' +
-        '<button class="btn btn-secondary" onclick="document.getElementById(\'generic-modal\').classList.remove(\'show\'); Lab.inventory.transferModal(' + id + ')">Transfer to another location</button>' +
-        '<button class="btn btn-secondary" onclick="document.getElementById(\'generic-modal\').classList.remove(\'show\'); Lab.inventory.adjustModal(' + id + ')">Adjust quantity (physical count)</button>' +
-        '<button class="btn btn-secondary" onclick="document.getElementById(\'generic-modal\').classList.remove(\'show\'); Lab.inventory.openItem(' + id + ')">Mark as opened</button>' +
-        '<button class="btn btn-reject" onclick="document.getElementById(\'generic-modal\').classList.remove(\'show\'); Lab.inventory.disposeModal(' + id + ')">Dispose / Discard</button>' +
+        '<button class="btn btn-secondary" onclick="Lab.components.closeModal(); Lab.inventory.transferModal(' + id + ')">Transfer to another location</button>' +
+        '<button class="btn btn-secondary" onclick="Lab.components.closeModal(); Lab.inventory.adjustModal(' + id + ')">Adjust quantity (physical count)</button>' +
+        '<button class="btn btn-secondary" onclick="Lab.components.closeModal(); Lab.inventory.openItem(' + id + ')">Mark as opened</button>' +
+        '<button class="btn btn-reject" onclick="Lab.components.closeModal(); Lab.inventory.disposeModal(' + id + ')">Dispose / Discard</button>' +
         '</div>',
       confirmLabel: 'Close',
       confirmClass: 'btn-secondary',
@@ -311,7 +315,7 @@ window.Lab.inventory = (function () {
   async function openItem(id) {
     try {
       await Lab.api.inventory.open(id, {
-        opened_by: (Lab.auth.currentUser || {}).name || 'scientist',
+        opened_by: Lab.auth.userName(),
       });
       C.toast('Item marked as opened', 'success');
       loadInventory();

@@ -76,22 +76,23 @@ window.Lab.orders = (function () {
   }
 
   async function openDetail(id) {
-    var order;
-    try {
-      order = await Lab.api.orders.get(id);
-    } catch (e) {
-      if (e.message && e.message.indexOf('404') >= 0) {
+    var results = await Promise.allSettled([
+      Lab.api.orders.get(id),
+      Lab.api.orders.items(id),
+    ]);
+
+    if (results[0].status !== 'fulfilled') {
+      var e = results[0].reason;
+      if (e && e.message && e.message.indexOf('404') >= 0) {
         C.openPanel('Not Found', '<p style="color:var(--text-muted); padding:20px;">Order not found.</p>', '');
       }
       return;
     }
 
-    // Load items
-    var orderItems = [];
-    try {
-      var itemsData = await Lab.api.orders.items(id);
-      orderItems = itemsData.items || itemsData || [];
-    } catch (_) {}
+    var order = results[0].value;
+    var orderItems = results[1].status === 'fulfilled'
+      ? (results[1].value.items || results[1].value || [])
+      : [];
 
     var bodyHtml = '';
     bodyHtml += '<div class="field-group"><h3>Order Info</h3>';
@@ -141,12 +142,12 @@ window.Lab.orders = (function () {
       onConfirm: async function () {
         try {
           await Lab.api.orders.receive(id, {
-            received_by: (Lab.auth.currentUser || {}).name || 'scientist',
+            received_by: Lab.auth.userName(),
           });
           C.toast('Order received, inventory created!', 'success');
           C.closePanel();
           loadOrders();
-          Lab.dashboard.init();
+          if (!document.getElementById('view-dashboard').classList.contains('hidden')) Lab.dashboard.init();
         } catch (_) {}
       },
     });

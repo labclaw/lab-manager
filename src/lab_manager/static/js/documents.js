@@ -16,6 +16,7 @@ window.Lab.documents = (function () {
   var originalDoc = null; // snapshot before edits
 
   async function init() {
+    setupEvents();
     await loadDocuments();
   }
 
@@ -47,17 +48,7 @@ window.Lab.documents = (function () {
 
     var docs = data.items || [];
     C.renderTable('doc-table', {
-      columns: [
-        { key: 'id', label: 'ID', width: '60px', render: function (v) { return '<span class="id">#' + v + '</span>'; } },
-        { key: 'file_name', label: 'File / Vendor', width: '1fr', render: function (v, row) {
-          return '<div><div class="name">' + C.esc(v || '') + '</div><div class="sub-text">' + C.esc(row.vendor_name || '') + '</div></div>';
-        }},
-        { key: 'document_type', label: 'Type', width: '140px', render: function (v) { return C.esc(v || ''); } },
-        { key: 'status', label: 'Status', width: '120px', render: function (v) { return C.badge(v); } },
-        { key: 'extraction_confidence', label: 'Conf.', width: '80px', render: function (v) {
-          return v != null ? (v * 100).toFixed(0) + '%' : '&mdash;';
-        }},
-      ],
+      columns: C.docColumns(),
       rows: docs,
       onRowClick: function (id) { openDetail(id); },
       emptyMsg: 'No documents found',
@@ -67,8 +58,6 @@ window.Lab.documents = (function () {
         onChange: function (p) { currentPage = p; loadDocuments(); },
       },
     });
-
-    setupEvents();
   }
 
   function setFilter(status) {
@@ -245,6 +234,7 @@ window.Lab.documents = (function () {
 
   function addItem() {
     if (!editingDoc) return;
+    collectEditedData();
     if (!editingDoc.extracted_data) editingDoc.extracted_data = {};
     if (!editingDoc.extracted_data.items) editingDoc.extracted_data.items = [];
     editingDoc.extracted_data.items.push({
@@ -274,10 +264,9 @@ window.Lab.documents = (function () {
       });
 
       // 2. Approve
-      var user = Lab.auth.currentUser;
       await Lab.api.documents.review(id, {
         action: 'approve',
-        reviewed_by: user ? user.name : 'scientist',
+        reviewed_by: Lab.auth.userName(),
       });
 
       C.toast('Document approved, order created!', 'success');
@@ -285,23 +274,22 @@ window.Lab.documents = (function () {
       editingDoc = null;
       originalDoc = null;
       loadDocuments();
-      Lab.dashboard.init(); // refresh stats
+      if (!document.getElementById('view-dashboard').classList.contains('hidden')) Lab.dashboard.init();
     } catch (_) {
       // Error toast already shown by api.js
     }
   }
 
   async function approve(id) {
-    var user = Lab.auth.currentUser;
     try {
       await Lab.api.documents.review(id, {
         action: 'approve',
-        reviewed_by: user ? user.name : 'scientist',
+        reviewed_by: Lab.auth.userName(),
       });
       C.toast('Document approved, order created!', 'success');
       C.closePanel();
       loadDocuments();
-      Lab.dashboard.init();
+      if (!document.getElementById('view-dashboard').classList.contains('hidden')) Lab.dashboard.init();
     } catch (_) {}
   }
 
@@ -321,15 +309,14 @@ window.Lab.documents = (function () {
   }
 
   async function rejectDoc(id, notes) {
-    var user = Lab.auth.currentUser;
-    var body = { action: 'reject', reviewed_by: user ? user.name : 'scientist' };
+    var body = { action: 'reject', reviewed_by: Lab.auth.userName() };
     if (notes) body.review_notes = notes;
     try {
       await Lab.api.documents.review(id, body);
       C.toast('Document rejected', 'success');
       C.closePanel();
       loadDocuments();
-      Lab.dashboard.init();
+      if (!document.getElementById('view-dashboard').classList.contains('hidden')) Lab.dashboard.init();
     } catch (_) {}
   }
 

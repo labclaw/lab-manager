@@ -175,6 +175,14 @@ window.Lab.components = (function () {
     };
   }
 
+  function closeModal() {
+    var modal = document.getElementById('generic-modal');
+    if (modal) {
+      modal.classList.remove('show');
+      modal.onclick = null;
+    }
+  }
+
   // ---- Detail panel ----
 
   function openPanel(title, bodyHtml, actionsHtml) {
@@ -206,6 +214,22 @@ window.Lab.components = (function () {
       '" value="' + esc(value || '') + '"></div></div>';
   }
 
+  // ---- Shared column definitions ----
+
+  function docColumns() {
+    return [
+      { key: 'id', label: 'ID', width: '60px', render: function (v) { return '<span class="id">#' + v + '</span>'; } },
+      { key: 'file_name', label: 'File / Vendor', width: '1fr', render: function (v, row) {
+        return '<div><div class="name">' + esc(v || '') + '</div><div class="sub-text">' + esc(row.vendor_name || '') + '</div></div>';
+      }},
+      { key: 'document_type', label: 'Type', width: '140px', render: function (v) { return esc(v || ''); } },
+      { key: 'status', label: 'Status', width: '120px', render: function (v) { return badge(v); } },
+      { key: 'extraction_confidence', label: 'Conf.', width: '80px', render: function (v) {
+        return v != null ? (v * 100).toFixed(0) + '%' : '&mdash;';
+      }},
+    ];
+  }
+
   // ---- Loading indicator ----
 
   function loading(containerId) {
@@ -219,10 +243,12 @@ window.Lab.components = (function () {
     toast: toast,
     renderTable: renderTable,
     showModal: showModal,
+    closeModal: closeModal,
     openPanel: openPanel,
     closePanel: closePanel,
     fieldRow: fieldRow,
     editableFieldRow: editableFieldRow,
+    docColumns: docColumns,
     loading: loading,
   };
 })();

@@ -84,7 +84,7 @@ window.Lab.dashboard = (function () {
         tc.innerHTML = types.map(function (e) {
           return '<div class="vendor-bar">' +
             '<div class="name">' + C.esc(e[0]) + '</div>' +
-            '<div class="bar" style="width:' + (e[1] / maxType * 200) + 'px; background:#8b5cf6"></div>' +
+            '<div class="bar" style="width:' + (e[1] / maxType * 200) + 'px; background:var(--chart-secondary)"></div>' +
             '<div class="count">' + e[1] + '</div></div>';
         }).join('');
       } else {
@@ -98,29 +98,30 @@ window.Lab.dashboard = (function () {
     if (!container) return;
     var html = '';
 
-    try {
-      // Low stock
-      var lowStock = await Lab.api.inventory.lowStock();
-      var lowItems = lowStock.items || lowStock;
+    var results = await Promise.allSettled([
+      Lab.api.inventory.lowStock(),
+      Lab.api.inventory.expiring(30),
+    ]);
+
+    if (results[0].status === 'fulfilled') {
+      var lowItems = results[0].value.items || results[0].value;
       if (Array.isArray(lowItems) && lowItems.length > 0) {
         html += '<div class="alert-banner">' +
           '<span class="alert-count">' + lowItems.length + '</span>' +
           ' items are below reorder level (low stock)' +
           '</div>';
       }
-    } catch (_) {}
+    }
 
-    try {
-      // Expiring
-      var expiring = await Lab.api.inventory.expiring(30);
-      var expItems = expiring.items || expiring;
+    if (results[1].status === 'fulfilled') {
+      var expItems = results[1].value.items || results[1].value;
       if (Array.isArray(expItems) && expItems.length > 0) {
         html += '<div class="alert-banner" style="background:var(--danger-bg); border-color:var(--danger);">' +
           '<span class="alert-count" style="background:var(--danger);">' + expItems.length + '</span>' +
           ' items expiring within 30 days' +
           '</div>';
       }
-    } catch (_) {}
+    }
 
     container.innerHTML = html;
   }
