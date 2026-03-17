@@ -45,6 +45,7 @@ window.Lab.components = (function () {
   function renderTable(containerId, opts) {
     var el = document.getElementById(containerId);
     if (!el) return;
+    if (!el.classList.contains('data-list')) el.classList.add('data-list');
 
     var cols = opts.columns || [];
     var rows = opts.rows || [];
