@@ -120,7 +120,7 @@ window.Lab.documents = (function () {
       bodyHtml += C.editableFieldRow('Ship Date', 'ship_date', data.ship_date, 'date');
     } else {
       bodyHtml += C.fieldRow('Vendor', C.esc(data.vendor_name));
-      bodyHtml += C.fieldRow('Type', C.esc(data.document_type));
+      bodyHtml += C.fieldRow('Type', C.esc(C.humanize(data.document_type)));
       bodyHtml += C.fieldRow('PO Number', C.esc(data.po_number));
       bodyHtml += C.fieldRow('Order Number', C.esc(data.order_number));
       bodyHtml += C.fieldRow('Invoice #', C.esc(data.invoice_number));
