@@ -4,7 +4,10 @@ Provides reusable Given/When/Then steps for:
   - Navigation (hash routing)
   - Auth (login/logout)
   - UI assertions (visibility, text, toasts)
-  - Data setup via API (vendor, product, order, inventory, document)
+  - Data setup via live server (vendor, product, order, inventory, document)
+
+Data setup steps POST to the live server URL via ``live_client`` (httpx) so
+that the data is committed in the live server's DB and visible to Playwright.
 """
 
 from pytest_bdd import given, parsers, then, when
@@ -179,17 +182,17 @@ def check_stat_card_numeric(logged_in_page, label):
 
 
 # ---------------------------------------------------------------------------
-# Data setup helpers (create test data via API)
+# Data setup helpers (create test data via live server)
 # ---------------------------------------------------------------------------
 
 
 @given(parsers.parse("{n:d} documents exist with various statuses"))
-def create_documents_various(api, n):
+def create_documents_various(live_client, n):
     statuses = ["approved", "needs_review", "rejected"]
     docs = []
     for i in range(n):
         status = statuses[i % len(statuses)]
-        r = api.post(
+        r = live_client.post(
             "/api/documents/",
             json={
                 "file_name": f"doc_{i:03d}.pdf",
@@ -203,10 +206,10 @@ def create_documents_various(api, n):
 
 
 @given(parsers.parse("{n:d} documents exist"))
-def create_n_documents(api, n):
+def create_n_documents(live_client, n):
     docs = []
     for i in range(n):
-        r = api.post(
+        r = live_client.post(
             "/api/documents/",
             json={
                 "file_name": f"doc_{i:03d}.pdf",
@@ -220,23 +223,23 @@ def create_n_documents(api, n):
 
 
 @given(parsers.parse("{n:d} vendors exist"))
-def create_n_vendors(api, n):
+def create_n_vendors(live_client, n):
     vendors = []
     for i in range(n):
-        r = api.post("/api/vendors/", json={"name": f"Vendor {i}"})
+        r = live_client.post("/api/vendors/", json={"name": f"Vendor {i}"})
         assert r.status_code in (200, 201), r.text
         vendors.append(r.json())
     return vendors
 
 
 @given(parsers.parse("{n:d} orders exist"))
-def create_n_orders(api, n):
+def create_n_orders(live_client, n):
     # Need a vendor first
-    vr = api.post("/api/vendors/", json={"name": "Test Vendor for Orders"})
+    vr = live_client.post("/api/vendors/", json={"name": "Test Vendor for Orders"})
     vendor = vr.json()
     orders = []
     for i in range(n):
-        r = api.post(
+        r = live_client.post(
             "/api/orders/",
             json={
                 "vendor_id": vendor["id"],
@@ -250,10 +253,10 @@ def create_n_orders(api, n):
 
 
 @given(parsers.parse('{n:d} documents with status "{status}"'))
-def create_documents_with_status(api, n, status):
+def create_documents_with_status(live_client, n, status):
     docs = []
     for i in range(n):
-        r = api.post(
+        r = live_client.post(
             "/api/documents/",
             json={
                 "file_name": f"doc_{status}_{i:03d}.pdf",
@@ -268,14 +271,14 @@ def create_documents_with_status(api, n, status):
 
 @given("the database is empty")
 def empty_database():
-    # In test isolation, database starts empty per test due to transaction rollback
+    # In UI test isolation, database starts empty per test due to TRUNCATE cleanup
     pass
 
 
 @given("documents exist")
-def some_documents_exist(api):
+def some_documents_exist(live_client):
     for i in range(3):
-        api.post(
+        live_client.post(
             "/api/documents/",
             json={
                 "file_name": f"sample_{i}.pdf",

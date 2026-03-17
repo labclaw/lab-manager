@@ -6,6 +6,12 @@ Adds:
   - Playwright browser + page (per-test)
   - Auth helpers (login, logout)
   - Shared step definitions are in step_defs/ui_common.py
+
+Database isolation strategy for UI tests:
+  The live uvicorn server runs in a daemon thread with its own DB connections.
+  Unlike API tests (which use savepoint rollback), UI tests commit data for
+  real so the live server can see it, then TRUNCATE all tables after each test.
+  Step definitions create test data by POSTing to the live server URL.
 """
 
 import os
@@ -13,11 +19,24 @@ import socket
 import threading
 import time
 
+import httpx
 import pytest
 import uvicorn
+from sqlmodel import text
 
-# Re-export base fixtures so UI tests get DB isolation too.
-from tests.bdd.conftest import db, db_connection, db_engine  # noqa: F401
+# Re-export base engine fixture (used for table creation/teardown).
+from tests.bdd.conftest import db_engine  # noqa: F401
+
+# ---------------------------------------------------------------------------
+# Live server
+# ---------------------------------------------------------------------------
+
+_DB_URL = os.environ.get(
+    "DATABASE_URL",
+    "postgresql+psycopg://labmanager:testpass@localhost:5432/labmanager_test",
+)
+os.environ["DATABASE_URL"] = _DB_URL
+os.environ.setdefault("AUTH_ENABLED", "false")
 
 
 def _find_free_port() -> int:
@@ -29,11 +48,9 @@ def _find_free_port() -> int:
 class _UvicornServer(threading.Thread):
     """Run uvicorn in a daemon thread so it dies with the test session."""
 
-    def __init__(self, app_import: str, host: str, port: int):
+    def __init__(self, app, host: str, port: int):
         super().__init__(daemon=True)
-        self.config = uvicorn.Config(
-            app_import, host=host, port=port, log_level="warning"
-        )
+        self.config = uvicorn.Config(app, host=host, port=port, log_level="warning")
         self.server = uvicorn.Server(self.config)
 
     def run(self):
@@ -45,11 +62,15 @@ class _UvicornServer(threading.Thread):
 
 @pytest.fixture(scope="session")
 def live_server(db_engine):  # noqa: F811
-    """Start a real FastAPI server for Playwright to hit."""
+    """Start a real FastAPI server for Playwright to hit.
+
+    The server uses the same test database as db_engine.  Data inserted via
+    the server's API is committed for real; cleanup happens per-test via the
+    ``_ui_db_cleanup`` autouse fixture.
+    """
     port = _find_free_port()
     host = "127.0.0.1"
 
-    # Ensure test DB is used by the server
     os.environ["AUTH_ENABLED"] = "false"
 
     server = _UvicornServer("lab_manager.api.app:app", host, port)
@@ -59,8 +80,6 @@ def live_server(db_engine):  # noqa: F811
     base_url = f"http://{host}:{port}"
     for _ in range(50):
         try:
-            import httpx
-
             r = httpx.get(f"{base_url}/api/health", timeout=1.0)
             if r.status_code in (200, 503):
                 break
@@ -72,6 +91,58 @@ def live_server(db_engine):  # noqa: F811
 
     yield base_url
     server.stop()
+
+
+# ---------------------------------------------------------------------------
+# Per-test database cleanup (truncate all tables after each UI test)
+# ---------------------------------------------------------------------------
+
+# Tables in dependency order (children first) to avoid FK violations.
+_TRUNCATE_TABLES = [
+    "consumption_log",
+    "alerts",
+    "audit_log",
+    "inventory",
+    "order_items",
+    "documents",
+    "orders",
+    "products",
+    "vendors",
+    "staff",
+    "locations",
+]
+
+
+@pytest.fixture(autouse=True)
+def _ui_db_cleanup(db_engine):  # noqa: F811
+    """Truncate all tables after each UI test for isolation.
+
+    Uses TRUNCATE ... CASCADE so FK order doesn't matter, but we list tables
+    explicitly to avoid touching alembic_version or other infrastructure tables.
+    """
+    yield
+    with db_engine.connect() as conn:
+        # TRUNCATE is DDL-like in PostgreSQL — fast and resets sequences.
+        table_list = ", ".join(_TRUNCATE_TABLES)
+        conn.execute(text(f"TRUNCATE {table_list} CASCADE"))
+        conn.commit()
+
+
+# ---------------------------------------------------------------------------
+# HTTP client for step definitions to create data via the live server
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def live_client(live_server):
+    """An httpx client pointed at the live server for data setup in steps."""
+    with httpx.Client(base_url=live_server, timeout=10.0) as client:
+        yield client
+
+
+# ---------------------------------------------------------------------------
+# Playwright browser fixtures
+# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="session")
