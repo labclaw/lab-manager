@@ -221,6 +221,7 @@ _ALLOWED_TABLES = {
     "orders",
     "order_items",
     "inventory",
+    "staff",
 }
 
 # Allow only SELECT (including WITH/CTE)
