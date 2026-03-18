@@ -5,8 +5,9 @@ All notable changes to LabClaw Lab Manager will be documented in this file.
 ## [0.1.4] - 2026-03-18
 
 ### Security
-- Remove `staff` table from RAG allowed tables — prevents PII (email) exposure via NL queries
+- Remove `staff` table from RAG allowed tables and DB schema prompt — prevents PII (email) exposure via NL queries
 - Fix `_FORBIDDEN_COLUMNS` regex to use `.search()` instead of `.match()` — catches aliased column names in JOINs
+- Sync `pyproject.toml` version with `VERSION` file
 
 ### Fixed
 - **Bulk review concurrency**: batch API calls (5 at a time) instead of firing all N in parallel; clear selections on page change to prevent cross-page approvals
