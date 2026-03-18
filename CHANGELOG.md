@@ -2,6 +2,38 @@
 
 All notable changes to LabClaw Lab Manager will be documented in this file.
 
+## [0.1.3] - 2026-03-17
+
+### Added
+- **Full SPA UI**: 9 vanilla JS view modules (dashboard, documents, review, inventory, orders, search, app, API client, shared components) with hash-based routing
+- **Dashboard**: KPI stat cards, vendor/type bar charts, alert banners (low stock + expiring)
+- **Document review**: Inline edit mode for OCR-extracted data, Save & Approve, Reject with reason
+- **Bulk review**: Checkbox selection with bulk approve/reject (Promise.allSettled for partial failure handling)
+- **Inventory management**: Consume, transfer, adjust, dispose, open actions with modals and activity history
+- **Order workflow**: Detail panel with line items, receive shipment flow creating inventory
+- **Global search**: Autocomplete dropdown, grouped results by entity type, nav bar integration
+- **CSS design system**: Shared styles, responsive layout, detail panel, modal system, toast notifications
+- **78 BDD UI test scenarios**: Playwright-based browser tests across 8 feature files
+- Docker entrypoint script with auto-migration on startup
+- `get_or_404()` helper and `BusinessError` domain exception hierarchy
+
+### Changed
+- Split monolithic auth+audit middleware into separate auth (outer) and audit (inner) middleware for clearer separation of concerns
+- Session cookie max-age reduced from 7 days to 24 hours
+- Content-Security-Policy updated to allow `script-src 'unsafe-inline'` and `connect-src 'self'` for SPA
+- Caddyfile domain made configurable via `$DOMAIN` env var
+- Pin `uv==0.7.12` in Dockerfile for reproducible builds
+- `.gstack/` added to `.gitignore`
+- `DocumentUpdate.status` now validates against allowed status values
+- RAG `_ALLOWED_TABLES` now includes `staff` (password_hash blocked by `_FORBIDDEN_COLUMNS`)
+
+### Fixed
+- 14 design findings fixed (D+ → B+ design score): table headers, touch targets, snake_case labels, panel visibility on mobile, font inheritance, abbreviation handling
+- Detail panel hidden on mobile/tablet when closed (visibility:hidden vs overflow-x:hidden for fixed elements)
+- Detail panel closes on view switch (no stale content)
+- Close button touch target increased to 44px minimum
+- SQLAdmin `password_hash` excluded from detail/edit views
+
 ## [0.1.2] - 2026-03-16
 
 ### Added
