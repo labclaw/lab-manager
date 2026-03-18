@@ -215,6 +215,7 @@ window.Lab.inventory = (function () {
       confirmClass: 'btn-primary',
       onConfirm: async function () {
         var qty = parseFloat(document.getElementById('consume-qty').value);
+        if (isNaN(qty) || qty <= 0) { C.toast('Quantity must be a positive number', 'error'); return; }
         var reason = document.getElementById('consume-reason').value;
         try {
           await Lab.api.inventory.consume(id, {
@@ -240,6 +241,7 @@ window.Lab.inventory = (function () {
       confirmClass: 'btn-primary',
       onConfirm: async function () {
         var locId = parseInt(document.getElementById('transfer-location').value);
+        if (isNaN(locId) || locId <= 0) { C.toast('Enter a valid location ID', 'error'); return; }
         try {
           await Lab.api.inventory.transfer(id, {
             location_id: locId,
@@ -262,6 +264,7 @@ window.Lab.inventory = (function () {
       confirmClass: 'btn-primary',
       onConfirm: async function () {
         var qty = parseFloat(document.getElementById('adjust-qty').value);
+        if (isNaN(qty) || qty < 0) { C.toast('Quantity must be zero or positive', 'error'); return; }
         var reason = document.getElementById('adjust-reason').value;
         try {
           await Lab.api.inventory.adjust(id, {
