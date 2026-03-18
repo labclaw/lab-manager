@@ -2,6 +2,27 @@
 
 All notable changes to LabClaw Lab Manager will be documented in this file.
 
+## [0.1.4] - 2026-03-18
+
+### Security
+- Remove `staff` table from RAG allowed tables — prevents PII (email) exposure via NL queries
+- Fix `_FORBIDDEN_COLUMNS` regex to use `.search()` instead of `.match()` — catches aliased column names in JOINs
+
+### Fixed
+- **Bulk review concurrency**: batch API calls (5 at a time) instead of firing all N in parallel; clear selections on page change to prevent cross-page approvals
+- **Save & Approve atomicity**: if approval fails after edits save, reload document and show specific error message instead of silent partial state
+- **Documents state persistence**: reset page, filter, search, and edit state on view re-entry
+- **Orders receive flow**: re-throw on item fetch failure instead of proceeding with empty items
+- **Search suggestions**: suppress error toasts on failed suggestion requests (non-critical UX)
+- **Inventory validation**: add client-side validation for consume (positive qty), transfer (valid location), and adjust (non-negative qty) actions
+- **BDD test infrastructure**: fix pytest fixture discovery for UI tests, add missing `file_path` field in document creation steps
+- **Inventory test**: fix expected status code 400 → 422 to match `ValidationError` mapping
+
+### Changed
+- 75 BDD UI scenarios tagged `@wip` (step definitions not yet implemented); 5 routing scenarios fully executable
+- Add `wip` pytest marker to `pyproject.toml`
+- RAG `_ALLOWED_TABLES` no longer includes `staff` (reverts v0.1.3 addition)
+
 ## [0.1.3] - 2026-03-17
 
 ### Added
@@ -13,7 +34,7 @@ All notable changes to LabClaw Lab Manager will be documented in this file.
 - **Order workflow**: Detail panel with line items, receive shipment flow creating inventory
 - **Global search**: Autocomplete dropdown, grouped results by entity type, nav bar integration
 - **CSS design system**: Shared styles, responsive layout, detail panel, modal system, toast notifications
-- **78 BDD UI test scenarios**: Playwright-based browser tests across 8 feature files
+- **78 BDD UI test specs**: Playwright-based browser test scenarios across 8 feature files (5 executable, 73 @wip pending step defs)
 - Docker entrypoint script with auto-migration on startup
 - `get_or_404()` helper and `BusinessError` domain exception hierarchy
 
@@ -25,7 +46,7 @@ All notable changes to LabClaw Lab Manager will be documented in this file.
 - Pin `uv==0.7.12` in Dockerfile for reproducible builds
 - `.gstack/` added to `.gitignore`
 - `DocumentUpdate.status` now validates against allowed status values
-- RAG `_ALLOWED_TABLES` now includes `staff` (password_hash blocked by `_FORBIDDEN_COLUMNS`)
+- RAG `_ALLOWED_TABLES` now includes `staff` (password_hash blocked by `_FORBIDDEN_COLUMNS`) — **reverted in v0.1.4 due to PII exposure risk**
 
 ### Fixed
 - 14 design findings fixed (D+ → B+ design score): table headers, touch targets, snake_case labels, panel visibility on mobile, font inheritance, abbreviation handling
