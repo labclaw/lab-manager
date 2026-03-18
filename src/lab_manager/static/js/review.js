@@ -20,6 +20,7 @@ window.Lab.review = (function () {
   }
 
   async function loadQueue() {
+    selected.clear();
     var data;
     try {
       data = await Lab.api.documents.list({ status: 'needs_review', page: currentPage, page_size: PAGE_SIZE });
@@ -108,15 +109,22 @@ window.Lab.review = (function () {
   async function executeBulk(action, notes) {
     var ids = Array.from(selected);
     var reviewer = Lab.auth.userName();
+    var BATCH_SIZE = 5;
+    var succeeded = 0;
+    var failed = 0;
 
-    var results = await Promise.allSettled(ids.map(function (id) {
-      var body = { action: action, reviewed_by: reviewer };
-      if (notes) body.review_notes = notes;
-      return Lab.api.documents.review(id, body);
-    }));
-
-    var succeeded = results.filter(function (r) { return r.status === 'fulfilled'; }).length;
-    var failed = results.length - succeeded;
+    for (var i = 0; i < ids.length; i += BATCH_SIZE) {
+      var batch = ids.slice(i, i + BATCH_SIZE);
+      var results = await Promise.allSettled(batch.map(function (id) {
+        var body = { action: action, reviewed_by: reviewer };
+        if (notes) body.review_notes = notes;
+        return Lab.api.documents.review(id, body);
+      }));
+      results.forEach(function (r) {
+        if (r.status === 'fulfilled') succeeded++;
+        else failed++;
+      });
+    }
 
     selected.clear();
 

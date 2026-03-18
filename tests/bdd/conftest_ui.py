@@ -25,7 +25,7 @@ import uvicorn
 from sqlmodel import text
 
 # Re-export base engine fixture (used for table creation/teardown).
-from tests.bdd.conftest import db_engine  # noqa: F401
+from conftest import db_engine  # noqa: F401
 
 # ---------------------------------------------------------------------------
 # Live server
@@ -113,7 +113,7 @@ _TRUNCATE_TABLES = [
 ]
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def _ui_db_cleanup(db_engine):  # noqa: F811
     """Truncate all tables after each UI test for isolation.
 
@@ -163,7 +163,7 @@ def browser_instance():
 
 
 @pytest.fixture
-def page(browser_instance):
+def page(browser_instance, _ui_db_cleanup):
     """A fresh browser page per test (isolates state)."""
     ctx = browser_instance.new_context(
         viewport={"width": 1280, "height": 800},

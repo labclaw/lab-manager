@@ -221,7 +221,6 @@ _ALLOWED_TABLES = {
     "orders",
     "order_items",
     "inventory",
-    "staff",
 }
 
 # Allow only SELECT (including WITH/CTE)
@@ -293,7 +292,7 @@ def _serialize_rows(rows: list[dict]) -> list[dict]:
         {
             k: _serialize_value(v)
             for k, v in row.items()
-            if not _FORBIDDEN_COLUMNS.match(k)
+            if not _FORBIDDEN_COLUMNS.search(k)
         }
         for row in rows
     ]

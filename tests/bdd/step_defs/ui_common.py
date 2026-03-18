@@ -196,6 +196,7 @@ def create_documents_various(live_client, n):
             "/api/documents/",
             json={
                 "file_name": f"doc_{i:03d}.pdf",
+                "file_path": f"test/doc_{i:03d}.pdf",
                 "status": status,
                 "document_type": "packing_list",
             },
@@ -213,6 +214,7 @@ def create_n_documents(live_client, n):
             "/api/documents/",
             json={
                 "file_name": f"doc_{i:03d}.pdf",
+                "file_path": f"test/doc_{i:03d}.pdf",
                 "status": "approved",
                 "document_type": "packing_list",
             },
@@ -260,6 +262,7 @@ def create_documents_with_status(live_client, n, status):
             "/api/documents/",
             json={
                 "file_name": f"doc_{status}_{i:03d}.pdf",
+                "file_path": f"test/doc_{status}_{i:03d}.pdf",
                 "status": status,
                 "document_type": "packing_list",
             },
@@ -282,6 +285,7 @@ def some_documents_exist(live_client):
             "/api/documents/",
             json={
                 "file_name": f"sample_{i}.pdf",
+                "file_path": f"test/sample_{i}.pdf",
                 "status": "needs_review",
                 "document_type": "packing_list",
                 "vendor_name": "Fisher Scientific",

@@ -138,7 +138,10 @@ window.Lab.orders = (function () {
 
   function receiveOrder(id) {
     // Fetch order items to build the receive payload
-    Lab.api.orders.items(id).then(function (data) {
+    Lab.api.orders.items(id).catch(function (err) {
+      C.toast('Failed to load order items', 'error');
+      throw err;
+    }).then(function (data) {
       var orderItems = data.items || data || [];
       C.showModal({
         title: 'Receive this order?',

@@ -17,6 +17,11 @@ window.Lab.documents = (function () {
 
   async function init() {
     clearTimeout(searchTimer);
+    currentPage = 1;
+    currentFilter = '';
+    currentSearch = '';
+    editingDoc = null;
+    originalDoc = null;
     setupEvents();
     await loadDocuments();
   }

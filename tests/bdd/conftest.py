@@ -94,3 +94,17 @@ def api(db, db_connection):
 def app_url():
     """Base URL for the running app-test container (E2E tests)."""
     return os.environ.get("APP_BASE_URL", "http://localhost:8000")
+
+
+# Import UI test fixtures for Playwright-based tests.
+# Only active when live_server fixture is requested (UI tests only).
+try:
+    from conftest_ui import (  # noqa: F401
+        live_server,
+        live_client,
+        browser_instance,
+        page,
+        logged_in_page,
+    )
+except ImportError:
+    pass  # Playwright/UI deps not installed
