@@ -59,16 +59,6 @@ CREATE TABLE products (
     created_by VARCHAR(100)
 );
 
-CREATE TABLE staff (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(200) NOT NULL,
-    email VARCHAR(255) UNIQUE,
-    role VARCHAR(50) DEFAULT 'member',
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMPTZ,
-    updated_at TIMESTAMPTZ
-);
-
 CREATE TABLE locations (
     id SERIAL PRIMARY KEY,
     name VARCHAR(200) NOT NULL,
@@ -163,7 +153,7 @@ DATABASE SCHEMA:
 RULES:
 - Output ONLY the SQL query, nothing else. No markdown, no explanation.
 - Only SELECT queries. Never use INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE, GRANT, or REVOKE.
-- Only query these tables: vendors, products, staff, locations, documents, orders, order_items, inventory.
+- Only query these tables: vendors, products, locations, documents, orders, order_items, inventory.
 - Do NOT access system catalogs (pg_shadow, pg_authid, information_schema, pg_catalog).
 - Do NOT call functions with side effects (pg_terminate_backend, set_config, dblink, lo_import, etc.).
 - Use JOINs when the question involves related tables (e.g., vendor name for a product).

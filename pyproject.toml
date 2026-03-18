@@ -1,6 +1,6 @@
 [project]
 name = "lab-manager"
-version = "0.1.2"
+version = "0.1.4"
 description = "Lab inventory management with OCR document intake"
 requires-python = ">=3.12"
 dependencies = [
