@@ -74,17 +74,20 @@
 
 ## Future — Post v0.1.2
 
-### P1: Data editing before approval
+### P1: Data editing before approval ✅ (feat/ui-overhaul-phase1, 2026-03-17)
 - Allow scientists to correct OCR errors in extracted data before creating orders
 - Prevents polluted orders from day one
+- **Completed:** Inline edit mode in documents.js — edit fields, add/remove items, Save & Approve
 
-### P2: Bulk review operations
+### P2: Bulk review operations ✅ (feat/ui-overhaul-phase1, 2026-03-17)
 - Select multiple documents, approve/reject in batch
 - Critical for initial 279-document backlog
+- **Completed:** Checkbox selection in review.js — bulk approve/reject with confirmation modals
 
-### P3: Better pagination
+### P3: Better pagination (partial)
 - Jump-to-page, total page count display
 - Current Prev/Next only is slow for 9+ pages
+- **Partial:** Page X of Y display added (feat/ui-overhaul-phase1). Still missing jump-to-page.
 
 ### P4: Search improvements
 - Empty-state guidance ("Did you mean...?" / suggest filters)
