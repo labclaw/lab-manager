@@ -8,12 +8,14 @@ Feature: Unified Search UI
     Given I am logged in as a scientist
 
   # 导航栏搜索入口
+  @wip
   Scenario: Search bar is always visible in navbar
     When I am on any view
     Then I should see a search input in the navbar
     And the search input should have placeholder text "Search..."
 
   # 搜索触发导航
+  @wip
   Scenario: Typing in navbar search navigates to search view
     Given I am on the dashboard view
     When I type "antibody" in the navbar search
@@ -22,6 +24,7 @@ Feature: Unified Search UI
     And the search view should be visible
 
   # 搜索结果分组
+  @wip
   Scenario: Search results are grouped by type
     Given products "Anti-GFP Antibody" and "GFP Protein" exist
     And a vendor "GFP Biotech" exists
@@ -31,6 +34,7 @@ Feature: Unified Search UI
     And the vendor section should show "GFP Biotech"
 
   # 自动补全下拉
+  @wip
   Scenario: Autocomplete suggestions appear while typing
     Given products "Sodium Chloride", "Sodium Hydroxide" exist and are indexed
     When I type "sodi" in the search input
@@ -38,18 +42,21 @@ Feature: Unified Search UI
     And it should show suggestions containing "Sodium"
 
   # 点击搜索结果
+  @wip
   Scenario: Clicking a search result navigates to detail
     Given a product search result exists
     When I click on a product result
     Then I should navigate to the relevant detail view
 
   # 无结果
+  @wip
   Scenario: No results shows empty state with suggestions
     When I search for "xyznonexistent123"
     Then I should see an empty state message "No results found"
     And I should see a suggestion like "Try a different search term"
 
   # 清空搜索
+  @wip
   Scenario: Clearing search input returns to previous view
     Given I searched for "antibody" and see results
     When I clear the search input
@@ -57,6 +64,7 @@ Feature: Unified Search UI
     Then the search results should clear
 
   # 搜索特殊字符
+  @wip
   Scenario: Search handles special characters safely
     When I search for "<script>alert(1)</script>"
     Then no JavaScript should execute

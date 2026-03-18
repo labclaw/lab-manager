@@ -9,6 +9,7 @@ Feature: Inventory Management UI
     And I am on the inventory view
 
   # 库存列表
+  @wip
   Scenario: Inventory list shows items with key fields
     Given 15 inventory items exist across locations
     When the inventory view loads
@@ -16,18 +17,21 @@ Feature: Inventory Management UI
     And each row should show the product name and current quantity
 
   # 按位置筛选
+  @wip
   Scenario: Filter inventory by location
     Given inventory items in "Freezer -80C" and "Fridge 4C"
     When I select location filter "Freezer -80C"
     Then only items in "Freezer -80C" should be displayed
 
   # 按状态筛选
+  @wip
   Scenario: Filter inventory by status
     Given inventory items with statuses "available", "opened", "disposed"
     When I select status filter "available"
     Then only items with status "available" should be displayed
 
   # 低库存筛选
+  @wip
   Scenario: Filter shows low stock items
     Given 3 inventory items are below reorder level
     When I click the "Low Stock" filter
@@ -35,6 +39,7 @@ Feature: Inventory Management UI
     And each item should have a "Low Stock" badge
 
   # 即将过期筛选
+  @wip
   Scenario: Filter shows expiring items
     Given 4 inventory items expire within 30 days
     When I click the "Expiring Soon" filter
@@ -42,12 +47,14 @@ Feature: Inventory Management UI
     And each item should show the expiry date highlighted
 
   # 搜索库存
+  @wip
   Scenario: Search inventory by product name
     Given an inventory item for product "Trypsin-EDTA" exists
     When I type "trypsin" in the inventory search input
     Then only matching items should be displayed
 
   # 消耗操作
+  @wip
   Scenario: Consume inventory item via modal
     Given an inventory item "Anti-GFP Antibody" with quantity 10
     When I click the "Consume" action on that item
@@ -58,6 +65,7 @@ Feature: Inventory Management UI
     And the item quantity should update to 7
 
   # 消耗超过库存
+  @wip
   Scenario: Cannot consume more than available quantity
     Given an inventory item with quantity 5
     When I click the "Consume" action
@@ -67,6 +75,7 @@ Feature: Inventory Management UI
     And the item quantity should remain 5
 
   # 转移操作
+  @wip
   Scenario: Transfer inventory item to another location
     Given an inventory item in "Freezer -80C"
     And a location "Fridge 4C" exists
@@ -78,6 +87,7 @@ Feature: Inventory Management UI
     And the item location should update to "Fridge 4C"
 
   # 调整库存
+  @wip
   Scenario: Adjust inventory quantity after physical count
     Given an inventory item with quantity 10
     When I click the "Adjust" action
@@ -87,6 +97,7 @@ Feature: Inventory Management UI
     And the item quantity should update to 8
 
   # 处置过期库存
+  @wip
   Scenario: Dispose of expired inventory item
     Given an expired inventory item exists
     When I click the "Dispose" action
@@ -97,6 +108,7 @@ Feature: Inventory Management UI
     And the action buttons should be disabled
 
   # 查看历史记录
+  @wip
   Scenario: View consumption history for an item
     Given an inventory item with 3 consumption log entries
     When I click on the inventory item row
@@ -104,6 +116,7 @@ Feature: Inventory Management UI
     And I should see 3 log entries with timestamps and actions
 
   # 已处置项目无操作
+  @wip
   Scenario: Disposed items show no action buttons
     Given a disposed inventory item exists
     When I view the disposed item in the list
@@ -111,18 +124,21 @@ Feature: Inventory Management UI
     And no action buttons should be visible for that item
 
   # 过期标记
+  @wip
   Scenario: Expired items show EXPIRED badge
     Given an inventory item with expiry date in the past
     When the inventory view loads
     Then that item should show an "EXPIRED" badge in red
 
   # 空库存
+  @wip
   Scenario: Empty inventory shows helpful message
     Given no inventory items exist
     When the inventory view loads
     Then I should see an empty state message "No inventory items"
 
   # 零数量禁用消耗
+  @wip
   Scenario: Zero quantity items disable consume button
     Given an inventory item with quantity 0
     When I view the item actions

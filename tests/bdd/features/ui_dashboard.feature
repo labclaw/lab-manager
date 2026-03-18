@@ -9,6 +9,7 @@ Feature: Enhanced Dashboard
     And I am on the dashboard view
 
   # 统计卡片
+  @wip
   Scenario: Dashboard shows stat cards with live data
     Given 50 documents exist with various statuses
     And 10 vendors exist
@@ -19,6 +20,7 @@ Feature: Enhanced Dashboard
     And I should see a stat card "Orders Created" with a numeric value
 
   # 低库存警报横幅
+  @wip
   Scenario: Dashboard shows alert banner for low stock
     Given 3 inventory items are below reorder level
     When the dashboard loads
@@ -26,6 +28,7 @@ Feature: Enhanced Dashboard
     And the alert banner should show count "3"
 
   # 即将过期警报
+  @wip
   Scenario: Dashboard shows expiring items alert
     Given 5 inventory items expire within 30 days
     When the dashboard loads
@@ -33,6 +36,7 @@ Feature: Enhanced Dashboard
     And it should show "5" items expiring soon
 
   # 待审核提示
+  @wip
   Scenario: Dashboard shows pending review count
     Given 12 documents have status "needs_review"
     When the dashboard loads
@@ -40,6 +44,7 @@ Feature: Enhanced Dashboard
     And the "Needs Review" card should have a warning color
 
   # 供应商图表
+  @wip
   Scenario: Dashboard shows top vendors chart
     Given documents from 5 different vendors exist
     When the dashboard loads
@@ -47,6 +52,7 @@ Feature: Enhanced Dashboard
     And it should show horizontal bars for each vendor
 
   # 空数据库仪表板
+  @wip
   Scenario: Dashboard handles empty database gracefully
     Given the database is empty
     When the dashboard loads

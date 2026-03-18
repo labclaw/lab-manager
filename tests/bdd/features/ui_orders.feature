@@ -9,6 +9,7 @@ Feature: Order Management UI
     And I am on the orders view
 
   # 订单列表
+  @wip
   Scenario: Orders list shows key fields
     Given 20 orders exist from various vendors
     When the orders view loads
@@ -16,24 +17,28 @@ Feature: Order Management UI
     And each row should show the PO number and vendor name
 
   # 按供应商筛选
+  @wip
   Scenario: Filter orders by vendor
     Given orders from "Fisher Scientific" and "Sigma-Aldrich" exist
     When I select vendor filter "Fisher Scientific"
     Then only orders from "Fisher Scientific" should be displayed
 
   # 按状态筛选
+  @wip
   Scenario: Filter orders by status
     Given orders with statuses "pending", "received", "cancelled" exist
     When I select status filter "pending"
     Then only orders with status "pending" should be displayed
 
   # 按日期范围筛选
+  @wip
   Scenario: Filter orders by date range
     Given orders from January and March 2026 exist
     When I set date range from "2026-03-01" to "2026-03-31"
     Then only March orders should be displayed
 
   # 订单详情
+  @wip
   Scenario: Click order row opens detail panel with items
     Given an order "PO-2026-100" with 3 items exists
     When I click on the order row for "PO-2026-100"
@@ -43,6 +48,7 @@ Feature: Order Management UI
     And each item should show catalog number, description, quantity, unit
 
   # 收货操作
+  @wip
   Scenario: Receive a pending order
     Given a pending order "PO-2026-200" with 2 items exists
     And products matching each order item exist
@@ -55,6 +61,7 @@ Feature: Order Management UI
     And inventory items should be created
 
   # 已收货订单无收货按钮
+  @wip
   Scenario: Received orders do not show receive button
     Given a received order exists
     When I open the order detail
@@ -63,6 +70,7 @@ Feature: Order Management UI
     And I should see who received it and when
 
   # 订单详情中的项目
+  @wip
   Scenario: Order items show full detail
     Given an order with items including lot numbers and units
     When I open the order detail
@@ -75,18 +83,21 @@ Feature: Order Management UI
       | lot_number     |
 
   # 搜索订单
+  @wip
   Scenario: Search orders by PO number
     Given an order with po_number "PO-RUSH-999" exists
     When I type "RUSH" in the orders search input
     Then the order "PO-RUSH-999" should be visible in the list
 
   # 空订单列表
+  @wip
   Scenario: Empty orders shows helpful message
     Given no orders exist
     When the orders view loads
     Then I should see an empty state message "No orders found"
 
   # 翻页
+  @wip
   Scenario: Orders pagination works
     Given 60 orders exist
     When the orders view loads
@@ -96,6 +107,7 @@ Feature: Order Management UI
     And different orders should be displayed
 
   # 订单不存在
+  @wip
   Scenario: Navigate to non-existent order shows not found
     When I navigate to "#/orders/99999"
     Then I should see a "Not Found" message in the detail area

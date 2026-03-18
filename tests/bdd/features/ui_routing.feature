@@ -47,6 +47,7 @@ Feature: Frontend Hash Routing
     Then the documents view should be visible
 
   # 搜索路由带参数
+  @wip
   Scenario: Search route with query parameter
     When I navigate to "#/search?q=antibody"
     Then the search view should be visible

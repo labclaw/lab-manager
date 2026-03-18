@@ -280,8 +280,16 @@ window.Lab.documents = (function () {
       editingDoc = null;
       originalDoc = null;
       loadDocuments();
-    } catch (_) {
-      // Error toast already shown by api.js
+    } catch (err) {
+      // If update succeeded but review failed, edits are saved server-side.
+      // Reload to show current state so user can retry approve.
+      var doc = await Lab.api.documents.get(id).catch(function () { return null; });
+      if (doc) {
+        originalDoc = JSON.parse(JSON.stringify(doc));
+        editingDoc = null;
+        renderDetail(doc, false);
+        C.toast('Edits saved but approval failed — please try approving again', 'error');
+      }
     }
   }
 
