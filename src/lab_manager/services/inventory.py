@@ -330,15 +330,16 @@ def get_stock_level(product_id: int, db: Session) -> dict:
 
 def get_low_stock(db: Session) -> list[dict]:
     """Products where total stock is below min_stock_level."""
+    total_qty = func.coalesce(func.sum(InventoryItem.quantity_on_hand), 0).label(
+        "total_qty"
+    )
     rows = (
         db.query(
             Product.id,
             Product.name,
             Product.catalog_number,
             Product.min_stock_level,
-            func.coalesce(func.sum(InventoryItem.quantity_on_hand), 0).label(
-                "total_qty"
-            ),
+            total_qty,
         )
         .outerjoin(
             InventoryItem,
@@ -348,6 +349,10 @@ def get_low_stock(db: Session) -> list[dict]:
         .filter(Product.min_stock_level.isnot(None))
         .group_by(
             Product.id, Product.name, Product.catalog_number, Product.min_stock_level
+        )
+        .having(
+            func.coalesce(func.sum(InventoryItem.quantity_on_hand), 0)
+            < Product.min_stock_level
         )
         .all()
     )
@@ -360,11 +365,10 @@ def get_low_stock(db: Session) -> list[dict]:
             "total_quantity": float(r.total_qty),
         }
         for r in rows
-        if float(r.total_qty) < r.min_stock_level
     ]
 
 
-def get_expiring(db: Session, days: int = 30) -> list[InventoryItem]:
+def get_expiring(db: Session, days: int = 30, limit: int = 500) -> list[InventoryItem]:
     """Items expiring within N days."""
     cutoff = date.today() + timedelta(days=days)
     return (
@@ -376,6 +380,8 @@ def get_expiring(db: Session, days: int = 30) -> list[InventoryItem]:
                 [InventoryStatus.disposed, InventoryStatus.depleted]
             ),
         )
+        .order_by(InventoryItem.expiry_date)
+        .limit(limit)
         .all()
     )
 
@@ -403,11 +409,13 @@ def get_consumption_history(
 def get_item_history(
     inventory_id: int,
     db: Session,
+    limit: int = 200,
 ) -> list[ConsumptionLog]:
-    """All consumption log entries for a specific inventory item."""
+    """Consumption log entries for a specific inventory item (most recent first)."""
     return (
         db.query(ConsumptionLog)
         .filter(ConsumptionLog.inventory_id == inventory_id)
         .order_by(ConsumptionLog.created_at.desc())
+        .limit(limit)
         .all()
     )

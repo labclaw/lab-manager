@@ -116,18 +116,6 @@ h1 { font-size: 24px; } h2 { font-size: 18px; } h3 { font-size: 15px; }
 .data-row .name { font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .data-row .sub-text { font-size: 13px; color: var(--text-muted); }
 
-/* Keep .doc-list/.doc-row/.doc-header as aliases for backward compat */
-.doc-list { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-.doc-row { display: grid; grid-template-columns: 60px 1fr 140px 120px 80px 100px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
-.doc-row:hover { background: var(--primary-light); }
-.doc-row.selected { background: #bfdbfe; }
-.doc-row .id { color: var(--text-muted); font-size: 13px; }
-.doc-row .filename { font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.doc-row .vendor { font-size: 13px; color: var(--text-muted); }
-.doc-row .type { font-size: 12px; }
-.doc-row .conf { font-size: 13px; font-weight: 600; }
-.doc-header { display: grid; grid-template-columns: 60px 1fr 140px 120px 80px 100px; padding: 10px 16px; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--border); }
-
 /* Badges */
 .badge {
   display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 600;
@@ -419,8 +407,5 @@ h1 { font-size: 24px; } h2 { font-size: 18px; } h3 { font-size: 15px; }
   .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   .detail-panel { width: 100vw; right: -100vw; box-shadow: none; visibility: hidden; }
   .detail-panel.open { right: 0; box-shadow: -4px 0 20px rgba(0,0,0,0.15); visibility: visible; }
-  .doc-row { grid-template-columns: 40px 1fr 100px 80px; font-size: 13px; }
-  .doc-header { grid-template-columns: 40px 1fr 100px 80px; }
-  .doc-row .type, .doc-row .conf, .doc-header div:nth-child(5), .doc-header div:nth-child(6) { display: none; }
   .filters input { width: 100%; }
 }

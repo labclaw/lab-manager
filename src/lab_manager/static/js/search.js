@@ -99,7 +99,7 @@ window.Lab.search = (function () {
       return;
     }
 
-    container.innerHTML = '<div class="loading">Searching...</div>';
+    C.loading('search-results');
 
     try {
       var data = await Lab.api.search.query(query);
@@ -110,13 +110,21 @@ window.Lab.search = (function () {
   }
 
   function renderResults(container, data, query) {
-    // data may be {results: [{index, hits}]} or similar
+    // Backend returns: {results: {indexName: [hits]}} (dict) or {hits: [...]} (single-index)
     var results = data.results || data.hits || [];
-    if (Array.isArray(data) && data.length === 0) results = [];
 
     // Normalize into groups
     var groups = {};
-    if (Array.isArray(results)) {
+    if (results && typeof results === 'object' && !Array.isArray(results)) {
+      // Dict keyed by index name: {products: [...], vendors: [...]}
+      Object.keys(results).forEach(function (indexName) {
+        var hits = results[indexName];
+        if (Array.isArray(hits) && hits.length > 0) {
+          groups[C.humanize(indexName)] = hits;
+        }
+      });
+    } else if (Array.isArray(results)) {
+      // Array of hits (single-index or grouped with .index field)
       results.forEach(function (r) {
         if (r.index || r._index) {
           var idx = r.index || r._index;
@@ -128,11 +136,9 @@ window.Lab.search = (function () {
           }
         }
       });
-    }
-
-    // Also handle flat list
-    if (Object.keys(groups).length === 0 && results.length > 0) {
-      groups['Results'] = results;
+      if (Object.keys(groups).length === 0 && results.length > 0) {
+        groups['Results'] = results;
+      }
     }
 
     var totalHits = Object.values(groups).reduce(function (sum, arr) { return sum + arr.length; }, 0);

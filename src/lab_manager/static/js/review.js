@@ -127,7 +127,6 @@ window.Lab.review = (function () {
     }
 
     loadQueue();
-    if (!document.getElementById('view-dashboard').classList.contains('hidden')) Lab.dashboard.init();
   }
 
   return {

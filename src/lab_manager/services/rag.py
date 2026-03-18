@@ -284,8 +284,19 @@ def _validate_sql(sql: str) -> str:
 
 
 def _serialize_rows(rows: list[dict]) -> list[dict]:
-    """Ensure all values in result rows are JSON-serializable."""
-    return [{k: _serialize_value(v) for k, v in row.items()} for row in rows]
+    """Ensure all values in result rows are JSON-serializable.
+
+    Also strips forbidden columns (e.g. password_hash) from results to prevent
+    leaking sensitive data via SELECT * queries.
+    """
+    return [
+        {
+            k: _serialize_value(v)
+            for k, v in row.items()
+            if not _FORBIDDEN_COLUMNS.match(k)
+        }
+        for row in rows
+    ]
 
 
 def _generate_sql(client: genai.Client, question: str) -> str:

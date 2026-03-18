@@ -275,7 +275,6 @@ window.Lab.documents = (function () {
       editingDoc = null;
       originalDoc = null;
       loadDocuments();
-      if (!document.getElementById('view-dashboard').classList.contains('hidden')) Lab.dashboard.init();
     } catch (_) {
       // Error toast already shown by api.js
     }
@@ -290,7 +289,6 @@ window.Lab.documents = (function () {
       C.toast('Document approved, order created!', 'success');
       C.closePanel();
       loadDocuments();
-      if (!document.getElementById('view-dashboard').classList.contains('hidden')) Lab.dashboard.init();
     } catch (_) {}
   }
 
@@ -298,7 +296,7 @@ window.Lab.documents = (function () {
     C.showModal({
       title: 'Reject Document',
       body: '<p style="color:var(--text-muted); font-size:14px; margin-bottom:12px;">Optionally provide a reason for rejecting this document.</p>' +
-        '<textarea id="reject-reason" placeholder="Reason for rejection (optional)..." style="width:100%; min-height:80px; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:14px; resize:vertical; font-family:var(--font);"></textarea>',
+        '<textarea id="reject-reason" placeholder="Reason for rejection (optional)..."></textarea>',
       confirmLabel: 'Reject',
       confirmClass: 'btn-reject',
       onConfirm: function () {
@@ -317,7 +315,6 @@ window.Lab.documents = (function () {
       C.toast('Document rejected', 'success');
       C.closePanel();
       loadDocuments();
-      if (!document.getElementById('view-dashboard').classList.contains('hidden')) Lab.dashboard.init();
     } catch (_) {}
   }
 

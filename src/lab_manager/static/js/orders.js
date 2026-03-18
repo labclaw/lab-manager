@@ -137,22 +137,40 @@ window.Lab.orders = (function () {
   }
 
   function receiveOrder(id) {
-    C.showModal({
-      title: 'Receive this order?',
-      body: '<p>This will mark the order as received and create inventory records for each item.</p>',
-      confirmLabel: 'Receive',
-      confirmClass: 'btn-approve',
-      onConfirm: async function () {
-        try {
-          await Lab.api.orders.receive(id, {
-            received_by: Lab.auth.userName(),
+    // Fetch order items to build the receive payload
+    Lab.api.orders.items(id).then(function (data) {
+      var orderItems = data.items || data || [];
+      C.showModal({
+        title: 'Receive this order?',
+        body: '<p>This will mark the order as received and create inventory records for ' +
+          (orderItems.length || 'all') + ' item(s).</p>' +
+          '<div class="field-row"><div class="field-label">Storage Location ID</div>' +
+          '<div class="field-value"><input type="number" id="receive-location" value="1" min="1"></div></div>',
+        confirmLabel: 'Receive',
+        confirmClass: 'btn-approve',
+        onConfirm: async function () {
+          var locationId = parseInt(document.getElementById('receive-location').value) || 1;
+          var items = orderItems.map(function (it) {
+            return {
+              order_item_id: it.id,
+              product_id: it.product_id,
+              quantity: it.quantity || 1,
+              lot_number: it.lot_number || null,
+              unit: it.unit || null,
+            };
           });
-          C.toast('Order received, inventory created!', 'success');
-          C.closePanel();
-          loadOrders();
-          if (!document.getElementById('view-dashboard').classList.contains('hidden')) Lab.dashboard.init();
-        } catch (_) {}
-      },
+          try {
+            await Lab.api.orders.receive(id, {
+              items: items,
+              location_id: locationId,
+              received_by: Lab.auth.userName(),
+            });
+            C.toast('Order received, inventory created!', 'success');
+            C.closePanel();
+            loadOrders();
+          } catch (_) {}
+        },
+      });
     });
   }
 

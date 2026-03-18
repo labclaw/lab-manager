@@ -9,12 +9,20 @@ window.Lab.dashboard = (function () {
 
   var stats = null;
 
+  var alertData = null;
+
   async function init() {
-    try {
-      stats = await Lab.api.documents.stats();
-    } catch (_) {
-      return;
-    }
+    var results = await Promise.allSettled([
+      Lab.api.documents.stats(),
+      Lab.api.inventory.lowStock(),
+      Lab.api.inventory.expiring(30),
+    ]);
+    if (results[0].status !== 'fulfilled') return;
+    stats = results[0].value;
+    alertData = {
+      low: results[1].status === 'fulfilled' ? results[1].value : null,
+      exp: results[2].status === 'fulfilled' ? results[2].value : null,
+    };
     render();
   }
 
@@ -62,7 +70,7 @@ window.Lab.dashboard = (function () {
     // Vendor chart
     var vc = document.getElementById('vendor-chart');
     if (vc && s.top_vendors && s.top_vendors.length > 0) {
-      var maxCount = Math.max.apply(null, s.top_vendors.map(function (v) { return v.count; }));
+      var maxCount = Math.max.apply(null, s.top_vendors.map(function (v) { return v.count; })) || 1;
       vc.innerHTML = s.top_vendors.map(function (v) {
         return '<div class="vendor-bar">' +
           '<div class="name" title="' + C.esc(v.name || '') + '">' + C.esc(v.name || '') + '</div>' +
@@ -80,7 +88,7 @@ window.Lab.dashboard = (function () {
         .filter(function (e) { return e[0] && e[0] !== 'null' && e[0] !== 'None'; })
         .sort(function (a, b) { return b[1] - a[1]; });
       if (types.length > 0) {
-        var maxType = Math.max.apply(null, types.map(function (e) { return e[1]; }));
+        var maxType = Math.max.apply(null, types.map(function (e) { return e[1]; })) || 1;
         tc.innerHTML = types.map(function (e) {
           return '<div class="vendor-bar">' +
             '<div class="name">' + C.esc(C.humanize(e[0])) + '</div>' +
@@ -93,18 +101,13 @@ window.Lab.dashboard = (function () {
     }
   }
 
-  async function renderAlerts() {
+  function renderAlerts() {
     var container = document.getElementById('dashboard-alerts');
-    if (!container) return;
+    if (!container || !alertData) return;
     var html = '';
 
-    var results = await Promise.allSettled([
-      Lab.api.inventory.lowStock(),
-      Lab.api.inventory.expiring(30),
-    ]);
-
-    if (results[0].status === 'fulfilled') {
-      var lowItems = results[0].value.items || results[0].value;
+    if (alertData.low) {
+      var lowItems = alertData.low.items || alertData.low;
       if (Array.isArray(lowItems) && lowItems.length > 0) {
         html += '<div class="alert-banner">' +
           '<span class="alert-count">' + lowItems.length + '</span>' +
@@ -113,8 +116,8 @@ window.Lab.dashboard = (function () {
       }
     }
 
-    if (results[1].status === 'fulfilled') {
-      var expItems = results[1].value.items || results[1].value;
+    if (alertData.exp) {
+      var expItems = alertData.exp.items || alertData.exp;
       if (Array.isArray(expItems) && expItems.length > 0) {
         html += '<div class="alert-banner" style="background:var(--danger-bg); border-color:var(--danger);">' +
           '<span class="alert-count" style="background:var(--danger);">' + expItems.length + '</span>' +
