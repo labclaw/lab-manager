@@ -11,12 +11,14 @@ import { InventoryPage } from '@/pages/InventoryPage'
 import { OrdersPage } from '@/pages/OrdersPage'
 import { DocumentsPage } from '@/pages/DocumentsPage'
 import { ReviewPage } from '@/pages/ReviewPage'
+import { UploadPage } from '@/pages/UploadPage'
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
   '/inventory': 'Inventory',
   '/orders': 'Orders',
   '/documents': 'Documents',
+  '/upload': 'Upload',
   '/review': 'Review',
   '/alerts': 'Alerts',
   '/settings': 'Settings',
@@ -158,6 +160,7 @@ export default function App() {
               <Route path="/inventory" element={<InventoryPage onError={setError} />} />
               <Route path="/orders" element={<OrdersPage onError={setError} />} />
               <Route path="/documents" element={<DocumentsPage onError={setError} />} />
+              <Route path="/upload" element={<UploadPage />} />
               <Route path="/review" element={<ReviewPage onError={setError} />} />
               <Route path="/alerts" element={<AlertsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
