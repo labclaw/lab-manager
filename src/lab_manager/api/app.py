@@ -12,6 +12,9 @@ from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from itsdangerous import BadSignature, URLSafeTimedSerializer
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
 
 from lab_manager.api.admin import setup_admin
@@ -79,6 +82,17 @@ def create_app() -> FastAPI:
         version="0.1.5",
         **docs_kwargs,
     )
+
+    # --- Rate limiting (slowapi) ---
+    limiter = Limiter(key_func=get_remote_address)
+    app.state.limiter = limiter
+
+    @app.exception_handler(RateLimitExceeded)
+    async def _rate_limit_handler(request: Request, exc: RateLimitExceeded):
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Rate limit exceeded"},
+        )
 
     # --- Domain exception → HTTP response handler ---
     @app.exception_handler(BusinessError)
@@ -162,13 +176,14 @@ def create_app() -> FastAPI:
                 except BadSignature:
                     logger.warning("Invalid session cookie signature")
 
-            # 2. Fallback: API key header
+            # 2. Fallback: API key header (X-User forbidden when auth_enabled=True)
             if not authenticated:
                 api_key = request.headers.get("X-Api-Key", "")
                 if settings.api_key and api_key:
                     if hmac.compare_digest(api_key, settings.api_key):
-                        user = request.headers.get("X-User", "api-client")
-                        user = _CONTROL_CHARS.sub("", user)[:_MAX_USER_LEN]
+                        # When auth is enabled, API key clients are always "api-client"
+                        # X-User header is ignored to prevent spoofing
+                        user = "api-client"
                         authenticated = True
 
             if not authenticated:
@@ -238,7 +253,9 @@ def create_app() -> FastAPI:
     from fastapi import Body
 
     @app.post("/api/auth/login")
+    @limiter.limit("5/minute")
     def login(
+        request: Request,
         email: str = Body(...),
         password: str = Body(...),
     ):
@@ -331,7 +348,7 @@ def create_app() -> FastAPI:
         vendors,
     )
 
-    # Auth is handled by auth_middleware — no per-route dependency needed.
+    # Auth is handled by auth_middleware — rate limiting via route decorators
     api_router = APIRouter()
     api_router.include_router(vendors.router, prefix="/api/vendors", tags=["vendors"])
     api_router.include_router(
@@ -353,6 +370,18 @@ def create_app() -> FastAPI:
     api_router.include_router(audit.router, prefix="/api/audit", tags=["audit"])
     api_router.include_router(alerts.router, prefix="/api/alerts", tags=["alerts"])
     app.include_router(api_router)
+
+    # --- Apply rate limiting decorators to GET /api/ask endpoint ---
+    # Rate limit: 10 requests per minute (same as POST)
+    for route in app.routes:
+        if hasattr(route, "path") and hasattr(route, "endpoint"):
+            if (
+                route.path in ("/api/ask", "/api/ask/")
+                and route.methods
+                and "GET" in route.methods
+            ):
+                original_endpoint = route.endpoint
+                route.endpoint = limiter.limit("10/minute")(original_endpoint)
 
     # Serve scan images (protected by auth middleware when auth is enabled)
     if SCANS_DIR.exists():
