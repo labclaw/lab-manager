@@ -3,6 +3,20 @@
 
 @import "tailwindcss";
 
+@theme {
+  --color-primary: #8b5cf6;
+  --color-background-light: #f6f5f8;
+  --color-background-dark: #0f0f23;
+  --color-card-dark: #1a1a2e;
+  --color-sidebar-dark: #12121E;
+  --color-accent-green: #06d6a0;
+  --color-surface-dark: #1a1a2e;
+  --color-border-dark: #2d2d44;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+}
+
 :root {
   --font-display: 'Inter', sans-serif;
   --font-body: 'Inter', sans-serif;
