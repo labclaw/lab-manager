@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db, get_or_404
@@ -50,8 +50,11 @@ def alert_summary(db: Session = Depends(get_db)):
 
 
 @router.post("/check")
-def run_alert_check(db: Session = Depends(get_db)):
-    """Trigger alert checks, persist new alerts, return summary."""
+def run_alert_check(request: Request, db: Session = Depends(get_db)):
+    """Trigger alert checks, persist new alerts, return summary.
+
+    Rate limited to 5 requests per minute via slowapi.
+    """
     created, current = persist_alerts(db)
     summary = get_alert_summary(db, alerts=current)
     return {
