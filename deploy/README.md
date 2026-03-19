@@ -24,7 +24,7 @@ This path is intentionally local-friendly:
 Run on any Ubuntu/Debian machine (local server, VM, cloud instance):
 
 ```bash
-git clone https://github.com/labclaw/lab-manager.git
+gh repo clone labclaw/lab-manager
 cd lab-manager
 bash deploy/install.sh
 ```
@@ -37,14 +37,18 @@ The installer will:
 
 Requirements: Ubuntu/Debian, 4GB+ RAM, root or sudo access.
 
+This repo is currently private. If you do not use `gh repo clone`, run the installer from an existing checked-out copy of the repository.
+
 ## Option 2: DigitalOcean One-Click
 
-Create a fully configured cloud server with one command:
+Create a fully configured cloud server with one command from your local checked-out repo:
 
 ```bash
+gh repo clone labclaw/lab-manager
+cd lab-manager
 # Install doctl: https://docs.digitalocean.com/reference/doctl/how-to/install/
 doctl auth init
-bash deploy/digitalocean/create-droplet.sh
+bash deploy/digitalocean/create-droplet.sh --lab-name "My Lab"
 ```
 
 This creates a $24/mo droplet (4GB RAM, 2 vCPUs) with:
@@ -52,10 +56,12 @@ This creates a $24/mo droplet (4GB RAM, 2 vCPUs) with:
 - UFW firewall (ports 22, 80, 443 only)
 - Daily database backups at 2 AM
 - All secrets auto-generated
+- The current local repo snapshot uploaded directly to the droplet
 
 Options:
 ```bash
-bash deploy/digitalocean/create-droplet.sh --region sfo3 --name my-lab
+bash deploy/digitalocean/create-droplet.sh --region sfo3 --name my-lab --lab-name "Shen Lab"
+bash deploy/digitalocean/create-droplet.sh --gemini-api-key "$GEMINI_API_KEY"
 ```
 
 ## Option 3: Manual Docker Compose
