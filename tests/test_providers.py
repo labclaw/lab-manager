@@ -359,7 +359,7 @@ class TestGeminiOCRProvider:
 class TestGeminiAPIOCRProvider:
     def test_init_defaults(self):
         p = GeminiAPIOCRProvider()
-        assert p.model == "gemini-3.1-flash-preview"
+        assert p.model == "gemini-2.5-flash"
 
     def test_extract_text_with_api_key(self, tmp_path):
         img = tmp_path / "doc.jpeg"
