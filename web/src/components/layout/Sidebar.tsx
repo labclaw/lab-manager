@@ -58,7 +58,7 @@ export function Sidebar({
         <FlaskConical className="w-6 h-6 text-[var(--primary)] shrink-0" />
         {!collapsed && (
           <span className="font-display font-bold text-lg text-[var(--foreground)]">
-            LabClaw
+            Lab Manager
           </span>
         )}
       </div>
@@ -81,8 +81,8 @@ export function Sidebar({
               className={cn(
                 'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                 isActive
-                  ? 'bg-[var(--primary)]/15 text-[var(--primary)]'
-                  : 'text-[var(--muted-foreground)] hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-foreground)]',
+                  ? 'bg-[var(--primary)]/15 text-[var(--primary)] border-l-[3px] border-l-[var(--accent)]'
+                  : 'text-[var(--muted-foreground)] hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-foreground)] border-l-[3px] border-l-transparent',
               )}
               title={collapsed ? item.label : undefined}
             >

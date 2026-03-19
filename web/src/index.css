@@ -10,21 +10,21 @@
   --font-mono: 'JetBrains Mono', monospace;
 
   /* Background & Surface */
-  --background: #F8F9FC;
-  --card: #FFFFFF;
-  --popover: #FFFFFF;
-  --muted: #F1F3F8;
+  --background: #0B0B14;
+  --card: #12121E;
+  --popover: #12121E;
+  --muted: #1E1E2E;
 
   /* Text */
-  --foreground: #1A1A2E;
-  --muted-foreground: #6B7280;
+  --foreground: #F0F0F5;
+  --muted-foreground: #A0A0B0;
 
   /* Primary (Indigo Violet) */
   --primary: #6C5CE7;
   --primary-foreground: #ffffff;
 
   /* Accent (Vivid Teal) */
-  --accent: #00B894;
+  --accent: #00D4AA;
   --accent-foreground: #ffffff;
 
   /* Destructive (Warm Red) */
@@ -40,18 +40,18 @@
   --info-foreground: #ffffff;
 
   /* Border */
-  --border: #E5E7EB;
-  --input: #E5E7EB;
+  --border: rgba(255,255,255,0.06);
+  --input: rgba(255,255,255,0.06);
   --ring: #6C5CE7;
 
   /* Radius */
   --radius: 0.5rem;
 
   /* Sidebar */
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #1A1A2E;
-  --sidebar-border: #E5E7EB;
-  --sidebar-accent: #F1F3F8;
+  --sidebar: #12121E;
+  --sidebar-foreground: #F0F0F5;
+  --sidebar-border: rgba(255,255,255,0.06);
+  --sidebar-accent: #1E1E2E;
   --sidebar-ring: #6C5CE7;
 }
 
