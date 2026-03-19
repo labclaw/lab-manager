@@ -48,7 +48,19 @@ Feature: One-Click Lab Setup
     When I complete setup with name "Dr. Chen" email "chen@mgh.harvard.edu" and password "neuroscience2026"
     Then I should not receive a 401 unauthorized error
 
-  # === Password validation ===
+  # === Input validation ===
+
+  Scenario: Invalid email is rejected
+    Given a fresh Lab Manager instance with no users
+    When I complete setup with name "Dr. Chen" email "notanemail" and password "neuroscience2026"
+    Then the setup should fail with status 422
+    And the error should mention "Invalid email"
+
+  Scenario: Empty name is rejected
+    Given a fresh Lab Manager instance with no users
+    When I complete setup with name "   " email "chen@mgh.harvard.edu" and password "neuroscience2026"
+    Then the setup should fail with status 422
+    And the error should mention "Name must be"
 
   Scenario: Password too short is rejected
     Given a fresh Lab Manager instance with no users

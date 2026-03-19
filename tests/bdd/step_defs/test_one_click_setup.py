@@ -51,6 +51,16 @@ def test_setup_no_auth():
     pass
 
 
+@scenario(FEATURE, "Invalid email is rejected")
+def test_invalid_email():
+    pass
+
+
+@scenario(FEATURE, "Empty name is rejected")
+def test_empty_name():
+    pass
+
+
 @scenario(FEATURE, "Password too short is rejected")
 def test_password_too_short():
     pass
@@ -184,7 +194,9 @@ def fresh_instance():
 
 
 @given(
-    parsers.parse('a Lab Manager instance with name "{name}" and subtitle "{subtitle}"'),
+    parsers.parse(
+        'a Lab Manager instance with name "{name}" and subtitle "{subtitle}"'
+    ),
     target_fixture="api",
 )
 def instance_with_branding(name, subtitle):
@@ -263,7 +275,11 @@ def request_config(api, ctx):
     ctx["response"] = api.get("/api/config")
 
 
-@when(parsers.parse('I complete setup with name "{name}" email "{email}" and password "{password}"'))
+@when(
+    parsers.parse(
+        'I complete setup with name "{name}" email "{email}" and password "{password}"'
+    )
+)
 def complete_setup(api, ctx, name, email, password):
     ctx["response"] = api.post(
         "/api/setup/complete",
@@ -288,7 +304,11 @@ def complete_setup_long_password(api, ctx):
     )
 
 
-@when(parsers.parse('I try to complete setup again with name "{name}" email "{email}" and password "{password}"'))
+@when(
+    parsers.parse(
+        'I try to complete setup again with name "{name}" email "{email}" and password "{password}"'
+    )
+)
 def try_setup_again(api, ctx, name, email, password):
     ctx["response"] = api.post(
         "/api/setup/complete",
@@ -400,7 +420,9 @@ def login_failed(ctx, status):
 def session_cookie_set(ctx):
     resp = ctx["response"]
     cookies = resp.headers.get_list("set-cookie")
-    assert any("lab_session" in c for c in cookies), "Expected lab_session cookie to be set"
+    assert any("lab_session" in c for c in cookies), (
+        "Expected lab_session cookie to be set"
+    )
 
 
 @then(parsers.parse('I should be recognized as "{name}"'))
