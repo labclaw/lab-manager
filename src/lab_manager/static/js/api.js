@@ -20,10 +20,12 @@ async function apiFetch(url, opts) {
 }
 
 /**
- * XSS prevention — escape HTML entities.
+ * XSS prevention — escape HTML entities before inserting into innerHTML.
+ * Must be called on every API-supplied string value before interpolation.
+ * Returns "" for null/undefined; handles numeric 0 correctly.
  */
 function escapeHtml(s) {
-  if (!s) return "";
+  if (s == null || s === "") return "";
   return String(s)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
