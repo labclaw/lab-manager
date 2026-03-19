@@ -6,7 +6,7 @@ from datetime import date, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db, get_or_404
@@ -46,15 +46,15 @@ _ORDER_SORTABLE = {
 
 
 class OrderCreate(BaseModel):
-    po_number: Optional[str] = None
+    po_number: Optional[str] = Field(default=None, max_length=100)
     vendor_id: Optional[int] = None
     order_date: Optional[date] = None
     ship_date: Optional[date] = None
     received_date: Optional[date] = None
-    received_by: Optional[str] = None
+    received_by: Optional[str] = Field(default=None, max_length=200)
     status: str = OrderStatus.pending
-    delivery_number: Optional[str] = None
-    invoice_number: Optional[str] = None
+    delivery_number: Optional[str] = Field(default=None, max_length=100)
+    invoice_number: Optional[str] = Field(default=None, max_length=100)
     document_id: Optional[int] = None
     extra: dict = {}
 
@@ -68,17 +68,27 @@ class OrderCreate(BaseModel):
 
 
 class OrderUpdate(BaseModel):
-    po_number: Optional[str] = None
+    po_number: Optional[str] = Field(default=None, max_length=100)
     vendor_id: Optional[int] = None
     order_date: Optional[date] = None
     ship_date: Optional[date] = None
     received_date: Optional[date] = None
-    received_by: Optional[str] = None
+    received_by: Optional[str] = Field(default=None, max_length=200)
     status: Optional[str] = None
-    delivery_number: Optional[str] = None
-    invoice_number: Optional[str] = None
+    delivery_number: Optional[str] = Field(default=None, max_length=100)
+    invoice_number: Optional[str] = Field(default=None, max_length=100)
     document_id: Optional[int] = None
     extra: Optional[dict] = None
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        valid_statuses = {s.value for s in OrderStatus}
+        if v not in valid_statuses:
+            raise ValueError(f"status must be one of {valid_statuses}")
+        return v
 
 
 # --- OrderItem schemas ---

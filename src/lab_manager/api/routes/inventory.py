@@ -6,7 +6,7 @@ from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db, get_or_404
@@ -36,29 +36,47 @@ _INV_SORTABLE = {
 class InventoryItemCreate(BaseModel):
     product_id: Optional[int] = None
     location_id: Optional[int] = None
-    lot_number: Optional[str] = None
+    lot_number: Optional[str] = Field(default=None, max_length=100)
     quantity_on_hand: float = 0
-    unit: Optional[str] = None
+    unit: Optional[str] = Field(default=None, max_length=50)
     expiry_date: Optional[date] = None
     opened_date: Optional[date] = None
     status: str = InventoryStatus.available
-    notes: Optional[str] = None
-    received_by: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=2000)
+    received_by: Optional[str] = Field(default=None, max_length=200)
     order_item_id: Optional[int] = None
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        valid = {s.value for s in InventoryStatus}
+        if v not in valid:
+            raise ValueError(f"status must be one of {valid}")
+        return v
 
 
 class InventoryItemUpdate(BaseModel):
     product_id: Optional[int] = None
     location_id: Optional[int] = None
-    lot_number: Optional[str] = None
+    lot_number: Optional[str] = Field(default=None, max_length=100)
     quantity_on_hand: Optional[float] = None
-    unit: Optional[str] = None
+    unit: Optional[str] = Field(default=None, max_length=50)
     expiry_date: Optional[date] = None
     opened_date: Optional[date] = None
     status: Optional[str] = None
-    notes: Optional[str] = None
-    received_by: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=2000)
+    received_by: Optional[str] = Field(default=None, max_length=200)
     order_item_id: Optional[int] = None
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        valid = {s.value for s in InventoryStatus}
+        if v not in valid:
+            raise ValueError(f"status must be one of {valid}")
+        return v
 
 
 class ConsumeBody(BaseModel):

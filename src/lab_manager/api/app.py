@@ -16,6 +16,7 @@ from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 # Import to register SQLAlchemy event listeners on module load.
 import lab_manager.services.audit as _audit_svc  # noqa: F401
@@ -126,6 +127,14 @@ def create_app() -> FastAPI:
         return JSONResponse(
             status_code=exc.status_code,
             content={"detail": exc.message},
+        )
+
+    # --- SQLAlchemy IntegrityError → 409 Conflict ---
+    @app.exception_handler(IntegrityError)
+    async def _integrity_error_handler(request: Request, exc: IntegrityError):
+        return JSONResponse(
+            status_code=409,
+            content={"detail": "Resource conflict: duplicate or constraint violation"},
         )
 
     # --- Audit middleware (inner — registered first) ---
@@ -385,7 +394,6 @@ def create_app() -> FastAPI:
     ):
         """First-run setup: create the admin user. Only works when no admin exists."""
         import bcrypt as _bcrypt
-        from sqlalchemy.exc import IntegrityError
 
         from lab_manager.database import get_db_session
         from lab_manager.models.staff import Staff
