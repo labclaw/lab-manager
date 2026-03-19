@@ -90,5 +90,10 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      - name: Run tests
-        run: uv run pytest --tb=short -q
+      - name: Run tests with coverage
+        run: |
+          uv run pytest --tb=short -q \
+            --cov=lab_manager \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --cov-fail-under=80
