@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     # RAG
     rag_model: str = "gemini-2.5-flash"
 
+    # Logging
+    log_format: str = "console"  # "console" or "json"
+
     # File storage
     upload_dir: str = "uploads"
     scans_dir: str = ""

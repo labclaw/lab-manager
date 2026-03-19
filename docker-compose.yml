@@ -74,6 +74,7 @@ services:
       EXTRACTION_MODEL: ${EXTRACTION_MODEL:-gemini-3.1-flash-preview}
       RAG_MODEL: ${RAG_MODEL:-gemini-2.5-flash}
       UPLOAD_DIR: /app/uploads
+      LOG_FORMAT: json
     depends_on:
       db:
         condition: service_healthy

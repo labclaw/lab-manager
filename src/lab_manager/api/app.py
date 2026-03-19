@@ -622,6 +622,26 @@ def create_app() -> FastAPI:
                 media_type="application/manifest+json",
             )
 
+    # --- HTTP access logging (outermost — registered last, runs first) ---
+    @app.middleware("http")
+    async def access_log_middleware(request: Request, call_next):
+        import structlog
+        import time
+
+        if request.url.path == "/api/health":
+            return await call_next(request)
+        start = time.perf_counter()
+        response = await call_next(request)
+        duration_ms = (time.perf_counter() - start) * 1000
+        structlog.get_logger().info(
+            "http_request",
+            method=request.method,
+            path=request.url.path,
+            status=response.status_code,
+            duration_ms=round(duration_ms, 1),
+        )
+        return response
+
     return app
 
 
