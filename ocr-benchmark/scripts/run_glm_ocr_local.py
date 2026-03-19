@@ -10,7 +10,7 @@ from pathlib import Path
 
 import torch
 from PIL import Image
-from transformers import AutoProcessor, AutoModelForImageTextToText
+from transformers import AutoModelForImageTextToText, AutoProcessor
 
 MODEL_ID = "zai-org/GLM-OCR"
 PROMPT = """You are performing OCR on a lab supply document.
@@ -66,9 +66,7 @@ def main() -> None:
                 ],
             }
         ]
-        text_input = processor.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
+        text_input = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         inputs = processor(
             text=[text_input],
             images=[image],

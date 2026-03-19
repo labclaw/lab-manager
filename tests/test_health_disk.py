@@ -36,9 +36,7 @@ def health_client():
 
 def test_health_includes_disk_check(health_client):
     """Health endpoint should include disk and llm status."""
-    mock_result = _DiskUsage(
-        total=100_000_000_000, used=50_000_000_000, free=50_000_000_000
-    )
+    mock_result = _DiskUsage(total=100_000_000_000, used=50_000_000_000, free=50_000_000_000)
     with patch.object(shutil, "disk_usage", return_value=mock_result):
         resp = health_client.get("/api/health")
     data = resp.json()
@@ -48,9 +46,7 @@ def test_health_includes_disk_check(health_client):
 
 def test_health_disk_ok_when_sufficient(health_client):
     """Disk check should report 'ok' when space is sufficient."""
-    mock_result = _DiskUsage(
-        total=100_000_000_000, used=50_000_000_000, free=50_000_000_000
-    )
+    mock_result = _DiskUsage(total=100_000_000_000, used=50_000_000_000, free=50_000_000_000)
     with patch.object(shutil, "disk_usage", return_value=mock_result):
         resp = health_client.get("/api/health")
     data = resp.json()
@@ -60,9 +56,7 @@ def test_health_disk_ok_when_sufficient(health_client):
 def test_health_disk_warning_when_low(health_client):
     """Disk check should report 'warning' when space is below threshold."""
     # Simulate 100MB free (below 500MB threshold)
-    mock_result = _DiskUsage(
-        total=100_000_000_000, used=99_900_000_000, free=100_000_000
-    )
+    mock_result = _DiskUsage(total=100_000_000_000, used=99_900_000_000, free=100_000_000)
     with patch.object(shutil, "disk_usage", return_value=mock_result):
         resp = health_client.get("/api/health")
     data = resp.json()

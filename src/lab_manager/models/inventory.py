@@ -3,7 +3,7 @@
 import enum
 from datetime import date
 from decimal import Decimal
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 import sqlalchemy as sa
 from sqlalchemy import Column
@@ -40,7 +40,7 @@ class InventoryItem(AuditMixin, table=True):
         ),
     )
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     product_id: int = Field(
         sa_column=Column(
             sa.Integer,
@@ -49,34 +49,24 @@ class InventoryItem(AuditMixin, table=True):
             nullable=False,
         ),
     )
-    location_id: Optional[int] = Field(
+    location_id: int | None = Field(
         default=None,
-        sa_column=Column(
-            sa.Integer, sa.ForeignKey("locations.id", ondelete="SET NULL"), index=True
-        ),
+        sa_column=Column(sa.Integer, sa.ForeignKey("locations.id", ondelete="SET NULL"), index=True),
     )
-    lot_number: Optional[str] = Field(default=None, max_length=100)
-    quantity_on_hand: Decimal = Field(
-        default=0, sa_column=Column(sa.Numeric(12, 4), default=0)
-    )
-    unit: Optional[str] = Field(default=None, max_length=50)
-    expiry_date: Optional[date] = Field(default=None, index=True)
-    opened_date: Optional[date] = Field(default=None)
+    lot_number: str | None = Field(default=None, max_length=100)
+    quantity_on_hand: Decimal = Field(default=0, sa_column=Column(sa.Numeric(12, 4), default=0))
+    unit: str | None = Field(default=None, max_length=50)
+    expiry_date: date | None = Field(default=None, index=True)
+    opened_date: date | None = Field(default=None)
     status: str = Field(default="available", max_length=30, index=True)
-    notes: Optional[str] = Field(default=None)
-    received_by: Optional[str] = Field(default=None, max_length=200)
-    order_item_id: Optional[int] = Field(
+    notes: str | None = Field(default=None)
+    received_by: str | None = Field(default=None, max_length=200)
+    order_item_id: int | None = Field(
         default=None,
-        sa_column=Column(
-            sa.Integer, sa.ForeignKey("order_items.id", ondelete="SET NULL")
-        ),
+        sa_column=Column(sa.Integer, sa.ForeignKey("order_items.id", ondelete="SET NULL")),
     )
 
     product: "Product" = Relationship(back_populates="inventory_items")
-    location: Optional["StorageLocation"] = Relationship(
-        back_populates="inventory_items"
-    )
+    location: Optional["StorageLocation"] = Relationship(back_populates="inventory_items")
     order_item: Optional["OrderItem"] = Relationship(back_populates="inventory_items")
-    consumption_logs: List["ConsumptionLog"] = Relationship(
-        back_populates="inventory_item"
-    )
+    consumption_logs: list["ConsumptionLog"] = Relationship(back_populates="inventory_item")

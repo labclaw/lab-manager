@@ -137,9 +137,7 @@ def call_parse(api_key: str, image_path: Path) -> str:
 
 def main() -> None:
     if len(sys.argv) < 3:
-        raise SystemExit(
-            "usage: python run_nvidia_api.py <input_dir> <output_dir> [model_key]"
-        )
+        raise SystemExit("usage: python run_nvidia_api.py <input_dir> <output_dir> [model_key]")
 
     input_dir = Path(sys.argv[1])
     output_dir = Path(sys.argv[2])
@@ -152,9 +150,7 @@ def main() -> None:
     models_to_run = {}
     if model_key:
         if model_key not in MODELS:
-            raise SystemExit(
-                f"Unknown model key: {model_key}. Choose from: {list(MODELS.keys())}"
-            )
+            raise SystemExit(f"Unknown model key: {model_key}. Choose from: {list(MODELS.keys())}")
         models_to_run[model_key] = MODELS[model_key]
     else:
         models_to_run = MODELS

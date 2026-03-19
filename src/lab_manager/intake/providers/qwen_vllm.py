@@ -5,7 +5,6 @@ from __future__ import annotations
 import base64
 import logging
 from pathlib import Path
-from typing import Optional
 
 from . import OCRProvider
 
@@ -93,23 +92,20 @@ class GeminiAPIOCRProvider(OCRProvider):
     name = "gemini_api_flash"
     model_id = "gemini-3.1-flash-preview"
 
-    def __init__(
-        self, model: str = "gemini-3.1-flash-preview", api_key: Optional[str] = None
-    ):
+    def __init__(self, model: str = "gemini-3.1-flash-preview", api_key: str | None = None):
         self.model = model
         self.api_key = api_key
 
     def extract_text(self, image_path: str) -> str:
         import base64
+
         from google import genai
 
         api_key = self.api_key
         if not api_key:
             import os
 
-            api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get(
-                "EXTRACTION_API_KEY", ""
-            )
+            api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("EXTRACTION_API_KEY", "")
 
         client = genai.Client(api_key=api_key)
         image_bytes = Path(image_path).read_bytes()

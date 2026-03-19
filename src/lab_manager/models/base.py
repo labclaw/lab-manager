@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from sqlalchemy import func
 from sqlmodel import Field, SQLModel
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class AuditMixin(SQLModel):
@@ -24,4 +23,4 @@ class AuditMixin(SQLModel):
         default_factory=utcnow,
         sa_column_kwargs={"onupdate": utcnow, "server_default": func.now()},
     )
-    created_by: Optional[str] = Field(default=None, max_length=100)
+    created_by: str | None = Field(default=None, max_length=100)

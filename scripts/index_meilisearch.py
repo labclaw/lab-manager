@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 def main() -> None:
     from lab_manager.database import get_session_factory
-    from lab_manager.services.search import sync_all, get_search_client
+    from lab_manager.services.search import get_search_client, sync_all
 
     # Verify Meilisearch is reachable
     client = get_search_client()

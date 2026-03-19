@@ -33,15 +33,9 @@ def main() -> None:
     args = parse_args()
 
     if not torch.cuda.is_available():
-        raise SystemExit(
-            "DeepSeek-OCR-2 official inference path requires CUDA. Run this script on the GPU server."
-        )
+        raise SystemExit("DeepSeek-OCR-2 official inference path requires CUDA. Run this script on the GPU server.")
 
-    prompt = (
-        "<image>\nFree OCR."
-        if args.mode == "free"
-        else "<image>\n<|grounding|>Convert the document to markdown. "
-    )
+    prompt = "<image>\nFree OCR." if args.mode == "free" else "<image>\n<|grounding|>Convert the document to markdown. "
 
     tokenizer = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True)
     model = (

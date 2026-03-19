@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Literal, Optional
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, UploadFile
 from pydantic import BaseModel, field_validator
@@ -60,15 +60,15 @@ def _validate_file_path(v: str) -> str:
 class DocumentCreate(BaseModel):
     file_path: str
     file_name: str
-    document_type: Optional[str] = None
-    vendor_name: Optional[str] = None
-    ocr_text: Optional[str] = None
-    extracted_data: Optional[dict] = None
-    extraction_model: Optional[str] = None
-    extraction_confidence: Optional[float] = None
+    document_type: str | None = None
+    vendor_name: str | None = None
+    ocr_text: str | None = None
+    extracted_data: dict | None = None
+    extraction_model: str | None = None
+    extraction_confidence: float | None = None
     status: str = DocumentStatus.pending
-    review_notes: Optional[str] = None
-    reviewed_by: Optional[str] = None
+    review_notes: str | None = None
+    reviewed_by: str | None = None
 
     @field_validator("file_path")
     @classmethod
@@ -84,17 +84,17 @@ class DocumentCreate(BaseModel):
 
 
 class DocumentUpdate(BaseModel):
-    file_path: Optional[str] = None
-    file_name: Optional[str] = None
-    document_type: Optional[str] = None
-    vendor_name: Optional[str] = None
-    ocr_text: Optional[str] = None
-    extracted_data: Optional[dict] = None
-    extraction_model: Optional[str] = None
-    extraction_confidence: Optional[float] = None
-    status: Optional[str] = None
-    review_notes: Optional[str] = None
-    reviewed_by: Optional[str] = None
+    file_path: str | None = None
+    file_name: str | None = None
+    document_type: str | None = None
+    vendor_name: str | None = None
+    ocr_text: str | None = None
+    extracted_data: dict | None = None
+    extraction_model: str | None = None
+    extraction_confidence: float | None = None
+    status: str | None = None
+    review_notes: str | None = None
+    reviewed_by: str | None = None
 
     @field_validator("file_path")
     @classmethod
@@ -107,7 +107,7 @@ class DocumentUpdate(BaseModel):
 class ReviewAction(BaseModel):
     action: Literal["approve", "reject"]
     reviewed_by: str = "scientist"
-    review_notes: Optional[str] = None
+    review_notes: str | None = None
 
 
 @router.post("/upload", status_code=201)
@@ -138,10 +138,7 @@ def upload_document(
     if len(content) > _MAX_UPLOAD_BYTES:
         return JSONResponse(
             status_code=413,
-            content={
-                "detail": f"File too large ({len(content)} bytes). "
-                f"Maximum: {_MAX_UPLOAD_BYTES} bytes (50 MB)."
-            },
+            content={"detail": f"File too large ({len(content)} bytes). Maximum: {_MAX_UPLOAD_BYTES} bytes (50 MB)."},
         )
 
     # Build unique filename with timestamp prefix (include microseconds for uniqueness)
@@ -178,16 +175,8 @@ def upload_document(
 def document_stats(db: Session = Depends(get_db)):
     """Dashboard stats."""
     total = db.query(func.count(Document.id)).scalar()
-    by_status = dict(
-        db.query(Document.status, func.count(Document.id))
-        .group_by(Document.status)
-        .all()
-    )
-    by_type = dict(
-        db.query(Document.document_type, func.count(Document.id))
-        .group_by(Document.document_type)
-        .all()
-    )
+    by_status = dict(db.query(Document.status, func.count(Document.id)).group_by(Document.status).all())
+    by_type = dict(db.query(Document.document_type, func.count(Document.id)).group_by(Document.document_type).all())
     total_orders = db.query(func.count(Order.id)).scalar()
     total_items = db.query(func.count(OrderItem.id)).scalar()
     total_vendors = db.query(func.count(Vendor.id)).scalar()
@@ -214,11 +203,11 @@ def document_stats(db: Session = Depends(get_db)):
 def list_documents(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-    status: Optional[str] = Query(None),
-    document_type: Optional[str] = Query(None),
-    vendor_name: Optional[str] = Query(None),
-    extraction_model: Optional[str] = Query(None),
-    search: Optional[str] = Query(None),
+    status: str | None = Query(None),
+    document_type: str | None = Query(None),
+    vendor_name: str | None = Query(None),
+    extraction_model: str | None = Query(None),
+    search: str | None = Query(None),
     sort_by: str = Query("id"),
     sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
@@ -233,10 +222,7 @@ def list_documents(
     if extraction_model:
         q = q.filter(Document.extraction_model == extraction_model)
     if search:
-        q = q.filter(
-            ilike_col(Document.vendor_name, search)
-            | ilike_col(Document.file_name, search)
-        )
+        q = q.filter(ilike_col(Document.vendor_name, search) | ilike_col(Document.file_name, search))
     q = apply_sort(q, Document, sort_by, sort_dir, _DOC_SORTABLE)
     return paginate(q, page, page_size)
 
@@ -256,9 +242,7 @@ def get_document(document_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{document_id}")
-def update_document(
-    document_id: int, body: DocumentUpdate, db: Session = Depends(get_db)
-):
+def update_document(document_id: int, body: DocumentUpdate, db: Session = Depends(get_db)):
     """Partial update any document fields."""
     doc = get_or_404(db, Document, document_id, "Document")
     for key, value in body.model_dump(exclude_unset=True).items():
@@ -278,9 +262,7 @@ def delete_document(document_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{document_id}/review")
-def review_document(
-    document_id: int, body: ReviewAction, db: Session = Depends(get_db)
-):
+def review_document(document_id: int, body: ReviewAction, db: Session = Depends(get_db)):
     """Approve or reject a document extraction."""
     doc = get_or_404(db, Document, document_id, "Document")
 
@@ -313,11 +295,7 @@ def _create_order_from_doc(doc: Document, db: Session):
     vendor = None
     vendor_name = data.get("vendor_name") or doc.vendor_name
     if vendor_name:
-        vendor = (
-            db.query(Vendor)
-            .filter(func.lower(Vendor.name) == func.lower(vendor_name.strip()))
-            .first()
-        )
+        vendor = db.query(Vendor).filter(func.lower(Vendor.name) == func.lower(vendor_name.strip())).first()
         if not vendor:
             vendor = Vendor(name=vendor_name)
             db.add(vendor)

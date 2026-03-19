@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import Optional
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -73,14 +72,10 @@ def dashboard_summary(db: Session) -> dict:
     documents_pending_review = counts.docs_pending or 0
     documents_approved = counts.docs_approved or 0
 
-    orders_by_status = dict(
-        db.query(Order.status, func.count(Order.id)).group_by(Order.status).all()
-    )
+    orders_by_status = dict(db.query(Order.status, func.count(Order.id)).group_by(Order.status).all())
 
     inventory_by_status = dict(
-        db.query(InventoryItem.status, func.count(InventoryItem.id))
-        .group_by(InventoryItem.status)
-        .all()
+        db.query(InventoryItem.status, func.count(InventoryItem.id)).group_by(InventoryItem.status).all()
     )
 
     # Recent 10 orders with vendor name
@@ -175,17 +170,15 @@ def dashboard_summary(db: Session) -> dict:
 
 def spending_by_vendor(
     db: Session,
-    date_from: Optional[date] = None,
-    date_to: Optional[date] = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
 ) -> list[dict]:
     q = (
         db.query(
             Vendor.name.label("vendor_name"),
             func.count(func.distinct(Order.id)).label("order_count"),
             func.coalesce(func.sum(OrderItem.quantity), 0).label("item_count"),
-            func.coalesce(func.sum(OrderItem.unit_price * OrderItem.quantity), 0).label(
-                "total_spend"
-            ),
+            func.coalesce(func.sum(OrderItem.unit_price * OrderItem.quantity), 0).label("total_spend"),
         )
         .join(Order, Order.vendor_id == Vendor.id)
         .join(OrderItem, OrderItem.order_id == Order.id)
@@ -194,9 +187,7 @@ def spending_by_vendor(
         q = q.filter(Order.order_date >= date_from)
     if date_to:
         q = q.filter(Order.order_date <= date_to)
-    q = q.group_by(Vendor.name).order_by(
-        func.sum(OrderItem.unit_price * OrderItem.quantity).desc()
-    )
+    q = q.group_by(Vendor.name).order_by(func.sum(OrderItem.unit_price * OrderItem.quantity).desc())
 
     return [
         {
@@ -225,9 +216,7 @@ def spending_by_month(db: Session, months: int = 12) -> list[dict]:
             year_expr.label("yr"),
             month_expr.label("mo"),
             func.count(func.distinct(Order.id)).label("order_count"),
-            func.coalesce(func.sum(OrderItem.unit_price * OrderItem.quantity), 0).label(
-                "total_spend"
-            ),
+            func.coalesce(func.sum(OrderItem.unit_price * OrderItem.quantity), 0).label("total_spend"),
         )
         .join(OrderItem, OrderItem.order_id == Order.id)
         .filter(Order.order_date.isnot(None), Order.order_date >= cutoff)
@@ -251,11 +240,7 @@ def spending_by_month(db: Session, months: int = 12) -> list[dict]:
 
 def inventory_value(db: Session) -> dict:
     total = (
-        db.query(
-            func.coalesce(
-                func.sum(InventoryItem.quantity_on_hand * OrderItem.unit_price), 0
-            )
-        )
+        db.query(func.coalesce(func.sum(InventoryItem.quantity_on_hand * OrderItem.unit_price), 0))
         .join(OrderItem, InventoryItem.order_item_id == OrderItem.id)
         .scalar()
     )
@@ -307,9 +292,9 @@ def top_products(db: Session, limit: int = 20) -> list[dict]:
 
 def order_history(
     db: Session,
-    vendor_id: Optional[int] = None,
-    date_from: Optional[date] = None,
-    date_to: Optional[date] = None,
+    vendor_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
     limit: int = 500,
 ) -> list[dict]:
     q = (
@@ -317,9 +302,7 @@ def order_history(
             Order,
             Vendor.name.label("vendor_name"),
             func.count(OrderItem.id).label("item_count"),
-            func.coalesce(func.sum(OrderItem.unit_price * OrderItem.quantity), 0).label(
-                "total_value"
-            ),
+            func.coalesce(func.sum(OrderItem.unit_price * OrderItem.quantity), 0).label("total_value"),
         )
         .outerjoin(Vendor, Order.vendor_id == Vendor.id)
         .outerjoin(OrderItem, OrderItem.order_id == Order.id)
@@ -380,20 +363,14 @@ def staff_activity(db: Session) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def vendor_summary(db: Session, vendor_id: int) -> Optional[dict]:
+def vendor_summary(db: Session, vendor_id: int) -> dict | None:
     vendor = db.get(Vendor, vendor_id)
     if not vendor:
         return None
 
-    products_supplied = (
-        db.query(func.count(Product.id)).filter(Product.vendor_id == vendor_id).scalar()
-        or 0
-    )
+    products_supplied = db.query(func.count(Product.id)).filter(Product.vendor_id == vendor_id).scalar() or 0
 
-    order_count = (
-        db.query(func.count(Order.id)).filter(Order.vendor_id == vendor_id).scalar()
-        or 0
-    )
+    order_count = db.query(func.count(Order.id)).filter(Order.vendor_id == vendor_id).scalar() or 0
 
     total_spend_val = (
         db.query(func.coalesce(func.sum(OrderItem.unit_price * OrderItem.quantity), 0))
@@ -402,11 +379,7 @@ def vendor_summary(db: Session, vendor_id: int) -> Optional[dict]:
         .scalar()
     )
 
-    last_order_date = (
-        db.query(func.max(Order.order_date))
-        .filter(Order.vendor_id == vendor_id)
-        .scalar()
-    )
+    last_order_date = db.query(func.max(Order.order_date)).filter(Order.vendor_id == vendor_id).scalar()
 
     return {
         "id": vendor.id,
@@ -426,7 +399,7 @@ def vendor_summary(db: Session, vendor_id: int) -> Optional[dict]:
 # ---------------------------------------------------------------------------
 
 
-def inventory_report(db: Session, location_id: Optional[int] = None) -> list[dict]:
+def inventory_report(db: Session, location_id: int | None = None) -> list[dict]:
     q = (
         db.query(
             InventoryItem,
@@ -469,22 +442,12 @@ def inventory_report(db: Session, location_id: Optional[int] = None) -> list[dic
 def document_processing_stats(db: Session) -> dict:
     total = db.query(func.count(Document.id)).scalar() or 0
 
-    by_status = dict(
-        db.query(Document.status, func.count(Document.id))
-        .group_by(Document.status)
-        .all()
-    )
+    by_status = dict(db.query(Document.status, func.count(Document.id)).group_by(Document.status).all())
 
-    by_type = dict(
-        db.query(Document.document_type, func.count(Document.id))
-        .group_by(Document.document_type)
-        .all()
-    )
+    by_type = dict(db.query(Document.document_type, func.count(Document.id)).group_by(Document.document_type).all())
 
     avg_confidence = (
-        db.query(func.avg(Document.extraction_confidence))
-        .filter(Document.extraction_confidence.isnot(None))
-        .scalar()
+        db.query(func.avg(Document.extraction_confidence)).filter(Document.extraction_confidence.isnot(None)).scalar()
     )
 
     rejected_count = by_status.get(DocumentStatus.rejected, 0)

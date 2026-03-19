@@ -106,12 +106,8 @@ def main():
         default="claude_sonnet,gemini_flash,codex_gpt",
         help="Comma-separated model names, or 'all'",
     )
-    parser.add_argument(
-        "--sample", type=int, default=10, help="Number of docs to test (0=all)"
-    )
-    parser.add_argument(
-        "--parallel", type=int, default=1, help="Parallel docs per model"
-    )
+    parser.add_argument("--sample", type=int, default=10, help="Number of docs to test (0=all)")
+    parser.add_argument("--parallel", type=int, default=1, help="Parallel docs per model")
     args = parser.parse_args()
 
     available = get_available_models()
@@ -132,13 +128,11 @@ def main():
     else:
         test_files = all_files
 
-    log.info(
-        "Benchmarking %d models on %d documents", len(model_names), len(test_files)
-    )
+    log.info("Benchmarking %d models on %d documents", len(model_names), len(test_files))
     log.info("Models: %s", model_names)
 
     # Instantiate providers
-    from lab_manager.intake.providers.more_ocr import get_provider, OCR_PROVIDERS
+    from lab_manager.intake.providers.more_ocr import OCR_PROVIDERS, get_provider
 
     providers = {}
     for name in model_names:
@@ -193,15 +187,10 @@ def main():
             "total": len(model_results),
             "success": len(successes),
             "fail": len(model_results) - len(successes),
-            "avg_text_length": round(
-                sum(r["text_length"] for r in successes) / max(len(successes), 1)
-            ),
-            "avg_elapsed_s": round(
-                sum(r["elapsed_s"] for r in successes) / max(len(successes), 1), 2
-            ),
+            "avg_text_length": round(sum(r["text_length"] for r in successes) / max(len(successes), 1)),
+            "avg_elapsed_s": round(sum(r["elapsed_s"] for r in successes) / max(len(successes), 1), 2),
             "avg_similarity_to_qwen": round(
-                sum(r["similarity_to_qwen"] for r in successes)
-                / max(len(successes), 1),
+                sum(r["similarity_to_qwen"] for r in successes) / max(len(successes), 1),
                 3,
             ),
             "total_elapsed_s": round(sum(r["elapsed_s"] for r in model_results), 1),
@@ -212,9 +201,7 @@ def main():
     log.info("OCR BENCHMARK RESULTS (%d docs)", len(test_files))
     log.info("%-20s %6s %8s %8s %10s", "Model", "OK", "AvgLen", "AvgTime", "Similarity")
     log.info("-" * 70)
-    for name, stats in sorted(
-        summary["models"].items(), key=lambda x: -x[1]["avg_similarity_to_qwen"]
-    ):
+    for name, stats in sorted(summary["models"].items(), key=lambda x: -x[1]["avg_similarity_to_qwen"]):
         log.info(
             "%-20s %5d %8d %7.2fs %9.3f",
             name,

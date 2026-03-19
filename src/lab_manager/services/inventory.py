@@ -5,7 +5,6 @@ from __future__ import annotations
 import math
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import Optional
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -29,12 +28,12 @@ def _log_consumption(
     db: Session,
     *,
     inventory_id: int,
-    product_id: Optional[int],
+    product_id: int | None,
     quantity_used: float,
     quantity_remaining: float,
     consumed_by: str,
     action: str,
-    purpose: Optional[str] = None,
+    purpose: str | None = None,
 ) -> ConsumptionLog:
     """Write an entry to the consumption log."""
     entry = ConsumptionLog(
@@ -85,15 +84,12 @@ def receive_items(
         order_item_id = ri.get("order_item_id")
         order_item = db.get(OrderItem, order_item_id) if order_item_id else None
         if order_item and order_item.order_id != order_id:
-            raise ValidationError(
-                f"Order item {order_item_id} belongs to order {order_item.order_id}, not {order_id}"
-            )
+            raise ValidationError(f"Order item {order_item_id} belongs to order {order_item.order_id}, not {order_id}")
 
         inv = InventoryItem(
             product_id=order_item.product_id if order_item else ri.get("product_id"),
             location_id=location_id,
-            lot_number=ri.get("lot_number")
-            or (order_item.lot_number if order_item else None),
+            lot_number=ri.get("lot_number") or (order_item.lot_number if order_item else None),
             quantity_on_hand=ri.get("quantity", 1),
             unit=ri.get("unit") or (order_item.unit if order_item else None),
             expiry_date=ri.get("expiry_date"),
@@ -135,7 +131,7 @@ def consume(
     inventory_id: int,
     quantity: float,
     consumed_by: str,
-    purpose: Optional[str],
+    purpose: str | None,
     db: Session,
 ) -> InventoryItem:
     """Reduce quantity on hand. Mark depleted if 0."""
@@ -148,9 +144,7 @@ def consume(
         raise ValidationError("Quantity must be positive")
     current_qty = Decimal(str(item.quantity_on_hand))  # ensure Decimal
     if quantity > current_qty:
-        raise ValidationError(
-            f"Insufficient stock: {current_qty} available, {quantity} requested"
-        )
+        raise ValidationError(f"Insufficient stock: {current_qty} available, {quantity} requested")
 
     item.quantity_on_hand = current_qty - quantity
     if item.quantity_on_hand <= Decimal("0.0001"):
@@ -336,19 +330,14 @@ def get_low_stock(db: Session) -> list[dict]:
             Product.name,
             Product.catalog_number,
             Product.min_stock_level,
-            func.coalesce(func.sum(InventoryItem.quantity_on_hand), 0).label(
-                "total_qty"
-            ),
+            func.coalesce(func.sum(InventoryItem.quantity_on_hand), 0).label("total_qty"),
         )
         .outerjoin(
             InventoryItem,
-            (InventoryItem.product_id == Product.id)
-            & (InventoryItem.status.notin_([InventoryStatus.disposed])),
+            (InventoryItem.product_id == Product.id) & (InventoryItem.status.notin_([InventoryStatus.disposed])),
         )
         .filter(Product.min_stock_level.isnot(None))
-        .group_by(
-            Product.id, Product.name, Product.catalog_number, Product.min_stock_level
-        )
+        .group_by(Product.id, Product.name, Product.catalog_number, Product.min_stock_level)
         .all()
     )
     return [
@@ -372,9 +361,7 @@ def get_expiring(db: Session, days: int = 30) -> list[InventoryItem]:
         .filter(
             InventoryItem.expiry_date.isnot(None),
             InventoryItem.expiry_date <= cutoff,
-            InventoryItem.status.notin_(
-                [InventoryStatus.disposed, InventoryStatus.depleted]
-            ),
+            InventoryItem.status.notin_([InventoryStatus.disposed, InventoryStatus.depleted]),
         )
         .all()
     )

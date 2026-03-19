@@ -65,9 +65,7 @@ def test_process_document_dedup_uses_content_hash(db_session, tmp_path):
     ):
         from lab_manager.intake.schemas import ExtractedDocument
 
-        mock_extract.return_value = ExtractedDocument(
-            vendor_name="Test", document_type="other", items=[]
-        )
+        mock_extract.return_value = ExtractedDocument(vendor_name="Test", document_type="other", items=[])
         doc1 = process_document(img1, db_session)
         doc2 = process_document(img2, db_session)
 
@@ -97,9 +95,7 @@ def test_process_document_true_duplicate_returns_existing(db_session, tmp_path):
     ):
         from lab_manager.intake.schemas import ExtractedDocument
 
-        mock_extract.return_value = ExtractedDocument(
-            vendor_name="Test", document_type="other", items=[]
-        )
+        mock_extract.return_value = ExtractedDocument(vendor_name="Test", document_type="other", items=[])
         doc1 = process_document(img1, db_session)
         doc2 = process_document(img2, db_session)
 

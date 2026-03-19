@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
 
 log = logging.getLogger(__name__)
 
@@ -20,16 +19,16 @@ class VLMProvider(ABC):
     model_id: str = "unknown"
 
     @abstractmethod
-    def extract_from_image(self, image_path: str, prompt: str) -> Optional[str]:
+    def extract_from_image(self, image_path: str, prompt: str) -> str | None:
         """Send image + prompt to model, return raw text response."""
         ...
 
-    def extract(self, image_path: str, prompt: str) -> Optional[dict]:
+    def extract(self, image_path: str, prompt: str) -> dict | None:
         """Extract structured JSON from image. Handles parsing."""
         raw = self.extract_from_image(image_path, prompt)
         return parse_json_response(raw) if raw else None
 
-    def review(self, image_path: str, prompt: str) -> Optional[dict]:
+    def review(self, image_path: str, prompt: str) -> dict | None:
         """Review an extraction. Same as extract by default."""
         return self.extract(image_path, prompt)
 
@@ -52,7 +51,7 @@ class OCRProvider(ABC):
         return f"{self.__class__.__name__}(model={self.model_id})"
 
 
-def parse_json_response(text: str) -> Optional[dict]:
+def parse_json_response(text: str) -> dict | None:
     """Parse JSON from model response, handling markdown fences."""
     if not text:
         return None

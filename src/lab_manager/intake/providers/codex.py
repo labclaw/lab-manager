@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import subprocess
-from typing import Optional
 
 from . import VLMProvider
 
@@ -21,7 +20,7 @@ class CodexProvider(VLMProvider):
         self.model = model
         self.timeout = timeout
 
-    def extract_from_image(self, image_path: str, prompt: str) -> Optional[str]:
+    def extract_from_image(self, image_path: str, prompt: str) -> str | None:
         full_prompt = f"Look at the image file {image_path} and follow these instructions:\n\n{prompt}"
         try:
             result = subprocess.run(
@@ -32,9 +31,7 @@ class CodexProvider(VLMProvider):
             )
             if result.returncode == 0:
                 return result.stdout.strip()
-            log.warning(
-                "Codex failed (rc=%d): %s", result.returncode, result.stderr[:200]
-            )
+            log.warning("Codex failed (rc=%d): %s", result.returncode, result.stderr[:200])
             return None
         except subprocess.TimeoutExpired:
             log.warning("Codex timed out (%ds) for %s", self.timeout, image_path)

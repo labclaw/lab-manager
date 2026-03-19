@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
@@ -24,27 +22,27 @@ _VENDOR_SORTABLE = {"id", "created_at", "updated_at", "name", "email", "website"
 class VendorCreate(BaseModel):
     name: str
     aliases: list[str] = []
-    website: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    notes: Optional[str] = None
+    website: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    notes: str | None = None
 
 
 class VendorUpdate(BaseModel):
-    name: Optional[str] = None
-    aliases: Optional[list[str]] = None
-    website: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    notes: Optional[str] = None
+    name: str | None = None
+    aliases: list[str] | None = None
+    website: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    notes: str | None = None
 
 
 @router.get("/")
 def list_vendors(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-    name: Optional[str] = Query(None),
-    search: Optional[str] = Query(None),
+    name: str | None = Query(None),
+    search: str | None = Query(None),
     sort_by: str = Query("id"),
     sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
@@ -53,11 +51,7 @@ def list_vendors(
     if name:
         q = q.filter(ilike_col(Vendor.name, name))
     if search:
-        q = q.filter(
-            ilike_col(Vendor.name, search)
-            | ilike_col(Vendor.email, search)
-            | ilike_col(Vendor.notes, search)
-        )
+        q = q.filter(ilike_col(Vendor.name, search) | ilike_col(Vendor.email, search) | ilike_col(Vendor.notes, search))
     q = apply_sort(q, Vendor, sort_by, sort_dir, _VENDOR_SORTABLE)
     return paginate(q, page, page_size)
 
@@ -94,9 +88,7 @@ def delete_vendor(vendor_id: int, db: Session = Depends(get_db)):
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise ConflictError(
-            "Cannot delete vendor: it is referenced by products or orders"
-        )
+        raise ConflictError("Cannot delete vendor: it is referenced by products or orders")
     return None
 
 

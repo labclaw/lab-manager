@@ -246,9 +246,7 @@ def main() -> None:
                 # Only one (or zero) staff record — just rename if needed
                 for row in group_staff:
                     if row[1] != canonical:
-                        print(
-                            f"  Renaming staff id={row[0]} from {row[1]!r} to {canonical!r}"
-                        )
+                        print(f"  Renaming staff id={row[0]} from {row[1]!r} to {canonical!r}")
                         conn.execute(
                             text("UPDATE staff SET name = :new_name WHERE id = :sid"),
                             {"new_name": canonical, "sid": row[0]},
@@ -298,9 +296,7 @@ def main() -> None:
                 {"new": new_name, "old": old_name},
             )
             if result.rowcount > 0:
-                print(
-                    f"  orders.received_by: {old_name!r} -> {new_name!r}  ({result.rowcount} rows)"
-                )
+                print(f"  orders.received_by: {old_name!r} -> {new_name!r}  ({result.rowcount} rows)")
 
         # ── Step 7: Update inventory.received_by ──
         print()
@@ -310,15 +306,11 @@ def main() -> None:
 
         for old_name, new_name in rename_map.items():
             result = conn.execute(
-                text(
-                    "UPDATE inventory SET received_by = :new WHERE received_by = :old"
-                ),
+                text("UPDATE inventory SET received_by = :new WHERE received_by = :old"),
                 {"new": new_name, "old": old_name},
             )
             if result.rowcount > 0:
-                print(
-                    f"  inventory.received_by: {old_name!r} -> {new_name!r}  ({result.rowcount} rows)"
-                )
+                print(f"  inventory.received_by: {old_name!r} -> {new_name!r}  ({result.rowcount} rows)")
 
         # ── Update consumption_log.consumed_by ──
         print()
@@ -328,15 +320,11 @@ def main() -> None:
 
         for old_name, new_name in rename_map.items():
             result = conn.execute(
-                text(
-                    "UPDATE consumption_log SET consumed_by = :new WHERE consumed_by = :old"
-                ),
+                text("UPDATE consumption_log SET consumed_by = :new WHERE consumed_by = :old"),
                 {"new": new_name, "old": old_name},
             )
             if result.rowcount > 0:
-                print(
-                    f"  consumption_log.consumed_by: {old_name!r} -> {new_name!r}  ({result.rowcount} rows)"
-                )
+                print(f"  consumption_log.consumed_by: {old_name!r} -> {new_name!r}  ({result.rowcount} rows)")
 
         # ── Update audit_log.changed_by ──
         print()
@@ -350,9 +338,7 @@ def main() -> None:
                 {"new": new_name, "old": old_name},
             )
             if result.rowcount > 0:
-                print(
-                    f"  audit_log.changed_by: {old_name!r} -> {new_name!r}  ({result.rowcount} rows)"
-                )
+                print(f"  audit_log.changed_by: {old_name!r} -> {new_name!r}  ({result.rowcount} rows)")
 
         # ── After summary ──
         print()

@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, Field as PydanticField, field_validator
+from pydantic import BaseModel, field_validator
+from pydantic import Field as PydanticField
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -39,21 +39,19 @@ def _validate_cas(v: str | None) -> str | None:
     if not v:
         return None
     if not _CAS_RE.match(v):
-        raise ValueError(
-            f"Invalid CAS number format: {v!r}. Expected format: NNNNN-NN-N"
-        )
+        raise ValueError(f"Invalid CAS number format: {v!r}. Expected format: NNNNN-NN-N")
     return v
 
 
 class ProductCreate(BaseModel):
     catalog_number: str = PydanticField(..., min_length=1, max_length=100)
     name: str = PydanticField(..., min_length=1, max_length=500)
-    vendor_id: Optional[int] = None
-    category: Optional[str] = PydanticField(default=None, max_length=100)
-    cas_number: Optional[str] = PydanticField(default=None, max_length=30)
-    storage_temp: Optional[str] = PydanticField(default=None, max_length=50)
-    unit: Optional[str] = PydanticField(default=None, max_length=50)
-    hazard_info: Optional[str] = PydanticField(default=None, max_length=255)
+    vendor_id: int | None = None
+    category: str | None = PydanticField(default=None, max_length=100)
+    cas_number: str | None = PydanticField(default=None, max_length=30)
+    storage_temp: str | None = PydanticField(default=None, max_length=50)
+    unit: str | None = PydanticField(default=None, max_length=50)
+    hazard_info: str | None = PydanticField(default=None, max_length=255)
     extra: dict = {}
 
     @field_validator("cas_number")
@@ -63,15 +61,15 @@ class ProductCreate(BaseModel):
 
 
 class ProductUpdate(BaseModel):
-    catalog_number: Optional[str] = PydanticField(default=None, max_length=100)
-    name: Optional[str] = PydanticField(default=None, max_length=500)
-    vendor_id: Optional[int] = None
-    category: Optional[str] = PydanticField(default=None, max_length=100)
-    cas_number: Optional[str] = PydanticField(default=None, max_length=30)
-    storage_temp: Optional[str] = PydanticField(default=None, max_length=50)
-    unit: Optional[str] = PydanticField(default=None, max_length=50)
-    hazard_info: Optional[str] = PydanticField(default=None, max_length=255)
-    extra: Optional[dict] = None
+    catalog_number: str | None = PydanticField(default=None, max_length=100)
+    name: str | None = PydanticField(default=None, max_length=500)
+    vendor_id: int | None = None
+    category: str | None = PydanticField(default=None, max_length=100)
+    cas_number: str | None = PydanticField(default=None, max_length=30)
+    storage_temp: str | None = PydanticField(default=None, max_length=50)
+    unit: str | None = PydanticField(default=None, max_length=50)
+    hazard_info: str | None = PydanticField(default=None, max_length=255)
+    extra: dict | None = None
 
     @field_validator("cas_number")
     @classmethod
@@ -83,10 +81,10 @@ class ProductUpdate(BaseModel):
 def list_products(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-    vendor_id: Optional[int] = Query(None),
-    category: Optional[str] = Query(None),
-    catalog_number: Optional[str] = Query(None),
-    search: Optional[str] = Query(None),
+    vendor_id: int | None = Query(None),
+    category: str | None = Query(None),
+    catalog_number: str | None = Query(None),
+    search: str | None = Query(None),
     include_inactive: bool = Query(False),
     sort_by: str = Query("id"),
     sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
@@ -120,9 +118,7 @@ def create_product(body: ProductCreate, db: Session = Depends(get_db)):
     except IntegrityError as e:
         db.rollback()
         if "uq_product_catalog_vendor" in str(e.orig):
-            raise ConflictError(
-                f"Product with catalog_number={body.catalog_number!r} already exists for this vendor"
-            )
+            raise ConflictError(f"Product with catalog_number={body.catalog_number!r} already exists for this vendor")
         raise ConflictError("Duplicate or constraint violation")
     db.refresh(product)
     return product
@@ -143,9 +139,7 @@ def update_product(product_id: int, body: ProductUpdate, db: Session = Depends(g
     except IntegrityError as e:
         db.rollback()
         if "uq_product_catalog_vendor" in str(e.orig):
-            raise ConflictError(
-                f"catalog_number {body.catalog_number!r} already exists for this vendor"
-            )
+            raise ConflictError(f"catalog_number {body.catalog_number!r} already exists for this vendor")
         raise ConflictError("Constraint violation")
     db.refresh(product)
     return product
@@ -159,9 +153,7 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise ConflictError(
-            "Cannot delete product: it is referenced by inventory or order items"
-        )
+        raise ConflictError("Cannot delete product: it is referenced by inventory or order items")
     return None
 
 
@@ -173,11 +165,7 @@ def list_product_inventory(
     db: Session = Depends(get_db),
 ):
     get_or_404(db, Product, product_id, "Product")
-    q = (
-        db.query(InventoryItem)
-        .filter(InventoryItem.product_id == product_id)
-        .order_by(InventoryItem.id)
-    )
+    q = db.query(InventoryItem).filter(InventoryItem.product_id == product_id).order_by(InventoryItem.id)
     return paginate(q, page, page_size)
 
 
@@ -189,9 +177,5 @@ def list_product_orders(
     db: Session = Depends(get_db),
 ):
     get_or_404(db, Product, product_id, "Product")
-    q = (
-        db.query(OrderItem)
-        .filter(OrderItem.product_id == product_id)
-        .order_by(OrderItem.id)
-    )
+    q = db.query(OrderItem).filter(OrderItem.product_id == product_id).order_by(OrderItem.id)
     return paginate(q, page, page_size)

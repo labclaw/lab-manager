@@ -6,18 +6,18 @@ Create Date: 2026-03-13 21:48:40.113533
 
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 import sqlmodel
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "656b400b42d2"
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -25,46 +25,26 @@ def upgrade() -> None:
     op.create_table(
         "audit_log",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column(
-            "table_name", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=False
-        ),
+        sa.Column("table_name", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=False),
         sa.Column("record_id", sa.Integer(), nullable=False),
-        sa.Column(
-            "action", sqlmodel.sql.sqltypes.AutoString(length=20), nullable=False
-        ),
-        sa.Column(
-            "changed_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True
-        ),
+        sa.Column("action", sqlmodel.sql.sqltypes.AutoString(length=20), nullable=False),
+        sa.Column("changed_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
         sa.Column("changes", sa.JSON(), nullable=True),
         sa.Column("timestamp", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        op.f("ix_audit_log_record_id"), "audit_log", ["record_id"], unique=False
-    )
-    op.create_index(
-        op.f("ix_audit_log_table_name"), "audit_log", ["table_name"], unique=False
-    )
+    op.create_index(op.f("ix_audit_log_record_id"), "audit_log", ["record_id"], unique=False)
+    op.create_index(op.f("ix_audit_log_table_name"), "audit_log", ["table_name"], unique=False)
     op.create_table(
         "documents",
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
-        sa.Column(
-            "created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True
-        ),
+        sa.Column("created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column(
-            "file_path", sqlmodel.sql.sqltypes.AutoString(length=1000), nullable=False
-        ),
-        sa.Column(
-            "file_name", sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False
-        ),
-        sa.Column(
-            "document_type", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=True
-        ),
-        sa.Column(
-            "vendor_name", sqlmodel.sql.sqltypes.AutoString(length=255), nullable=True
-        ),
+        sa.Column("file_path", sqlmodel.sql.sqltypes.AutoString(length=1000), nullable=False),
+        sa.Column("file_name", sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
+        sa.Column("document_type", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=True),
+        sa.Column("vendor_name", sqlmodel.sql.sqltypes.AutoString(length=255), nullable=True),
         sa.Column("ocr_text", sa.Text(), nullable=True),
         sa.Column("extracted_data", sa.JSON(), nullable=True),
         sa.Column(
@@ -73,33 +53,23 @@ def upgrade() -> None:
             nullable=True,
         ),
         sa.Column("extraction_confidence", sa.Float(), nullable=True),
-        sa.Column(
-            "status", sqlmodel.sql.sqltypes.AutoString(length=30), nullable=False
-        ),
+        sa.Column("status", sqlmodel.sql.sqltypes.AutoString(length=30), nullable=False),
         sa.Column("review_notes", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-        sa.Column(
-            "reviewed_by", sqlmodel.sql.sqltypes.AutoString(length=200), nullable=True
-        ),
+        sa.Column("reviewed_by", sqlmodel.sql.sqltypes.AutoString(length=200), nullable=True),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("file_name"),
     )
-    op.create_index(
-        op.f("ix_documents_document_type"), "documents", ["document_type"], unique=False
-    )
+    op.create_index(op.f("ix_documents_document_type"), "documents", ["document_type"], unique=False)
     op.create_index(op.f("ix_documents_status"), "documents", ["status"], unique=False)
     op.create_table(
         "locations",
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
-        sa.Column(
-            "created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True
-        ),
+        sa.Column("created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sqlmodel.sql.sqltypes.AutoString(length=200), nullable=False),
         sa.Column("room", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
-        sa.Column(
-            "building", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True
-        ),
+        sa.Column("building", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
         sa.Column("temperature", sa.Integer(), nullable=True),
         sa.Column("description", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
@@ -109,9 +79,7 @@ def upgrade() -> None:
         "staff",
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
-        sa.Column(
-            "created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True
-        ),
+        sa.Column("created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sqlmodel.sql.sqltypes.AutoString(length=200), nullable=False),
         sa.Column("email", sqlmodel.sql.sqltypes.AutoString(length=255), nullable=True),
@@ -125,15 +93,11 @@ def upgrade() -> None:
         "vendors",
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
-        sa.Column(
-            "created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True
-        ),
+        sa.Column("created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
         sa.Column("aliases", sa.JSON(), nullable=True),
-        sa.Column(
-            "website", sqlmodel.sql.sqltypes.AutoString(length=500), nullable=True
-        ),
+        sa.Column("website", sqlmodel.sql.sqltypes.AutoString(length=500), nullable=True),
         sa.Column("phone", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=True),
         sa.Column("email", sqlmodel.sql.sqltypes.AutoString(length=255), nullable=True),
         sa.Column("notes", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
@@ -144,23 +108,15 @@ def upgrade() -> None:
         "orders",
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
-        sa.Column(
-            "created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True
-        ),
+        sa.Column("created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column(
-            "po_number", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True
-        ),
+        sa.Column("po_number", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
         sa.Column("vendor_id", sa.Integer(), nullable=True),
         sa.Column("order_date", sa.Date(), nullable=True),
         sa.Column("ship_date", sa.Date(), nullable=True),
         sa.Column("received_date", sa.Date(), nullable=True),
-        sa.Column(
-            "received_by", sqlmodel.sql.sqltypes.AutoString(length=200), nullable=True
-        ),
-        sa.Column(
-            "status", sqlmodel.sql.sqltypes.AutoString(length=30), nullable=False
-        ),
+        sa.Column("received_by", sqlmodel.sql.sqltypes.AutoString(length=200), nullable=True),
+        sa.Column("status", sqlmodel.sql.sqltypes.AutoString(length=30), nullable=False),
         sa.Column(
             "delivery_number",
             sqlmodel.sql.sqltypes.AutoString(length=100),
@@ -190,9 +146,7 @@ def upgrade() -> None:
         "products",
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
-        sa.Column(
-            "created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True
-        ),
+        sa.Column("created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column(
             "catalog_number",
@@ -201,19 +155,11 @@ def upgrade() -> None:
         ),
         sa.Column("name", sqlmodel.sql.sqltypes.AutoString(length=500), nullable=False),
         sa.Column("vendor_id", sa.Integer(), nullable=True),
-        sa.Column(
-            "category", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True
-        ),
-        sa.Column(
-            "cas_number", sqlmodel.sql.sqltypes.AutoString(length=30), nullable=True
-        ),
-        sa.Column(
-            "storage_temp", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=True
-        ),
+        sa.Column("category", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
+        sa.Column("cas_number", sqlmodel.sql.sqltypes.AutoString(length=30), nullable=True),
+        sa.Column("storage_temp", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=True),
         sa.Column("unit", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=True),
-        sa.Column(
-            "hazard_info", sqlmodel.sql.sqltypes.AutoString(length=255), nullable=True
-        ),
+        sa.Column("hazard_info", sqlmodel.sql.sqltypes.AutoString(length=255), nullable=True),
         sa.Column("extra", sa.JSON(), nullable=True),
         sa.ForeignKeyConstraint(
             ["vendor_id"],
@@ -221,22 +167,14 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        op.f("ix_products_catalog_number"), "products", ["catalog_number"], unique=False
-    )
-    op.create_index(
-        op.f("ix_products_category"), "products", ["category"], unique=False
-    )
-    op.create_index(
-        op.f("ix_products_vendor_id"), "products", ["vendor_id"], unique=False
-    )
+    op.create_index(op.f("ix_products_catalog_number"), "products", ["catalog_number"], unique=False)
+    op.create_index(op.f("ix_products_category"), "products", ["category"], unique=False)
+    op.create_index(op.f("ix_products_vendor_id"), "products", ["vendor_id"], unique=False)
     op.create_table(
         "order_items",
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
-        sa.Column(
-            "created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True
-        ),
+        sa.Column("created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("order_id", sa.Integer(), nullable=False),
         sa.Column(
@@ -244,17 +182,11 @@ def upgrade() -> None:
             sqlmodel.sql.sqltypes.AutoString(length=100),
             nullable=True,
         ),
-        sa.Column(
-            "description", sqlmodel.sql.sqltypes.AutoString(length=1000), nullable=True
-        ),
+        sa.Column("description", sqlmodel.sql.sqltypes.AutoString(length=1000), nullable=True),
         sa.Column("quantity", sa.Float(), nullable=False),
         sa.Column("unit", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=True),
-        sa.Column(
-            "lot_number", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True
-        ),
-        sa.Column(
-            "batch_number", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True
-        ),
+        sa.Column("lot_number", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
+        sa.Column("batch_number", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
         sa.Column("unit_price", sa.Float(), nullable=True),
         sa.Column("product_id", sa.Integer(), nullable=True),
         sa.Column("extra", sa.JSON(), nullable=True),
@@ -274,36 +206,24 @@ def upgrade() -> None:
         ["catalog_number"],
         unique=False,
     )
-    op.create_index(
-        op.f("ix_order_items_lot_number"), "order_items", ["lot_number"], unique=False
-    )
-    op.create_index(
-        op.f("ix_order_items_order_id"), "order_items", ["order_id"], unique=False
-    )
+    op.create_index(op.f("ix_order_items_lot_number"), "order_items", ["lot_number"], unique=False)
+    op.create_index(op.f("ix_order_items_order_id"), "order_items", ["order_id"], unique=False)
     op.create_table(
         "inventory",
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
-        sa.Column(
-            "created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True
-        ),
+        sa.Column("created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("product_id", sa.Integer(), nullable=True),
         sa.Column("location_id", sa.Integer(), nullable=True),
-        sa.Column(
-            "lot_number", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True
-        ),
+        sa.Column("lot_number", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
         sa.Column("quantity_on_hand", sa.Float(), nullable=False),
         sa.Column("unit", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=True),
         sa.Column("expiry_date", sa.Date(), nullable=True),
         sa.Column("opened_date", sa.Date(), nullable=True),
-        sa.Column(
-            "status", sqlmodel.sql.sqltypes.AutoString(length=30), nullable=False
-        ),
+        sa.Column("status", sqlmodel.sql.sqltypes.AutoString(length=30), nullable=False),
         sa.Column("notes", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-        sa.Column(
-            "received_by", sqlmodel.sql.sqltypes.AutoString(length=200), nullable=True
-        ),
+        sa.Column("received_by", sqlmodel.sql.sqltypes.AutoString(length=200), nullable=True),
         sa.Column("order_item_id", sa.Integer(), nullable=True),
         sa.ForeignKeyConstraint(
             ["location_id"],
@@ -319,15 +239,9 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        op.f("ix_inventory_expiry_date"), "inventory", ["expiry_date"], unique=False
-    )
-    op.create_index(
-        op.f("ix_inventory_location_id"), "inventory", ["location_id"], unique=False
-    )
-    op.create_index(
-        op.f("ix_inventory_product_id"), "inventory", ["product_id"], unique=False
-    )
+    op.create_index(op.f("ix_inventory_expiry_date"), "inventory", ["expiry_date"], unique=False)
+    op.create_index(op.f("ix_inventory_location_id"), "inventory", ["location_id"], unique=False)
+    op.create_index(op.f("ix_inventory_product_id"), "inventory", ["product_id"], unique=False)
     # ### end Alembic commands ###
 
 

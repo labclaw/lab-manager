@@ -9,9 +9,9 @@ Merges duplicate vendors by:
 
 from __future__ import annotations
 
+from sqlalchemy import create_engine, text
 
 from lab_manager.config import Settings
-from sqlalchemy import create_engine, text
 
 # ---------------------------------------------------------------------------
 # Explicit merge rules: {canonical_name: [duplicate_names_to_merge]}
@@ -69,9 +69,7 @@ def main() -> None:
 
     with engine.begin() as conn:
         # ---- Snapshot BEFORE ----
-        before = conn.execute(
-            text("SELECT id, name FROM vendors ORDER BY name")
-        ).fetchall()
+        before = conn.execute(text("SELECT id, name FROM vendors ORDER BY name")).fetchall()
         before_count = len(before)
         print(f"=== BEFORE: {before_count} vendors ===")
         for vid, vname in before:
@@ -101,17 +99,13 @@ def main() -> None:
                             text("UPDATE vendors SET name = :new WHERE id = :id"),
                             {"new": canonical_name, "id": canonical_id},
                         )
-                        print(
-                            f"  Renamed vendor {canonical_id} '{d}' -> '{canonical_name}'"
-                        )
+                        print(f"  Renamed vendor {canonical_id} '{d}' -> '{canonical_name}'")
                         name_to_id[canonical_name] = canonical_id
                         del name_to_id[d]
                         dupes = [x for x in dupes if x != d]
                         break
                 else:
-                    print(
-                        f"  SKIP: No vendors found for merge group '{canonical_name}'"
-                    )
+                    print(f"  SKIP: No vendors found for merge group '{canonical_name}'")
                     continue
 
             # Collect aliases from old names
@@ -127,9 +121,7 @@ def main() -> None:
 
                 # Move orders
                 r = conn.execute(
-                    text(
-                        "UPDATE orders SET vendor_id = :canon WHERE vendor_id = :dupe"
-                    ),
+                    text("UPDATE orders SET vendor_id = :canon WHERE vendor_id = :dupe"),
                     {"canon": canonical_id, "dupe": dupe_id},
                 )
                 orders_moved = r.rowcount
@@ -137,9 +129,7 @@ def main() -> None:
 
                 # Move products
                 r = conn.execute(
-                    text(
-                        "UPDATE products SET vendor_id = :canon WHERE vendor_id = :dupe"
-                    ),
+                    text("UPDATE products SET vendor_id = :canon WHERE vendor_id = :dupe"),
                     {"canon": canonical_id, "dupe": dupe_id},
                 )
                 products_moved = r.rowcount
@@ -170,9 +160,7 @@ def main() -> None:
                 import json
 
                 conn.execute(
-                    text(
-                        "UPDATE vendors SET aliases = CAST(:aliases AS jsonb) WHERE id = :id"
-                    ),
+                    text("UPDATE vendors SET aliases = CAST(:aliases AS jsonb) WHERE id = :id"),
                     {"aliases": json.dumps(merged_aliases), "id": canonical_id},
                 )
 
@@ -186,9 +174,7 @@ def main() -> None:
                     text("UPDATE vendors SET name = :new WHERE id = :id"),
                     {"new": canonical_name, "id": canonical_id},
                 )
-                print(
-                    f"  Renamed vendor {canonical_id} '{current_name}' -> '{canonical_name}'"
-                )
+                print(f"  Renamed vendor {canonical_id} '{current_name}' -> '{canonical_name}'")
 
         print()
         print(
@@ -221,9 +207,7 @@ def main() -> None:
                 import json
 
                 conn.execute(
-                    text(
-                        "UPDATE vendors SET aliases = CAST(:aliases AS jsonb) WHERE id = :id"
-                    ),
+                    text("UPDATE vendors SET aliases = CAST(:aliases AS jsonb) WHERE id = :id"),
                     {"aliases": json.dumps(merged), "id": vid},
                 )
             name_to_id[new_name] = vid
@@ -235,13 +219,9 @@ def main() -> None:
         print()
 
         # ---- Snapshot AFTER ----
-        after = conn.execute(
-            text("SELECT id, name FROM vendors ORDER BY name")
-        ).fetchall()
+        after = conn.execute(text("SELECT id, name FROM vendors ORDER BY name")).fetchall()
         after_count = len(after)
-        print(
-            f"=== AFTER: {after_count} vendors ({before_count - after_count} removed) ==="
-        )
+        print(f"=== AFTER: {after_count} vendors ({before_count - after_count} removed) ===")
         for vid, vname in after:
             print(f"  {vid:4d}  {vname}")
 

@@ -5,16 +5,15 @@ from __future__ import annotations
 import csv
 import io
 from datetime import date
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db
-from lab_manager.services import analytics as svc
 from lab_manager.models.product import Product
 from lab_manager.models.vendor import Vendor
+from lab_manager.services import analytics as svc
 
 router = APIRouter()
 
@@ -61,7 +60,7 @@ def _csv_response(rows: list[dict], filename: str) -> StreamingResponse:
 
 @router.get("/inventory.csv")
 def export_inventory(
-    location_id: Optional[int] = Query(None),
+    location_id: int | None = Query(None),
     db: Session = Depends(get_db),
 ):
     rows = svc.inventory_report(db, location_id=location_id)
@@ -70,14 +69,12 @@ def export_inventory(
 
 @router.get("/orders.csv")
 def export_orders(
-    vendor_id: Optional[int] = Query(None),
-    date_from: Optional[date] = Query(None),
-    date_to: Optional[date] = Query(None),
+    vendor_id: int | None = Query(None),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
     db: Session = Depends(get_db),
 ):
-    rows = svc.order_history(
-        db, vendor_id=vendor_id, date_from=date_from, date_to=date_to
-    )
+    rows = svc.order_history(db, vendor_id=vendor_id, date_from=date_from, date_to=date_to)
     return _csv_response(rows, "orders.csv")
 
 

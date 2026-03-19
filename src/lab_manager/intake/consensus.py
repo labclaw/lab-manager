@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Optional
 
 from lab_manager.intake.providers import VLMProvider
 
@@ -26,14 +25,11 @@ def extract_parallel(
     providers: list[VLMProvider],
     image_path: str,
     prompt: str,
-) -> dict[str, Optional[dict]]:
+) -> dict[str, dict | None]:
     """Run all providers in parallel, return {name: parsed_json}."""
     results = {}
     with ThreadPoolExecutor(max_workers=min(len(providers), 5)) as executor:
-        futures = {
-            executor.submit(provider.extract, image_path, prompt): provider
-            for provider in providers
-        }
+        futures = {executor.submit(provider.extract, image_path, prompt): provider for provider in providers}
         for future in as_completed(futures):
             provider = futures[future]
             try:
@@ -47,7 +43,7 @@ def extract_parallel(
     return results
 
 
-def consensus_merge(extractions: dict[str, Optional[dict]]) -> dict:
+def consensus_merge(extractions: dict[str, dict | None]) -> dict:
     """Merge extractions using consensus voting.
 
     - 3/3 agree → unanimous (auto-resolve)
@@ -80,11 +76,7 @@ def consensus_merge(extractions: dict[str, Optional[dict]]) -> dict:
         # Normalize for comparison
         unique_vals = {}
         for model, val in values.items():
-            key = (
-                json.dumps(val, sort_keys=True, default=str)
-                if val is not None
-                else "null"
-            )
+            key = json.dumps(val, sort_keys=True, default=str) if val is not None else "null"
             unique_vals.setdefault(key, []).append(model)
 
         if len(unique_vals) == 1:
@@ -103,9 +95,7 @@ def consensus_merge(extractions: dict[str, Optional[dict]]) -> dict:
                 field_details[field] = {
                     "agreement": "majority",
                     "winning_models": best_models,
-                    "dissenting": {
-                        m: values[m] for m in values if m not in best_models
-                    },
+                    "dissenting": {m: values[m] for m in values if m not in best_models},
                 }
             elif len(tied_groups) > 1 and max_count >= 2:
                 merged[field] = values[best_models[0]]
@@ -118,11 +108,7 @@ def consensus_merge(extractions: dict[str, Optional[dict]]) -> dict:
                 for model in sorted(
                     values.keys(),
                     key=lambda m: next(
-                        (
-                            i
-                            for i, p in enumerate(MODEL_PRIORITY)
-                            if m == p or m.startswith(p + "_")
-                        ),
+                        (i for i, p in enumerate(MODEL_PRIORITY) if m == p or m.startswith(p + "_")),
                         999,
                     ),
                 ):

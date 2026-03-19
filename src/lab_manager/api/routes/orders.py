@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
@@ -18,11 +17,7 @@ router = APIRouter()
 
 
 def _get_order_item_or_raise(db: Session, order_id: int, item_id: int) -> OrderItem:
-    item = (
-        db.query(OrderItem)
-        .filter(OrderItem.id == item_id, OrderItem.order_id == order_id)
-        .first()
-    )
+    item = db.query(OrderItem).filter(OrderItem.id == item_id, OrderItem.order_id == order_id).first()
     if not item:
         raise NotFoundError("Order item", item_id)
     return item
@@ -45,58 +40,58 @@ _ORDER_SORTABLE = {
 
 
 class OrderCreate(BaseModel):
-    po_number: Optional[str] = None
-    vendor_id: Optional[int] = None
-    order_date: Optional[date] = None
-    ship_date: Optional[date] = None
-    received_date: Optional[date] = None
-    received_by: Optional[str] = None
+    po_number: str | None = None
+    vendor_id: int | None = None
+    order_date: date | None = None
+    ship_date: date | None = None
+    received_date: date | None = None
+    received_by: str | None = None
     status: str = OrderStatus.pending
-    delivery_number: Optional[str] = None
-    invoice_number: Optional[str] = None
-    document_id: Optional[int] = None
+    delivery_number: str | None = None
+    invoice_number: str | None = None
+    document_id: int | None = None
     extra: dict = {}
 
 
 class OrderUpdate(BaseModel):
-    po_number: Optional[str] = None
-    vendor_id: Optional[int] = None
-    order_date: Optional[date] = None
-    ship_date: Optional[date] = None
-    received_date: Optional[date] = None
-    received_by: Optional[str] = None
-    status: Optional[str] = None
-    delivery_number: Optional[str] = None
-    invoice_number: Optional[str] = None
-    document_id: Optional[int] = None
-    extra: Optional[dict] = None
+    po_number: str | None = None
+    vendor_id: int | None = None
+    order_date: date | None = None
+    ship_date: date | None = None
+    received_date: date | None = None
+    received_by: str | None = None
+    status: str | None = None
+    delivery_number: str | None = None
+    invoice_number: str | None = None
+    document_id: int | None = None
+    extra: dict | None = None
 
 
 # --- OrderItem schemas ---
 
 
 class OrderItemCreate(BaseModel):
-    catalog_number: Optional[str] = None
-    description: Optional[str] = None
+    catalog_number: str | None = None
+    description: str | None = None
     quantity: float = 1
-    unit: Optional[str] = None
-    lot_number: Optional[str] = None
-    batch_number: Optional[str] = None
-    unit_price: Optional[float] = None
-    product_id: Optional[int] = None
+    unit: str | None = None
+    lot_number: str | None = None
+    batch_number: str | None = None
+    unit_price: float | None = None
+    product_id: int | None = None
     extra: dict = {}
 
 
 class OrderItemUpdate(BaseModel):
-    catalog_number: Optional[str] = None
-    description: Optional[str] = None
-    quantity: Optional[float] = None
-    unit: Optional[str] = None
-    lot_number: Optional[str] = None
-    batch_number: Optional[str] = None
-    unit_price: Optional[float] = None
-    product_id: Optional[int] = None
-    extra: Optional[dict] = None
+    catalog_number: str | None = None
+    description: str | None = None
+    quantity: float | None = None
+    unit: str | None = None
+    lot_number: str | None = None
+    batch_number: str | None = None
+    unit_price: float | None = None
+    product_id: int | None = None
+    extra: dict | None = None
 
 
 # =====================
@@ -108,12 +103,12 @@ class OrderItemUpdate(BaseModel):
 def list_orders(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-    vendor_id: Optional[int] = Query(None),
-    status: Optional[str] = Query(None),
-    po_number: Optional[str] = Query(None),
-    date_from: Optional[date] = Query(None),
-    date_to: Optional[date] = Query(None),
-    received_by: Optional[str] = Query(None),
+    vendor_id: int | None = Query(None),
+    status: str | None = Query(None),
+    po_number: str | None = Query(None),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
+    received_by: str | None = Query(None),
     sort_by: str = Query("id"),
     sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
@@ -178,8 +173,8 @@ def list_order_items(
     order_id: int,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-    catalog_number: Optional[str] = Query(None),
-    lot_number: Optional[str] = Query(None),
+    catalog_number: str | None = Query(None),
+    lot_number: str | None = Query(None),
     db: Session = Depends(get_db),
 ):
     get_or_404(db, Order, order_id, "Order")
@@ -193,9 +188,7 @@ def list_order_items(
 
 
 @router.post("/{order_id}/items", status_code=201)
-def create_order_item(
-    order_id: int, body: OrderItemCreate, db: Session = Depends(get_db)
-):
+def create_order_item(order_id: int, body: OrderItemCreate, db: Session = Depends(get_db)):
     get_or_404(db, Order, order_id, "Order")
     item = OrderItem(**body.model_dump())
     item.order_id = order_id
@@ -211,9 +204,7 @@ def get_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{order_id}/items/{item_id}")
-def update_order_item(
-    order_id: int, item_id: int, body: OrderItemUpdate, db: Session = Depends(get_db)
-):
+def update_order_item(order_id: int, item_id: int, body: OrderItemUpdate, db: Session = Depends(get_db)):
     item = _get_order_item_or_raise(db, order_id, item_id)
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
@@ -236,12 +227,12 @@ def delete_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)
 
 
 class ReceiveItemEntry(BaseModel):
-    order_item_id: Optional[int] = None
-    product_id: Optional[int] = None
+    order_item_id: int | None = None
+    product_id: int | None = None
     quantity: float = 1
-    lot_number: Optional[str] = None
-    unit: Optional[str] = None
-    expiry_date: Optional[date] = None
+    lot_number: str | None = None
+    unit: str | None = None
+    expiry_date: date | None = None
 
 
 class ReceiveBody(BaseModel):
@@ -256,6 +247,4 @@ def receive_order(order_id: int, body: ReceiveBody, db: Session = Depends(get_db
     from lab_manager.services import inventory as inv_svc
 
     items_dicts = [item.model_dump() for item in body.items]
-    return inv_svc.receive_items(
-        order_id, items_dicts, body.location_id, body.received_by, db
-    )
+    return inv_svc.receive_items(order_id, items_dicts, body.location_id, body.received_by, db)

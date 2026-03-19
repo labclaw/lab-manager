@@ -10,7 +10,7 @@ from pathlib import Path
 
 import torch
 from PIL import Image
-from transformers import AutoProcessor, AutoModelForImageTextToText
+from transformers import AutoModelForImageTextToText, AutoProcessor
 
 MODEL_ID = "Qwen/Qwen3-VL-4B-Instruct"
 PROMPT = """You are performing OCR on a scanned lab supply document (packing list, invoice, or shipping label).
@@ -33,9 +33,7 @@ Critical rules:
 
 def main() -> None:
     if len(sys.argv) < 3:
-        raise SystemExit(
-            "usage: python run_qwen3_vl_v2.py <input_dir> <output_json> [model_id]"
-        )
+        raise SystemExit("usage: python run_qwen3_vl_v2.py <input_dir> <output_json> [model_id]")
 
     input_dir = Path(sys.argv[1])
     output_json = Path(sys.argv[2])
@@ -74,9 +72,7 @@ def main() -> None:
                 ],
             }
         ]
-        text_input = processor.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
+        text_input = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         inputs = processor(
             text=[text_input],
             images=[image],

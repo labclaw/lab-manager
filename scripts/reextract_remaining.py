@@ -127,9 +127,7 @@ def run_gemini_extraction(client, image_path: str, max_retries: int = 3) -> dict
                 contents=[
                     types.Content(
                         parts=[
-                            types.Part.from_bytes(
-                                data=image_data, mime_type="image/jpeg"
-                            ),
+                            types.Part.from_bytes(data=image_data, mime_type="image/jpeg"),
                             types.Part.from_text(text=EXTRACTION_PROMPT),
                         ]
                     )
@@ -167,9 +165,7 @@ def run_gemini_ocr(client, image_path: str, max_retries: int = 3) -> str | None:
                 contents=[
                     types.Content(
                         parts=[
-                            types.Part.from_bytes(
-                                data=image_data, mime_type="image/jpeg"
-                            ),
+                            types.Part.from_bytes(data=image_data, mime_type="image/jpeg"),
                             types.Part.from_text(text=OCR_PROMPT),
                         ]
                     )
@@ -252,6 +248,7 @@ def load_benchmark_ocr_for_files(target_files: set[str]) -> dict[str, str]:
 
 def main():
     from sqlalchemy import create_engine, text
+
     from lab_manager.config import Settings
 
     settings = Settings()
@@ -383,9 +380,7 @@ def main():
         if extraction:
             # Normalize document type
             if "document_type" in extraction:
-                extraction["document_type"] = normalize_doc_type(
-                    extraction.get("document_type")
-                )
+                extraction["document_type"] = normalize_doc_type(extraction.get("document_type"))
 
             # Validate
             try:
@@ -404,9 +399,7 @@ def main():
                 "file_name": fname,
                 "extraction": extraction,
                 "ocr_text_len": len(ocr_text) if ocr_text else 0,
-                "ocr_source": "benchmark"
-                if fname in qwen_benchmark_ocr
-                else "existing",
+                "ocr_source": "benchmark" if fname in qwen_benchmark_ocr else "existing",
                 "validation_issues": len(issues),
                 "critical_issues": len(critical),
                 "status": status,
@@ -467,9 +460,7 @@ def main():
             time.sleep(3.0 - elapsed)
 
     # Save results
-    results_file.write_text(
-        json.dumps(results, indent=2, default=str, ensure_ascii=False)
-    )
+    results_file.write_text(json.dumps(results, indent=2, default=str, ensure_ascii=False))
     log.info("Results saved to %s", results_file)
 
     # ── Step 6: Final verification ──
@@ -480,16 +471,12 @@ def main():
     with engine.connect() as conn:
         # Check Qwen docs are gone
         qwen_count = conn.execute(
-            text(
-                "SELECT count(*) FROM documents WHERE extraction_model = 'Qwen/Qwen3-VL-4B-Instruct'"
-            )
+            text("SELECT count(*) FROM documents WHERE extraction_model = 'Qwen/Qwen3-VL-4B-Instruct'")
         ).scalar()
         log.info("Remaining Qwen docs: %d (should be 0)", qwen_count)
 
         # Check NULL OCR text
-        null_ocr = conn.execute(
-            text("SELECT count(*) FROM documents WHERE ocr_text IS NULL")
-        ).scalar()
+        null_ocr = conn.execute(text("SELECT count(*) FROM documents WHERE ocr_text IS NULL")).scalar()
         log.info("Docs with NULL OCR text: %d", null_ocr)
 
         # Status distribution

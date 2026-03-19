@@ -19,11 +19,7 @@ def main():
         raise SystemExit(f"Directory not found: {scan_dir}")
 
     engine = get_engine()
-    images = sorted(
-        p
-        for p in scan_dir.iterdir()
-        if p.suffix.lower() in {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
-    )
+    images = sorted(p for p in scan_dir.iterdir() if p.suffix.lower() in {".jpg", ".jpeg", ".png", ".tif", ".tiff"})
     print(f"Found {len(images)} images in {scan_dir}")
 
     for i, img in enumerate(images, 1):

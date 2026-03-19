@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
@@ -18,10 +16,10 @@ router = APIRouter()
 
 @router.get("/")
 def list_alerts(
-    alert_type: Optional[str] = Query(None),
-    severity: Optional[str] = Query(None),
-    acknowledged: Optional[bool] = Query(None),
-    resolved: Optional[bool] = Query(None, description="Filter by resolved status"),
+    alert_type: str | None = Query(None),
+    severity: str | None = Query(None),
+    acknowledged: bool | None = Query(None),
+    resolved: bool | None = Query(None, description="Filter by resolved status"),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -66,7 +64,7 @@ def run_alert_check(request: Request, db: Session = Depends(get_db)):
 @router.post("/{alert_id}/acknowledge")
 def acknowledge_alert(
     alert_id: int,
-    acknowledged_by: Optional[str] = Query(None),
+    acknowledged_by: str | None = Query(None),
     db: Session = Depends(get_db),
 ):
     """Mark an alert as acknowledged."""

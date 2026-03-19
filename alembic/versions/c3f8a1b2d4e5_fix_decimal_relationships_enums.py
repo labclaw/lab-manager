@@ -6,18 +6,18 @@ Create Date: 2026-03-14 20:00:00.000000
 
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "c3f8a1b2d4e5"
-down_revision: Union[str, None] = "aa12d2df8f01"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "aa12d2df8f01"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -280,9 +280,7 @@ def upgrade() -> None:
     )
 
     # ConsumptionLog.inventory_id -> CASCADE
-    op.drop_constraint(
-        "consumption_log_inventory_id_fkey", "consumption_log", type_="foreignkey"
-    )
+    op.drop_constraint("consumption_log_inventory_id_fkey", "consumption_log", type_="foreignkey")
     op.create_foreign_key(
         "consumption_log_inventory_id_fkey",
         "consumption_log",
@@ -293,9 +291,7 @@ def upgrade() -> None:
     )
 
     # ConsumptionLog.product_id -> SET NULL
-    op.drop_constraint(
-        "consumption_log_product_id_fkey", "consumption_log", type_="foreignkey"
-    )
+    op.drop_constraint("consumption_log_product_id_fkey", "consumption_log", type_="foreignkey")
     op.create_foreign_key(
         "consumption_log_product_id_fkey",
         "consumption_log",
@@ -348,9 +344,7 @@ def downgrade() -> None:
     op.drop_constraint("ck_orders_status", "orders", type_="check")
 
     # -- Revert FK ondelete to default --
-    op.drop_constraint(
-        "consumption_log_product_id_fkey", "consumption_log", type_="foreignkey"
-    )
+    op.drop_constraint("consumption_log_product_id_fkey", "consumption_log", type_="foreignkey")
     op.create_foreign_key(
         "consumption_log_product_id_fkey",
         "consumption_log",
@@ -358,9 +352,7 @@ def downgrade() -> None:
         ["product_id"],
         ["id"],
     )
-    op.drop_constraint(
-        "consumption_log_inventory_id_fkey", "consumption_log", type_="foreignkey"
-    )
+    op.drop_constraint("consumption_log_inventory_id_fkey", "consumption_log", type_="foreignkey")
     op.create_foreign_key(
         "consumption_log_inventory_id_fkey",
         "consumption_log",
@@ -446,12 +438,8 @@ def downgrade() -> None:
         "staff",
         "locations",
     ]:
-        op.alter_column(
-            table, "created_at", server_default=None, existing_type=sa.DateTime()
-        )
-        op.alter_column(
-            table, "updated_at", server_default=None, existing_type=sa.DateTime()
-        )
+        op.alter_column(table, "created_at", server_default=None, existing_type=sa.DateTime())
+        op.alter_column(table, "updated_at", server_default=None, existing_type=sa.DateTime())
 
     # -- Revert JSONB -> JSON --
     op.alter_column(

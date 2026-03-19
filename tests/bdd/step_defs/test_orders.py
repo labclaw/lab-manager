@@ -1,7 +1,7 @@
 """Step definitions for order management BDD scenarios."""
 
 import pytest
-from pytest_bdd import given, when, then, scenario, parsers
+from pytest_bdd import given, parsers, scenario, then, when
 
 FEATURE = "../features/orders.feature"
 
@@ -216,10 +216,7 @@ def create_order_when(api, vendor, po):
 
 
 @when(
-    parsers.parse(
-        'I add an item with catalog "{catalog}" description "{desc}" '
-        'quantity {qty:d} unit "{unit}"'
-    ),
+    parsers.parse('I add an item with catalog "{catalog}" description "{desc}" quantity {qty:d} unit "{unit}"'),
 )
 def add_item(api, order, ctx, catalog, desc, qty, unit):
     r = api.post(

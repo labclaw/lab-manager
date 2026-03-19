@@ -23,19 +23,11 @@ def _find_vendor(vendor_name: str, db: Session) -> Vendor | None:
     """Find vendor by name or alias, case-insensitive."""
     normalized = vendor_name.strip()
     # Try exact match first (case-insensitive)
-    vendor = (
-        db.query(Vendor)
-        .filter(func.lower(Vendor.name) == func.lower(normalized))
-        .first()
-    )
+    vendor = db.query(Vendor).filter(func.lower(Vendor.name) == func.lower(normalized)).first()
     if vendor:
         return vendor
     # Try partial match
-    vendor = (
-        db.query(Vendor)
-        .filter(func.lower(Vendor.name).contains(func.lower(normalized)))
-        .first()
-    )
+    vendor = db.query(Vendor).filter(func.lower(Vendor.name).contains(func.lower(normalized))).first()
     if vendor:
         return vendor
     # Try reverse partial (vendor name in extracted name) and alias check
@@ -43,10 +35,7 @@ def _find_vendor(vendor_name: str, db: Session) -> Vendor | None:
         if v.name.lower() in normalized.lower() or normalized.lower() in v.name.lower():
             return v
         for alias in v.aliases or []:
-            if (
-                alias.lower() in normalized.lower()
-                or normalized.lower() in alias.lower()
-            ):
+            if alias.lower() in normalized.lower() or normalized.lower() in alias.lower():
                 return v
     return None
 

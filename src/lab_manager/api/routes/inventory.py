@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
@@ -34,37 +33,37 @@ _INV_SORTABLE = {
 
 
 class InventoryItemCreate(BaseModel):
-    product_id: Optional[int] = None
-    location_id: Optional[int] = None
-    lot_number: Optional[str] = None
+    product_id: int | None = None
+    location_id: int | None = None
+    lot_number: str | None = None
     quantity_on_hand: float = 0
-    unit: Optional[str] = None
-    expiry_date: Optional[date] = None
-    opened_date: Optional[date] = None
+    unit: str | None = None
+    expiry_date: date | None = None
+    opened_date: date | None = None
     status: str = InventoryStatus.available
-    notes: Optional[str] = None
-    received_by: Optional[str] = None
-    order_item_id: Optional[int] = None
+    notes: str | None = None
+    received_by: str | None = None
+    order_item_id: int | None = None
 
 
 class InventoryItemUpdate(BaseModel):
-    product_id: Optional[int] = None
-    location_id: Optional[int] = None
-    lot_number: Optional[str] = None
-    quantity_on_hand: Optional[float] = None
-    unit: Optional[str] = None
-    expiry_date: Optional[date] = None
-    opened_date: Optional[date] = None
-    status: Optional[str] = None
-    notes: Optional[str] = None
-    received_by: Optional[str] = None
-    order_item_id: Optional[int] = None
+    product_id: int | None = None
+    location_id: int | None = None
+    lot_number: str | None = None
+    quantity_on_hand: float | None = None
+    unit: str | None = None
+    expiry_date: date | None = None
+    opened_date: date | None = None
+    status: str | None = None
+    notes: str | None = None
+    received_by: str | None = None
+    order_item_id: int | None = None
 
 
 class ConsumeBody(BaseModel):
     quantity: float
     consumed_by: str
-    purpose: Optional[str] = None
+    purpose: str | None = None
 
 
 class TransferBody(BaseModel):
@@ -96,11 +95,11 @@ class OpenBody(BaseModel):
 def list_inventory(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-    product_id: Optional[int] = Query(None),
-    location_id: Optional[int] = Query(None),
-    status: Optional[str] = Query(None),
-    expiring_before: Optional[date] = Query(None),
-    search: Optional[str] = Query(None),
+    product_id: int | None = Query(None),
+    location_id: int | None = Query(None),
+    status: str | None = Query(None),
+    expiring_before: date | None = Query(None),
+    search: str | None = Query(None),
     sort_by: str = Query("id"),
     sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
@@ -115,10 +114,7 @@ def list_inventory(
     if expiring_before:
         q = q.filter(InventoryItem.expiry_date <= expiring_before)
     if search:
-        q = q.filter(
-            ilike_col(InventoryItem.lot_number, search)
-            | ilike_col(InventoryItem.notes, search)
-        )
+        q = q.filter(ilike_col(InventoryItem.lot_number, search) | ilike_col(InventoryItem.notes, search))
     q = apply_sort(q, InventoryItem, sort_by, sort_dir, _INV_SORTABLE)
     return paginate(q, page, page_size)
 
@@ -155,9 +151,7 @@ def get_inventory_item(item_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{item_id}")
-def update_inventory_item(
-    item_id: int, body: InventoryItemUpdate, db: Session = Depends(get_db)
-):
+def update_inventory_item(item_id: int, body: InventoryItemUpdate, db: Session = Depends(get_db)):
     item = get_or_404(db, InventoryItem, item_id, "Inventory item")
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(item, key, value)

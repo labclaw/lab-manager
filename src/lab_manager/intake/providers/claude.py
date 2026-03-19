@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
-from typing import Optional
 
 from . import VLMProvider
 
@@ -22,10 +21,8 @@ class ClaudeProvider(VLMProvider):
         self.model = model
         self.timeout = timeout
 
-    def extract_from_image(self, image_path: str, prompt: str) -> Optional[str]:
-        full_prompt = (
-            f"Read the image at {image_path} and follow these instructions:\n\n{prompt}"
-        )
+    def extract_from_image(self, image_path: str, prompt: str) -> str | None:
+        full_prompt = f"Read the image at {image_path} and follow these instructions:\n\n{prompt}"
         try:
             result = subprocess.run(
                 ["claude", "-p", full_prompt, "--output-format", "text"],
@@ -36,9 +33,7 @@ class ClaudeProvider(VLMProvider):
             )
             if result.returncode == 0:
                 return result.stdout.strip()
-            log.warning(
-                "Claude failed (rc=%d): %s", result.returncode, result.stderr[:200]
-            )
+            log.warning("Claude failed (rc=%d): %s", result.returncode, result.stderr[:200])
             return None
         except subprocess.TimeoutExpired:
             log.warning("Claude timed out (%ds) for %s", self.timeout, image_path)

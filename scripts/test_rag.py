@@ -46,9 +46,7 @@ def test_direct():
             print(f"Answer:  {result['answer']}")
 
             if result["raw_results"]:
-                print(
-                    f"Sample:  {json.dumps(result['raw_results'][:3], default=str, ensure_ascii=False)}"
-                )
+                print(f"Sample:  {json.dumps(result['raw_results'][:3], default=str, ensure_ascii=False)}")
 
             print()
     finally:
@@ -57,8 +55,8 @@ def test_direct():
 
 def test_api():
     """Test via HTTP API calls."""
-    import urllib.request
     import urllib.parse
+    import urllib.request
 
     base_url = "http://localhost:8000/api/ask"
 
@@ -91,9 +89,7 @@ def test_api():
         print(f"Answer:  {result['answer']}")
 
         if result["raw_results"]:
-            print(
-                f"Sample:  {json.dumps(result['raw_results'][:3], default=str, ensure_ascii=False)}"
-            )
+            print(f"Sample:  {json.dumps(result['raw_results'][:3], default=str, ensure_ascii=False)}")
 
         print()
 

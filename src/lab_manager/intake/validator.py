@@ -14,12 +14,8 @@ def validate(data: dict) -> list[dict]:
     # Vendor name
     vendor = data.get("vendor_name")
     if vendor and len(vendor) > 100:
-        issues.append(
-            {"field": "vendor_name", "issue": "too_long", "severity": "critical"}
-        )
-    if vendor and any(
-        x in vendor.lower() for x in ["blvd", "street", "ave", "road", "suite", "drive"]
-    ):
+        issues.append({"field": "vendor_name", "issue": "too_long", "severity": "critical"})
+    if vendor and any(x in vendor.lower() for x in ["blvd", "street", "ave", "road", "suite", "drive"]):
         issues.append(
             {
                 "field": "vendor_name",
@@ -27,12 +23,8 @@ def validate(data: dict) -> list[dict]:
                 "severity": "critical",
             }
         )
-    if vendor and any(
-        x in vendor.lower() for x in ["provider:", "organization", "original material"]
-    ):
-        issues.append(
-            {"field": "vendor_name", "issue": "template_text", "severity": "critical"}
-        )
+    if vendor and any(x in vendor.lower() for x in ["provider:", "organization", "original material"]):
+        issues.append({"field": "vendor_name", "issue": "template_text", "severity": "critical"})
 
     # Document type
     valid_types = {
@@ -111,8 +103,6 @@ def validate(data: dict) -> list[dict]:
                     }
                 )
         except (ValueError, TypeError):
-            issues.append(
-                {"field": field, "issue": "invalid_format", "severity": "warning"}
-            )
+            issues.append({"field": field, "issue": "invalid_format", "severity": "warning"})
 
     return issues

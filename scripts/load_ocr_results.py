@@ -35,9 +35,7 @@ def main():
             model = entry.get("model", "unknown")
 
             # Skip if already in DB
-            existing = (
-                db.query(Document).filter(Document.file_name == file_name).first()
-            )
+            existing = db.query(Document).filter(Document.file_name == file_name).first()
             if existing:
                 skipped += 1
                 continue

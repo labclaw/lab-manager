@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -12,7 +12,6 @@ from lab_manager.models.document import Document, DocumentStatus
 from lab_manager.models.inventory import InventoryItem, InventoryStatus
 from lab_manager.models.order import Order, OrderStatus
 from lab_manager.models.product import Product
-
 
 # ---------------------------------------------------------------------------
 # Raw query helpers (kept for backward compat)
@@ -58,9 +57,7 @@ def _check_expired(db: Session) -> list[dict]:
         .filter(
             InventoryItem.expiry_date.isnot(None),
             InventoryItem.expiry_date < today,
-            InventoryItem.status.in_(
-                [InventoryStatus.available, InventoryStatus.opened]
-            ),
+            InventoryItem.status.in_([InventoryStatus.available, InventoryStatus.opened]),
         )
         .limit(500)
         .all()
@@ -92,9 +89,7 @@ def _check_expiring_soon(db: Session, days: int = 30) -> list[dict]:
             InventoryItem.expiry_date.isnot(None),
             InventoryItem.expiry_date >= today,
             InventoryItem.expiry_date <= cutoff,
-            InventoryItem.status.in_(
-                [InventoryStatus.available, InventoryStatus.opened]
-            ),
+            InventoryItem.status.in_([InventoryStatus.available, InventoryStatus.opened]),
         )
         .limit(500)
         .all()
@@ -103,9 +98,7 @@ def _check_expiring_soon(db: Session, days: int = 30) -> list[dict]:
         {
             "type": "expiring_soon",
             "severity": "warning",
-            "message": (
-                f"Inventory item {it.id} (lot {it.lot_number}) expires on {it.expiry_date}"
-            ),
+            "message": (f"Inventory item {it.id} (lot {it.lot_number}) expires on {it.expiry_date}"),
             "entity_type": "inventory",
             "entity_id": it.id,
             "details": {
@@ -184,9 +177,7 @@ def _check_low_stock(db: Session) -> list[dict]:
         {
             "type": "low_stock",
             "severity": "warning",
-            "message": (
-                f"Product {p.id} ({p.catalog_number}) has low stock: {float(total)}"
-            ),
+            "message": (f"Product {p.id} ({p.catalog_number}) has low stock: {float(total)}"),
             "entity_type": "product",
             "entity_id": p.id,
             "details": {
@@ -239,8 +230,7 @@ def _check_stale_orders(db: Session, stale_days: int = 30) -> list[dict]:
         db.query(Order)
         .filter(
             Order.status == OrderStatus.pending,
-            Order.created_at
-            <= datetime(cutoff.year, cutoff.month, cutoff.day, tzinfo=timezone.utc),
+            Order.created_at <= datetime(cutoff.year, cutoff.month, cutoff.day, tzinfo=UTC),
         )
         .limit(500)
         .all()
@@ -303,11 +293,7 @@ def persist_alerts(db: Session) -> tuple[list[Alert], list[dict]]:
     """
     current = check_all_alerts(db)
     # Build a set of (entity_type, entity_id, alert_type) for existing unresolved alerts.
-    existing = (
-        db.query(Alert.entity_type, Alert.entity_id, Alert.alert_type)
-        .filter(Alert.is_resolved.is_(False))
-        .all()
-    )
+    existing = db.query(Alert.entity_type, Alert.entity_id, Alert.alert_type).filter(Alert.is_resolved.is_(False)).all()
     existing_keys = {(e[0], e[1], e[2]) for e in existing}
 
     created: list[Alert] = []

@@ -33,7 +33,7 @@ class ConsumptionLog(AuditMixin, table=True):
         ),
     )
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     inventory_id: int = Field(
         sa_column=Column(
             sa.Integer,
@@ -42,21 +42,15 @@ class ConsumptionLog(AuditMixin, table=True):
             nullable=False,
         ),
     )
-    product_id: Optional[int] = Field(
+    product_id: int | None = Field(
         default=None,
-        sa_column=Column(
-            sa.Integer, sa.ForeignKey("products.id", ondelete="SET NULL"), index=True
-        ),
+        sa_column=Column(sa.Integer, sa.ForeignKey("products.id", ondelete="SET NULL"), index=True),
     )
     quantity_used: Decimal = Field(sa_column=Column(sa.Numeric(12, 4), nullable=False))
-    quantity_remaining: Decimal = Field(
-        sa_column=Column(sa.Numeric(12, 4), nullable=False)
-    )
+    quantity_remaining: Decimal = Field(sa_column=Column(sa.Numeric(12, 4), nullable=False))
     consumed_by: str = Field(max_length=200)
-    purpose: Optional[str] = Field(default=None, max_length=500)
+    purpose: str | None = Field(default=None, max_length=500)
     action: str = Field(max_length=30)
 
-    inventory_item: Optional["InventoryItem"] = Relationship(
-        back_populates="consumption_logs"
-    )
+    inventory_item: Optional["InventoryItem"] = Relationship(back_populates="consumption_logs")
     product: Optional["Product"] = Relationship(back_populates="consumption_logs")

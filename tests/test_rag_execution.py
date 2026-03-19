@@ -24,10 +24,7 @@ def pg_session(db_engine):
     with Session(db_engine) as session:
         # Insert test data into the vendors table (allowed by RAG)
         session.execute(
-            text(
-                "INSERT INTO vendors (name, created_by) VALUES "
-                "('Test Vendor A', 'test'), ('Test Vendor B', 'test')"
-            )
+            text("INSERT INTO vendors (name, created_by) VALUES ('Test Vendor A', 'test'), ('Test Vendor B', 'test')")
         )
         session.commit()
         yield session

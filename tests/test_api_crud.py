@@ -107,9 +107,7 @@ def test_vendor_relationship_not_found(client):
 
 
 def test_product_update(client):
-    resp = client.post(
-        "/api/products/", json={"catalog_number": "C1", "name": "OldProd"}
-    )
+    resp = client.post("/api/products/", json={"catalog_number": "C1", "name": "OldProd"})
     pid = resp.json()["id"]
     resp = client.patch(f"/api/products/{pid}", json={"name": "NewProd"})
     assert resp.status_code == 200
@@ -117,9 +115,7 @@ def test_product_update(client):
 
 
 def test_product_delete(client):
-    resp = client.post(
-        "/api/products/", json={"catalog_number": "C2", "name": "DelProd"}
-    )
+    resp = client.post("/api/products/", json={"catalog_number": "C2", "name": "DelProd"})
     pid = resp.json()["id"]
     resp = client.delete(f"/api/products/{pid}")
     assert resp.status_code == 204
@@ -161,9 +157,7 @@ def test_product_list_filters(client):
 
 
 def test_product_inventory_relationship(client):
-    pr = client.post(
-        "/api/products/", json={"catalog_number": "INV1", "name": "InvProd"}
-    )
+    pr = client.post("/api/products/", json={"catalog_number": "INV1", "name": "InvProd"})
     pid = pr.json()["id"]
     client.post("/api/inventory/", json={"product_id": pid, "quantity_on_hand": 10})
     resp = client.get(f"/api/products/{pid}/inventory")
@@ -171,9 +165,7 @@ def test_product_inventory_relationship(client):
 
 
 def test_product_orders_relationship(client):
-    pr = client.post(
-        "/api/products/", json={"catalog_number": "ORD1", "name": "OrdProd"}
-    )
+    pr = client.post("/api/products/", json={"catalog_number": "ORD1", "name": "OrdProd"})
     pid = pr.json()["id"]
     # Create order and item
     orr = client.post("/api/orders/", json={"status": "pending"})
@@ -353,9 +345,7 @@ def test_inventory_soft_delete(client):
 
 
 def test_inventory_list_filters(client):
-    pr = client.post(
-        "/api/products/", json={"catalog_number": "FP1", "name": "FilterProd"}
-    )
+    pr = client.post("/api/products/", json={"catalog_number": "FP1", "name": "FilterProd"})
     pid = pr.json()["id"]
     pid2 = _make_product(client, "FP2", "ExpiredProd")
     client.post(

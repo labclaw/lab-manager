@@ -23,19 +23,13 @@ def test_cross_review_no_file_path_in_prompt():
         FakeProvider("gemini", {"vendor_name": "Sigma", "review_notes": "ok"}),
     ]
     merged = {"vendor_name": "Sigma", "_consensus": {}, "_needs_human": False}
-    result = cross_model_review(
-        providers, "/home/user/scans/doc001.pdf", merged, ocr_text="OCR text here"
-    )
+    result = cross_model_review(providers, "/home/user/scans/doc001.pdf", merged, ocr_text="OCR text here")
     assert result["vendor_name"] == "Sigma"
     # Verify no local file path leaked into any prompt sent to providers
     for p in providers:
         for prompt in p.received_prompts:
-            assert "/home/" not in prompt, (
-                f"Prompt should not contain local file paths, got: {prompt[:200]}"
-            )
-            assert "/tmp/" not in prompt, (
-                f"Prompt should not contain local /tmp/ paths, got: {prompt[:200]}"
-            )
+            assert "/home/" not in prompt, f"Prompt should not contain local file paths, got: {prompt[:200]}"
+            assert "/tmp/" not in prompt, f"Prompt should not contain local /tmp/ paths, got: {prompt[:200]}"
 
 
 def test_cross_review_applies_majority_correction():
@@ -46,9 +40,7 @@ def test_cross_review_applies_majority_correction():
         FakeProvider("codex", {"vendor_name": "Sigma"}),
     ]
     merged = {"vendor_name": "Sigma", "_consensus": {}, "_needs_human": False}
-    result = cross_model_review(
-        providers, "/path/to/doc.pdf", merged, ocr_text="Sigma-Aldrich"
-    )
+    result = cross_model_review(providers, "/path/to/doc.pdf", merged, ocr_text="Sigma-Aldrich")
     assert result["vendor_name"] == "Sigma-Aldrich"
     assert "vendor_name" in result["_review_round"]["corrections_applied"]
 

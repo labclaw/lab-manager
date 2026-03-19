@@ -27,9 +27,7 @@ Rules:
 
 def main() -> None:
     if len(sys.argv) < 3:
-        raise SystemExit(
-            "usage: python run_qwen35.py <input_dir> <output_json> [model_id]"
-        )
+        raise SystemExit("usage: python run_qwen35.py <input_dir> <output_json> [model_id]")
 
     input_dir = Path(sys.argv[1])
     output_json = Path(sys.argv[2])
