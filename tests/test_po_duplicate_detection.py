@@ -15,6 +15,7 @@ Covers:
 import pytest
 
 from lab_manager.models.order import Order
+from lab_manager.models.vendor import Vendor
 from lab_manager.services.orders import build_duplicate_warning, find_duplicate_po
 
 
@@ -24,6 +25,14 @@ from lab_manager.services.orders import build_duplicate_warning, find_duplicate_
 
 
 def _make_order(db, *, po_number, vendor_id=None, status="pending"):
+    if vendor_id is not None:
+        vendor_name = f"_test_vendor_{vendor_id}"
+        vendor = db.query(Vendor).filter_by(name=vendor_name).first()
+        if vendor is None:
+            vendor = Vendor(name=vendor_name)
+            db.add(vendor)
+            db.flush()
+        vendor_id = vendor.id
     o = Order(po_number=po_number, vendor_id=vendor_id, status=status)
     db.add(o)
     db.commit()
