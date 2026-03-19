@@ -28,9 +28,17 @@ uv run uvicorn lab_manager.api.app:app --reload  # Dev server on :8000
 uv run pytest                 # Tests
 ```
 
+On first run, the setup wizard creates the admin user via `POST /api/setup/complete`. Open the app in a browser to complete setup.
+
+To enable full-text search, build the Meilisearch index after populating data:
+
+```bash
+uv run python scripts/index_meilisearch.py
+```
+
 ## API
 
-71 endpoints across vendors, products, orders, inventory, documents, search, analytics, alerts, audit, and export. All list endpoints return paginated responses with filtering and sorting.
+71 endpoints across vendors, products, orders, inventory, documents, search, analytics, alerts, audit, and export (all under `/api/v1/`). All list endpoints return paginated responses with filtering and sorting.
 
 Key workflows:
 - **Document intake:** Upload scan → OCR → VLM extraction → review → approve/reject

@@ -2,6 +2,78 @@
 
 All notable changes to LabClaw Lab Manager will be documented in this file.
 
+## [0.1.5] - 2026-03-19
+
+### Added
+- Lab equipment module with VLM photo extraction (#15)
+- Separated lab-specific data (equipment) from generic product model (#16)
+- First-run setup wizard — `POST /api/setup/complete` creates first admin user, `GET /api/setup/status` checks initialization state
+- Configurable lab branding (lab name, logo, primary color) via setup wizard
+- API v1 prefix — all resource endpoints now under `/api/v1/` with typed response models (#31)
+- PO# duplicate detection on order creation (TODO-14) (#33)
+- Installer script and DigitalOcean deployment automation (#42)
+- CI coverage enforcement and CodeQL security scanning (#29)
+
+### Changed
+- Auth defaults hardened — `SECURE_COOKIES=True`, rate limiting on login, `X-User` header spoofing prevention (#30)
+- Admin credential boundaries tightened (#20)
+- Frontend wired with react-router and react-query; error UI for failed requests (#27)
+- React SPA routing with `dist/` serving and catch-all middleware (#21)
+- Pre-commit hooks for code quality (ruff, trailing whitespace) (#28)
+- Comprehensive BDD scenario coverage for all API modules (#35)
+
+### Fixed
+- **XSS**: `escapeHtml` applied to all `innerHTML` interpolations (#32)
+- **Security**: password_hash hidden from SQLAdmin detail/edit views
+- **Intake**: consensus pipeline bug fixes (edge cases in majority voting) (#23)
+- **DB**: RAG schema updated, stale staff references cleaned up (#24)
+- **Test**: SQLite threading issues in BDD tests resolved (#34)
+- **Test**: 100% test coverage achieved with BDD fix (#36)
+- **Setup**: email/name validation, email removed from logs, TOCTOU race fixed (#43)
+- **Setup**: stale settings cache after wizard, cloud-init compatibility (#40)
+
+## [0.1.4] - 2026-03-19
+
+### Added
+- Document upload endpoint — `POST /api/documents/upload` with file isolation
+- Upload, inventory, and orders frontend views
+- Stitch dark theme for frontend UI
+- PWA support — `manifest.json`, service worker, app icons, installable routes
+- Cloudflare Tunnel integration and shenlab-docs static mount in Docker
+
+### Changed
+- Frontend JS extracted into modular files (`app.js`, `router.js`)
+- Caddyfile CSP updated for Tailwind CDN, Google Fonts, camera access
+
+### Fixed
+- Duplicate `/uploads` static mount removed
+- Upload filenames sanitized to prevent path traversal
+- API errors surfaced to users instead of silent failures
+- Frontend pagination aligned with API response format
+- NaN% display prevented on empty database dashboards
+
+## [0.1.3] - 2026-03-17
+
+### Added
+- Production deployment — Caddy TLS termination, secure secrets, disk monitoring, non-root Docker (#14)
+- BDD test infrastructure with 27 scenarios across 5 domains (vendors, orders, inventory, documents, alerts)
+- Domain exception hierarchy, middleware split, route hardening
+
+### Changed
+- Docker image build order corrected, user home directory fixed
+- Config tolerates extra env vars without error; Docker env override prevented
+- `/api/auth/me` returns default user when auth disabled
+
+### Fixed
+- **Security**: RAG SQL validation hardened, SQLAdmin auth tightened
+- **Security**: `password_hash` no longer exposed in SQLAdmin detail/edit views
+- **Deploy**: RLock deadlock in startup, auth parameterized for deploy environments, Caddy wildcard handling
+- **Deploy**: env vars, auto-migration on boot, uv version pinned
+- **QA**: responsive CSS for mobile layout, inline scripts allowed in CSP for SPA
+- **QA**: scan images viewable in Docker via shenlab-docs mount
+- **Test**: read-only transaction rollback before RAG test cleanup
+- **Lint**: all ruff errors and format violations resolved
+
 ## [0.1.2] - 2026-03-16
 
 ### Added
