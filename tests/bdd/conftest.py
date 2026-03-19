@@ -44,6 +44,7 @@ os.environ["DATABASE_URL"] = _DB_URL
 os.environ.setdefault("MEILISEARCH_URL", "http://localhost:7700")
 os.environ.setdefault("AUTH_ENABLED", "false")
 os.environ.setdefault("ADMIN_SECRET_KEY", "test-secret-key-not-for-production")
+os.environ.setdefault("ADMIN_PASSWORD", "test-admin-password-not-for-production")
 os.environ.setdefault("UPLOAD_DIR", "/tmp/uploads")
 
 from lab_manager.config import get_settings  # noqa: E402
@@ -117,6 +118,7 @@ def db(db_connection):
 @pytest.fixture
 def api(db, db_connection):
     """TestClient hitting the real app with test DB session (rolled back per test)."""
+    os.environ["AUTH_ENABLED"] = "false"
     get_settings.cache_clear()
 
     from lab_manager.api.app import create_app

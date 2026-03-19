@@ -138,6 +138,7 @@ class TestAppSessionCookie:
         import os
 
         os.environ["AUTH_ENABLED"] = "true"
+        os.environ["ADMIN_PASSWORD"] = "test-admin-password-12345"
         os.environ["ADMIN_SECRET_KEY"] = "test-secret-key-for-session"
         os.environ["API_KEY"] = "test-api-key"
 
@@ -155,6 +156,7 @@ class TestAppSessionCookie:
                 assert resp.status_code == 401
         finally:
             os.environ["AUTH_ENABLED"] = "false"
+            os.environ.pop("ADMIN_PASSWORD", None)
             os.environ.pop("ADMIN_SECRET_KEY", None)
             os.environ.pop("API_KEY", None)
             get_settings.cache_clear()
@@ -164,6 +166,7 @@ class TestAppSessionCookie:
         import os
 
         os.environ["AUTH_ENABLED"] = "true"
+        os.environ["ADMIN_PASSWORD"] = "test-admin-password-12345"
         os.environ["ADMIN_SECRET_KEY"] = "test-secret-key-for-api"
         os.environ["API_KEY"] = "my-test-api-key"
 
@@ -184,6 +187,7 @@ class TestAppSessionCookie:
                 assert resp.status_code in (200, 503)
         finally:
             os.environ["AUTH_ENABLED"] = "false"
+            os.environ.pop("ADMIN_PASSWORD", None)
             os.environ.pop("ADMIN_SECRET_KEY", None)
             os.environ.pop("API_KEY", None)
             get_settings.cache_clear()
@@ -193,6 +197,7 @@ class TestAppSessionCookie:
         import os
 
         os.environ["AUTH_ENABLED"] = "true"
+        os.environ["ADMIN_PASSWORD"] = "test-admin-password-12345"
         os.environ["ADMIN_SECRET_KEY"] = "test-secret-key-for-unauth"
         os.environ["API_KEY"] = "api-key-123"
 
@@ -210,6 +215,7 @@ class TestAppSessionCookie:
                 assert resp.status_code == 401
         finally:
             os.environ["AUTH_ENABLED"] = "false"
+            os.environ.pop("ADMIN_PASSWORD", None)
             os.environ.pop("ADMIN_SECRET_KEY", None)
             os.environ.pop("API_KEY", None)
             get_settings.cache_clear()
@@ -219,6 +225,7 @@ class TestAppSessionCookie:
         import os
 
         os.environ["AUTH_ENABLED"] = "true"
+        os.environ["ADMIN_PASSWORD"] = "test-admin-password-12345"
         os.environ["ADMIN_SECRET_KEY"] = "test-secret-key-for-invalid"
         os.environ["API_KEY"] = ""
 
@@ -238,6 +245,7 @@ class TestAppSessionCookie:
                 assert resp.status_code == 401
         finally:
             os.environ["AUTH_ENABLED"] = "false"
+            os.environ.pop("ADMIN_PASSWORD", None)
             os.environ.pop("ADMIN_SECRET_KEY", None)
             os.environ.pop("API_KEY", None)
             get_settings.cache_clear()
@@ -251,6 +259,7 @@ class TestAppLoginEndpoint:
         import os
 
         os.environ["AUTH_ENABLED"] = "true"
+        os.environ["ADMIN_PASSWORD"] = "test-admin-password-12345"
         os.environ["ADMIN_SECRET_KEY"] = "test-secret-for-login"
 
         from lab_manager.config import get_settings
@@ -271,6 +280,7 @@ class TestAppLoginEndpoint:
                 assert resp.status_code in (401, 503)
         finally:
             os.environ["AUTH_ENABLED"] = "false"
+            os.environ.pop("ADMIN_PASSWORD", None)
             os.environ.pop("ADMIN_SECRET_KEY", None)
             get_settings.cache_clear()
 
@@ -378,6 +388,7 @@ class TestAppAuthMeWithSession:
         import os
 
         os.environ["AUTH_ENABLED"] = "true"
+        os.environ["ADMIN_PASSWORD"] = "test-admin-password-12345"
         os.environ["ADMIN_SECRET_KEY"] = "session-test-key-12345"
 
         from lab_manager.config import get_settings
@@ -404,6 +415,7 @@ class TestAppAuthMeWithSession:
                 assert data["user"]["name"] == "TestUser"
         finally:
             os.environ["AUTH_ENABLED"] = "false"
+            os.environ.pop("ADMIN_PASSWORD", None)
             os.environ.pop("ADMIN_SECRET_KEY", None)
             get_settings.cache_clear()
 
@@ -411,6 +423,7 @@ class TestAppAuthMeWithSession:
         import os
 
         os.environ["AUTH_ENABLED"] = "true"
+        os.environ["ADMIN_PASSWORD"] = "test-admin-password-12345"
         os.environ["ADMIN_SECRET_KEY"] = "bad-sig-test-key-12345"
 
         from lab_manager.config import get_settings
@@ -429,6 +442,7 @@ class TestAppAuthMeWithSession:
                 assert resp.json()["detail"] == "Invalid session"
         finally:
             os.environ["AUTH_ENABLED"] = "false"
+            os.environ.pop("ADMIN_PASSWORD", None)
             os.environ.pop("ADMIN_SECRET_KEY", None)
             get_settings.cache_clear()
 
