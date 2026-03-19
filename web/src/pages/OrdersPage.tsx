@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { orders as ordApi } from '@/lib/api'
 import type { Order } from '@/lib/api'
-import { Search, ChevronLeft, ChevronRight, RefreshCw, ShoppingCart } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, RefreshCw, ShoppingCart, WifiOff, ClipboardCheck } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SkeletonTable } from '@/components/ui/SkeletonTable'
+import { Link } from 'react-router-dom'
 
 const STATUS_FILTERS = [
   { value: '', label: 'All Status' },
@@ -22,16 +24,19 @@ export function OrdersPage({ onError }: OrdersPageProps) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const pageSize = 25
 
   const loadOrders = async () => {
     setLoading(true)
+    setLoadError(false)
     try {
       const res = await ordApi.list(page, pageSize)
       setOrders(res.items ?? [])
       setTotal(res.total ?? 0)
     } catch (err) {
       console.error('Failed to load orders:', err)
+      setLoadError(true)
     } finally {
       setLoading(false)
     }
@@ -70,6 +75,22 @@ export function OrdersPage({ onError }: OrdersPageProps) {
   }
 
   const totalPages = Math.ceil(total / pageSize)
+
+  if (loadError && !loading) {
+    return (
+      <EmptyState
+        icon={WifiOff}
+        title="Could not load orders"
+        description="Check your connection and try again."
+        action={
+          <button onClick={loadOrders} className="btn-primary flex items-center gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Retry
+          </button>
+        }
+      />
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -127,6 +148,9 @@ export function OrdersPage({ onError }: OrdersPageProps) {
               </th>
             </tr>
           </thead>
+          {loading ? (
+            <SkeletonTable columns={6} rows={5} />
+          ) : filtered.length === 0 ? null : (
           <tbody>
             {filtered.map((order) => (
               <tr
@@ -164,22 +188,26 @@ export function OrdersPage({ onError }: OrdersPageProps) {
               </tr>
             ))}
           </tbody>
+          )}
         </table>
 
-        {filtered.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <div className="py-12">
-            {loading ? (
-              <div className="flex flex-col items-center justify-center space-y-3">
-                <div className="w-8 h-8 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
-                <span className="text-sm text-[var(--muted-foreground)] font-medium">Fetching orders...</span>
-              </div>
-            ) : (
-              <EmptyState
-                icon={ShoppingCart}
-                title={search ? "No matching orders" : "No orders found"}
-                description={search ? `No orders found matching "${search}"` : "You haven't placed any orders yet."}
-              />
-            )}
+            <EmptyState
+              icon={ShoppingCart}
+              title={search ? "No matching orders" : "No orders yet"}
+              description={search
+                ? `No orders found matching "${search}"`
+                : "Orders are created when documents are approved in the review queue."}
+              action={
+                search ? undefined : (
+                  <Link to="/review" className="btn-primary flex items-center gap-2">
+                    <ClipboardCheck className="w-4 h-4" />
+                    Go to Review Queue
+                  </Link>
+                )
+              }
+            />
           </div>
         )}
       </div>

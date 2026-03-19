@@ -90,7 +90,6 @@ def _load_session_staff(session_cookie: str):
 
         staff = db.get(Staff, staff_id)
         if staff and staff.is_active:
-            # Eagerly read attributes while session is open
             return {"id": staff.id, "name": staff.name}
 
     logger.warning(

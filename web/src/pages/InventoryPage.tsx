@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { inventory as invApi } from '@/lib/api'
 import type { InventoryItem } from '@/lib/api'
-import { RefreshCw, Search, ChevronLeft, ChevronRight, PackageSearch } from 'lucide-react'
+import { RefreshCw, Search, ChevronLeft, ChevronRight, PackageSearch, ClipboardCheck, WifiOff } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SkeletonTable } from '@/components/ui/SkeletonTable'
+import { Link } from 'react-router-dom'
 
 interface InventoryPageProps {
   onError?: (error: string) => void
@@ -44,6 +46,22 @@ export function InventoryPage({ onError }: InventoryPageProps) {
   }
 
   const totalPages = Math.ceil(total / pageSize)
+
+  if (error) {
+    return (
+      <EmptyState
+        icon={WifiOff}
+        title="Could not load inventory"
+        description="Check your connection and try again."
+        action={
+          <button onClick={() => refetch()} className="btn-primary flex items-center gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Retry
+          </button>
+        }
+      />
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -88,6 +106,9 @@ export function InventoryPage({ onError }: InventoryPageProps) {
               </th>
             </tr>
           </thead>
+          {isLoading ? (
+            <SkeletonTable columns={6} rows={5} />
+          ) : items.length === 0 ? null : (
           <tbody>
             {items.map((item) => (
               <tr
@@ -121,22 +142,26 @@ export function InventoryPage({ onError }: InventoryPageProps) {
               </tr>
             ))}
           </tbody>
+          )}
         </table>
 
-        {items.length === 0 && (
+        {!isLoading && items.length === 0 && (
           <div className="py-12">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center space-y-3">
-                <div className="w-8 h-8 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
-                <span className="text-sm text-[var(--muted-foreground)] font-medium">Fetching inventory...</span>
-              </div>
-            ) : (
-              <EmptyState
-                icon={PackageSearch}
-                title={search ? "No matching items" : "No inventory items"}
-                description={search ? `No items found matching "${search}"` : "Your laboratory inventory is currently empty."}
-              />
-            )}
+            <EmptyState
+              icon={PackageSearch}
+              title={search ? "No matching items" : "Your inventory is empty"}
+              description={search
+                ? `No items found matching "${search}"`
+                : "Process documents through the review queue to populate it."}
+              action={
+                search ? undefined : (
+                  <Link to="/review" className="btn-primary flex items-center gap-2">
+                    <ClipboardCheck className="w-4 h-4" />
+                    Go to Review Queue
+                  </Link>
+                )
+              }
+            />
           </div>
         )}
       </div>
