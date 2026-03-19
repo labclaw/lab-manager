@@ -261,12 +261,8 @@ header "Health Check"
 
 info "Waiting for Lab Manager to start (up to 60 seconds)..."
 
-# Determine health check URL
-if [[ "${DOMAIN:-localhost}" == "localhost" ]]; then
-    HEALTH_URL="http://localhost/api/health"
-else
-    HEALTH_URL="http://localhost/api/health"
-fi
+# Always check via localhost — Caddy listens on port 80 regardless of domain
+HEALTH_URL="http://localhost/api/health"
 
 ELAPSED=0
 MAX_WAIT=60

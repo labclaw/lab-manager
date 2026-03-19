@@ -13,18 +13,17 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from sqlalchemy import text
 
+# Import to register SQLAlchemy event listeners on module load.
+import lab_manager.services.audit as _audit_svc  # noqa: F401
 from lab_manager.api.admin import setup_admin
 from lab_manager.config import get_settings
 from lab_manager.database import get_engine
 from lab_manager.exceptions import BusinessError
 from lab_manager.logging_config import configure_logging
-
-# Import to register SQLAlchemy event listeners on module load.
-import lab_manager.services.audit as _audit_svc  # noqa: F401
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -145,9 +144,7 @@ def create_app() -> FastAPI:
         user = "system"
 
         # Allowlisted paths — no auth required.
-        is_allowed = path in _AUTH_ALLOWLIST or path.startswith(
-            _AUTH_ALLOWLIST_PREFIXES
-        )
+        is_allowed = path in _AUTH_ALLOWLIST or path.startswith(_AUTH_ALLOWLIST_PREFIXES)
 
         if settings.auth_enabled and not is_allowed:
             authenticated = False
@@ -281,9 +278,7 @@ def create_app() -> FastAPI:
         _DUMMY_HASH = b"$2b$12$LJ3m4ys3Lg2VBe7MaBSW2.P68rAGkMgGMfkCGKEKeDqz4rMpWsSi6"
         password_ok = False
         if staff and staff.is_active and staff.password_hash:
-            password_ok = _bcrypt.checkpw(
-                password.encode("utf-8"), staff.password_hash.encode("utf-8")
-            )
+            password_ok = _bcrypt.checkpw(password.encode("utf-8"), staff.password_hash.encode("utf-8"))
         else:
             _bcrypt.checkpw(password.encode("utf-8"), _DUMMY_HASH)
 
@@ -296,9 +291,7 @@ def create_app() -> FastAPI:
         # Create signed session cookie with new token (session regeneration)
         serializer = _get_serializer()
         session_data = serializer.dumps({"staff_id": staff.id, "name": staff.name})
-        response = JSONResponse(
-            {"status": "ok", "user": {"id": staff.id, "name": staff.name}}
-        )
+        response = JSONResponse({"status": "ok", "user": {"id": staff.id, "name": staff.name}})
         response.set_cookie(
             _SESSION_COOKIE,
             session_data,
@@ -318,15 +311,11 @@ def create_app() -> FastAPI:
             return {"user": {"id": 0, "name": "Lab User"}}
         session_cookie = request.cookies.get(_SESSION_COOKIE)
         if not session_cookie:
-            return JSONResponse(
-                status_code=401, content={"detail": "Not authenticated"}
-            )
+            return JSONResponse(status_code=401, content={"detail": "Not authenticated"})
         try:
             serializer = _get_serializer()
             data = serializer.loads(session_cookie, max_age=_SESSION_MAX_AGE)
-            return {
-                "user": {"id": data.get("staff_id"), "name": data.get("name", "User")}
-            }
+            return {"user": {"id": data.get("staff_id"), "name": data.get("name", "User")}}
         except BadSignature:
             return JSONResponse(status_code=401, content={"detail": "Invalid session"})
 
@@ -340,27 +329,27 @@ def create_app() -> FastAPI:
 
     @app.get("/api/config")
     def lab_config():
+        cfg = get_settings()
         return {
-            "lab_name": settings.lab_name,
-            "lab_subtitle": settings.lab_subtitle,
+            "lab_name": cfg.lab_name,
+            "lab_subtitle": cfg.lab_subtitle,
         }
 
     # --- First-run setup endpoints (no auth required) ---
+
+    def _admin_exists(db) -> bool:
+        """Check if any active staff with a password exists."""
+        from lab_manager.models.staff import Staff
+
+        return db.query(Staff).filter(Staff.password_hash.isnot(None), Staff.is_active.is_(True)).first() is not None
 
     @app.get("/api/setup/status")
     def setup_status():
         """Check if initial setup is needed (no admin user with password exists)."""
         from lab_manager.database import get_db_session
-        from lab_manager.models.staff import Staff
 
         with get_db_session() as db:
-            admin_exists = (
-                db.query(Staff)
-                .filter(Staff.password_hash.isnot(None), Staff.is_active.is_(True))
-                .first()
-                is not None
-            )
-        return {"needs_setup": not admin_exists}
+            return {"needs_setup": not _admin_exists(db)}
 
     @app.post("/api/setup/complete")
     @limiter.limit("3/minute")
@@ -372,28 +361,29 @@ def create_app() -> FastAPI:
     ):
         """First-run setup: create the admin user. Only works when no admin exists."""
         import bcrypt as _bcrypt
+        from sqlalchemy.exc import IntegrityError
 
         from lab_manager.database import get_db_session
         from lab_manager.models.staff import Staff
 
-        # Guard: only allow setup when no admin with password exists
-        with get_db_session() as db:
-            admin_exists = (
-                db.query(Staff)
-                .filter(Staff.password_hash.isnot(None), Staff.is_active.is_(True))
-                .first()
-                is not None
+        # Validate before opening DB session
+        if len(admin_password) < 8:
+            return JSONResponse(
+                status_code=422,
+                content={"detail": "Password must be at least 8 characters"},
             )
-            if admin_exists:
+        # bcrypt silently truncates at 72 bytes
+        if len(admin_password.encode("utf-8")) > 72:
+            return JSONResponse(
+                status_code=422,
+                content={"detail": "Password must be 72 bytes or fewer"},
+            )
+
+        with get_db_session() as db:
+            if _admin_exists(db):
                 return JSONResponse(
                     status_code=409,
                     content={"detail": "Setup already completed"},
-                )
-
-            if len(admin_password) < 8:
-                return JSONResponse(
-                    status_code=422,
-                    content={"detail": "Password must be at least 8 characters"},
                 )
 
             # Create or update staff record
@@ -411,10 +401,16 @@ def create_app() -> FastAPI:
                 )
                 db.add(staff)
 
-            staff.password_hash = _bcrypt.hashpw(
-                admin_password.encode("utf-8"), _bcrypt.gensalt()
-            ).decode("utf-8")
-            db.commit()
+            staff.password_hash = _bcrypt.hashpw(admin_password.encode("utf-8"), _bcrypt.gensalt()).decode("utf-8")
+
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+                return JSONResponse(
+                    status_code=409,
+                    content={"detail": "Setup already completed"},
+                )
 
             logger.info("Setup complete: admin user created (%s)", admin_email)
             return {
@@ -440,21 +436,13 @@ def create_app() -> FastAPI:
     # Auth is handled by auth_middleware — rate limiting via route decorators
     api_router = APIRouter()
     api_router.include_router(vendors.router, prefix="/api/vendors", tags=["vendors"])
-    api_router.include_router(
-        products.router, prefix="/api/products", tags=["products"]
-    )
+    api_router.include_router(products.router, prefix="/api/products", tags=["products"])
     api_router.include_router(orders.router, prefix="/api/orders", tags=["orders"])
-    api_router.include_router(
-        inventory.router, prefix="/api/inventory", tags=["inventory"]
-    )
-    api_router.include_router(
-        documents.router, prefix="/api/documents", tags=["documents"]
-    )
+    api_router.include_router(inventory.router, prefix="/api/inventory", tags=["inventory"])
+    api_router.include_router(documents.router, prefix="/api/documents", tags=["documents"])
     api_router.include_router(search.router, prefix="/api/search", tags=["search"])
     api_router.include_router(ask.router, prefix="/api/ask", tags=["ask"])
-    api_router.include_router(
-        analytics.router, prefix="/api/analytics", tags=["analytics"]
-    )
+    api_router.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
     api_router.include_router(export.router, prefix="/api/export", tags=["export"])
     api_router.include_router(audit.router, prefix="/api/audit", tags=["audit"])
     api_router.include_router(alerts.router, prefix="/api/alerts", tags=["alerts"])
@@ -464,11 +452,7 @@ def create_app() -> FastAPI:
     # Rate limit: 10 requests per minute (same as POST)
     for route in app.routes:
         if hasattr(route, "path") and hasattr(route, "endpoint"):
-            if (
-                route.path in ("/api/ask", "/api/ask/")
-                and route.methods
-                and "GET" in route.methods
-            ):
+            if route.path in ("/api/ask", "/api/ask/") and route.methods and "GET" in route.methods:
                 original_endpoint = route.endpoint
                 route.endpoint = limiter.limit("10/minute")(original_endpoint)
 

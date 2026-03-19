@@ -16,12 +16,9 @@ packages:
 
 users:
   - name: labclaw
-    groups: sudo, docker
+    groups: docker
     shell: /bin/bash
-    sudo: ALL=(ALL) NOPASSWD:ALL
     lock_passwd: true
-    ssh_authorized_keys:
-      - ${SSH_PUBLIC_KEY}
 
 write_files:
   - path: /opt/labclaw/setup.sh
