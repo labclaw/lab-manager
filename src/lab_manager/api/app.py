@@ -404,7 +404,7 @@ def create_app() -> FastAPI:
     # Serve frontend static assets and root
     # React SPA build output lives in static/dist/
     DIST_DIR = STATIC_DIR / "dist"
-    if DIST_DIR.is_dir():
+    if DIST_DIR.is_dir():  # pragma: no cover — depends on React build artifacts
         # Serve bundled JS/CSS assets from dist/assets/
         app.mount(
             "/assets",

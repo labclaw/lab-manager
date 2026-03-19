@@ -164,7 +164,9 @@ def update_product(product_id: int, body: ProductUpdate, db: Session = Depends(g
             raise ConflictError(
                 f"catalog_number {body.catalog_number!r} already exists for this vendor"
             )
-        raise ConflictError("Constraint violation")
+        raise ConflictError(
+            "Constraint violation"
+        )  # pragma: no cover — defensive fallback
     db.refresh(product)
     return product
 
