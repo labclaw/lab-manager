@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { inventory as invApi } from '@/lib/api'
-import type { InventoryItem } from '@/lib/api'
 import { RefreshCw, Search, ChevronLeft, ChevronRight, PackageSearch } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 
@@ -15,7 +14,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
   const pageSize = 20
 
   const { data: res, isLoading, error, refetch } = useQuery({
-    queryKey: ['inventory', page, search],
+    queryKey: ['inventory', page],
     queryFn: () => invApi.list(page, pageSize),
   })
 
@@ -133,8 +132,8 @@ export function InventoryPage({ onError }: InventoryPageProps) {
             ) : (
               <EmptyState
                 icon={PackageSearch}
-                title={search ? "No matching items" : "No inventory items"}
-                description={search ? `No items found matching "${search}"` : "Your laboratory inventory is currently empty."}
+                title={search ? "No matching items" : "Inventory is empty"}
+                description={search ? `No items found matching "${search}"` : "Process documents through the review queue to populate inventory."}
               />
             )}
           </div>
@@ -150,6 +149,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
+              aria-label="Previous page"
               className="btn-ghost p-2"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -160,6 +160,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
+              aria-label="Next page"
               className="btn-ghost p-2"
             >
               <ChevronRight className="w-4 h-4" />

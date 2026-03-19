@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { orders as ordApi } from '@/lib/api'
 import type { Order } from '@/lib/api'
 import { Search, ChevronLeft, ChevronRight, RefreshCw, ShoppingCart } from 'lucide-react'
@@ -24,22 +24,23 @@ export function OrdersPage({ onError }: OrdersPageProps) {
   const [loading, setLoading] = useState(true)
   const pageSize = 25
 
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     setLoading(true)
     try {
       const res = await ordApi.list(page, pageSize)
       setOrders(res.items ?? [])
       setTotal(res.total ?? 0)
     } catch (err) {
-      console.error('Failed to load orders:', err)
+      const msg = err instanceof Error ? err.message : 'Failed to load orders'
+      onError?.(msg)
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, onError])
 
   useEffect(() => {
     loadOrders()
-  }, [page])
+  }, [loadOrders])
 
   const filtered = orders.filter((o) => {
     if (statusFilter && o.status !== statusFilter) return false
@@ -194,6 +195,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
+              aria-label="Previous page"
               className="btn-ghost p-2"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -204,6 +206,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
+              aria-label="Next page"
               className="btn-ghost p-2"
             >
               <ChevronRight className="w-4 h-4" />

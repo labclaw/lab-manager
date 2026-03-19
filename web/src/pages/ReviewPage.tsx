@@ -1,48 +1,74 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { documents as docApi } from '@/lib/api'
 import type { Document } from '@/lib/api'
-import { CheckCircle2, XCircle, AlertTriangle, RefreshCw, ClipboardCheck } from 'lucide-react'
+import { CheckCircle2, XCircle, AlertTriangle, RefreshCw, ChevronRight, Upload } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { cn } from '@/lib/utils'
 
 interface ReviewPageProps {
   onError?: (error: string) => void
 }
 
 export function ReviewPage({ onError }: ReviewPageProps) {
+  const navigate = useNavigate()
   const [queue, setQueue] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
-  const [action, setAction] = useState<{ id: number; type: 'approve' | 'reject' } | null>(null)
+  const [selected, setSelected] = useState<Document | null>(null)
+  const [rejecting, setRejecting] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
+  const [actionLoading, setActionLoading] = useState(false)
 
-  const loadQueue = async () => {
+  const loadQueue = useCallback(async () => {
     setLoading(true)
     try {
       const res = await docApi.reviewQueue()
-      setQueue(res.items ?? [])
+      const items = res.items ?? []
+      setQueue(items)
+      setSelected(prev => {
+        if (items.length === 0) return null
+        if (!prev || !items.find(d => d.id === prev.id)) return items[0]
+        return prev
+      })
     } catch (err) {
-      console.error('Failed to load review queue:', err)
+      const msg = err instanceof Error ? err.message : 'Failed to load review queue'
+      onError?.(msg)
     } finally {
       setLoading(false)
     }
-  }
+  }, [onError])
 
   useEffect(() => {
     loadQueue()
-  }, [])
+  }, [loadQueue])
 
-  const handleAction = async () => {
-    if (!action) return
+  const handleApprove = async () => {
+    if (!selected) return
+    setActionLoading(true)
     try {
-      if (action.type === 'approve') {
-        await docApi.approve(action.id)
-      } else {
-        await docApi.reject(action.id, rejectReason || 'No reason provided')
-      }
-      setAction(null)
-      setRejectReason('')
-      loadQueue()
+      await docApi.approve(selected.id)
+      await loadQueue()
     } catch (err) {
-      console.error('Action failed:', err)
+      const msg = err instanceof Error ? err.message : 'Failed to approve document'
+      onError?.(msg)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleReject = async () => {
+    if (!selected) return
+    setActionLoading(true)
+    try {
+      await docApi.reject(selected.id, rejectReason || 'No reason provided')
+      setRejecting(false)
+      setRejectReason('')
+      await loadQueue()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to reject document'
+      onError?.(msg)
+    } finally {
+      setActionLoading(false)
     }
   }
 
@@ -59,110 +85,148 @@ export function ReviewPage({ onError }: ReviewPageProps) {
     return (
       <EmptyState
         icon={CheckCircle2}
-        title="All caught up!"
-        description="No documents are currently pending manual review."
+        title="No documents waiting for review"
+        description="Upload a packing list or invoice to begin."
+        action={
+          <button onClick={() => navigate('/upload')} className="btn-primary flex items-center gap-2 text-sm">
+            <Upload className="w-4 h-4" /> Upload Document
+          </button>
+        }
       />
     )
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5 text-[var(--warning)]" />
-          <h2 className="text-lg font-display font-semibold text-[var(--foreground)]">
-            Review Queue
-          </h2>
-          <span className="badge badge-warning">{queue.length}</span>
+    <div className="flex gap-4 h-[calc(100vh-8rem)]">
+      {/* Left panel — document list */}
+      <div className="w-2/5 flex flex-col min-w-0">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-[var(--warning)]" />
+            <h2 className="text-lg font-display font-semibold text-[var(--foreground)]">
+              Review Queue
+            </h2>
+            <span className="badge badge-warning">{queue.length}</span>
+          </div>
+          <button onClick={loadQueue} className="btn-ghost flex items-center gap-1 text-sm px-2 py-1">
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
         </div>
-        <button onClick={loadQueue} className="btn-ghost flex items-center gap-2">
-          <RefreshCw className="w-4 h-4" />
-          Refresh
-        </button>
-      </div>
-
-      {queue.map((doc) => (
-        <div key={doc.id} className="card">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 space-y-2">
-              <div className="flex items-center gap-3">
-                <span className="text-[var(--foreground)] font-medium">
+        <div className="flex-1 overflow-y-auto space-y-1">
+          {queue.map((doc) => (
+            <button
+              key={doc.id}
+              onClick={() => { setSelected(doc); setRejecting(false); setRejectReason('') }}
+              className={cn(
+                'w-full text-left px-3 py-3 rounded-lg border transition-colors',
+                selected?.id === doc.id
+                  ? 'bg-[var(--primary)]/10 border-[var(--primary)]/30'
+                  : 'border-transparent hover:bg-[var(--muted)]'
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-[var(--foreground)] truncate flex-1">
                   {doc.filename ?? `Doc #${doc.id}`}
                 </span>
-                <span className="badge badge-info">
-                  {doc.document_type ?? 'Unknown'}
-                </span>
+                <ChevronRight className="w-4 h-4 text-[var(--muted-foreground)] shrink-0" />
               </div>
-              <p className="text-sm text-[var(--muted-foreground)]">
-                Vendor: {doc.vendor_name ?? 'Unknown'}
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-[var(--muted-foreground)]">{doc.vendor_name ?? 'Unknown vendor'}</span>
+                <span className="badge badge-info text-[10px]">{doc.document_type ?? 'Unknown'}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Right panel — detail + actions */}
+      <div className="w-3/5 card overflow-y-auto">
+        {selected ? (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-display font-semibold text-[var(--foreground)]">
+                {selected.filename ?? `Document #${selected.id}`}
+              </h3>
+              <p className="text-sm text-[var(--muted-foreground)] mt-1">
+                Review the extracted data and approve or reject.
               </p>
-              {doc.source_url && (
-                <a
-                  href={doc.source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-[var(--info)] hover:underline"
-                >
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="text-xs text-[var(--muted-foreground)] uppercase tracking-wider">Vendor</span>
+                <p className="text-sm text-[var(--foreground)] mt-1">{selected.vendor_name ?? 'Unknown'}</p>
+              </div>
+              <div>
+                <span className="text-xs text-[var(--muted-foreground)] uppercase tracking-wider">Type</span>
+                <p className="text-sm text-[var(--foreground)] mt-1">{selected.document_type ?? 'Unknown'}</p>
+              </div>
+              <div>
+                <span className="text-xs text-[var(--muted-foreground)] uppercase tracking-wider">Date</span>
+                <p className="text-sm text-[var(--foreground)] mt-1">
+                  {selected.created_at ? new Date(selected.created_at).toLocaleString() : '—'}
+                </p>
+              </div>
+              <div>
+                <span className="text-xs text-[var(--muted-foreground)] uppercase tracking-wider">Status</span>
+                <p className="text-sm mt-1">
+                  <span className="badge badge-warning">{selected.status ?? 'needs_review'}</span>
+                </p>
+              </div>
+            </div>
+
+            {selected.source_url && (
+              <div>
+                <a href={selected.source_url} target="_blank" rel="noopener noreferrer"
+                  className="text-sm text-[var(--info)] hover:underline">
                   View original scan
                 </a>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="border-t border-[var(--border)] pt-4 space-y-3">
+              {rejecting ? (
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-[var(--foreground)]">Rejection Reason</p>
+                  <textarea
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="Describe the issue..."
+                    className="w-full h-24 bg-[var(--popover)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] resize-none"
+                  />
+                  <div className="flex items-center gap-2">
+                    <button onClick={handleReject} disabled={actionLoading}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--destructive)] text-white font-medium hover:brightness-110 transition-all text-sm">
+                      {actionLoading ? 'Rejecting...' : 'Confirm Rejection'}
+                    </button>
+                    <button onClick={() => { setRejecting(false); setRejectReason('') }} className="btn-ghost text-sm">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <button onClick={handleApprove} disabled={actionLoading}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20 font-medium transition-colors text-sm">
+                    <CheckCircle2 className="w-4 h-4" />
+                    {actionLoading ? 'Approving...' : 'Approve'}
+                  </button>
+                  <button onClick={() => setRejecting(true)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--destructive)]/10 text-[var(--destructive)] hover:bg-[var(--destructive)]/20 font-medium transition-colors text-sm">
+                    <XCircle className="w-4 h-4" />
+                    Reject
+                  </button>
+                </div>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setAction({ id: doc.id, type: 'approve' })}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20 text-sm font-medium transition-colors"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                Approve
-              </button>
-              <button
-                onClick={() => setAction({ id: doc.id, type: 'reject' })}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--destructive)]/10 text-[var(--destructive)] hover:bg-[var(--destructive)]/20 text-sm font-medium transition-colors"
-              >
-                <XCircle className="w-4 h-4" />
-                Reject
-              </button>
-            </div>
           </div>
-        </div>
-      ))}
-
-      {/* Reject modal */}
-      {action && action.type === 'reject' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="card w-full max-w-md space-y-4">
-            <h3 className="text-lg font-display font-semibold text-[var(--foreground)]">
-              Reject Document #{action.id}
-            </h3>
-            <p className="text-sm text-[var(--muted-foreground)]">
-              Provide a reason for rejection. This helps improve the extraction pipeline.
-            </p>
-            <textarea
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="Describe the issue..."
-              className="w-full h-24 bg-[var(--popover)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] resize-none"
-            />
-            <div className="flex items-center justify-end gap-2">
-              <button
-                onClick={() => {
-                  setAction(null)
-                  setRejectReason('')
-                }}
-                className="btn-ghost"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAction}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--destructive)] text-white font-medium hover:brightness-110 transition-all"
-              >
-                Confirm Rejection
-              </button>
-            </div>
+        ) : (
+          <div className="flex items-center justify-center h-full text-[var(--muted-foreground)] text-sm">
+            Select a document to review
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
