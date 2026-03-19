@@ -386,7 +386,7 @@ class TestAppAuthMeWithSession:
 
     def test_auth_me_valid_session(self):
         import os
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import patch
 
         os.environ["AUTH_ENABLED"] = "true"
         os.environ["ADMIN_PASSWORD"] = "test-admin-password-12345"
@@ -408,10 +408,7 @@ class TestAppAuthMeWithSession:
             )
             session_data = serializer.dumps({"staff_id": 1, "name": "TestUser"})
 
-            mock_staff = MagicMock()
-            mock_staff.id = 1
-            mock_staff.name = "TestUser"
-            mock_staff.is_active = True
+            mock_staff = {"id": 1, "name": "TestUser"}
 
             with patch(
                 "lab_manager.api.app._load_session_staff", return_value=mock_staff

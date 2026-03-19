@@ -38,7 +38,7 @@ interface DashboardPageProps {
 }
 
 export function DashboardPage({ onError }: DashboardPageProps) {
-  const { data: stats, isLoading, error } = useQuery({
+  const { data: stats, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => analytics.dashboard() as Promise<DocStats>,
   })
@@ -75,7 +75,7 @@ export function DashboardPage({ onError }: DashboardPageProps) {
         title="Could not load dashboard data"
         description="Check your connection and try again."
         action={
-          <button onClick={() => window.location.reload()} className="btn-primary flex items-center gap-2">
+          <button onClick={() => refetch()} className="btn-primary flex items-center gap-2">
             <RefreshCw className="w-4 h-4" />
             Retry
           </button>
