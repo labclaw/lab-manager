@@ -4,8 +4,7 @@ set -euo pipefail
 # ============================================================================
 # Lab Manager — Universal Installer
 # One-command deployment for non-technical users.
-# Usage: curl -sSL https://raw.githubusercontent.com/labclaw/lab-manager/main/deploy/install.sh | bash
-#    or: cd lab-manager && bash deploy/install.sh
+# Usage: cd lab-manager && bash deploy/install.sh
 # ============================================================================
 
 REPO_URL="https://github.com/labclaw/lab-manager.git"
@@ -38,6 +37,27 @@ generate_hex() {
 
 command_exists() {
     command -v "$1" &>/dev/null
+}
+
+escape_env() {
+    printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+clone_repo() {
+    if command_exists gh && gh auth status &>/dev/null; then
+        gh repo clone labclaw/lab-manager "$INSTALL_DIR"
+        return 0
+    fi
+
+    if git clone "$REPO_URL" "$INSTALL_DIR"; then
+        return 0
+    fi
+
+    error "Unable to clone labclaw/lab-manager automatically."
+    error "This repository is private. Either:"
+    error "  1. Run this installer from an existing local checkout, or"
+    error "  2. Authenticate GitHub CLI and retry: gh auth login"
+    exit 1
 }
 
 # --- Pre-flight checks -----------------------------------------------------
@@ -155,7 +175,7 @@ else
     info "Cloning lab-manager to $INSTALL_DIR..."
     $SUDO mkdir -p "$(dirname "$INSTALL_DIR")"
     $SUDO chown "$USER:$(id -gn)" "$(dirname "$INSTALL_DIR")"
-    git clone "$REPO_URL" "$INSTALL_DIR"
+    clone_repo
     PROJECT_DIR="$INSTALL_DIR"
     cd "$PROJECT_DIR"
     success "Repository cloned."
@@ -202,6 +222,7 @@ if [[ "$SKIP_ENV" == "false" ]]; then
 
     read -rp "Lab name [My Lab]: " LAB_NAME
     LAB_NAME="${LAB_NAME:-My Lab}"
+    LAB_NAME_ESCAPED=$(escape_env "$LAB_NAME")
 
     read -rp "Domain (or 'localhost' for IP-only access) [localhost]: " DOMAIN
     DOMAIN="${DOMAIN:-localhost}"
@@ -223,6 +244,8 @@ if [[ "$SKIP_ENV" == "false" ]]; then
 
 # --- Domain ---
 DOMAIN=${DOMAIN}
+LAB_NAME="${LAB_NAME_ESCAPED}"
+LAB_SUBTITLE=""
 
 # --- PostgreSQL ---
 POSTGRES_USER=labmanager
