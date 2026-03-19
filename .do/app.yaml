@@ -60,7 +60,7 @@ services:
     internal_ports:
       - 7700
     instance_count: 1
-    instance_size_slug: professional-xs
+    instance_size_slug: professional-s
     envs:
       - key: MEILI_ENV
         scope: RUN_TIME
