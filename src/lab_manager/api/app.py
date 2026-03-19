@@ -42,9 +42,12 @@ _AUTH_ALLOWLIST = {
     "/docs",
     "/openapi.json",
     "/redoc",
+    "/sw.js",
+    "/manifest.json",
 }
 _AUTH_ALLOWLIST_PREFIXES = (
     "/admin/",  # SQLAdmin has its own authentication backend
+    "/static/",  # Frontend assets (login page needs CSS/JS before auth)
 )
 
 # Session cookie config
@@ -358,7 +361,30 @@ def create_app() -> FastAPI:
     # Wire up SQLAdmin UI at /admin/
     setup_admin(app, get_engine())
 
-    # Serve frontend at root
+    # PWA: service worker must be served from root for scope
+    @app.get("/sw.js")
+    def service_worker():
+        return FileResponse(
+            STATIC_DIR / "sw.js",
+            media_type="application/javascript",
+            headers={"Service-Worker-Allowed": "/"},
+        )
+
+    @app.get("/manifest.json")
+    def manifest():
+        return FileResponse(
+            STATIC_DIR / "manifest.json",
+            media_type="application/manifest+json",
+        )
+
+    # Serve uploaded files
+    uploads_dir = Path(settings.upload_dir)
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
+
+    # Serve frontend static assets and root
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
     @app.get("/")
     def index():
         return FileResponse(STATIC_DIR / "index.html")
