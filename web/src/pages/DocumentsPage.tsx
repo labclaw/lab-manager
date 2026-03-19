@@ -8,49 +8,45 @@ interface DocumentsPageProps {
 }
 
 const STATUS_FILTERS = [
-  { key: 'all', label: 'All', dot: null },
-  { key: 'approved', label: 'Approved', dot: 'var(--accent)' },
-  { key: 'needs_review', label: 'Needs Review', dot: 'var(--warning)' },
-  { key: 'rejected', label: 'Rejected', dot: 'var(--destructive)' },
+  { key: 'all', label: 'All', dotClass: null },
+  { key: 'approved', label: 'Approved', dotClass: 'bg-success' },
+  { key: 'needs_review', label: 'Needs Review', dotClass: 'bg-warning' },
+  { key: 'rejected', label: 'Rejected', dotClass: 'bg-danger' },
 ] as const
 
-function statusBadge(status?: string) {
+function statusBadgeClasses(status?: string): { wrapperClass: string; label: string } {
   switch (status) {
     case 'approved':
       return {
-        bg: 'rgba(16,185,129,0.1)',
-        text: 'var(--accent)',
-        border: 'rgba(16,185,129,0.2)',
+        wrapperClass:
+          'px-2.5 py-1 rounded-full text-[11px] font-bold bg-success/10 text-success border border-success/20 uppercase tracking-wide',
         label: 'Approved',
       }
     case 'needs_review':
       return {
-        bg: 'rgba(245,158,11,0.1)',
-        text: 'var(--warning)',
-        border: 'rgba(245,158,11,0.2)',
+        wrapperClass:
+          'px-2.5 py-1 rounded-full text-[11px] font-bold bg-warning/10 text-warning border border-warning/20 uppercase tracking-wide whitespace-nowrap',
         label: 'Needs Review',
       }
     case 'rejected':
       return {
-        bg: 'rgba(239,68,68,0.1)',
-        text: 'var(--destructive)',
-        border: 'rgba(239,68,68,0.2)',
+        wrapperClass:
+          'px-2.5 py-1 rounded-full text-[11px] font-bold bg-danger/10 text-danger border border-danger/20 uppercase tracking-wide',
         label: 'Rejected',
       }
     default:
       return {
-        bg: 'rgba(100,116,139,0.1)',
-        text: 'var(--muted-foreground)',
-        border: 'rgba(100,116,139,0.2)',
+        wrapperClass:
+          'px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-500/10 text-slate-500 border border-slate-500/20 uppercase tracking-wide',
         label: status ?? 'Unknown',
       }
   }
 }
 
-function confidenceColor(c: number): string {
-  if (c >= 0.8) return 'var(--accent)'
-  if (c >= 0.6) return 'var(--warning)'
-  return 'var(--destructive)'
+function confidenceBarColor(c: number): string {
+  if (c >= 0.8) return 'bg-success'
+  if (c >= 0.6) return 'bg-warning'
+  return 'bg-danger'
 }
 
 function formatShortDate(dateStr?: string): string {
@@ -66,7 +62,11 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const pageSize = 20
 
-  const { data: res, isLoading, error } = useQuery({
+  const {
+    data: res,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['documents', page, statusFilter],
     queryFn: () =>
       docApi.list(page, pageSize, statusFilter !== 'all' ? statusFilter : undefined),
@@ -96,11 +96,11 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
   return (
     <div className="space-y-0 -m-6 flex flex-col h-[calc(100vh-4rem)]">
       {/* Top Bar */}
-      <div className="px-8 h-16 flex items-center justify-between border-b border-[var(--border)] shrink-0">
-        <h2 className="text-xl font-bold text-[var(--foreground)]">Documents</h2>
+      <header className="h-16 border-b border-slate-200 dark:border-slate-800 px-8 flex items-center justify-between sticky top-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md z-10 shrink-0">
+        <h2 className="text-xl font-bold">Documents</h2>
         <div className="flex items-center gap-4 flex-1 max-w-2xl px-8">
           <div className="relative w-full">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
               search
             </span>
             <input
@@ -108,18 +108,18 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
               placeholder="Search vendor or filename..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-[var(--card)] border border-[var(--border)] rounded-lg pl-10 pr-4 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-all"
+              className="w-full bg-slate-100 dark:bg-card-dark border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary transition-all"
             />
           </div>
         </div>
         <button
           onClick={() => navigate('/upload')}
-          className="flex items-center gap-2 bg-[var(--accent)] hover:opacity-90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+          className="flex items-center gap-2 bg-success hover:bg-success/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors"
         >
           <span className="material-symbols-outlined">upload_file</span>
           Upload Doc
         </button>
-      </div>
+      </header>
 
       {/* Filter Row */}
       <div className="px-8 py-6 flex items-center gap-3 flex-wrap shrink-0">
@@ -132,17 +132,14 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
                 setStatusFilter(f.key)
                 setPage(1)
               }}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors ${
+              className={
                 isActive
-                  ? 'bg-[var(--primary)] text-white shadow-lg'
-                  : 'bg-[var(--card)] text-[var(--muted-foreground)] border border-[var(--border)] hover:border-[var(--primary)]/30'
-              }`}
+                  ? 'px-4 py-1.5 rounded-full text-sm font-medium bg-primary text-white shadow-lg shadow-primary/20'
+                  : 'px-4 py-1.5 rounded-full text-sm font-medium bg-slate-100 dark:bg-card-dark text-slate-600 dark:text-slate-300 flex items-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors border border-transparent'
+              }
             >
-              {f.dot && !isActive && (
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: f.dot }}
-                />
+              {f.dotClass && !isActive && (
+                <span className={`w-2 h-2 rounded-full ${f.dotClass}`} />
               )}
               {f.label}
             </button>
@@ -152,26 +149,26 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
 
       {/* Table Container */}
       <div className="px-8 pb-8 flex-1 min-h-0 flex flex-col">
-        <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] overflow-hidden shadow-sm flex-1 min-h-0">
+        <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm flex-1 min-h-0">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-64 space-y-3">
-              <div className="w-8 h-8 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
-              <span className="text-sm text-[var(--muted-foreground)] font-medium">
+              <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+              <span className="text-sm text-slate-500 font-medium">
                 Fetching documents...
               </span>
             </div>
           ) : filteredDocs.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 space-y-3">
-              <span className="material-symbols-outlined text-4xl text-[var(--muted-foreground)]">
+              <span className="material-symbols-outlined text-4xl text-slate-500">
                 description
               </span>
-              <p className="text-sm text-[var(--muted-foreground)]">
+              <p className="text-sm text-slate-500">
                 {search ? `No documents matching "${search}"` : 'No documents found'}
               </p>
               {!search && (
                 <button
                   onClick={() => navigate('/upload')}
-                  className="flex items-center gap-2 bg-[var(--primary)] text-white px-4 py-2 rounded-lg text-sm font-medium mt-2"
+                  className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium mt-2"
                 >
                   <span className="material-symbols-outlined text-lg">upload_file</span>
                   Upload Document
@@ -181,87 +178,77 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-[var(--muted)]/50 border-b border-[var(--border)]">
-                  <th className="px-4 py-4 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">
+                <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                  <th className="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Filename
                   </th>
-                  <th className="px-4 py-4 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">
+                  <th className="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Vendor
                   </th>
-                  <th className="px-4 py-4 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">
+                  <th className="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Type
                   </th>
-                  <th className="px-4 py-4 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">
+                  <th className="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-4 py-4 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">
+                  <th className="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Confidence
                   </th>
-                  <th className="px-4 py-4 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider text-right">
+                  <th className="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">
                     Date
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {filteredDocs.map((doc) => {
-                  const badge = statusBadge(doc.status)
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {filteredDocs.map((doc, idx) => {
+                  const badge = statusBadgeClasses(doc.status)
                   const conf = doc.confidence ?? 0
                   const confPct = Math.round(conf * 100)
                   return (
                     <tr
                       key={doc.id}
-                      className="hover:bg-[var(--muted)]/30 transition-colors cursor-pointer group"
+                      className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer group ${
+                        idx % 2 === 1 ? 'bg-slate-50/30 dark:bg-white/[0.01]' : ''
+                      }`}
                       onClick={() => navigate(`/review?id=${doc.id}`)}
                     >
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
-                          <span className="material-symbols-outlined text-[var(--muted-foreground)] group-hover:text-[var(--primary)] transition-colors">
+                          <span className="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">
                             picture_as_pdf
                           </span>
-                          <span className="text-sm font-medium text-[var(--foreground)]">
+                          <span className="text-sm font-medium">
                             {doc.filename ?? `Doc #${doc.id}`}
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-sm text-[var(--muted-foreground)]">
+                      <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-400">
                         {doc.vendor_name ?? '--'}
                       </td>
-                      <td className="px-4 py-4 text-xs font-mono text-[var(--muted-foreground)]">
+                      <td className="px-4 py-4 text-xs font-mono text-slate-500">
                         {doc.document_type ?? '--'}
                       </td>
                       <td className="px-4 py-4">
-                        <span
-                          className="px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide whitespace-nowrap"
-                          style={{
-                            backgroundColor: badge.bg,
-                            color: badge.text,
-                            border: `1px solid ${badge.border}`,
-                          }}
-                        >
-                          {badge.label}
-                        </span>
+                        <span className={badge.wrapperClass}>{badge.label}</span>
                       </td>
                       <td className="px-4 py-4">
                         {doc.confidence != null ? (
                           <div className="flex items-center gap-2">
-                            <div className="w-12 bg-[var(--muted)] h-1.5 rounded-full overflow-hidden">
+                            <div className="w-12 bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
                               <div
-                                className="h-full rounded-full"
-                                style={{
-                                  width: `${confPct}%`,
-                                  backgroundColor: confidenceColor(conf),
-                                }}
+                                className={`${confidenceBarColor(conf)} h-full`}
+                                style={{ width: `${confPct}%` }}
                               />
                             </div>
-                            <span className="text-xs font-medium text-[var(--muted-foreground)]">
+                            <span className="text-xs font-medium text-slate-500">
                               {conf.toFixed(2)}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-xs text-[var(--muted-foreground)]">--</span>
+                          <span className="text-xs text-slate-500">--</span>
                         )}
                       </td>
-                      <td className="px-4 py-4 text-sm text-[var(--muted-foreground)] text-right">
+                      <td className="px-4 py-4 text-sm text-slate-500 text-right">
                         {formatShortDate(doc.created_at)}
                       </td>
                     </tr>
@@ -275,18 +262,26 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
         {/* Pagination */}
         {total > 0 && (
           <div className="mt-6 flex items-center justify-between">
-            <p className="text-sm text-[var(--muted-foreground)]">
+            <p className="text-sm text-slate-500">
               Showing{' '}
-              <span className="font-semibold text-[var(--foreground)]">{startItem}</span> to{' '}
-              <span className="font-semibold text-[var(--foreground)]">{endItem}</span> of{' '}
-              <span className="font-semibold text-[var(--foreground)]">{total}</span>{' '}
+              <span className="font-semibold text-slate-900 dark:text-slate-200">
+                {startItem}
+              </span>{' '}
+              to{' '}
+              <span className="font-semibold text-slate-900 dark:text-slate-200">
+                {endItem}
+              </span>{' '}
+              of{' '}
+              <span className="font-semibold text-slate-900 dark:text-slate-200">
+                {total}
+              </span>{' '}
               documents
             </p>
             <div className="flex gap-2">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="flex items-center justify-center w-10 h-10 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--primary)] hover:border-[var(--primary)]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-card-dark text-slate-400 hover:text-primary hover:border-primary/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Previous page"
               >
                 <span className="material-symbols-outlined">chevron_left</span>
@@ -294,7 +289,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="flex items-center justify-center w-10 h-10 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--primary)] hover:border-[var(--primary)]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-card-dark text-slate-400 hover:text-primary hover:border-primary/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Next page"
               >
                 <span className="material-symbols-outlined">chevron_right</span>

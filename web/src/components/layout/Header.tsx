@@ -7,60 +7,45 @@ interface HeaderProps {
   readonly onToggleDarkMode: () => void
 }
 
-export function Header({ title, onSearch, darkMode, onToggleDarkMode }: HeaderProps) {
-  const [searchOpen, setSearchOpen] = useState(false)
+export function Header({ title: _title, onSearch, darkMode, onToggleDarkMode }: HeaderProps) {
+  const [searchQuery, setSearchQuery] = useState('')
 
   return (
-    <header className="h-16 border-b border-[var(--border)] bg-[var(--card)]/80 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-10">
-      <h2 className="text-xl font-bold text-[var(--foreground)]">
-        {title}
-      </h2>
-
-      <div className="flex items-center gap-4 flex-1 max-w-xl px-8">
-        {searchOpen && (
-          <div className="relative w-full">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]">
-              search
-            </span>
+    <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-primary/10 px-6 py-4 lg:px-10 bg-background-dark/80 backdrop-blur-md sticky top-0 z-50">
+      <div className="flex items-center gap-8 flex-1">
+        <label className="hidden md:flex flex-col max-w-xl w-full h-10">
+          <div className="flex w-full flex-1 items-stretch rounded-lg h-full">
+            <div className="text-slate-400 flex border-none bg-card-dark items-center justify-center pl-4 rounded-l-lg">
+              <span className="material-symbols-outlined text-xl">search</span>
+            </div>
             <input
-              type="text"
+              className="form-input flex w-full min-w-0 flex-1 border-none bg-card-dark text-slate-100 focus:ring-1 focus:ring-primary/50 h-full placeholder:text-slate-500 px-4 rounded-r-lg text-sm font-normal"
               placeholder="Search products, vendors, orders..."
-              className="w-full bg-[var(--muted)] border-none rounded-lg pl-10 pr-4 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:ring-2 focus:ring-[var(--primary)]/50 focus:outline-none transition-all"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && onSearch) onSearch(e.currentTarget.value)
-                if (e.key === 'Escape') setSearchOpen(false)
+                if (e.key === 'Enter' && onSearch) onSearch(searchQuery)
               }}
-              autoFocus
             />
           </div>
-        )}
+        </label>
       </div>
-
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => setSearchOpen(!searchOpen)}
-          aria-label={searchOpen ? 'Close search' : 'Open search'}
-          className="flex items-center justify-center rounded-lg w-10 h-10 bg-[var(--muted)] text-[var(--foreground)] hover:bg-[var(--primary)]/20 transition-colors"
-        >
-          <span className="material-symbols-outlined text-xl">search</span>
-        </button>
-
-        <button
-          className="flex items-center justify-center rounded-lg w-10 h-10 bg-[var(--muted)] text-[var(--foreground)] hover:bg-[var(--primary)]/20 transition-colors relative"
-          aria-label="Notifications"
-        >
+      <div className="flex items-center gap-4">
+        <button className="flex items-center justify-center rounded-lg size-10 bg-card-dark text-slate-100 hover:bg-primary/20 transition-colors">
           <span className="material-symbols-outlined text-xl">notifications</span>
         </button>
-
         <button
           onClick={onToggleDarkMode}
           aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-          className="flex items-center justify-center rounded-lg w-10 h-10 bg-[var(--muted)] text-[var(--foreground)] hover:bg-[var(--primary)]/20 transition-colors"
+          className="flex items-center justify-center rounded-lg size-10 bg-card-dark text-slate-100 hover:bg-primary/20 transition-colors"
         >
           <span className="material-symbols-outlined text-xl">
             {darkMode ? 'light_mode' : 'dark_mode'}
           </span>
         </button>
+        <div className="flex items-center gap-3 pl-4 border-l border-primary/10">
+          <span className="text-sm font-medium text-slate-400">Dr. Aris Thorne</span>
+        </div>
       </div>
     </header>
   )

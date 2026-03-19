@@ -34,27 +34,25 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        'relative flex flex-col h-screen bg-[var(--sidebar)] border-r border-[var(--sidebar-border)]',
-        'transition-all duration-300',
+        'hidden md:flex flex-col bg-sidebar-dark border-r border-primary/10 transition-all duration-300',
         collapsed ? 'w-16' : 'w-64',
       )}
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-6 py-6">
-        <div className="w-8 h-8 bg-[var(--primary)] rounded-lg flex items-center justify-center text-white shrink-0">
-          <span className="material-symbols-outlined text-xl">biotech</span>
+      <div className="flex items-center gap-3 text-primary px-6 py-8">
+        <div className="size-8 flex items-center justify-center bg-primary/10 rounded-lg shrink-0">
+          <span className="material-symbols-outlined text-primary text-2xl">psychology</span>
         </div>
         {!collapsed && (
           <div>
-            <h1 className="text-[var(--foreground)] text-lg font-bold leading-none tracking-tight">
-              Lab Manager
-            </h1>
+            <h2 className="text-slate-100 text-xl font-bold leading-none tracking-tight">Lab Manager</h2>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">MGH Neuroscience</p>
           </div>
         )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 space-y-1">
+      <nav className="flex-1 px-4 space-y-1">
         {navItems.map((item) => {
           const isActive = current === item.path
           const badge =
@@ -68,22 +66,19 @@ export function Sidebar({
               key={item.path}
               to={item.path}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors',
                 isActive
-                  ? 'bg-[var(--primary)]/10 text-[var(--primary)] border-l-[3px] border-[var(--primary)]'
-                  : 'text-[var(--muted-foreground)] hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-foreground)]',
+                  ? 'bg-primary/10 text-primary font-semibold'
+                  : 'text-slate-400 hover:bg-primary/5 hover:text-slate-100',
               )}
               title={collapsed ? item.label : undefined}
             >
-              <span className={cn(
-                'material-symbols-outlined text-[22px]',
-                isActive && 'fill-1',
-              )} style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}>
+              <span className="material-symbols-outlined text-xl">
                 {item.icon}
               </span>
-              {!collapsed && <span>{item.label}</span>}
+              {!collapsed && <span className="text-sm">{item.label}</span>}
               {!collapsed && badge > 0 && (
-                <span className="ml-auto bg-[var(--destructive)]/15 text-[var(--destructive)] text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                <span className="ml-auto bg-red-500/15 text-red-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                   {badge}
                 </span>
               )}
@@ -93,21 +88,23 @@ export function Sidebar({
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-[var(--sidebar-border)] p-3 space-y-1">
-        <Link
-          to="/settings"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-foreground)] transition-colors"
-          title={collapsed ? 'Settings' : undefined}
-        >
-          <span className="material-symbols-outlined text-[22px]">settings</span>
-          {!collapsed && <span>Settings</span>}
-        </Link>
+      <div className="p-4 mt-auto border-t border-primary/10">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <div className="h-9 w-9 rounded-full border border-primary/30 overflow-hidden shrink-0 bg-primary/10 flex items-center justify-center">
+            <span className="material-symbols-outlined text-primary text-lg">person</span>
+          </div>
+          {!collapsed && (
+            <div className="overflow-hidden">
+              <p className="text-sm font-bold text-slate-100 truncate">Dr. Aris Thorne</p>
+            </div>
+          )}
+        </div>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--muted-foreground)] hover:text-[var(--destructive)] hover:bg-[var(--destructive)]/10 transition-colors"
+          className="flex items-center gap-3 w-full px-4 py-2 text-slate-400 hover:text-red-400 transition-colors text-sm font-medium"
           title={collapsed ? 'Sign Out' : undefined}
         >
-          <span className="material-symbols-outlined text-[22px]">logout</span>
+          <span className="material-symbols-outlined text-lg">logout</span>
           {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
@@ -116,7 +113,7 @@ export function Sidebar({
       <button
         onClick={onToggle}
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        className="hidden lg:flex absolute -right-3 top-20 items-center justify-center w-6 h-6 rounded-full bg-[var(--card)] border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+        className="hidden lg:flex absolute -right-3 top-20 items-center justify-center w-6 h-6 rounded-full bg-card-dark border border-primary/10 text-slate-400 hover:text-slate-100 transition-colors"
       >
         <span className="material-symbols-outlined text-sm">
           {collapsed ? 'chevron_right' : 'chevron_left'}
