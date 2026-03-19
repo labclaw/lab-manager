@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { documents as docApi } from '@/lib/api'
 import type { Document } from '@/lib/api'
@@ -19,9 +19,11 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
     queryFn: () => docApi.list(page, pageSize),
   })
 
-  if (error && onError) {
-    onError(error instanceof Error ? error.message : 'Failed to load documents')
-  }
+  useEffect(() => {
+    if (error && onError) {
+      onError(error instanceof Error ? error.message : 'Failed to load documents')
+    }
+  }, [error, onError])
 
   const docs = res?.items ?? []
   const total = res?.total ?? 0
@@ -87,7 +89,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((doc) => (
+            {docs.map((doc) => (
               <tr
                 key={doc.id}
                 className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--muted)]/50 transition-colors"

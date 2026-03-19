@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { inventory as invApi } from '@/lib/api'
 import type { InventoryItem } from '@/lib/api'
@@ -19,9 +19,11 @@ export function InventoryPage({ onError }: InventoryPageProps) {
     queryFn: () => invApi.list(page, pageSize),
   })
 
-  if (error && onError) {
-    onError(error instanceof Error ? error.message : 'Failed to load inventory')
-  }
+  useEffect(() => {
+    if (error && onError) {
+      onError(error instanceof Error ? error.message : 'Failed to load inventory')
+    }
+  }, [error, onError])
 
   const items = res?.items ?? []
   const total = res?.total ?? 0
@@ -87,7 +89,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((item) => (
+            {items.map((item) => (
               <tr
                 key={item.id}
                 className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--muted)]/50 transition-colors"

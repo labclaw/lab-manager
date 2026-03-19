@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { analytics } from '@/lib/api'
 import {
@@ -36,9 +37,11 @@ export function DashboardPage({ onError }: DashboardPageProps) {
     queryFn: () => analytics.dashboard() as Promise<DocStats>,
   })
 
-  if (error && onError) {
-    onError(error instanceof Error ? error.message : 'Failed to load dashboard data')
-  }
+  useEffect(() => {
+    if (error && onError) {
+      onError(error instanceof Error ? error.message : 'Failed to load dashboard data')
+    }
+  }, [error, onError])
 
   if (isLoading) {
     return (
