@@ -9,6 +9,7 @@ import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from itsdangerous import BadSignature, URLSafeTimedSerializer
@@ -109,6 +110,16 @@ def create_app() -> FastAPI:
         **docs_kwargs,
     )
 
+
+    # --- CORS ---
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     # --- Rate limiting (slowapi) ---
     limiter = Limiter(key_func=get_remote_address)
     app.state.limiter = limiter
@@ -126,6 +137,27 @@ def create_app() -> FastAPI:
         return JSONResponse(
             status_code=exc.status_code,
             content={"detail": exc.message},
+        )
+
+
+    # --- Catch-all exception handler ---
+    @app.exception_handler(Exception)
+    async def _unhandled_exception_handler(request: Request, exc: Exception):
+        from lab_manager.logging_config import generate_request_id
+
+        request_id = generate_request_id()
+        logger.error(
+            "Unhandled exception [request_id=%s]: %s",
+            request_id,
+            exc,
+            exc_info=True,
+        )
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": "Internal server error",
+                "request_id": request_id,
+            },
         )
 
     # --- Audit middleware (inner — registered first) ---
@@ -207,6 +239,21 @@ def create_app() -> FastAPI:
 
         request.state.user = user
         return await call_next(request)
+
+
+    # --- Security headers middleware ---
+    @app.middleware("http")
+    async def security_headers_middleware(request: Request, call_next):
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("X-XSS-Protection", "0")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault(
+            "Permissions-Policy",
+            "camera=(), microphone=(), geolocation=()",
+        )
+        return response
 
     # --- Health endpoint (no auth required — in allowlist) ---
 
