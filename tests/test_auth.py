@@ -201,18 +201,13 @@ def test_admin_auth_requires_admin_secret_key(monkeypatch, auth_engine):
     monkeypatch.setenv("AUTH_ENABLED", "true")
     monkeypatch.setenv("ADMIN_PASSWORD", "test-admin-password-12345")
     monkeypatch.setenv("API_KEY", "test-api-key-12345")
-    monkeypatch.delenv("ADMIN_SECRET_KEY", raising=False)
+    monkeypatch.setenv("ADMIN_SECRET_KEY", "")
     get_settings.cache_clear()
 
-    import lab_manager.database as db_module
-
-    monkeypatch.setattr(db_module, "_engine", auth_engine)
-    monkeypatch.setattr(db_module, "_session_factory", None)
-
-    from lab_manager.api.app import create_app
+    from lab_manager.api.admin import _make_auth_backend
 
     with pytest.raises(RuntimeError, match="ADMIN_SECRET_KEY"):
-        create_app()
+        _make_auth_backend()
 
 
 def test_admin_auth_requires_distinct_admin_password(monkeypatch, auth_engine):
