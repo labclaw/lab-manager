@@ -17,10 +17,12 @@ set -euo pipefail
 
 # --- Defaults ---------------------------------------------------------------
 DROPLET_NAME="lab-manager"
+LAB_NAME="My Lab"
 REGION="nyc1"
 SIZE="s-2vcpu-4gb"  # 4GB RAM, $24/mo
 IMAGE="ubuntu-24-04-x64"
 FIREWALL_NAME="lab-manager-fw"
+GEMINI_API_KEY=""
 
 # --- Colors -----------------------------------------------------------------
 RED='\033[0;31m'
@@ -39,17 +41,21 @@ error()   { echo -e "${RED}[ERROR]${NC} $*"; }
 while [[ $# -gt 0 ]]; do
     case $1 in
         --name)    DROPLET_NAME="$2"; shift 2 ;;
+        --lab-name) LAB_NAME="$2"; shift 2 ;;
         --region)  REGION="$2"; shift 2 ;;
         --size)    SIZE="$2"; shift 2 ;;
         --image)   IMAGE="$2"; shift 2 ;;
+        --gemini-api-key) GEMINI_API_KEY="$2"; shift 2 ;;
         --help|-h)
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
             echo "  --name NAME     Droplet name (default: lab-manager)"
+            echo "  --lab-name NAME Lab display name (default: My Lab)"
             echo "  --region SLUG   Region slug (default: nyc1)"
             echo "  --size SLUG     Size slug (default: s-2vcpu-4gb, 4GB \$24/mo)"
             echo "  --image SLUG    Image slug (default: ubuntu-24-04-x64)"
+            echo "  --gemini-api-key KEY  Optional Gemini API key"
             echo "  -h, --help      Show this help"
             echo ""
             echo "Available regions: doctl compute region list"
@@ -79,6 +85,12 @@ info "Authenticated as: $ACCOUNT_EMAIL"
 # Find cloud-init file
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLOUD_INIT="${SCRIPT_DIR}/cloud-init.yml"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
+if [[ ! -f "${PROJECT_ROOT}/docker-compose.yml" || ! -d "${PROJECT_ROOT}/src/lab_manager" ]]; then
+    error "Run this script from a checked-out lab-manager repository."
+    exit 1
+fi
 
 if [[ ! -f "$CLOUD_INIT" ]]; then
     error "cloud-init.yml not found at: $CLOUD_INIT"
@@ -90,19 +102,19 @@ info "Checking SSH keys..."
 SSH_KEYS=$(doctl compute ssh-key list --format ID --no-header 2>/dev/null | tr '\n' ',' | sed 's/,$//')
 
 if [[ -z "$SSH_KEYS" ]]; then
-    warn "No SSH keys found in your DigitalOcean account."
-    warn "You will need to use the console to access the droplet."
-    warn "Add a key first: doctl compute ssh-key create"
-    read -rp "Continue without SSH keys? [y/N] " confirm
-    if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-        exit 0
-    fi
-    SSH_KEY_FLAG=""
+    error "No SSH keys found in your DigitalOcean account."
+    error "This one-click path uploads the current repository over SSH."
+    error "Add a key first: doctl compute ssh-key create"
+    exit 1
 else
     KEY_COUNT=$(echo "$SSH_KEYS" | tr ',' '\n' | wc -l)
     info "Found $KEY_COUNT SSH key(s)."
     SSH_KEY_FLAG="--ssh-keys $SSH_KEYS"
 fi
+
+escape_env() {
+    printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
 
 # --- Firewall ---------------------------------------------------------------
 info "Checking firewall..."
@@ -125,6 +137,7 @@ fi
 echo ""
 info "Creating droplet with the following configuration:"
 echo "  Name:   $DROPLET_NAME"
+echo "  Lab:    $LAB_NAME"
 echo "  Region: $REGION"
 echo "  Size:   $SIZE (4GB RAM, \$24/mo)"
 echo "  Image:  $IMAGE"
@@ -151,6 +164,51 @@ success "Firewall assigned."
 # Get IP address
 DROPLET_IP=$(doctl compute droplet get "$DROPLET_ID" --format PublicIPv4 --no-header)
 
+SSH_OPTS=(
+    -o StrictHostKeyChecking=accept-new
+    -o ConnectTimeout=5
+)
+
+info "Waiting for SSH to become available..."
+SSH_READY=false
+for _ in $(seq 1 60); do
+    if ssh "${SSH_OPTS[@]}" "root@${DROPLET_IP}" "echo ok" >/dev/null 2>&1; then
+        SSH_READY=true
+        break
+    fi
+    sleep 5
+done
+
+if [[ "$SSH_READY" != "true" ]]; then
+    error "SSH did not become ready in time."
+    error "Check cloud-init with: ssh root@${DROPLET_IP} tail -f /var/log/cloud-init-output.log"
+    exit 1
+fi
+
+TMP_ENV=$(mktemp)
+trap 'rm -f "$TMP_ENV"' EXIT
+
+LAB_NAME_ESCAPED=$(escape_env "$LAB_NAME")
+GEMINI_API_KEY_ESCAPED=$(escape_env "$GEMINI_API_KEY")
+
+cat > "$TMP_ENV" <<EOF
+LAB_NAME="${LAB_NAME_ESCAPED}"
+LAB_SUBTITLE=""
+DOMAIN="${DROPLET_IP}"
+GEMINI_API_KEY="${GEMINI_API_KEY_ESCAPED}"
+EOF
+
+info "Uploading current repository snapshot..."
+git -C "$PROJECT_ROOT" archive --format=tar HEAD | \
+    ssh "${SSH_OPTS[@]}" "root@${DROPLET_IP}" \
+    "mkdir -p /opt/labclaw/lab-manager && tar -xf - -C /opt/labclaw/lab-manager"
+
+info "Uploading deployment configuration..."
+scp "${SSH_OPTS[@]}" "$TMP_ENV" "root@${DROPLET_IP}:/opt/labclaw/install.env" >/dev/null
+
+info "Running remote setup..."
+ssh "${SSH_OPTS[@]}" "root@${DROPLET_IP}" "bash /opt/labclaw/setup.sh"
+
 # --- Done -------------------------------------------------------------------
 echo ""
 echo -e "${GREEN}${BOLD}"
@@ -159,8 +217,8 @@ echo -e "${NC}"
 echo "  IP Address:  ${BOLD}${DROPLET_IP}${NC}"
 echo "  SSH Access:  ${BOLD}ssh root@${DROPLET_IP}${NC}"
 echo ""
-echo "  Lab Manager is installing automatically via cloud-init."
-echo "  This takes 3-5 minutes. Check progress with:"
+echo "  Lab Manager has been deployed from your current local checkout."
+echo "  Check progress or logs with:"
 echo "    ssh root@${DROPLET_IP} tail -f /var/log/labclaw-setup.log"
 echo ""
 echo "  Once ready, open in your browser:"
