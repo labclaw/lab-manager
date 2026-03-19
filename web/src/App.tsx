@@ -110,8 +110,6 @@ export default function App() {
         <div className="flex-1 flex flex-col min-w-0">
           <Header
             title={PAGE_TITLES[location.pathname] ?? 'Lab Manager'}
-            darkMode={true}
-            onToggleDarkMode={() => {}}
           />
           <main className="flex-1 overflow-y-auto p-6">
             <Routes>
