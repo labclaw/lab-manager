@@ -81,9 +81,20 @@ def receive_items(
     created = []
     today = date.today()
 
+    # Batch-fetch all order items to avoid N+1 queries
+    order_item_ids = [
+        ri.get("order_item_id") for ri in items_received if ri.get("order_item_id")
+    ]
+    order_items_map: dict[int, OrderItem] = {}
+    if order_item_ids:
+        order_items_map = {
+            oi.id: oi
+            for oi in db.query(OrderItem).filter(OrderItem.id.in_(order_item_ids)).all()
+        }
+
     for ri in items_received:
         order_item_id = ri.get("order_item_id")
-        order_item = db.get(OrderItem, order_item_id) if order_item_id else None
+        order_item = order_items_map.get(order_item_id) if order_item_id else None
         if order_item and order_item.order_id != order_id:
             raise ValidationError(
                 f"Order item {order_item_id} belongs to order {order_item.order_id}, not {order_id}"
