@@ -188,7 +188,7 @@ def test_must_start_with_select_show():
         ("SELECT * FROM information_schema.tables", "forbidden"),
         ("SELECT * FROM pg_authid", "forbidden"),
         ("SELECT * FROM pg_roles", "forbidden"),
-        ("SELECT * FROM audit_log", "not allowed"),
+        ("SELECT * FROM some_unlisted_table", "not allowed"),
     ],
     ids=[
         "pg_shadow",
@@ -196,7 +196,7 @@ def test_must_start_with_select_show():
         "information_schema",
         "pg_authid",
         "pg_roles",
-        "unlisted_table",
+        "arbitrary_table",
     ],
 )
 def test_disallowed_table(sql, match_pattern):

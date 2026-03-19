@@ -53,7 +53,7 @@ class Order(AuditMixin, table=True):
     document_id: Optional[int] = Field(
         default=None,
         sa_column=Column(
-            sa.Integer, sa.ForeignKey("documents.id", ondelete="SET NULL")
+            sa.Integer, sa.ForeignKey("documents.id", ondelete="SET NULL"), index=True
         ),
     )
     extra: dict = Field(default_factory=dict, sa_column=Column(sa.JSON))
@@ -86,7 +86,9 @@ class OrderItem(AuditMixin, table=True):
     )
     product_id: Optional[int] = Field(
         default=None,
-        sa_column=Column(sa.Integer, sa.ForeignKey("products.id", ondelete="SET NULL")),
+        sa_column=Column(
+            sa.Integer, sa.ForeignKey("products.id", ondelete="SET NULL"), index=True
+        ),
     )
     extra: dict = Field(default_factory=dict, sa_column=Column(sa.JSON))
 
