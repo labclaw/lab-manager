@@ -13,6 +13,7 @@ from lab_manager.models.inventory import InventoryItem
 from lab_manager.models.document import Document
 from lab_manager.models.alert import Alert
 from lab_manager.models.audit import AuditLog
+from lab_manager.models.equipment import Equipment
 
 
 class VendorAdmin(ModelView, model=Vendor):
@@ -107,6 +108,22 @@ class AlertAdmin(ModelView, model=Alert):
     column_searchable_list = [Alert.alert_type, Alert.severity]
 
 
+class EquipmentAdmin(ModelView, model=Equipment):
+    column_list = [
+        Equipment.id,
+        Equipment.name,
+        Equipment.manufacturer,
+        Equipment.category,
+        Equipment.status,
+        Equipment.room,
+    ]
+    column_searchable_list = [
+        Equipment.name,
+        Equipment.manufacturer,
+        Equipment.serial_number,
+    ]
+
+
 def _make_auth_backend():
     import hmac
 
@@ -182,3 +199,4 @@ def setup_admin(app, engine):
     admin.add_view(DocumentAdmin)
     admin.add_view(AuditLogAdmin)
     admin.add_view(AlertAdmin)
+    admin.add_view(EquipmentAdmin)
