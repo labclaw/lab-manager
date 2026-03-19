@@ -42,6 +42,9 @@ _AUTH_ALLOWLIST = {
     "/api/auth/login",
     "/api/auth/logout",
     "/api/auth/me",
+    "/api/setup/status",
+    "/api/setup/complete",
+    "/api/config",
     "/docs",
     "/openapi.json",
     "/redoc",
@@ -332,6 +335,92 @@ def create_app() -> FastAPI:
         response = JSONResponse({"status": "ok"})
         response.delete_cookie(_SESSION_COOKIE)
         return response
+
+    # --- Lab config endpoint (public — frontend reads lab name) ---
+
+    @app.get("/api/config")
+    def lab_config():
+        return {
+            "lab_name": settings.lab_name,
+            "lab_subtitle": settings.lab_subtitle,
+        }
+
+    # --- First-run setup endpoints (no auth required) ---
+
+    @app.get("/api/setup/status")
+    def setup_status():
+        """Check if initial setup is needed (no admin user with password exists)."""
+        from lab_manager.database import get_db_session
+        from lab_manager.models.staff import Staff
+
+        with get_db_session() as db:
+            admin_exists = (
+                db.query(Staff)
+                .filter(Staff.password_hash.isnot(None), Staff.is_active.is_(True))
+                .first()
+                is not None
+            )
+        return {"needs_setup": not admin_exists}
+
+    @app.post("/api/setup/complete")
+    @limiter.limit("3/minute")
+    def setup_complete(
+        request: Request,
+        admin_name: str = Body(...),
+        admin_email: str = Body(...),
+        admin_password: str = Body(...),
+    ):
+        """First-run setup: create the admin user. Only works when no admin exists."""
+        import bcrypt as _bcrypt
+
+        from lab_manager.database import get_db_session
+        from lab_manager.models.staff import Staff
+
+        # Guard: only allow setup when no admin with password exists
+        with get_db_session() as db:
+            admin_exists = (
+                db.query(Staff)
+                .filter(Staff.password_hash.isnot(None), Staff.is_active.is_(True))
+                .first()
+                is not None
+            )
+            if admin_exists:
+                return JSONResponse(
+                    status_code=409,
+                    content={"detail": "Setup already completed"},
+                )
+
+            if len(admin_password) < 8:
+                return JSONResponse(
+                    status_code=422,
+                    content={"detail": "Password must be at least 8 characters"},
+                )
+
+            # Create or update staff record
+            staff = db.query(Staff).filter(Staff.email == admin_email).first()
+            if staff:
+                staff.name = admin_name
+                staff.role = "admin"
+                staff.is_active = True
+            else:
+                staff = Staff(
+                    name=admin_name,
+                    email=admin_email,
+                    role="admin",
+                    is_active=True,
+                )
+                db.add(staff)
+
+            staff.password_hash = _bcrypt.hashpw(
+                admin_password.encode("utf-8"), _bcrypt.gensalt()
+            ).decode("utf-8")
+            db.commit()
+
+            logger.info("Setup complete: admin user created (%s)", admin_email)
+            return {
+                "status": "ok",
+                "message": "Admin account created. You can now sign in.",
+            }
 
     # Register route modules
     from lab_manager.api.routes import (

@@ -1,6 +1,6 @@
 {
-  "name": "Shen Lab Manager",
-  "short_name": "Shen Lab",
+  "name": "LabClaw Lab Manager",
+  "short_name": "LabClaw",
   "description": "Lab inventory management with AI document intake",
   "start_url": "/",
   "display": "standalone",
