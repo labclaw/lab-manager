@@ -25,7 +25,7 @@ Feature: Inventory Lifecycle
   # 消耗超过库存
   Scenario: Cannot consume more than available
     When I try to consume 20 bottles from the inventory item
-    Then the request should fail with status 400
+    Then the request should fail with status 422
     And the inventory item quantity should still be 10
 
   # 转移位置
