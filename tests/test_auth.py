@@ -43,7 +43,7 @@ def staff_user(auth_db_session):
 
     staff = Staff(
         name="Test User",
-        email="test@shenlab.org",
+        email="test@example.com",
         role="admin",
         is_active=True,
         password_hash=_hash_password("correctpassword"),
@@ -61,7 +61,7 @@ def inactive_staff(auth_db_session):
 
     staff = Staff(
         name="Inactive User",
-        email="inactive@shenlab.org",
+        email="inactive@example.com",
         role="member",
         is_active=False,
         password_hash=_hash_password("somepassword"),
@@ -142,7 +142,7 @@ def test_login_success(auth_client, staff_user):
     """Valid credentials should return 200 and set session cookie."""
     resp = auth_client.post(
         "/api/auth/login",
-        json={"email": "test@shenlab.org", "password": "correctpassword"},
+        json={"email": "test@example.com", "password": "correctpassword"},
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -154,7 +154,7 @@ def test_login_success(auth_client, staff_user):
 def test_login_wrong_password(auth_client, staff_user):
     resp = auth_client.post(
         "/api/auth/login",
-        json={"email": "test@shenlab.org", "password": "wrongpassword"},
+        json={"email": "test@example.com", "password": "wrongpassword"},
     )
     assert resp.status_code == 401
     assert "Invalid email or password" in resp.json()["detail"]
@@ -163,7 +163,7 @@ def test_login_wrong_password(auth_client, staff_user):
 def test_login_nonexistent_email(auth_client):
     resp = auth_client.post(
         "/api/auth/login",
-        json={"email": "nobody@shenlab.org", "password": "anything"},
+        json={"email": "nobody@example.com", "password": "anything"},
     )
     assert resp.status_code == 401
 
@@ -172,7 +172,7 @@ def test_login_inactive_user(auth_client, inactive_staff):
     """Inactive users should not be able to log in."""
     resp = auth_client.post(
         "/api/auth/login",
-        json={"email": "inactive@shenlab.org", "password": "somepassword"},
+        json={"email": "inactive@example.com", "password": "somepassword"},
     )
     assert resp.status_code == 401
 
@@ -241,7 +241,7 @@ def test_authenticated_request_with_session(auth_client, staff_user):
     """After login, session cookie should grant access to protected routes."""
     login_resp = auth_client.post(
         "/api/auth/login",
-        json={"email": "test@shenlab.org", "password": "correctpassword"},
+        json={"email": "test@example.com", "password": "correctpassword"},
     )
     assert login_resp.status_code == 200
 
@@ -280,7 +280,7 @@ def test_logout_then_access_rejected(auth_client, staff_user):
     """After logout, session should be invalidated (cookie deleted)."""
     auth_client.post(
         "/api/auth/login",
-        json={"email": "test@shenlab.org", "password": "correctpassword"},
+        json={"email": "test@example.com", "password": "correctpassword"},
     )
     auth_client.post("/api/auth/logout")
     # Clear cookies from TestClient to simulate fresh browser after cookie deletion
@@ -306,7 +306,7 @@ def test_deactivated_user_session_rejected(auth_client, staff_user, auth_db_sess
     """If staff is deactivated, existing session should be rejected."""
     auth_client.post(
         "/api/auth/login",
-        json={"email": "test@shenlab.org", "password": "correctpassword"},
+        json={"email": "test@example.com", "password": "correctpassword"},
     )
     # Deactivate the user
     staff_user.is_active = False
@@ -349,7 +349,7 @@ def test_login_no_password_hash(auth_client, auth_db_session):
 
     staff = Staff(
         name="No Password User",
-        email="nopwd@shenlab.org",
+        email="nopwd@example.com",
         role="member",
         is_active=True,
         password_hash=None,
@@ -359,7 +359,7 @@ def test_login_no_password_hash(auth_client, auth_db_session):
 
     resp = auth_client.post(
         "/api/auth/login",
-        json={"email": "nopwd@shenlab.org", "password": "anything"},
+        json={"email": "nopwd@example.com", "password": "anything"},
     )
     assert resp.status_code == 401
 

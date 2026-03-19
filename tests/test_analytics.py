@@ -25,7 +25,7 @@ def _seed_data(db):
     db.add(loc)
     db.flush()
 
-    staff = Staff(name="Yuting", email="y@mgh.harvard.edu", role="member")
+    staff = Staff(name="Alice", email="alice@example.com", role="member")
     db.add(staff)
     db.flush()
 
@@ -34,7 +34,7 @@ def _seed_data(db):
         vendor_id=vendor.id,
         order_date=date(2026, 3, 1),
         status="received",
-        received_by="Yuting",
+        received_by="Alice",
     )
     db.add(order)
     db.flush()
@@ -174,7 +174,7 @@ def test_staff_activity(client, db_session):
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
-    assert data[0]["name"] == "Yuting"
+    assert data[0]["name"] == "Alice"
     assert data[0]["orders_received"] == 1
 
 

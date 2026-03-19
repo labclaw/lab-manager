@@ -1,6 +1,6 @@
 # 订单管理 — 采购订单的完整生命周期
 Feature: Order Management
-  As a lab manager at Shen Lab
+  As a lab manager at the lab
   I want to track purchase orders from creation to receipt
   So that I know what has been ordered, received, and is still pending
 

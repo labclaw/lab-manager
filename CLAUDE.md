@@ -1,13 +1,13 @@
 # LabClaw — Lab Manager
 
-Lab inventory management system with OCR document intake for the Shen Lab (MGH neuroscience).
+Lab inventory management system with AI-powered document intake.
 
 ## Project Overview
 
 - **Product goal**: 7x24 lab management system intended as a future product release
 - **Current focus**: Document intake pipeline — OCR → multi-VLM extraction → consensus → human review
 - **Real data**: 279 scanned documents (packing lists, invoices, COAs, shipping labels) from 12+ vendors
-- **Image data**: `shenlab-docs/` (originals), `shenlab-docs/resized/` (2048px max, ~0.2MB for CLI)
+- **Image data**: `lab-docs/` (originals), `lab-docs/resized/` (2048px max, ~0.2MB for CLI)
 
 ## Architecture Layers (priority order)
 
@@ -123,26 +123,7 @@ All list endpoints return `{items, total, page, page_size, pages}` with filterin
 
 ## Database State
 
-| Table | Records | Source |
-|-------|---------|--------|
-| vendors | 81 | OCR extraction |
-| products | 215 | Deduplicated from order_items |
-| orders | 211 | OCR extraction |
-| order_items | 309 | OCR extraction |
-| documents | 279 | Scanned lab docs |
-| inventory | 309 | Created from received orders |
-| staff | 26 | Extracted from received_by fields |
-| locations | 7 | Seeded (freezers, fridges, shelves) |
-| consumption_log | — | Tracks all inventory state changes |
-| alerts | — | Expiry, low stock, pending review |
-| audit_log | — | Automatic change tracking via SQLAlchemy events |
-
-## Pipeline v1 Audit Results (baseline to beat)
-
-- 53.4% accuracy, 28% critical error rate
-- Auto-approve at 0.95 confidence: 24.6% false positive rate
-- Top errors: doc type misclassification, PO/order/tracking confusion, vendor ID errors, lot/batch confusion, quantity errors
-- Full audit in `docs/audit_log.json` and `docs/audit_summary.json`
+Database state varies per deployment.
 
 ## Environment Variables
 

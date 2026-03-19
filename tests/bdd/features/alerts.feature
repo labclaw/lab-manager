@@ -1,6 +1,6 @@
 # 告警与监控 — 过期预警、低库存、待审核
 Feature: Alerts and Monitoring
-  As a lab manager at Shen Lab
+  As a lab manager at the lab
   I want automatic alerts for expiring reagents, low stock, and pending reviews
   So that nothing falls through the cracks
 

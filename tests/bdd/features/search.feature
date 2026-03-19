@@ -1,6 +1,6 @@
 # 搜索与发现 — 全文搜索和自动补全
 Feature: Search and Discovery
-  As a lab scientist at Shen Lab
+  As a lab scientist at the lab
   I want to quickly find products, vendors, and orders
   So that I can locate what I need without browsing through tables
 

@@ -37,7 +37,7 @@ def test_product_model():
 
 
 def test_staff_model():
-    s = Staff(name="Shiqian Shen", email="sshen@mgh.harvard.edu", role="PI")
+    s = Staff(name="Jane Smith", email="jane@example.com", role="PI")
     assert s.role == "PI"
 
 
@@ -92,7 +92,7 @@ def test_audit_log_model():
         table_name="orders",
         record_id=1,
         action="create",
-        changed_by="sshen",
+        changed_by="jsmith",
         changes={"po_number": {"old": None, "new": "PO-123"}},
     )
     assert log.action == "create"
