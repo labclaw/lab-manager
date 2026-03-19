@@ -83,6 +83,7 @@ services:
       - uploads:/app/uploads
       - backups:/backups/labmanager
       - ${SCANS_DIR:-./shenlab-docs}:/app/shenlab-docs:ro
+      - ${DEVICES_DIR:-./shenlab-devices}:/app/shenlab-devices:ro
     restart: unless-stopped
 
   # Cloudflare Tunnel — exposes the service to the internet
