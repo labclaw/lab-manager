@@ -78,6 +78,7 @@ def auth_client(auth_engine, auth_db_session):
     os.environ["AUTH_ENABLED"] = "true"
     os.environ["ADMIN_SECRET_KEY"] = "test-secret-key-for-signing"
     os.environ["API_KEY"] = "test-api-key-12345"
+    os.environ["SECURE_COOKIES"] = "false"
     get_settings.cache_clear()
 
     # Point database singletons at the test engine so middleware's
