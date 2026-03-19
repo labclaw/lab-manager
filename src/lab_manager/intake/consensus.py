@@ -174,7 +174,7 @@ Output ONLY valid JSON."""
     corrections_applied = []
 
     for field in review_data:
-        if field.startswith("_"):
+        if field.startswith("_"):  # pragma: no cover — review_data already filtered
             continue
         corrections = {}
         for model, review in valid_reviews.items():

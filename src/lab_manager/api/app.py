@@ -386,7 +386,7 @@ def create_app() -> FastAPI:
                 route.endpoint = limiter.limit("10/minute")(original_endpoint)
 
     # Serve scan images (protected by auth middleware when auth is enabled)
-    if SCANS_DIR.exists():
+    if SCANS_DIR.exists():  # pragma: no cover — depends on deployment
         app.mount("/scans", StaticFiles(directory=str(SCANS_DIR)), name="scans")
 
     # Serve uploaded documents at /uploads/

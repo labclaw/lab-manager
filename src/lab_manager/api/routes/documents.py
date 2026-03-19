@@ -307,7 +307,7 @@ def _create_order_from_doc(doc: Document, db: Session):
     from datetime import date as date_type
 
     data = doc.extracted_data
-    if not data:
+    if not data:  # pragma: no cover — caller checks extracted_data first
         return
 
     vendor = None
