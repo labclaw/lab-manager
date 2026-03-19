@@ -4,6 +4,7 @@ import { documents as docApi } from '@/lib/api'
 import type { Document } from '@/lib/api'
 import { Search, ChevronLeft, ChevronRight, RefreshCw, FileText } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SkeletonTable } from '@/components/ui/SkeletonTable'
 
 interface DocumentsPageProps {
   onError?: (error: string) => void
@@ -42,6 +43,50 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
   }
 
   const totalPages = Math.ceil(total / pageSize)
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
+            <input
+              type="text"
+              placeholder="Search documents..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-[var(--popover)] border border-[var(--border)] rounded-lg pl-9 pr-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+            />
+          </div>
+        </div>
+        <SkeletonTable rows={5} columns={5} />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 space-y-4">
+        <p className="text-sm text-[var(--destructive)]">
+          {error instanceof Error ? error.message : 'Failed to load documents'}
+        </p>
+        <button onClick={() => refetch()} className="btn-ghost flex items-center gap-2">
+          <RefreshCw className="w-4 h-4" />
+          Retry
+        </button>
+      </div>
+    )
+  }
+
+  if (docs.length === 0 && !search) {
+    return (
+      <EmptyState
+        icon={FileText}
+        title="No documents uploaded yet"
+        description="Upload your first document to get started."
+      />
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -122,18 +167,11 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
 
         {docs.length === 0 && (
           <div className="py-12">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center space-y-3">
-                <div className="w-8 h-8 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
-                <span className="text-sm text-[var(--muted-foreground)] font-medium">Fetching documents...</span>
-              </div>
-            ) : (
-              <EmptyState
-                icon={FileText}
-                title={search ? "No matching documents" : "No documents found"}
-                description={search ? `No documents found matching "${search}"` : "You haven't uploaded any documents yet."}
-              />
-            )}
+            <EmptyState
+              icon={FileText}
+              title={search ? "No matching documents" : "No documents found"}
+              description={search ? `No documents found matching "${search}"` : "No documents uploaded yet. Upload your first document to get started."}
+            />
           </div>
         )}
       </div>

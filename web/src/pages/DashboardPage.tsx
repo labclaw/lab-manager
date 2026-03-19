@@ -9,7 +9,11 @@ import {
   Store,
   TrendingUp,
   Package,
+  Upload,
+  RefreshCw,
 } from 'lucide-react'
+import { SkeletonTable } from '@/components/ui/SkeletonTable'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 interface DocStats {
   total_documents: number
@@ -32,7 +36,7 @@ interface DashboardPageProps {
 }
 
 export function DashboardPage({ onError }: DashboardPageProps) {
-  const { data: stats, isLoading, error } = useQuery({
+  const { data: stats, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => analytics.dashboard() as Promise<DocStats>,
   })
@@ -44,18 +48,30 @@ export function DashboardPage({ onError }: DashboardPageProps) {
   }, [error, onError])
 
   if (isLoading) {
+    return <SkeletonTable rows={3} columns={4} />
+  }
+
+  if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
+      <div className="flex flex-col items-center justify-center py-16 space-y-4">
+        <p className="text-sm text-[var(--destructive)]">
+          {error instanceof Error ? error.message : 'Failed to load dashboard data'}
+        </p>
+        <button onClick={() => refetch()} className="btn-ghost flex items-center gap-2">
+          <RefreshCw className="w-4 h-4" />
+          Retry
+        </button>
       </div>
     )
   }
 
-  if (!stats) {
+  if (!stats || (stats.total_documents === 0 && stats.total_products === 0 && stats.total_vendors === 0)) {
     return (
-      <div className="text-center py-16 text-[var(--muted-foreground)]">
-        Failed to load dashboard data.
-      </div>
+      <EmptyState
+        icon={Upload}
+        title="Welcome to Lab Manager"
+        description="Upload your first document to get started."
+      />
     )
   }
 

@@ -3,6 +3,7 @@ import { orders as ordApi } from '@/lib/api'
 import type { Order } from '@/lib/api'
 import { Search, ChevronLeft, ChevronRight, RefreshCw, ShoppingCart } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SkeletonTable } from '@/components/ui/SkeletonTable'
 
 const STATUS_FILTERS = [
   { value: '', label: 'All Status' },
@@ -70,6 +71,36 @@ export function OrdersPage({ onError }: OrdersPageProps) {
   }
 
   const totalPages = Math.ceil(total / pageSize)
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
+            <input
+              type="text"
+              placeholder="Search PO numbers, vendors..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-[var(--popover)] border border-[var(--border)] rounded-lg pl-9 pr-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+            />
+          </div>
+        </div>
+        <SkeletonTable rows={5} columns={6} />
+      </div>
+    )
+  }
+
+  if (filtered.length === 0 && !loading && !search && orders.length === 0) {
+    return (
+      <EmptyState
+        icon={ShoppingCart}
+        title="No orders yet"
+        description="Orders are created when documents are approved in the review queue."
+      />
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -168,18 +199,11 @@ export function OrdersPage({ onError }: OrdersPageProps) {
 
         {filtered.length === 0 && (
           <div className="py-12">
-            {loading ? (
-              <div className="flex flex-col items-center justify-center space-y-3">
-                <div className="w-8 h-8 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
-                <span className="text-sm text-[var(--muted-foreground)] font-medium">Fetching orders...</span>
-              </div>
-            ) : (
-              <EmptyState
-                icon={ShoppingCart}
-                title={search ? "No matching orders" : "No orders found"}
-                description={search ? `No orders found matching "${search}"` : "You haven't placed any orders yet."}
-              />
-            )}
+            <EmptyState
+              icon={ShoppingCart}
+              title={search ? "No matching orders" : "No orders found"}
+              description={search ? `No orders found matching "${search}"` : "No orders yet. Orders are created when documents are approved in the review queue."}
+            />
           </div>
         )}
       </div>

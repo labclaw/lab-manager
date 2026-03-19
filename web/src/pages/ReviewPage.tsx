@@ -4,6 +4,7 @@ import type { Document } from '@/lib/api'
 import { CheckCircle2, XCircle, AlertTriangle, RefreshCw, ClipboardCheck } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ConfidenceBadge } from '@/components/ui/ConfidenceBadge'
+import { SkeletonTable } from '@/components/ui/SkeletonTable'
 
 interface ReviewPageProps {
   onError?: (error: string) => void
@@ -56,12 +57,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
   }, [queue])
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 space-y-3">
-        <div className="w-8 h-8 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
-        <span className="text-sm text-[var(--muted-foreground)] font-medium">Checking queue...</span>
-      </div>
-    )
+    return <SkeletonTable rows={3} columns={3} />
   }
 
   if (sortedQueue.length === 0) {
@@ -69,7 +65,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
       <EmptyState
         icon={CheckCircle2}
         title="All caught up!"
-        description="No documents are currently pending manual review."
+        description="No documents waiting for review. Upload a packing list or invoice to begin."
       />
     )
   }
