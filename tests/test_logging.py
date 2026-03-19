@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 
 import pytest
 import structlog
@@ -71,7 +70,7 @@ class TestConfigureLogging:
 
 
 @pytest.fixture
-def logging_client():
+def logging_client(monkeypatch):
     """TestClient with SQLite backend for middleware tests."""
     engine = create_engine(
         "sqlite://",
@@ -82,8 +81,8 @@ def logging_client():
 
     SQLModel.metadata.create_all(engine)
 
-    os.environ["AUTH_ENABLED"] = "false"
-    os.environ["ADMIN_SECRET_KEY"] = "test-secret-key"
+    monkeypatch.setenv("AUTH_ENABLED", "false")
+    monkeypatch.setenv("ADMIN_SECRET_KEY", "test-secret-key")
     get_settings.cache_clear()
 
     import lab_manager.database as db_module
@@ -108,8 +107,6 @@ def logging_client():
 
     db_module._engine = original_engine
     db_module._session_factory = original_factory
-    os.environ.pop("ADMIN_SECRET_KEY", None)
-    os.environ["AUTH_ENABLED"] = "true"
     get_settings.cache_clear()
 
 
@@ -125,6 +122,11 @@ class TestAccessLogMiddleware:
         with caplog.at_level(logging.INFO, logger="lab_manager.api.access"):
             logging_client.get("/api/setup/status")
         assert any("http_request" in record.message for record in caplog.records)
+
+    def test_access_log_includes_method(self, logging_client, caplog):
+        with caplog.at_level(logging.INFO, logger="lab_manager.api.access"):
+            logging_client.get("/api/setup/status")
+        assert any("GET" in record.message for record in caplog.records)
 
     def test_access_log_includes_status_and_duration(self, logging_client, caplog):
         with caplog.at_level(logging.INFO, logger="lab_manager.api.access"):

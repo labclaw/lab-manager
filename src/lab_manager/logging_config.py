@@ -65,6 +65,8 @@ def configure_logging() -> None:
         foreign_pre_chain=[
             structlog.stdlib.add_log_level,
             add_request_id,
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
             structlog.processors.TimeStamper(fmt="iso"),
         ],
     )

@@ -9,6 +9,7 @@ import shutil
 import time
 from pathlib import Path
 
+import structlog
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -28,7 +29,6 @@ from lab_manager.logging_config import configure_logging
 
 configure_logging()
 logger = logging.getLogger(__name__)
-import structlog
 
 access_logger = structlog.get_logger("lab_manager.api.access")
 
