@@ -137,10 +137,29 @@ def list_orders(
 
 @router.post("/", status_code=201)
 def create_order(body: OrderCreate, db: Session = Depends(get_db)):
+    from lab_manager.services.orders import build_duplicate_warning, find_duplicate_po
+
     order = Order(**body.model_dump())
     db.add(order)
     db.commit()
     db.refresh(order)
+
+    # Duplicate PO# check — warn but never block (OCR may re-scan same doc).
+    # The warning is embedded in the response under _duplicate_warning so callers
+    # (review UI, tests) can surface it without treating it as an error (409).
+    duplicate_warning = None
+    if body.po_number:
+        dupes = find_duplicate_po(
+            body.po_number,
+            body.vendor_id,
+            db,
+            exclude_order_id=order.id,
+        )
+        if dupes:
+            duplicate_warning = build_duplicate_warning(dupes)
+
+    if duplicate_warning:
+        return {"order": order, "_duplicate_warning": duplicate_warning}
     return order
 
 
