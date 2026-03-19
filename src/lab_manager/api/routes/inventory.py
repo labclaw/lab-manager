@@ -6,7 +6,7 @@ from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session, selectinload
 
 from lab_manager.api.deps import get_db, get_or_404
@@ -27,6 +27,8 @@ _INV_SORTABLE = {
     "status",
 }
 
+_VALID_INV_STATUSES = {s.value for s in InventoryStatus}
+
 
 # ---------------------------------------------------------------------------
 # Schemas
@@ -36,55 +38,69 @@ _INV_SORTABLE = {
 class InventoryItemCreate(BaseModel):
     product_id: int
     location_id: Optional[int] = None
-    lot_number: Optional[str] = None
-    quantity_on_hand: float = 0
-    unit: Optional[str] = None
+    lot_number: Optional[str] = Field(default=None, max_length=100)
+    quantity_on_hand: float = Field(default=0, ge=0)
+    unit: Optional[str] = Field(default=None, max_length=50)
     expiry_date: Optional[date] = None
     opened_date: Optional[date] = None
     status: str = InventoryStatus.available
-    notes: Optional[str] = None
-    received_by: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=2000)
+    received_by: Optional[str] = Field(default=None, max_length=200)
     order_item_id: Optional[int] = None
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        if v not in _VALID_INV_STATUSES:
+            raise ValueError(f"status must be one of {_VALID_INV_STATUSES}")
+        return v
 
 
 class InventoryItemUpdate(BaseModel):
     product_id: Optional[int] = None
     location_id: Optional[int] = None
-    lot_number: Optional[str] = None
+    lot_number: Optional[str] = Field(default=None, max_length=100)
     quantity_on_hand: Optional[float] = None
-    unit: Optional[str] = None
+    unit: Optional[str] = Field(default=None, max_length=50)
     expiry_date: Optional[date] = None
     opened_date: Optional[date] = None
     status: Optional[str] = None
-    notes: Optional[str] = None
-    received_by: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=2000)
+    received_by: Optional[str] = Field(default=None, max_length=200)
     order_item_id: Optional[int] = None
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str | None) -> str | None:
+        if v is not None and v not in _VALID_INV_STATUSES:
+            raise ValueError(f"status must be one of {_VALID_INV_STATUSES}")
+        return v
 
 
 class ConsumeBody(BaseModel):
-    quantity: float
-    consumed_by: str
-    purpose: Optional[str] = None
+    quantity: float = Field(gt=0)
+    consumed_by: str = Field(max_length=200)
+    purpose: Optional[str] = Field(default=None, max_length=500)
 
 
 class TransferBody(BaseModel):
     location_id: int
-    transferred_by: str
+    transferred_by: str = Field(max_length=200)
 
 
 class AdjustBody(BaseModel):
-    new_quantity: float
-    reason: str
-    adjusted_by: str
+    new_quantity: float = Field(ge=0)
+    reason: str = Field(max_length=500)
+    adjusted_by: str = Field(max_length=200)
 
 
 class DisposeBody(BaseModel):
-    reason: str
-    disposed_by: str
+    reason: str = Field(max_length=500)
+    disposed_by: str = Field(max_length=200)
 
 
 class OpenBody(BaseModel):
-    opened_by: str
+    opened_by: str = Field(max_length=200)
 
 
 # ---------------------------------------------------------------------------
