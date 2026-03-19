@@ -50,6 +50,7 @@ class VendorResponse(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     notes: Optional[str] = None
+    extra: dict = {}
     created_at: datetime | None = None
     updated_at: datetime | None = None
 

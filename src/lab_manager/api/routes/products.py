@@ -92,6 +92,7 @@ class ProductResponse(BaseModel):
     storage_temp: Optional[str] = None
     unit: Optional[str] = None
     hazard_info: Optional[str] = None
+    extra: dict = {}
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
