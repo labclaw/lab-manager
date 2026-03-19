@@ -112,6 +112,24 @@ def _make_auth_backend():
 
     from sqladmin.authentication import AuthenticationBackend
 
+    from lab_manager.config import get_settings
+
+    settings = get_settings()
+
+    if settings.auth_enabled:
+        if not settings.admin_secret_key:
+            raise RuntimeError(
+                "ADMIN_SECRET_KEY must be set when auth is enabled."
+            )
+        if not settings.admin_password:
+            raise RuntimeError(
+                "ADMIN_PASSWORD must be set when auth is enabled."
+            )
+        if hmac.compare_digest(settings.admin_password, settings.api_key):
+            raise RuntimeError(
+                "ADMIN_PASSWORD must be distinct from API_KEY when auth is enabled."
+            )
+
     class AdminAuthBackend(AuthenticationBackend):
         async def login(self, request) -> bool:
             from lab_manager.config import get_settings
@@ -123,7 +141,7 @@ def _make_auth_backend():
             form = await request.form()
             username = form.get("username", "")
             password = form.get("password", "")
-            admin_pw = settings.admin_password or settings.api_key
+            admin_pw = settings.admin_password
             if (
                 admin_pw
                 and hmac.compare_digest(username, "admin")
@@ -145,10 +163,7 @@ def _make_auth_backend():
                 return True
             return request.session.get("authenticated", False)
 
-    from lab_manager.config import get_settings
-
-    settings = get_settings()
-    secret = settings.admin_secret_key or settings.api_key
+    secret = settings.admin_secret_key
     if not secret:
         import secrets
 

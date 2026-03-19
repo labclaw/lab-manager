@@ -77,6 +77,7 @@ def auth_client(auth_engine, auth_db_session):
     """TestClient with auth_enabled=True and shared test DB."""
     os.environ["AUTH_ENABLED"] = "true"
     os.environ["ADMIN_SECRET_KEY"] = "test-secret-key-for-signing"
+    os.environ["ADMIN_PASSWORD"] = "test-admin-password-12345"
     os.environ["API_KEY"] = "test-api-key-12345"
     os.environ["SECURE_COOKIES"] = "false"
     get_settings.cache_clear()
@@ -106,6 +107,9 @@ def auth_client(auth_engine, auth_db_session):
     db_module._engine = original_engine
     db_module._session_factory = original_factory
     os.environ["AUTH_ENABLED"] = "false"
+    os.environ.pop("ADMIN_SECRET_KEY", None)
+    os.environ.pop("ADMIN_PASSWORD", None)
+    os.environ.pop("API_KEY", None)
     get_settings.cache_clear()
 
 
@@ -171,6 +175,63 @@ def test_login_inactive_user(auth_client, inactive_staff):
         json={"email": "inactive@shenlab.org", "password": "somepassword"},
     )
     assert resp.status_code == 401
+
+
+def test_admin_auth_requires_admin_password(monkeypatch, auth_engine):
+    """SQLAdmin must not fall back to API_KEY for admin login."""
+    monkeypatch.setenv("AUTH_ENABLED", "true")
+    monkeypatch.setenv("ADMIN_SECRET_KEY", "test-secret-key-for-signing")
+    monkeypatch.setenv("API_KEY", "test-api-key-12345")
+    monkeypatch.delenv("ADMIN_PASSWORD", raising=False)
+    get_settings.cache_clear()
+
+    import lab_manager.database as db_module
+
+    monkeypatch.setattr(db_module, "_engine", auth_engine)
+    monkeypatch.setattr(db_module, "_session_factory", None)
+
+    from lab_manager.api.app import create_app
+
+    with pytest.raises(RuntimeError, match="ADMIN_PASSWORD"):
+        create_app()
+
+
+def test_admin_auth_requires_admin_secret_key(monkeypatch, auth_engine):
+    """SQLAdmin must not fall back to API_KEY for its session secret."""
+    monkeypatch.setenv("AUTH_ENABLED", "true")
+    monkeypatch.setenv("ADMIN_PASSWORD", "test-admin-password-12345")
+    monkeypatch.setenv("API_KEY", "test-api-key-12345")
+    monkeypatch.delenv("ADMIN_SECRET_KEY", raising=False)
+    get_settings.cache_clear()
+
+    import lab_manager.database as db_module
+
+    monkeypatch.setattr(db_module, "_engine", auth_engine)
+    monkeypatch.setattr(db_module, "_session_factory", None)
+
+    from lab_manager.api.app import create_app
+
+    with pytest.raises(RuntimeError, match="ADMIN_SECRET_KEY"):
+        create_app()
+
+
+def test_admin_auth_requires_distinct_admin_password(monkeypatch, auth_engine):
+    """SQLAdmin credentials must not reuse the general API key."""
+    monkeypatch.setenv("AUTH_ENABLED", "true")
+    monkeypatch.setenv("ADMIN_SECRET_KEY", "test-secret-key-for-signing")
+    monkeypatch.setenv("ADMIN_PASSWORD", "shared-secret-12345")
+    monkeypatch.setenv("API_KEY", "shared-secret-12345")
+    get_settings.cache_clear()
+
+    import lab_manager.database as db_module
+
+    monkeypatch.setattr(db_module, "_engine", auth_engine)
+    monkeypatch.setattr(db_module, "_session_factory", None)
+
+    from lab_manager.api.app import create_app
+
+    with pytest.raises(RuntimeError, match="distinct from API_KEY"):
+        create_app()
 
 
 # --- Session-based access ---
@@ -252,6 +313,30 @@ def test_deactivated_user_session_rejected(auth_client, staff_user, auth_db_sess
     auth_db_session.commit()
     # Session cookie is still valid but user is inactive
     resp = auth_client.get("/api/v1/vendors/")
+    assert resp.status_code == 401
+
+
+def test_auth_me_rejects_deactivated_user(auth_client, staff_user, auth_db_session):
+    """/api/auth/me should revalidate the staff row, not trust cookie payload alone."""
+    auth_client.post(
+        "/api/auth/login",
+        json={"email": "test@shenlab.org", "password": "correctpassword"},
+    )
+    staff_user.is_active = False
+    auth_db_session.commit()
+    resp = auth_client.get("/api/auth/me")
+    assert resp.status_code == 401
+
+
+def test_auth_me_rejects_missing_user(auth_client, staff_user, auth_db_session):
+    """/api/auth/me should reject sessions for deleted staff rows."""
+    auth_client.post(
+        "/api/auth/login",
+        json={"email": "test@shenlab.org", "password": "correctpassword"},
+    )
+    auth_db_session.delete(staff_user)
+    auth_db_session.commit()
+    resp = auth_client.get("/api/auth/me")
     assert resp.status_code == 401
 
 
