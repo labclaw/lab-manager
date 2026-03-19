@@ -15,6 +15,8 @@ if not _IS_PG:
     os.environ["DATABASE_URL"] = "sqlite://"
 os.environ.setdefault("MEILISEARCH_URL", "http://localhost:7700")
 os.environ.setdefault("AUTH_ENABLED", "false")
+os.environ.setdefault("ADMIN_SECRET_KEY", "test-secret-key-not-for-production")
+os.environ.setdefault("ADMIN_PASSWORD", "test-admin-password-not-for-production")
 os.environ.setdefault("UPLOAD_DIR", "/tmp/lab-manager-test-uploads")
 
 from lab_manager.config import get_settings  # noqa: E402

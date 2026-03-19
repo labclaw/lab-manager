@@ -70,6 +70,29 @@ def _get_serializer() -> URLSafeTimedSerializer:
     return URLSafeTimedSerializer(settings.admin_secret_key, salt="lab-session")
 
 
+def _load_session_staff(session_cookie: str):
+    serializer = _get_serializer()
+    data = serializer.loads(session_cookie, max_age=_SESSION_MAX_AGE)
+    staff_id = data.get("staff_id")
+    staff_name = data.get("name", "unknown")
+
+    from lab_manager.database import get_db_session
+
+    with get_db_session() as db:
+        from lab_manager.models.staff import Staff
+
+        staff = db.get(Staff, staff_id)
+        if staff and staff.is_active:
+            return staff
+
+    logger.warning(
+        "Session for inactive/missing staff_id=%s name=%s",
+        staff_id,
+        staff_name,
+    )
+    return None
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
     # Ensure upload directory exists at startup (not per-request in health check)
@@ -155,26 +178,10 @@ def create_app() -> FastAPI:
             session_cookie = request.cookies.get(_SESSION_COOKIE)
             if session_cookie:
                 try:
-                    serializer = _get_serializer()
-                    data = serializer.loads(session_cookie, max_age=_SESSION_MAX_AGE)
-                    staff_id = data.get("staff_id")
-                    staff_name = data.get("name", "unknown")
-
-                    from lab_manager.database import get_db_session
-
-                    with get_db_session() as db:
-                        from lab_manager.models.staff import Staff
-
-                        staff = db.get(Staff, staff_id)
-                        if staff and staff.is_active:
-                            user = staff.name
-                            authenticated = True
-                        else:
-                            logger.warning(
-                                "Session for inactive/missing staff_id=%s name=%s",
-                                staff_id,
-                                staff_name,
-                            )
+                    staff = _load_session_staff(session_cookie)
+                    if staff:
+                        user = staff.name
+                        authenticated = True
                 except BadSignature:
                     logger.warning("Invalid session cookie signature")
 
@@ -321,13 +328,14 @@ def create_app() -> FastAPI:
                 status_code=401, content={"detail": "Not authenticated"}
             )
         try:
-            serializer = _get_serializer()
-            data = serializer.loads(session_cookie, max_age=_SESSION_MAX_AGE)
-            return {
-                "user": {"id": data.get("staff_id"), "name": data.get("name", "User")}
-            }
+            staff = _load_session_staff(session_cookie)
         except BadSignature:
             return JSONResponse(status_code=401, content={"detail": "Invalid session"})
+        if not staff:
+            return JSONResponse(
+                status_code=401, content={"detail": "Not authenticated"}
+            )
+        return {"user": {"id": staff.id, "name": staff.name}}
 
     @app.post("/api/auth/logout")
     def logout():
