@@ -13,18 +13,17 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from sqlalchemy import text
 
+# Import to register SQLAlchemy event listeners on module load.
+import lab_manager.services.audit as _audit_svc  # noqa: F401
 from lab_manager.api.admin import setup_admin
 from lab_manager.config import get_settings
 from lab_manager.database import get_engine
 from lab_manager.exceptions import BusinessError
 from lab_manager.logging_config import configure_logging
-
-# Import to register SQLAlchemy event listeners on module load.
-import lab_manager.services.audit as _audit_svc  # noqa: F401
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -340,27 +339,32 @@ def create_app() -> FastAPI:
 
     @app.get("/api/config")
     def lab_config():
+        cfg = get_settings()
         return {
-            "lab_name": settings.lab_name,
-            "lab_subtitle": settings.lab_subtitle,
+            "lab_name": cfg.lab_name,
+            "lab_subtitle": cfg.lab_subtitle,
         }
 
     # --- First-run setup endpoints (no auth required) ---
+
+    def _admin_exists(db) -> bool:
+        """Check if any active staff with a password exists."""
+        from lab_manager.models.staff import Staff
+
+        return (
+            db.query(Staff)
+            .filter(Staff.password_hash.isnot(None), Staff.is_active.is_(True))
+            .first()
+            is not None
+        )
 
     @app.get("/api/setup/status")
     def setup_status():
         """Check if initial setup is needed (no admin user with password exists)."""
         from lab_manager.database import get_db_session
-        from lab_manager.models.staff import Staff
 
         with get_db_session() as db:
-            admin_exists = (
-                db.query(Staff)
-                .filter(Staff.password_hash.isnot(None), Staff.is_active.is_(True))
-                .first()
-                is not None
-            )
-        return {"needs_setup": not admin_exists}
+            return {"needs_setup": not _admin_exists(db)}
 
     @app.post("/api/setup/complete")
     @limiter.limit("3/minute")
@@ -372,28 +376,29 @@ def create_app() -> FastAPI:
     ):
         """First-run setup: create the admin user. Only works when no admin exists."""
         import bcrypt as _bcrypt
+        from sqlalchemy.exc import IntegrityError
 
         from lab_manager.database import get_db_session
         from lab_manager.models.staff import Staff
 
-        # Guard: only allow setup when no admin with password exists
-        with get_db_session() as db:
-            admin_exists = (
-                db.query(Staff)
-                .filter(Staff.password_hash.isnot(None), Staff.is_active.is_(True))
-                .first()
-                is not None
+        # Validate before opening DB session
+        if len(admin_password) < 8:
+            return JSONResponse(
+                status_code=422,
+                content={"detail": "Password must be at least 8 characters"},
             )
-            if admin_exists:
+        # bcrypt silently truncates at 72 bytes
+        if len(admin_password.encode("utf-8")) > 72:
+            return JSONResponse(
+                status_code=422,
+                content={"detail": "Password must be 72 bytes or fewer"},
+            )
+
+        with get_db_session() as db:
+            if _admin_exists(db):
                 return JSONResponse(
                     status_code=409,
                     content={"detail": "Setup already completed"},
-                )
-
-            if len(admin_password) < 8:
-                return JSONResponse(
-                    status_code=422,
-                    content={"detail": "Password must be at least 8 characters"},
                 )
 
             # Create or update staff record
@@ -414,7 +419,15 @@ def create_app() -> FastAPI:
             staff.password_hash = _bcrypt.hashpw(
                 admin_password.encode("utf-8"), _bcrypt.gensalt()
             ).decode("utf-8")
-            db.commit()
+
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+                return JSONResponse(
+                    status_code=409,
+                    content={"detail": "Setup already completed"},
+                )
 
             logger.info("Setup complete: admin user created (%s)", admin_email)
             return {
