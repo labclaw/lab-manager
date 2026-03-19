@@ -1,15 +1,13 @@
-import { Search, Moon, Sun } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 
 interface HeaderProps {
   title: string
   onSearch?: (query: string) => void
-  darkMode: boolean
-  onToggleDarkMode: () => void
 }
 
-export function Header({ title, onSearch, darkMode, onToggleDarkMode }: HeaderProps) {
+export function Header({ title, onSearch }: HeaderProps) {
   const [searchOpen, setSearchOpen] = useState(false)
 
   return (
@@ -45,18 +43,6 @@ export function Header({ title, onSearch, darkMode, onToggleDarkMode }: HeaderPr
             <Search className="w-4 h-4" />
           </button>
         </div>
-
-        {/* Dark mode toggle (reserved) */}
-        <button
-          onClick={onToggleDarkMode}
-          className="p-2 rounded-lg text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-        >
-          {darkMode ? (
-            <Sun className="w-4 h-4" />
-          ) : (
-            <Moon className="w-4 h-4" />
-          )}
-        </button>
       </div>
     </header>
   )
