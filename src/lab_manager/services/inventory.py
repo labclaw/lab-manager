@@ -10,25 +10,18 @@ from typing import Optional
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from lab_manager.exceptions import NotFoundError, ValidationError
 from lab_manager.models.consumption import ConsumptionAction, ConsumptionLog
 from lab_manager.models.inventory import InventoryItem, InventoryStatus
 from lab_manager.models.order import Order, OrderItem, OrderStatus
 from lab_manager.models.product import Product
 
 
-class InventoryError(Exception):
-    pass
-
-
-class NotFoundError(InventoryError):
-    pass
-
-
 def _to_decimal(value: float) -> Decimal:
     """Convert float to Decimal, rejecting NaN and Infinity."""
 
     if math.isnan(value) or math.isinf(value):
-        raise InventoryError("Quantity must be a finite number")
+        raise ValidationError("Quantity must be a finite number")
     return Decimal(str(value))
 
 
@@ -60,7 +53,7 @@ def _log_consumption(
 def _get_inventory_or_404(db: Session, inventory_id: int) -> InventoryItem:
     item = db.get(InventoryItem, inventory_id)
     if not item:
-        raise NotFoundError("Inventory item not found")
+        raise NotFoundError("Inventory item", inventory_id)
     return item
 
 
@@ -83,7 +76,7 @@ def receive_items(
     """
     order = db.get(Order, order_id)
     if not order:
-        raise NotFoundError("Order not found")
+        raise NotFoundError("Order", order_id)
 
     created = []
     today = date.today()
@@ -92,7 +85,7 @@ def receive_items(
         order_item_id = ri.get("order_item_id")
         order_item = db.get(OrderItem, order_item_id) if order_item_id else None
         if order_item and order_item.order_id != order_id:
-            raise InventoryError(
+            raise ValidationError(
                 f"Order item {order_item_id} belongs to order {order_item.order_id}, not {order_id}"
             )
 
@@ -150,12 +143,12 @@ def consume(
     item = _get_inventory_or_404(db, inventory_id)
 
     if item.status in (InventoryStatus.disposed, InventoryStatus.depleted):
-        raise InventoryError(f"Cannot consume from {item.status} item")
+        raise ValidationError(f"Cannot consume from {item.status} item")
     if quantity <= 0:
-        raise InventoryError("Quantity must be positive")
+        raise ValidationError("Quantity must be positive")
     current_qty = Decimal(str(item.quantity_on_hand))  # ensure Decimal
     if quantity > current_qty:
-        raise InventoryError(
+        raise ValidationError(
             f"Insufficient stock: {current_qty} available, {quantity} requested"
         )
 
@@ -224,7 +217,7 @@ def adjust(
     """Physical count adjustment."""
     new_quantity = _to_decimal(new_quantity)
     if new_quantity < Decimal("0"):
-        raise InventoryError("Adjusted quantity cannot be negative")
+        raise ValidationError("Adjusted quantity cannot be negative")
     item = _get_inventory_or_404(db, inventory_id)
     old_quantity = Decimal(str(item.quantity_on_hand))  # ensure Decimal
     delta = new_quantity - old_quantity
@@ -297,7 +290,7 @@ def open_item(
     item = _get_inventory_or_404(db, inventory_id)
 
     if item.opened_date is not None:
-        raise InventoryError("Item is already opened")
+        raise ValidationError("Item is already opened")
 
     item.opened_date = date.today()
     item.status = InventoryStatus.opened

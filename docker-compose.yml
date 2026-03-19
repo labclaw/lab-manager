@@ -1,5 +1,5 @@
 # docker-compose.yml — Production deployment
-# Copy .env.production.template to .env and fill in values before running.
+# cp .env.example .env && docker compose up -d
 services:
   caddy:
     image: caddy:2-alpine
@@ -61,6 +61,7 @@ services:
       MEILISEARCH_URL: http://search:7700
       MEILISEARCH_API_KEY: ${MEILI_MASTER_KEY:?err}
       ADMIN_SECRET_KEY: ${ADMIN_SECRET_KEY:?Set ADMIN_SECRET_KEY in .env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       AUTH_ENABLED: ${AUTH_ENABLED:-true}
       SECURE_COOKIES: ${SECURE_COOKIES:-true}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
@@ -76,7 +77,21 @@ services:
     volumes:
       - uploads:/app/uploads
       - backups:/backups/labmanager
+      - ${SCANS_DIR:-./shenlab-docs}:/app/shenlab-docs:ro
     restart: unless-stopped
+
+  # Cloudflare Tunnel — exposes the service to the internet
+  # Set CLOUDFLARED_TOKEN in .env to enable
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARED_TOKEN:-}
+    depends_on:
+      - caddy
+    restart: unless-stopped
+    profiles:
+      - tunnel
 
 volumes:
   pgdata:

@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     # Auth
     api_key: str = ""
     admin_secret_key: str = ""
+    admin_password: str = ""
     auth_enabled: bool = True
     secure_cookies: bool = False
 

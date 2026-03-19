@@ -72,6 +72,20 @@
 - Rejection reason modal (review_notes)
 - Auto-redirect to login on 401
 
+## CEO Review (2026-03-18) — Pre-open-source
+
+### TODO-13: escapeHtml() for all innerHTML calls (XSS prevention)
+- All JS modules use `.innerHTML` without escaping — stored XSS vector
+- Risk is low for internal lab (data from OCR, not web input), but blocks open-source
+- Add `escapeHtml()` utility and apply to all innerHTML assignments in static/js/*.js
+- Priority: P2 | Effort: S | Depends on: nothing
+
+### TODO-14: Duplicate order detection (PO# matching)
+- No dedup check when creating orders from approved documents
+- Same PO number can create multiple order records
+- Add PO# uniqueness check in review UI before order creation
+- Priority: P2 | Effort: M | Depends on: nothing
+
 ## Future — Post v0.1.2
 
 ### P1: Data editing before approval
