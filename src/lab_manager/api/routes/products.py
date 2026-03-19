@@ -176,7 +176,7 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
     product = get_or_404(db, Product, product_id, "Product")
     try:
         db.delete(product)
-        db.commit()
+        db.flush()
     except IntegrityError:
         db.rollback()
         raise ConflictError(

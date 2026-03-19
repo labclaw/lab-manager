@@ -653,7 +653,7 @@ class TestVendorRoutes:
             with patch.object(db_session, "delete", side_effect=None):
                 with patch.object(
                     db_session,
-                    "commit",
+                    "flush",
                     side_effect=IntegrityError("", {}, Exception()),
                 ):
                     resp = client.delete(f"/api/v1/vendors/{vid}")

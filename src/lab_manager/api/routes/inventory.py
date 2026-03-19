@@ -127,7 +127,7 @@ def list_inventory(
 def create_inventory_item(body: InventoryItemCreate, db: Session = Depends(get_db)):
     item = InventoryItem(**body.model_dump())
     db.add(item)
-    db.commit()
+    db.flush()
     db.refresh(item)
     return item
 
@@ -161,7 +161,7 @@ def update_inventory_item(
     item = get_or_404(db, InventoryItem, item_id, "Inventory item")
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
-    db.commit()
+    db.flush()
     db.refresh(item)
     return item
 
@@ -171,7 +171,7 @@ def delete_inventory_item(item_id: int, db: Session = Depends(get_db)):
     """Soft-delete: set status to 'deleted'."""
     item = get_or_404(db, InventoryItem, item_id, "Inventory item")
     item.status = InventoryStatus.deleted
-    db.commit()
+    db.flush()
     return None
 
 
