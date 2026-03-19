@@ -95,7 +95,7 @@ def ctx():
     target_fixture="vendor",
 )
 def create_vendor_given(api, name):
-    r = api.post("/api/vendors/", json={"name": name})
+    r = api.post("/api/v1/vendors/", json={"name": name})
     assert r.status_code == 201, r.text
     return r.json()
 
@@ -108,7 +108,7 @@ def create_vendors_from_table(api, datatable):
     rows = _table_to_dicts(datatable)
     vendors = []
     for row in rows:
-        r = api.post("/api/vendors/", json={"name": row["name"]})
+        r = api.post("/api/v1/vendors/", json={"name": row["name"]})
         assert r.status_code == 201, r.text
         vendors.append(r.json())
     return vendors
@@ -117,7 +117,7 @@ def create_vendors_from_table(api, datatable):
 @given("a product linked to that vendor exists")
 def create_linked_product(api, vendor):
     r = api.post(
-        "/api/products/",
+        "/api/v1/products/",
         json={
             "name": "Linked Product",
             "catalog_number": "LP-001",
@@ -131,7 +131,7 @@ def create_linked_product(api, vendor):
 def create_n_products(api, vendor, n):
     for i in range(n):
         r = api.post(
-            "/api/products/",
+            "/api/v1/products/",
             json={
                 "name": f"Product {i + 1}",
                 "catalog_number": f"VPROD-{i + 1:03d}",
@@ -145,7 +145,7 @@ def create_n_products(api, vendor, n):
 def create_n_orders(api, vendor, n):
     for i in range(n):
         r = api.post(
-            "/api/orders/",
+            "/api/v1/orders/",
             json={
                 "vendor_id": vendor["id"],
                 "po_number": f"PO-VORD-{i + 1:03d}",
@@ -163,7 +163,7 @@ def create_n_orders(api, vendor, n):
     target_fixture="create_response",
 )
 def create_vendor_when(api, name):
-    r = api.post("/api/vendors/", json={"name": name})
+    r = api.post("/api/v1/vendors/", json={"name": name})
     return r
 
 
@@ -171,25 +171,25 @@ def create_vendor_when(api, name):
 def create_vendor_full(api, datatable):
     rows = _table_to_dicts(datatable)
     payload = {row["field"]: row["value"] for row in rows}
-    r = api.post("/api/vendors/", json=payload)
+    r = api.post("/api/v1/vendors/", json=payload)
     return r
 
 
 @when("I get the vendor by id", target_fixture="action_response")
 def get_vendor_by_id(api, vendor):
-    r = api.get(f"/api/vendors/{vendor['id']}")
+    r = api.get(f"/api/v1/vendors/{vendor['id']}")
     return r
 
 
 @when(parsers.parse("I get vendor with id {vid:d}"), target_fixture="action_response")
 def get_vendor_nonexistent(api, vid):
-    r = api.get(f"/api/vendors/{vid}")
+    r = api.get(f"/api/v1/vendors/{vid}")
     return r
 
 
 @when("I list all vendors", target_fixture="list_response")
 def list_all_vendors(api):
-    r = api.get("/api/vendors/")
+    r = api.get("/api/v1/vendors/")
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -199,7 +199,7 @@ def list_all_vendors(api):
     target_fixture="list_response",
 )
 def search_vendors(api, query):
-    r = api.get("/api/vendors/", params={"search": query})
+    r = api.get("/api/v1/vendors/", params={"search": query})
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -209,33 +209,33 @@ def search_vendors(api, query):
     target_fixture="action_response",
 )
 def update_vendor(api, vendor, name):
-    r = api.patch(f"/api/vendors/{vendor['id']}", json={"name": name})
+    r = api.patch(f"/api/v1/vendors/{vendor['id']}", json={"name": name})
     assert r.status_code == 200, r.text
     return r
 
 
 @when("I delete the vendor", target_fixture="delete_response")
 def delete_vendor(api, vendor):
-    r = api.delete(f"/api/vendors/{vendor['id']}")
+    r = api.delete(f"/api/v1/vendors/{vendor['id']}")
     return r
 
 
 @when("I try to delete the vendor", target_fixture="action_response")
 def try_delete_vendor(api, vendor):
-    r = api.delete(f"/api/vendors/{vendor['id']}")
+    r = api.delete(f"/api/v1/vendors/{vendor['id']}")
     return r
 
 
 @when("I list products for the vendor", target_fixture="linked_response")
 def list_vendor_products(api, vendor):
-    r = api.get(f"/api/vendors/{vendor['id']}/products")
+    r = api.get(f"/api/v1/vendors/{vendor['id']}/products")
     assert r.status_code == 200, r.text
     return r.json()
 
 
 @when("I list orders for the vendor", target_fixture="linked_response")
 def list_vendor_orders(api, vendor):
-    r = api.get(f"/api/vendors/{vendor['id']}/orders")
+    r = api.get(f"/api/v1/vendors/{vendor['id']}/orders")
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -295,7 +295,7 @@ def check_delete_status(delete_response, code):
 
 @then("the vendor should no longer exist")
 def check_vendor_deleted(api, vendor):
-    r = api.get(f"/api/vendors/{vendor['id']}")
+    r = api.get(f"/api/v1/vendors/{vendor['id']}")
     assert r.status_code == 404
 
 

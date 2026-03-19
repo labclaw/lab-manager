@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -39,6 +40,21 @@ class VendorUpdate(BaseModel):
     notes: Optional[str] = None
 
 
+class VendorResponse(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: int
+    name: str
+    aliases: list[str] = []
+    website: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    notes: Optional[str] = None
+    extra: dict = {}
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
 @router.get("/")
 def list_vendors(
     page: int = Query(1, ge=1),
@@ -71,7 +87,7 @@ def create_vendor(body: VendorCreate, db: Session = Depends(get_db)):
     return vendor
 
 
-@router.get("/{vendor_id}")
+@router.get("/{vendor_id}", response_model=VendorResponse)
 def get_vendor(vendor_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, Vendor, vendor_id, "Vendor")
 

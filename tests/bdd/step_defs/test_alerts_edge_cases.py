@@ -108,7 +108,7 @@ def create_unack_alert(db):
     target_fixture="alert_resp",
 )
 def ack_nonexistent(api, aid):
-    return api.post(f"/api/alerts/{aid}/acknowledge")
+    return api.post(f"/api/v1/alerts/{aid}/acknowledge")
 
 
 @when(
@@ -116,7 +116,7 @@ def ack_nonexistent(api, aid):
     target_fixture="alert_resp",
 )
 def resolve_nonexistent(api, aid):
-    return api.post(f"/api/alerts/{aid}/resolve")
+    return api.post(f"/api/v1/alerts/{aid}/resolve")
 
 
 @when(
@@ -124,7 +124,7 @@ def resolve_nonexistent(api, aid):
     target_fixture="alert_list",
 )
 def list_alerts_by_type(api, alert_type):
-    r = api.get("/api/alerts/", params={"alert_type": alert_type})
+    r = api.get("/api/v1/alerts/", params={"alert_type": alert_type})
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -134,28 +134,28 @@ def list_alerts_by_type(api, alert_type):
     target_fixture="alert_list",
 )
 def list_alerts_by_severity(api, severity):
-    r = api.get("/api/alerts/", params={"severity": severity})
+    r = api.get("/api/v1/alerts/", params={"severity": severity})
     assert r.status_code == 200, r.text
     return r.json()
 
 
 @when("I resolve the unacknowledged alert", target_fixture="alert_resp")
 def resolve_unack(api, unack_alert):
-    r = api.post(f"/api/alerts/{unack_alert.id}/resolve")
+    r = api.post(f"/api/v1/alerts/{unack_alert.id}/resolve")
     assert r.status_code == 200, r.text
     return r
 
 
 @when("I request alert summary", target_fixture="summary_resp")
 def request_summary(api):
-    r = api.get("/api/alerts/summary")
+    r = api.get("/api/v1/alerts/summary")
     assert r.status_code == 200, r.text
     return r.json()
 
 
 @when("I run alert check", target_fixture="check_resp")
 def run_check(api):
-    r = api.post("/api/alerts/check")
+    r = api.post("/api/v1/alerts/check")
     assert r.status_code == 200, r.text
     return r.json()
 

@@ -88,12 +88,12 @@ def ctx():
 def _create_item(api, quantity=10, expiry_date=None):
     """Create a vendor, product, inventory item triple."""
     seq = next(_seq)
-    r = api.post("/api/vendors/", json={"name": f"InvEdgeVendor-{seq}"})
+    r = api.post("/api/v1/vendors/", json={"name": f"InvEdgeVendor-{seq}"})
     assert r.status_code == 201, r.text
     vendor = r.json()
 
     r = api.post(
-        "/api/products/",
+        "/api/v1/products/",
         json={
             "name": f"InvEdgeProduct-{seq}",
             "catalog_number": f"IEDGE-{seq:05d}",
@@ -112,7 +112,7 @@ def _create_item(api, quantity=10, expiry_date=None):
     if expiry_date:
         payload["expiry_date"] = expiry_date.isoformat()
 
-    r = api.post("/api/inventory/", json=payload)
+    r = api.post("/api/v1/inventory/", json=payload)
     assert r.status_code == 201, r.text
     return r.json()
 
@@ -131,7 +131,7 @@ def create_inv_item(api, qty):
 @given("the test item has been opened")
 def open_item(api, inv_item):
     r = api.post(
-        f"/api/inventory/{inv_item['id']}/open",
+        f"/api/v1/inventory/{inv_item['id']}/open",
         json={"opened_by": "Robert"},
     )
     assert r.status_code == 200, r.text
@@ -140,7 +140,7 @@ def open_item(api, inv_item):
 @given("the test item has been disposed")
 def dispose_item(api, inv_item):
     r = api.post(
-        f"/api/inventory/{inv_item['id']}/dispose",
+        f"/api/v1/inventory/{inv_item['id']}/dispose",
         json={"reason": "Test dispose", "disposed_by": "Robert"},
     )
     assert r.status_code == 200, r.text
@@ -174,7 +174,7 @@ def create_expiring_item(api, days):
     target_fixture="inv_resp",
 )
 def get_inv_nonexistent(api, iid):
-    return api.get(f"/api/inventory/{iid}")
+    return api.get(f"/api/v1/inventory/{iid}")
 
 
 @when(
@@ -183,7 +183,7 @@ def get_inv_nonexistent(api, iid):
 )
 def consume_nonexistent(api, qty, iid):
     return api.post(
-        f"/api/inventory/{iid}/consume",
+        f"/api/v1/inventory/{iid}/consume",
         json={"quantity": float(qty), "consumed_by": "Robert"},
     )
 
@@ -194,7 +194,7 @@ def consume_nonexistent(api, qty, iid):
 )
 def consume_from_test_item(api, inv_item, qty):
     return api.post(
-        f"/api/inventory/{inv_item['id']}/consume",
+        f"/api/v1/inventory/{inv_item['id']}/consume",
         json={"quantity": float(qty), "consumed_by": "Robert"},
     )
 
@@ -205,7 +205,7 @@ def consume_from_test_item(api, inv_item, qty):
 )
 def adjust_test_item(api, inv_item, qty):
     return api.post(
-        f"/api/inventory/{inv_item['id']}/adjust",
+        f"/api/v1/inventory/{inv_item['id']}/adjust",
         json={
             "new_quantity": float(qty),
             "reason": "Test adjust",
@@ -217,14 +217,14 @@ def adjust_test_item(api, inv_item, qty):
 @when("I try to open the test item again", target_fixture="inv_resp")
 def open_test_item_again(api, inv_item):
     return api.post(
-        f"/api/inventory/{inv_item['id']}/open",
+        f"/api/v1/inventory/{inv_item['id']}/open",
         json={"opened_by": "Robert"},
     )
 
 
 @when("I list all inventory items", target_fixture="inv_list")
 def list_all_inventory(api):
-    r = api.get("/api/inventory/")
+    r = api.get("/api/v1/inventory/")
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -234,14 +234,14 @@ def list_all_inventory(api):
     target_fixture="inv_list",
 )
 def list_inventory_by_status(api, status):
-    r = api.get("/api/inventory/", params={"status": status})
+    r = api.get("/api/v1/inventory/", params={"status": status})
     assert r.status_code == 200, r.text
     return r.json()
 
 
 @when("I request low stock report", target_fixture="low_stock_resp")
 def request_low_stock(api):
-    r = api.get("/api/inventory/low-stock")
+    r = api.get("/api/v1/inventory/low-stock")
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -251,19 +251,19 @@ def request_low_stock(api):
     target_fixture="expiring_resp",
 )
 def request_expiring(api, days):
-    r = api.get("/api/inventory/expiring", params={"days": days})
+    r = api.get("/api/v1/inventory/expiring", params={"days": days})
     assert r.status_code == 200, r.text
     return r.json()
 
 
 @when("I delete the inventory test item", target_fixture="inv_resp")
 def delete_inv_item(api, inv_item):
-    return api.delete(f"/api/inventory/{inv_item['id']}")
+    return api.delete(f"/api/v1/inventory/{inv_item['id']}")
 
 
 @when("I get history for the test item", target_fixture="history_resp")
 def get_item_history(api, inv_item):
-    r = api.get(f"/api/inventory/{inv_item['id']}/history")
+    r = api.get(f"/api/v1/inventory/{inv_item['id']}/history")
     assert r.status_code == 200, r.text
     return r.json()
 

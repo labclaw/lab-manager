@@ -83,9 +83,9 @@ def test_audit_not_logged_for_audit_log(db_session):
 def test_audit_api_list(client):
     """GET /api/audit should return paginated audit logs."""
     # Create a vendor to generate an audit entry
-    client.post("/api/vendors/", json={"name": "AuditVendor"})
+    client.post("/api/v1/vendors/", json={"name": "AuditVendor"})
 
-    resp = client.get("/api/audit/")
+    resp = client.get("/api/v1/audit/")
     assert resp.status_code == 200
     data = resp.json()
     assert "items" in data
@@ -94,13 +94,13 @@ def test_audit_api_list(client):
 
 def test_audit_api_record_history(client):
     """GET /api/audit/{table}/{record_id} returns history for a specific record."""
-    resp = client.post("/api/vendors/", json={"name": "HistoryVendor"})
+    resp = client.post("/api/v1/vendors/", json={"name": "HistoryVendor"})
     vendor_id = resp.json()["id"]
 
     # Update it
-    client.patch(f"/api/vendors/{vendor_id}", json={"name": "HistoryVendor Updated"})
+    client.patch(f"/api/v1/vendors/{vendor_id}", json={"name": "HistoryVendor Updated"})
 
-    resp = client.get(f"/api/audit/vendors/{vendor_id}")
+    resp = client.get(f"/api/v1/audit/vendors/{vendor_id}")
     assert resp.status_code == 200
     data = resp.json()
     assert data["total"] >= 2  # create + update
@@ -108,8 +108,8 @@ def test_audit_api_record_history(client):
 
 def test_audit_api_filter_by_action(client):
     """GET /api/audit?action=create should filter correctly."""
-    client.post("/api/vendors/", json={"name": "FilterVendor"})
-    resp = client.get("/api/audit/", params={"action": "create"})
+    client.post("/api/v1/vendors/", json={"name": "FilterVendor"})
+    resp = client.get("/api/v1/audit/", params={"action": "create"})
     assert resp.status_code == 200
     data = resp.json()
     for item in data["items"]:
@@ -119,14 +119,14 @@ def test_audit_api_filter_by_action(client):
 def test_audit_middleware_xuser(client):
     """X-User header should be captured as changed_by in audit logs."""
     resp = client.post(
-        "/api/vendors/",
+        "/api/v1/vendors/",
         json={"name": "HeaderVendor"},
         headers={"X-User": "jane.doe"},
     )
     assert resp.status_code == 201
     vendor_id = resp.json()["id"]
 
-    resp = client.get(f"/api/audit/vendors/{vendor_id}")
+    resp = client.get(f"/api/v1/audit/vendors/{vendor_id}")
     data = resp.json()
     assert data["total"] >= 1
     assert data["items"][0]["changed_by"] == "jane.doe"

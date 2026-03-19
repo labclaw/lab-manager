@@ -161,7 +161,7 @@ def test_persist_alerts_no_duplicates(db_session):
 
 def test_alerts_summary_api(client):
     """GET /api/alerts/summary should return alert counts."""
-    resp = client.get("/api/alerts/summary")
+    resp = client.get("/api/v1/alerts/summary")
     assert resp.status_code == 200
     data = resp.json()
     assert "total" in data
@@ -172,7 +172,7 @@ def test_alerts_check_api(client):
     """POST /api/alerts/check should trigger checks and return summary."""
     # Seed a pending document so there's something to find
     client.post(
-        "/api/documents/",
+        "/api/v1/documents/",
         json={
             "file_path": "uploads/check.jpg",
             "file_name": "check.jpg",
@@ -180,7 +180,7 @@ def test_alerts_check_api(client):
         },
     )
 
-    resp = client.post("/api/alerts/check")
+    resp = client.post("/api/v1/alerts/check")
     assert resp.status_code == 200
     data = resp.json()
     assert "new_alerts" in data
@@ -189,7 +189,7 @@ def test_alerts_check_api(client):
 
 def test_alerts_list_api(client):
     """GET /api/alerts should list unresolved alerts."""
-    resp = client.get("/api/alerts/")
+    resp = client.get("/api/v1/alerts/")
     assert resp.status_code == 200
     data = resp.json()
     assert "items" in data
@@ -199,17 +199,17 @@ def test_alert_acknowledge_resolve(client):
     """POST /api/alerts/{id}/acknowledge and /resolve should work."""
     # Seed + check to create alerts
     client.post(
-        "/api/documents/",
+        "/api/v1/documents/",
         json={
             "file_path": "uploads/ack.jpg",
             "file_name": "ack.jpg",
             "status": "pending",
         },
     )
-    client.post("/api/alerts/check")
+    client.post("/api/v1/alerts/check")
 
     # Get alerts
-    resp = client.get("/api/alerts/")
+    resp = client.get("/api/v1/alerts/")
     items = resp.json()["items"]
     if not items:
         return  # Nothing to test if no alerts generated
@@ -218,7 +218,7 @@ def test_alert_acknowledge_resolve(client):
 
     # Acknowledge
     resp = client.post(
-        f"/api/alerts/{alert_id}/acknowledge",
+        f"/api/v1/alerts/{alert_id}/acknowledge",
         params={"acknowledged_by": "tester"},
     )
     assert resp.status_code == 200
@@ -226,17 +226,17 @@ def test_alert_acknowledge_resolve(client):
     assert resp.json()["acknowledged_by"] == "tester"
 
     # Resolve
-    resp = client.post(f"/api/alerts/{alert_id}/resolve")
+    resp = client.post(f"/api/v1/alerts/{alert_id}/resolve")
     assert resp.status_code == 200
     assert resp.json()["is_resolved"] is True
 
 
 def test_alert_not_found(client):
     """Acknowledge/resolve non-existent alert should return 404."""
-    resp = client.post("/api/alerts/99999/acknowledge")
+    resp = client.post("/api/v1/alerts/99999/acknowledge")
     assert resp.status_code == 404
 
-    resp = client.post("/api/alerts/99999/resolve")
+    resp = client.post("/api/v1/alerts/99999/resolve")
     assert resp.status_code == 404
 
 

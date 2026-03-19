@@ -64,7 +64,7 @@ def ctx():
     target_fixture="edge_vendor",
 )
 def create_edge_vendor(api, name):
-    r = api.post("/api/vendors/", json={"name": name})
+    r = api.post("/api/v1/vendors/", json={"name": name})
     assert r.status_code == 201, r.text
     return r.json()
 
@@ -75,7 +75,7 @@ def create_edge_vendor(api, name):
 )
 def create_edge_order(api, edge_vendor, po):
     r = api.post(
-        "/api/orders/",
+        "/api/v1/orders/",
         json={
             "vendor_id": edge_vendor["id"],
             "po_number": po,
@@ -92,7 +92,7 @@ def create_edge_order(api, edge_vendor, po):
 )
 def create_edge_order_with_items(api, edge_vendor, ctx, po, n):
     r = api.post(
-        "/api/orders/",
+        "/api/v1/orders/",
         json={
             "vendor_id": edge_vendor["id"],
             "po_number": po,
@@ -105,7 +105,7 @@ def create_edge_order_with_items(api, edge_vendor, ctx, po, n):
     items = []
     for i in range(n):
         r = api.post(
-            f"/api/orders/{order['id']}/items",
+            f"/api/v1/orders/{order['id']}/items",
             json={
                 "catalog_number": f"EDGE-{next(_seq):05d}",
                 "description": f"Edge Item {i + 1}",
@@ -124,7 +124,7 @@ def create_edge_order_with_items(api, edge_vendor, ctx, po, n):
 def create_n_edge_orders(api, edge_vendor, n):
     for i in range(n):
         r = api.post(
-            "/api/orders/",
+            "/api/v1/orders/",
             json={
                 "vendor_id": edge_vendor["id"],
                 "po_number": f"PO-PAGN-{next(_seq):05d}",
@@ -140,7 +140,7 @@ def create_sequential_orders(api, edge_vendor, ctx, n):
     for i in range(n):
         po = f"PO-SORT-{chr(65 + i)}"
         r = api.post(
-            "/api/orders/",
+            "/api/v1/orders/",
             json={
                 "vendor_id": edge_vendor["id"],
                 "po_number": po,
@@ -157,7 +157,7 @@ def create_sequential_orders(api, edge_vendor, ctx, n):
 
 @when(parsers.parse("I get order with id {oid:d}"), target_fixture="order_resp")
 def get_order_nonexistent(api, oid):
-    return api.get(f"/api/orders/{oid}")
+    return api.get(f"/api/v1/orders/{oid}")
 
 
 @when(
@@ -165,14 +165,14 @@ def get_order_nonexistent(api, oid):
     target_fixture="order_resp",
 )
 def update_order_status(api, edge_order, status):
-    r = api.patch(f"/api/orders/{edge_order['id']}", json={"status": status})
+    r = api.patch(f"/api/v1/orders/{edge_order['id']}", json={"status": status})
     assert r.status_code == 200, r.text
     return r
 
 
 @when("I delete the order", target_fixture="order_resp")
 def delete_order(api, edge_order):
-    return api.delete(f"/api/orders/{edge_order['id']}")
+    return api.delete(f"/api/v1/orders/{edge_order['id']}")
 
 
 @when(
@@ -180,13 +180,13 @@ def delete_order(api, edge_order):
     target_fixture="order_resp",
 )
 def get_order_item_nonexistent(api, edge_order, iid):
-    return api.get(f"/api/orders/{edge_order['id']}/items/{iid}")
+    return api.get(f"/api/v1/orders/{edge_order['id']}/items/{iid}")
 
 
 @when("I delete the first order item", target_fixture="order_resp")
 def delete_first_order_item(api, edge_order, ctx):
     item = ctx["edge_order_items"][0]
-    return api.delete(f"/api/orders/{edge_order['id']}/items/{item['id']}")
+    return api.delete(f"/api/v1/orders/{edge_order['id']}/items/{item['id']}")
 
 
 @when(
@@ -194,7 +194,7 @@ def delete_first_order_item(api, edge_order, ctx):
     target_fixture="order_list",
 )
 def list_orders_paginated(api, page, ps):
-    r = api.get("/api/orders/", params={"page": page, "page_size": ps})
+    r = api.get("/api/v1/orders/", params={"page": page, "page_size": ps})
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -204,7 +204,7 @@ def list_orders_paginated(api, page, ps):
     target_fixture="order_list",
 )
 def list_orders_sorted(api, field, direction):
-    r = api.get("/api/orders/", params={"sort_by": field, "sort_dir": direction})
+    r = api.get("/api/v1/orders/", params={"sort_by": field, "sort_dir": direction})
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -234,7 +234,7 @@ def check_item_delete_status(order_resp, code):
 
 @then(parsers.parse("the order should have {n:d} items"))
 def check_order_items_count(api, edge_order, n):
-    r = api.get(f"/api/orders/{edge_order['id']}/items")
+    r = api.get(f"/api/v1/orders/{edge_order['id']}/items")
     assert r.status_code == 200, r.text
     assert r.json()["total"] == n
 

@@ -77,7 +77,7 @@ class TestUploadEndpoint:
         """Successful PNG upload returns 201 with document data."""
         png = _make_png_bytes()
         resp = client.post(
-            "/api/documents/upload",
+            "/api/v1/documents/upload",
             files={"file": ("test_sample.png", io.BytesIO(png), "image/png")},
         )
         assert resp.status_code == 201
@@ -92,7 +92,7 @@ class TestUploadEndpoint:
 
         png = _make_png_bytes()
         resp = client.post(
-            "/api/documents/upload",
+            "/api/v1/documents/upload",
             files={"file": ("record_test.png", io.BytesIO(png), "image/png")},
         )
         assert resp.status_code == 201
@@ -105,7 +105,7 @@ class TestUploadEndpoint:
     def test_upload_rejected_file_type(self, client, upload_dir):
         """Non-allowed file types (e.g. .exe) are rejected with 400."""
         resp = client.post(
-            "/api/documents/upload",
+            "/api/v1/documents/upload",
             files={
                 "file": (
                     "malware.exe",
@@ -122,7 +122,7 @@ class TestUploadEndpoint:
         # Create a file just over 50MB
         big = b"\x00" * (50 * 1024 * 1024 + 1)
         resp = client.post(
-            "/api/documents/upload",
+            "/api/v1/documents/upload",
             files={"file": ("big.png", io.BytesIO(big), "image/png")},
         )
         assert resp.status_code == 413
@@ -134,7 +134,7 @@ class TestUploadEndpoint:
 
         png = _make_png_bytes()
         resp = client.post(
-            "/api/documents/upload",
+            "/api/v1/documents/upload",
             files={"file": ("photo.png", io.BytesIO(png), "image/png")},
         )
         assert resp.status_code == 201
@@ -147,14 +147,14 @@ class TestUploadEndpoint:
         png = _make_png_bytes()
 
         resp1 = client.post(
-            "/api/documents/upload",
+            "/api/v1/documents/upload",
             files={"file": ("dup.png", io.BytesIO(png), "image/png")},
         )
         assert resp1.status_code == 201
 
         # Small delay not needed -- datetime includes seconds
         resp2 = client.post(
-            "/api/documents/upload",
+            "/api/v1/documents/upload",
             files={"file": ("dup.png", io.BytesIO(png), "image/png")},
         )
         # Even if same second, we handle it (or it just works at different seconds)
@@ -168,7 +168,7 @@ class TestUploadEndpoint:
         """Uploaded file actually exists on disk in upload_dir."""
         png = _make_png_bytes()
         resp = client.post(
-            "/api/documents/upload",
+            "/api/v1/documents/upload",
             files={"file": ("disk_test.png", io.BytesIO(png), "image/png")},
         )
         assert resp.status_code == 201
@@ -179,7 +179,7 @@ class TestUploadEndpoint:
         """JPEG uploads are accepted."""
         jpeg = _make_jpeg_bytes()
         resp = client.post(
-            "/api/documents/upload",
+            "/api/v1/documents/upload",
             files={"file": ("photo.jpg", io.BytesIO(jpeg), "image/jpeg")},
         )
         assert resp.status_code == 201
@@ -189,7 +189,7 @@ class TestUploadEndpoint:
         # Minimal PDF
         pdf = b"%PDF-1.0\n1 0 obj<</Type/Catalog>>endobj\n%%EOF"
         resp = client.post(
-            "/api/documents/upload",
+            "/api/v1/documents/upload",
             files={"file": ("doc.pdf", io.BytesIO(pdf), "application/pdf")},
         )
         assert resp.status_code == 201
@@ -198,7 +198,7 @@ class TestUploadEndpoint:
         """Document's file_path points to the uploads directory."""
         png = _make_png_bytes()
         resp = client.post(
-            "/api/documents/upload",
+            "/api/v1/documents/upload",
             files={"file": ("path_test.png", io.BytesIO(png), "image/png")},
         )
         assert resp.status_code == 201
@@ -216,7 +216,7 @@ class TestUploadStaticServing:
         """After upload, the file can be retrieved via /uploads/ route."""
         png = _make_png_bytes()
         resp = client.post(
-            "/api/documents/upload",
+            "/api/v1/documents/upload",
             files={"file": ("serve_test.png", io.BytesIO(png), "image/png")},
         )
         assert resp.status_code == 201

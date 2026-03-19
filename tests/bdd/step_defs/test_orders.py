@@ -51,7 +51,7 @@ def ctx():
     target_fixture="vendor",
 )
 def create_vendor(api, name):
-    r = api.post("/api/vendors/", json={"name": name})
+    r = api.post("/api/v1/vendors/", json={"name": name})
     assert r.status_code in (200, 201), r.text
     return r.json()
 
@@ -62,7 +62,7 @@ def create_vendor(api, name):
 )
 def create_order_given(api, vendor, po):
     r = api.post(
-        "/api/orders/",
+        "/api/v1/orders/",
         json={
             "vendor_id": vendor["id"],
             "po_number": po,
@@ -79,7 +79,7 @@ def create_order_given(api, vendor, po):
 )
 def create_order_with_items(api, vendor, ctx, po, n):
     r = api.post(
-        "/api/orders/",
+        "/api/v1/orders/",
         json={
             "vendor_id": vendor["id"],
             "po_number": po,
@@ -92,7 +92,7 @@ def create_order_with_items(api, vendor, ctx, po, n):
     items = []
     for i in range(n):
         r = api.post(
-            f"/api/orders/{order['id']}/items",
+            f"/api/v1/orders/{order['id']}/items",
             json={
                 "catalog_number": f"CAT-{i + 1:03d}",
                 "description": f"Item {i + 1}",
@@ -112,7 +112,7 @@ def create_matching_products(api, vendor, ctx):
     products = []
     for oi in ctx["order_items"]:
         r = api.post(
-            "/api/products/",
+            "/api/v1/products/",
             json={
                 "name": oi["description"],
                 "catalog_number": oi["catalog_number"],
@@ -124,7 +124,7 @@ def create_matching_products(api, vendor, ctx):
 
         # Link order item to product
         r2 = api.patch(
-            f"/api/orders/{oi['order_id']}/items/{oi['id']}",
+            f"/api/v1/orders/{oi['order_id']}/items/{oi['id']}",
             json={"product_id": product["id"]},
         )
         assert r2.status_code == 200, r2.text
@@ -144,14 +144,14 @@ def create_n_orders_for_vendor(api, vendor, ctx, n, name):
     if vendor["name"] not in vendors:
         vendors[vendor["name"]] = vendor
     if name not in vendors:
-        r = api.post("/api/vendors/", json={"name": name})
+        r = api.post("/api/v1/vendors/", json={"name": name})
         assert r.status_code in (200, 201), r.text
         vendors[name] = r.json()
     v = vendors[name]
 
     for i in range(n):
         r = api.post(
-            "/api/orders/",
+            "/api/v1/orders/",
             json={
                 "vendor_id": v["id"],
                 "po_number": f"PO-{name[:3].upper()}-{i + 1:03d}",
@@ -167,7 +167,7 @@ def create_n_orders_for_vendor(api, vendor, ctx, n, name):
 )
 def create_order_with_n_items(api, vendor, ctx, n):
     r = api.post(
-        "/api/orders/",
+        "/api/v1/orders/",
         json={
             "vendor_id": vendor["id"],
             "po_number": "PO-DETAIL-001",
@@ -180,7 +180,7 @@ def create_order_with_n_items(api, vendor, ctx, n):
     items = []
     for i in range(n):
         r = api.post(
-            f"/api/orders/{order['id']}/items",
+            f"/api/v1/orders/{order['id']}/items",
             json={
                 "catalog_number": f"DET-{i + 1:03d}",
                 "description": f"Detail item {i + 1}",
@@ -204,7 +204,7 @@ def create_order_with_n_items(api, vendor, ctx, n):
 )
 def create_order_when(api, vendor, po):
     r = api.post(
-        "/api/orders/",
+        "/api/v1/orders/",
         json={
             "vendor_id": vendor["id"],
             "po_number": po,
@@ -223,7 +223,7 @@ def create_order_when(api, vendor, po):
 )
 def add_item(api, order, ctx, catalog, desc, qty, unit):
     r = api.post(
-        f"/api/orders/{order['id']}/items",
+        f"/api/v1/orders/{order['id']}/items",
         json={
             "catalog_number": catalog,
             "description": desc,
@@ -256,7 +256,7 @@ def receive_order(api, db, order, ctx, name):
     ]
 
     r = api.post(
-        f"/api/orders/{order['id']}/receive",
+        f"/api/v1/orders/{order['id']}/receive",
         json={
             "items": items_payload,
             "location_id": loc.id,
@@ -273,24 +273,24 @@ def receive_order(api, db, order, ctx, name):
 )
 def list_orders_for_vendor(api, ctx, name):
     v = ctx["vendors"][name]
-    r = api.get(f"/api/orders/?vendor_id={v['id']}")
+    r = api.get(f"/api/v1/orders/?vendor_id={v['id']}")
     assert r.status_code == 200, r.text
     return r.json()
 
 
 @when("I get the order detail", target_fixture="detail_response")
 def get_order_detail(api, order, ctx):
-    r = api.get(f"/api/orders/{order['id']}")
+    r = api.get(f"/api/v1/orders/{order['id']}")
     assert r.status_code == 200, r.text
     detail = r.json()
 
     # Also fetch items
-    r_items = api.get(f"/api/orders/{order['id']}/items")
+    r_items = api.get(f"/api/v1/orders/{order['id']}/items")
     assert r_items.status_code == 200, r_items.text
     detail["_items"] = r_items.json()["items"]
 
     # Also fetch vendor info
-    r_vendor = api.get(f"/api/vendors/{detail['vendor_id']}")
+    r_vendor = api.get(f"/api/v1/vendors/{detail['vendor_id']}")
     assert r_vendor.status_code == 200, r_vendor.text
     detail["_vendor"] = r_vendor.json()
 
@@ -312,14 +312,14 @@ def check_order_po(order, po):
 
 @then(parsers.parse("the order should have {n:d} items"))
 def check_order_item_count(api, order, n):
-    r = api.get(f"/api/orders/{order['id']}/items")
+    r = api.get(f"/api/v1/orders/{order['id']}/items")
     assert r.status_code == 200, r.text
     assert r.json()["total"] == n
 
 
 @then(parsers.parse('the first item should have catalog "{catalog}"'))
 def check_first_item_catalog(api, order, catalog):
-    r = api.get(f"/api/orders/{order['id']}/items")
+    r = api.get(f"/api/v1/orders/{order['id']}/items")
     assert r.status_code == 200, r.text
     items = r.json()["items"]
     assert len(items) > 0
@@ -328,7 +328,7 @@ def check_first_item_catalog(api, order, catalog):
 
 @then(parsers.parse('the order status should be "{status}"'))
 def check_order_status(api, order, status):
-    r = api.get(f"/api/orders/{order['id']}")
+    r = api.get(f"/api/v1/orders/{order['id']}")
     assert r.status_code == 200, r.text
     assert r.json()["status"] == status
 
