@@ -13,6 +13,7 @@ from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.exceptions import NotFoundError
 from lab_manager.models.order import Order, OrderItem, OrderStatus
+from lab_manager.services.orders import build_duplicate_warning, find_duplicate_po
 
 router = APIRouter()
 
@@ -137,8 +138,6 @@ def list_orders(
 
 @router.post("/", status_code=201)
 def create_order(body: OrderCreate, db: Session = Depends(get_db)):
-    from lab_manager.services.orders import build_duplicate_warning, find_duplicate_po
-
     order = Order(**body.model_dump())
     db.add(order)
     db.commit()
