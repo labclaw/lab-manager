@@ -76,7 +76,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="LabClaw Lab Manager",
         description="Lab inventory management with OCR document intake",
-        version="0.2.0",
+        version="0.1.5",
         **docs_kwargs,
     )
 
@@ -357,6 +357,15 @@ def create_app() -> FastAPI:
     # Serve scan images (protected by auth middleware when auth is enabled)
     if SCANS_DIR.exists():
         app.mount("/scans", StaticFiles(directory=str(SCANS_DIR)), name="scans")
+
+    # Serve uploaded documents at /uploads/
+    upload_path = Path(settings.upload_dir)
+    upload_path.mkdir(parents=True, exist_ok=True)
+    app.mount(
+        "/uploads",
+        StaticFiles(directory=str(upload_path)),
+        name="uploads",
+    )
 
     # Wire up SQLAdmin UI at /admin/
     setup_admin(app, get_engine())
