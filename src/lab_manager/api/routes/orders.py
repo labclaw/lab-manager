@@ -167,7 +167,7 @@ def list_orders(
 def create_order(body: OrderCreate, db: Session = Depends(get_db)):
     order = Order(**body.model_dump())
     db.add(order)
-    db.commit()
+    db.flush()
     db.refresh(order)
 
     # Duplicate PO# check — warn but never block (OCR may re-scan same doc).
@@ -199,7 +199,7 @@ def update_order(order_id: int, body: OrderUpdate, db: Session = Depends(get_db)
     order = get_or_404(db, Order, order_id, "Order")
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(order, key, value)
-    db.commit()
+    db.flush()
     db.refresh(order)
     return order
 
@@ -209,7 +209,7 @@ def delete_order(order_id: int, db: Session = Depends(get_db)):
     """Soft-delete: set status to 'deleted'."""
     order = get_or_404(db, Order, order_id, "Order")
     order.status = OrderStatus.deleted
-    db.commit()
+    db.flush()
     return None
 
 
@@ -245,7 +245,7 @@ def create_order_item(
     item = OrderItem(**body.model_dump())
     item.order_id = order_id
     db.add(item)
-    db.commit()
+    db.flush()
     db.refresh(item)
     return item
 
@@ -262,7 +262,7 @@ def update_order_item(
     item = _get_order_item_or_raise(db, order_id, item_id)
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
-    db.commit()
+    db.flush()
     db.refresh(item)
     return item
 
@@ -271,7 +271,7 @@ def update_order_item(
 def delete_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)):
     item = _get_order_item_or_raise(db, order_id, item_id)
     db.delete(item)
-    db.commit()
+    db.flush()
     return None
 
 

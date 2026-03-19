@@ -74,7 +74,7 @@ def acknowledge_alert(
     alert.is_acknowledged = True
     alert.acknowledged_by = acknowledged_by
     alert.acknowledged_at = utcnow()
-    db.commit()
+    db.flush()
     db.refresh(alert)
     return alert
 
@@ -90,6 +90,6 @@ def resolve_alert(
     if not alert.is_acknowledged:
         alert.is_acknowledged = True
         alert.acknowledged_at = utcnow()
-    db.commit()
+    db.flush()
     db.refresh(alert)
     return alert

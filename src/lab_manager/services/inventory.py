@@ -120,7 +120,7 @@ def receive_items(
     order.received_date = today
     order.received_by = received_by
 
-    db.commit()
+    db.flush()
     for inv in created:
         db.refresh(inv)
     return created
@@ -166,7 +166,7 @@ def consume(
         action=ConsumptionAction.consume,
         purpose=purpose,
     )
-    db.commit()
+    db.flush()
     db.refresh(item)
     return item
 
@@ -197,7 +197,7 @@ def transfer(
         action=ConsumptionAction.transfer,
         purpose=f"Moved from location {old_location_id} to {new_location_id}",
     )
-    db.commit()
+    db.flush()
     db.refresh(item)
     return item
 
@@ -238,7 +238,7 @@ def adjust(
         action=ConsumptionAction.adjust,
         purpose=f"Cycle count: {old_quantity} -> {new_quantity}. Reason: {reason}",
     )
-    db.commit()
+    db.flush()
     db.refresh(item)
     return item
 
@@ -271,7 +271,7 @@ def dispose(
         action=ConsumptionAction.dispose,
         purpose=reason,
     )
-    db.commit()
+    db.flush()
     db.refresh(item)
     return item
 
@@ -305,7 +305,7 @@ def open_item(
         action=ConsumptionAction.open,
         purpose="Item opened",
     )
-    db.commit()
+    db.flush()
     db.refresh(item)
     return item
 
