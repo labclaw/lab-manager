@@ -8,23 +8,7 @@ from pathlib import Path
 from google import genai
 
 from lab_manager.config import get_settings
-
-OCR_PROMPT = """You are performing OCR on a scanned lab supply document (packing list, invoice, or shipping label).
-Transcribe ALL visible text as faithfully as possible, character by character.
-
-Critical rules:
-- Output plain text only.
-- Preserve reading order from top to bottom, left to right.
-- Keep line breaks where they appear on the document.
-- Pay extra attention to:
-  * Catalog/part numbers (e.g., AB2251-1, MAB5406) — distinguish digit 1 from letter I carefully.
-  * Batch/lot numbers (e.g., SDBB4556, 4361991) — include ALL batch numbers even if partially visible.
-  * Handwritten text and dates (e.g., 3/9/26, 2026.3.07) — transcribe handwritten notes exactly as written.
-  * PO numbers, delivery numbers, order numbers.
-- Include ALL text including fine print, footer text, and handwritten annotations.
-- Do not summarize or explain. Do not add any commentary.
-- Do not skip any text region.
-"""
+from lab_manager.intake.prompts import OCR_PROMPT
 
 
 _MIME_MAP = {
