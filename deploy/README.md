@@ -1,6 +1,23 @@
 # Deployment Guide
 
-Three ways to deploy Lab Manager, from easiest to most customizable.
+Three practical ways to get Lab Manager in front of a user, from fastest evaluation to a real deployment.
+
+## Option 0: Local Trial On Your Laptop
+
+Best for product evaluation, demos, and first-time users who want to try the app before adopting it.
+
+```bash
+cd lab-manager
+bash scripts/bootstrap_local_env.sh "My Lab"
+docker compose up -d --build
+```
+
+Then open `http://localhost` and complete the setup wizard in the browser.
+
+This path is intentionally local-friendly:
+- it generates secrets automatically
+- it sets `SECURE_COOKIES=false` for localhost HTTP
+- it does not require an AI API key to explore the core product
 
 ## Option 1: One-Command Install
 
@@ -61,7 +78,7 @@ All three options end the same way:
 
 The SQLAdmin panel is available at `/admin/` using the generated `ADMIN_PASSWORD` (printed by the installer or stored in `/opt/labclaw/.admin_password` on DigitalOcean).
 
-To enable AI features (document extraction, natural language queries), add a Gemini API key to `.env` and restart:
+To enable AI features later, add a Gemini API key to `.env` and restart:
 
 ```bash
 # Edit .env and set GEMINI_API_KEY=your-key
