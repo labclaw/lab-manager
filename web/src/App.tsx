@@ -18,8 +18,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/inventory': 'Inventory',
   '/orders': 'Orders',
   '/documents': 'Documents',
-  '/upload': 'Upload',
-  '/review': 'Review',
+  '/upload': 'Upload Documents',
+  '/review': 'Review Queue',
   '/alerts': 'Alerts',
   '/settings': 'Settings',
 }

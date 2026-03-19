@@ -68,6 +68,7 @@ export interface Document {
   vendor_name?: string
   document_type?: string
   status?: string
+  confidence?: number
   created_at?: string
   review_status?: string
   source_url?: string
