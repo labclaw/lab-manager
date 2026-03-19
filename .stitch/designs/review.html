@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Review Queue - Lab Manager</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#8b5cf6",
+                        "background-light": "#f6f5f8",
+                        "background-dark": "#0f0f23",
+                        "surface-dark": "#1a1a2e",
+                        "border-dark": "#2d2d44",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #2d2d44; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3d3d5c; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display selection:bg-primary/30">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar (15%) -->
+<aside class="w-[15%] min-w-[200px] border-r border-border-dark flex flex-col bg-background-dark">
+<div class="p-6 flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-xl">biotech</span>
+</div>
+<h1 class="text-lg font-bold tracking-tight text-white">Lab Manager</h1>
+</div>
+<nav class="flex-1 px-4 space-y-2">
+<a class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">description</span>
+<span class="text-sm font-medium">Documents</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 bg-primary/10 text-primary rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px] fill-1">fact_check</span>
+<span class="text-sm font-semibold">Review Queue</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">inventory_2</span>
+<span class="text-sm font-medium">Inventory</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">shopping_cart</span>
+<span class="text-sm font-medium">Orders</span>
+</a>
+</nav>
+<div class="p-4 border-t border-border-dark">
+<div class="flex items-center gap-3 p-2">
+<div class="w-10 h-10 rounded-full bg-slate-700 overflow-hidden ring-2 ring-primary/20">
+<img alt="User Profile Avatar" data-alt="Avatar portrait of a male scientist with glasses" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4O7PAyM03v6Dgr9pEjzZzEx6O8I8QGZ2kBbOMvOXFvMseLTXdiEcI5bw9eaKQQrqOpNZA5-TOr1j6_aA8_7eeqFxT6CweMKF2Rj62arZfCCqgpeDx0ps_OZVE5KuWfa2IHhzPUaCfBAoHbuPv9Oxull4Z1qKNFaTX_0belUOGbQ7JAZgnpe6zgh-gz97ilqBHrNBhv4W85qzP9GJiQcGc8Xj1d-sOMCrnCUrRwj2OavF1LJrQs32rWVgIRdSRKNXrnjhP74u76K78"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-xs font-bold truncate text-white">Dr. Aris Thorne</p>
+<p class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Lab Manager</p>
+</div>
+</div>
+<button class="mt-2 w-full flex items-center justify-center gap-2 px-3 py-2 text-slate-400 hover:text-red-400 hover:bg-red-400/5 rounded-lg transition-colors text-xs font-medium">
+<span class="material-symbols-outlined text-lg">logout</span>
+                Sign Out
+            </button>
+</div>
+</aside>
+<!-- Main Content Area (85%) -->
+<main class="flex-1 flex flex-col min-w-0 bg-background-dark/50">
+<!-- Top Bar -->
+<header class="h-16 border-b border-border-dark flex items-center justify-between px-6 bg-background-dark">
+<div>
+<h2 class="text-xl font-bold text-white leading-tight">Review Queue</h2>
+<p class="text-xs text-slate-500 font-medium">33 documents awaiting verification</p>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">search</span>
+<input class="bg-surface-dark border-border-dark text-sm rounded-lg pl-10 pr-4 py-1.5 w-64 focus:ring-primary focus:border-primary" placeholder="Search filename..." type="text"/>
+</div>
+<button class="p-2 text-slate-400 hover:text-white">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+</div>
+</header>
+<!-- Workspace Split (Document List & Detail Panel) -->
+<div class="flex-1 flex overflow-hidden">
+<!-- Document List (40%) -->
+<section class="w-[40%] border-r border-border-dark flex flex-col bg-surface-dark/30">
+<div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
+<!-- Selected Card -->
+<div class="p-4 rounded-xl border-2 border-primary bg-primary/5 cursor-pointer relative group">
+<div class="flex justify-between items-start mb-2">
+<h3 class="text-sm font-bold text-white truncate w-4/5">PL_BioLegend_2026-02-10.pdf</h3>
+<span class="bg-emerald-500/20 text-emerald-400 text-xs font-bold px-2 py-1 rounded border border-emerald-500/30">92% Conf.</span>
+</div>
+<div class="flex justify-between items-end">
+<div class="space-y-0.5">
+<p class="text-xs text-slate-400 font-medium">BioLegend</p>
+<p class="text-[10px] text-slate-500 italic">Extracted: Feb 10, 2026</p>
+</div>
+<span class="material-symbols-outlined text-primary text-xl">arrow_forward_ios</span>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="p-4 rounded-xl border border-border-dark bg-surface-dark/50 hover:bg-surface-dark cursor-pointer transition-all">
+<div class="flex justify-between items-start mb-2">
+<h3 class="text-sm font-bold text-slate-200 truncate w-4/5">SL_VWR_tracking_9928.pdf</h3>
+<span class="bg-amber-500/20 text-amber-500 text-xs font-bold px-2 py-1 rounded border border-amber-500/30">65% Conf.</span>
+</div>
+<div class="flex justify-between items-end">
+<div class="space-y-0.5">
+<p class="text-xs text-slate-400 font-medium">VWR</p>
+<p class="text-[10px] text-slate-500 italic">Extracted: Feb 08, 2026</p>
+</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="p-4 rounded-xl border border-border-dark bg-surface-dark/50 hover:bg-surface-dark cursor-pointer transition-all">
+<div class="flex justify-between items-start mb-2">
+<h3 class="text-sm font-bold text-slate-200 truncate w-4/5">PL_TargetMol_2026-01-20.pdf</h3>
+<span class="bg-amber-500/20 text-amber-500 text-xs font-bold px-2 py-1 rounded border border-amber-500/30">68% Conf.</span>
+</div>
+<div class="flex justify-between items-end">
+<div class="space-y-0.5">
+<p class="text-xs text-slate-400 font-medium">TargetMol</p>
+<p class="text-[10px] text-slate-500 italic">Extracted: Jan 20, 2026</p>
+</div>
+</div>
+</div>
+<!-- Card 4 (Red) -->
+<div class="p-4 rounded-xl border border-border-dark bg-surface-dark/50 hover:bg-surface-dark cursor-pointer transition-all">
+<div class="flex justify-between items-start mb-2">
+<h3 class="text-sm font-bold text-slate-200 truncate w-4/5">INV_Biohippo_2026-01-15.pdf</h3>
+<span class="bg-red-500/20 text-red-500 text-xs font-bold px-2 py-1 rounded border border-red-500/30">58% Conf.</span>
+</div>
+<div class="flex justify-between items-end">
+<div class="space-y-0.5">
+<p class="text-xs text-slate-400 font-medium">Biohippo</p>
+<p class="text-[10px] text-slate-500 italic">Extracted: Jan 15, 2026</p>
+</div>
+</div>
+</div>
+<!-- Card 5 -->
+<div class="p-4 rounded-xl border border-border-dark bg-surface-dark/50 hover:bg-surface-dark cursor-pointer transition-all">
+<div class="flex justify-between items-start mb-2">
+<h3 class="text-sm font-bold text-slate-200 truncate w-4/5">PL_Westnet_2026-01-10.pdf</h3>
+<span class="bg-emerald-500/20 text-emerald-400 text-xs font-bold px-2 py-1 rounded border border-emerald-500/30">81% Conf.</span>
+</div>
+<div class="flex justify-between items-end">
+<div class="space-y-0.5">
+<p class="text-xs text-slate-400 font-medium">Westnet</p>
+<p class="text-[10px] text-slate-500 italic">Extracted: Jan 10, 2026</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Detail Panel (60%) -->
+<section class="flex-1 flex flex-col bg-background-dark overflow-hidden relative">
+<!-- Document Preview Area - Darker backdrop for higher contrast -->
+<div class="h-[35%] min-h-[300px] p-6 bg-black flex flex-col border-b border-border-dark/50">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-3">
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Document Preview</span>
+<div class="h-4 w-px bg-slate-700"></div>
+<span class="text-xs text-emerald-400 flex items-center gap-1 font-semibold">
+<span class="material-symbols-outlined text-xs">verified</span> 
+                                High extraction confidence (92%)
+                            </span>
+</div>
+<div class="flex gap-2">
+<button class="p-1.5 rounded bg-surface-dark hover:bg-slate-700 text-slate-400"><span class="material-symbols-outlined text-sm">zoom_in</span></button>
+<button class="p-1.5 rounded bg-surface-dark hover:bg-slate-700 text-slate-400"><span class="material-symbols-outlined text-sm">zoom_out</span></button>
+<button class="p-1.5 rounded bg-surface-dark hover:bg-slate-700 text-slate-400"><span class="material-symbols-outlined text-sm">open_in_new</span></button>
+</div>
+</div>
+<div class="flex-1 rounded-lg border border-slate-800 bg-surface-dark/20 flex items-center justify-center overflow-hidden relative group">
+<div class="text-center transition-transform group-hover:scale-105 duration-500">
+<div class="mb-4 bg-primary/20 p-8 inline-block rounded-full relative">
+<span class="material-symbols-outlined text-primary text-5xl">picture_as_pdf</span>
+<div class="absolute inset-0 bg-gradient-to-tr from-primary/30 to-transparent animate-pulse rounded-full"></div>
+</div>
+<p class="text-sm text-slate-300 font-medium">PL_BioLegend_2026-02-10.pdf</p>
+<p class="text-[10px] text-slate-500">Page 1 of 1 • 1.2 MB</p>
+</div>
+<!-- Grid pattern for technical feel -->
+<div class="absolute inset-x-0 inset-y-0 opacity-[0.03] pointer-events-none" style="background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 32px 32px;"></div>
+</div>
+</div>
+<!-- Extraction Details and Activity Split -->
+<div class="flex-1 overflow-y-auto custom-scrollbar flex">
+<!-- Data Extraction Fields (Main content) -->
+<div class="flex-1 p-6 pb-28">
+<!-- Extracted Data Grid -->
+<div class="mb-8">
+<h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">grid_view</span>
+                                Extracted Header Data
+                            </h4>
+<div class="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
+<div class="space-y-1.5">
+<label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">Vendor</label>
+<div class="relative group">
+<input class="w-full bg-surface-dark border-border-dark rounded-lg py-2.5 pl-3 pr-10 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-surface-dark/80" type="text" value="BioLegend"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 text-lg">check_circle</span>
+</div>
+</div>
+<div class="space-y-1.5">
+<label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">PO Number</label>
+<div class="relative">
+<input class="w-full bg-surface-dark border-border-dark rounded-lg py-2.5 pl-3 pr-10 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-surface-dark/80" type="text" value="PO-2847"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-amber-500 text-lg">warning</span>
+</div>
+</div>
+<div class="space-y-1.5">
+<label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">Document Type</label>
+<select class="w-full bg-surface-dark border-border-dark rounded-lg py-2.5 px-3 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-surface-dark/80">
+<option selected="" value="packing_list">Packing List</option>
+<option value="invoice">Invoice</option>
+<option value="tracking">Tracking Slips</option>
+</select>
+</div>
+<div class="space-y-1.5">
+<label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">Ship Date</label>
+<input class="w-full bg-surface-dark border-border-dark rounded-lg py-2.5 px-3 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-surface-dark/80" type="date" value="2026-02-08"/>
+</div>
+<div class="space-y-1.5">
+<label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">Received Date</label>
+<input class="w-full bg-surface-dark border-border-dark rounded-lg py-2.5 px-3 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-surface-dark/80" type="date" value="2026-02-10"/>
+</div>
+<div class="space-y-1.5">
+<label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">Received By</label>
+<div class="relative">
+<input class="w-full bg-surface-dark border-border-dark rounded-lg py-2.5 pl-3 pr-10 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-surface-dark/80" placeholder="Scanning name..." type="text"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">edit</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Line Items Table -->
+<div>
+<h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">list_alt</span>
+                                Extracted Line Items
+                            </h4>
+<div class="overflow-hidden rounded-xl border border-border-dark bg-surface-dark/30">
+<table class="w-full text-left text-sm border-collapse">
+<thead>
+<tr class="bg-surface-dark/60 text-slate-400 font-bold border-b border-border-dark">
+<th class="px-4 py-3 text-[10px] uppercase tracking-wider">Catalog #</th>
+<th class="px-4 py-3 text-[10px] uppercase tracking-wider">Description</th>
+<th class="px-4 py-3 text-[10px] uppercase tracking-wider w-16 text-center">Qty</th>
+<th class="px-4 py-3 text-[10px] uppercase tracking-wider w-20">Unit</th>
+<th class="px-4 py-3 text-[10px] uppercase tracking-wider">Lot Number</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-dark text-slate-300">
+<tr class="hover:bg-primary/5 transition-colors">
+<td class="px-4 py-3 font-mono text-xs">BL-9921</td>
+<td class="px-4 py-3 font-medium">Anti-GFP Antibody, Polyclonal</td>
+<td class="px-4 py-3 text-center">2</td>
+<td class="px-4 py-3">Vial</td>
+<td class="px-4 py-3 text-xs">LOT-A12</td>
+</tr>
+<tr class="hover:bg-primary/5 transition-colors">
+<td class="px-4 py-3 font-mono text-xs">BL-4001</td>
+<td class="px-4 py-3 font-medium">Annexin V Binding Buffer</td>
+<td class="px-4 py-3 text-center">1</td>
+<td class="px-4 py-3">Bottle</td>
+<td class="px-4 py-3 text-xs">LOT-X88</td>
+</tr>
+<tr class="hover:bg-primary/5 transition-colors">
+<td class="px-4 py-3 font-mono text-xs">BL-1012</td>
+<td class="px-4 py-3 font-medium">T-Cell Enrichment Column</td>
+<td class="px-4 py-3 text-center">5</td>
+<td class="px-4 py-3">Kit</td>
+<td class="px-4 py-3 text-xs">LOT-G44</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="mt-4 flex justify-end">
+<button class="text-primary hover:text-primary/80 text-xs font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">add_circle</span>
+                                    Add Manual Row
+                                </button>
+</div>
+</div>
+</div>
+<!-- Side Snippet: Audit Trail / Recent Activity -->
+<div class="w-64 border-l border-border-dark/30 p-4 bg-surface-dark/10">
+<h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">history</span>
+                            Activity Log
+                        </h4>
+<div class="space-y-4">
+<div class="flex gap-3">
+<div class="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0"></div>
+<div>
+<p class="text-[11px] text-slate-200 leading-tight">Document ingested via Scanner A</p>
+<p class="text-[10px] text-slate-500 mt-0.5">Feb 10, 09:12 AM</p>
+</div>
+</div>
+<div class="flex gap-3">
+<div class="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0"></div>
+<div>
+<p class="text-[11px] text-slate-200 leading-tight">AI Extraction completed</p>
+<p class="text-[10px] text-slate-500 mt-0.5">Feb 10, 09:14 AM</p>
+</div>
+</div>
+<div class="flex gap-3">
+<div class="w-1.5 h-1.5 rounded-full bg-slate-600 mt-1.5 shrink-0"></div>
+<div>
+<p class="text-[11px] text-slate-400 leading-tight">Assigned to Dr. Thorne</p>
+<p class="text-[10px] text-slate-500 mt-0.5">Feb 10, 09:15 AM</p>
+</div>
+</div>
+</div>
+<div class="mt-10 p-3 rounded-lg bg-primary/5 border border-primary/10">
+<p class="text-[10px] font-bold text-primary uppercase mb-2">Review Tip</p>
+<p class="text-[11px] text-slate-400 leading-relaxed">System flagged PO-2847 as 'potential mismatch'. Cross-check with original order.</p>
+</div>
+</div>
+</div>
+<!-- Footer Action Bar -->
+<footer class="p-4 border-t border-border-dark bg-background-dark/95 backdrop-blur-md absolute bottom-0 left-0 right-0 z-10 shadow-2xl">
+<div class="flex items-center justify-between">
+<div class="flex gap-4">
+<div class="relative group">
+<button class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-sm transition-all shadow-lg shadow-emerald-900/30 flex items-center gap-2 ring-1 ring-emerald-500/50">
+<span class="material-symbols-outlined text-lg">check_circle</span>
+                                    Approve
+                                </button>
+<span class="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-background-dark border border-border-dark rounded text-[9px] font-bold text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">⌘↵</span>
+</div>
+<div class="relative group">
+<button class="px-6 py-2.5 bg-surface-dark border border-primary/40 hover:border-primary text-slate-200 font-bold rounded-lg text-sm transition-all flex items-center gap-2 hover:bg-primary/5">
+<span class="material-symbols-outlined text-lg text-primary">edit_document</span>
+                                    Edit &amp; Approve
+                                </button>
+<span class="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-background-dark border border-border-dark rounded text-[9px] font-bold text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">⌘E</span>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden xl:flex items-center gap-4 text-slate-500 mr-4">
+<div class="flex items-center gap-1.5">
+<kbd class="px-1.5 py-0.5 bg-surface-dark border border-border-dark rounded text-[10px] font-bold">ESC</kbd>
+<span class="text-[10px] font-medium uppercase tracking-wider">Cancel</span>
+</div>
+<div class="flex items-center gap-1.5">
+<kbd class="px-1.5 py-0.5 bg-surface-dark border border-border-dark rounded text-[10px] font-bold">J</kbd>
+<kbd class="px-1.5 py-0.5 bg-surface-dark border border-border-dark rounded text-[10px] font-bold">K</kbd>
+<span class="text-[10px] font-medium uppercase tracking-wider">Navigate</span>
+</div>
+</div>
+<button class="px-6 py-2.5 border-2 border-red-500/30 text-red-400 hover:text-white hover:bg-red-500/80 hover:border-red-500 font-bold rounded-lg text-sm transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">block</span>
+                                Reject
+                            </button>
+</div>
+</div>
+</footer>
+</section>
+</div>
+</main>
+</div>
+</body></html>

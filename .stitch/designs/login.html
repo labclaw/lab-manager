@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#8b5cf6",
+                        "background-light": "#f6f5f8",
+                        "background-dark": "#0f0f23",
+                        "surface": "#1a1a2e",
+                        "border-muted": "#2d2d44",
+                        "text-muted": "#8E8EA0"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<title>LabClaw - Login</title>
+</head>
+<body class="bg-background-dark font-display text-slate-100 flex items-center justify-center min-h-screen p-4">
+<!-- Login Card Container -->
+<div class="w-full max-w-96 bg-surface border border-border-muted rounded-xl p-8 shadow-2xl">
+<!-- Header / Logo Section -->
+<div class="flex flex-col items-center gap-2 mb-8">
+<div class="flex items-center gap-2">
+<div class="bg-primary/20 p-2 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-3xl">science</span>
+</div>
+<h1 class="text-white text-2xl font-bold tracking-tight">LabClaw</h1>
+</div>
+<p class="text-text-muted text-sm font-medium">Lab Manager</p>
+</div>
+<!-- Form Section -->
+<form action="#" class="flex flex-col gap-5">
+<!-- Email Input -->
+<div class="flex flex-col gap-2">
+<label class="text-slate-300 text-sm font-medium ml-1" for="email">Email</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-xl">mail</span>
+<input class="w-full pl-11 pr-4 py-3 bg-background-dark border border-border-muted rounded-lg text-white placeholder:text-text-muted focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none" id="email" placeholder="Enter your email" required="" type="email"/>
+</div>
+</div>
+<!-- Password Input -->
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center px-1">
+<label class="text-slate-300 text-sm font-medium" for="password">Password</label>
+<a class="text-primary text-xs font-semibold hover:underline" href="#">Forgot password?</a>
+</div>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-xl">lock</span>
+<input class="w-full pl-11 pr-4 py-3 bg-background-dark border border-border-muted rounded-lg text-white placeholder:text-text-muted focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none" id="password" placeholder="Enter your password" required="" type="password"/>
+</div>
+</div>
+<!-- Remember Me -->
+<div class="flex items-center gap-2 px-1">
+<input class="w-4 h-4 rounded border-border-muted bg-background-dark text-primary focus:ring-offset-background-dark" id="remember" type="checkbox"/>
+<label class="text-text-muted text-sm" for="remember">Remember this device</label>
+</div>
+<!-- Sign In Button -->
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 px-4 rounded-lg mt-2 shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-colors" type="submit">
+<span>Sign In</span>
+<span class="material-symbols-outlined text-xl">login</span>
+</button>
+</form>
+<!-- Footer Info -->
+<div class="mt-8 text-center">
+<p class="text-text-muted text-sm">
+                Don't have an account? 
+                <a class="text-primary font-semibold hover:underline" href="#">Request access</a>
+</p>
+</div>
+</div>
+<!-- Security Badge -->
+<div class="fixed bottom-6 flex items-center gap-2 text-text-muted/50">
+<span class="material-symbols-outlined text-sm">verified_user</span>
+<span class="text-[10px] uppercase tracking-widest font-bold">Secure Environment</span>
+</div>
+</body></html>
