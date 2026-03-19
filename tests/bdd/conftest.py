@@ -136,3 +136,12 @@ def api(db, db_connection):
 def app_url():
     """Base URL for the running app-test container (E2E tests)."""
     return os.environ.get("APP_BASE_URL", "http://localhost:8000")
+
+
+def table_to_dicts(datatable: list[list]) -> list[dict]:
+    """Convert a pytest-bdd datatable to a list of dicts (shared helper)."""
+    headers = [str(h).strip() for h in datatable[0]]
+    return [
+        {headers[i]: str(cell).strip() for i, cell in enumerate(row)}
+        for row in datatable[1:]
+    ]
