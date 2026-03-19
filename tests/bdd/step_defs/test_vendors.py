@@ -86,12 +86,7 @@ def ctx():
 # --- Helpers ---
 
 
-def _table_to_dicts(datatable):
-    headers = [str(h).strip() for h in datatable[0]]
-    return [
-        {headers[i]: str(cell).strip() for i, cell in enumerate(row)}
-        for row in datatable[1:]
-    ]
+from conftest import table_to_dicts as _table_to_dicts
 
 
 # --- Given steps ---
