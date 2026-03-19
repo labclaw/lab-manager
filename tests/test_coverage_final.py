@@ -289,7 +289,12 @@ class TestAppHealthEndpoints:
     """Exercise the health endpoint service checks."""
 
     def test_health_with_meilisearch_error(self, client):
-        """Health check when Meilisearch is unavailable."""
+        """Health check still returns 200 when Meilisearch is unavailable.
+
+        Meilisearch is not core — the app can serve data without search.
+        This is critical for managed deployments (e.g. DO App Platform)
+        where search starts independently.
+        """
         with patch("lab_manager.services.search.get_search_client") as mock_get_client:
             mock_client = MagicMock()
             mock_client.health.side_effect = Exception("connection refused")
@@ -297,7 +302,8 @@ class TestAppHealthEndpoints:
 
             resp = client.get("/api/health")
             data = resp.json()
-            assert "services" in data
+            assert resp.status_code == 200
+            assert data["services"]["meilisearch"] == "error"
 
     def test_health_with_disk_error(self, client):
         """Health check when disk usage check fails."""

@@ -13,8 +13,9 @@ services:
     instance_size_slug: professional-xs
     health_check:
       http_path: /api/health
-      initial_delay_seconds: 30
+      initial_delay_seconds: 60
       period_seconds: 30
+      timeout_seconds: 10
     envs:
       - key: DATABASE_URL
         scope: RUN_TIME
@@ -53,7 +54,8 @@ services:
   - name: search
     image:
       registry_type: DOCKER_HUB
-      repository: getmeili/meilisearch
+      registry: getmeili
+      repository: meilisearch
       tag: v1.12
     internal_ports:
       - 7700
