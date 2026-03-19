@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 from . import OCRProvider
+from lab_manager.intake.prompts import OCR_PROMPT
 
 log = logging.getLogger(__name__)
 
@@ -130,19 +131,3 @@ class GeminiAPIOCRProvider(OCRProvider):
             ],
         )
         return response.text
-
-
-OCR_PROMPT = """You are performing OCR on a scanned lab supply document.
-Transcribe ALL visible text faithfully, character by character.
-
-Critical rules:
-- Output plain text only. Preserve reading order top-to-bottom, left-to-right.
-- Keep line breaks where they appear on the document.
-- Pay extra attention to:
-  * Catalog/part numbers (e.g., AB2251-1, MAB5406) — distinguish 1 vs I, 0 vs O
-  * Batch/lot numbers — include ALL, even partially visible
-  * Handwritten text and dates — transcribe exactly as written
-  * PO numbers, delivery numbers, order numbers
-- Include ALL text: fine print, footer, handwritten annotations.
-- Do NOT summarize, explain, or skip any text region.
-"""

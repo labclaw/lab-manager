@@ -195,3 +195,37 @@ def test_update_product_invalid_cas_rejected(client, db_session):
         json={"cas_number": "invalid-cas"},
     )
     assert resp.status_code == 422
+
+
+# --- XSS: API stores and returns raw strings (frontend must escape) ---
+
+
+def test_vendor_name_with_html_chars_stored_and_returned_raw(client):
+    """API must store vendor names verbatim (no server-side HTML escaping).
+
+    The frontend is responsible for escaping via escapeHtml(). The API
+    must NOT double-escape, so the raw '<script>' string must come back
+    unchanged from the API JSON response.
+    """
+    xss_name = '<script>alert("xss")</script>'
+    resp = client.post("/api/vendors/", json={"name": xss_name})
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["name"] == xss_name, "API must return raw string, not HTML-escaped"
+
+    # Verify it round-trips through GET as well
+    vendor_id = data["id"]
+    get_resp = client.get(f"/api/vendors/{vendor_id}")
+    assert get_resp.status_code == 200
+    assert get_resp.json()["name"] == xss_name
+
+
+def test_product_name_with_html_chars_stored_raw(client):
+    """Product names with HTML chars must be preserved verbatim in API responses."""
+    xss_name = 'Reagent <b>bold</b> & "quoted"'
+    resp = client.post(
+        "/api/products/",
+        json={"catalog_number": "XSS-PROD-01", "name": xss_name},
+    )
+    assert resp.status_code == 201
+    assert resp.json()["name"] == xss_name

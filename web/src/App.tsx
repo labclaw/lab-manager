@@ -1,0 +1,132 @@
+import { useEffect, useState, useCallback } from 'react'
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
+import { auth, alerts, documents } from '@/lib/api'
+import { Sidebar } from '@/components/layout/Sidebar'
+import { Header } from '@/components/layout/Header'
+import { ErrorBanner } from '@/components/ui/ErrorBanner'
+import { LoginPage } from '@/pages/LoginPage'
+import { DashboardPage } from '@/pages/DashboardPage'
+import { InventoryPage } from '@/pages/InventoryPage'
+import { OrdersPage } from '@/pages/OrdersPage'
+import { DocumentsPage } from '@/pages/DocumentsPage'
+import { ReviewPage } from '@/pages/ReviewPage'
+
+const PAGE_TITLES: Record<string, string> = {
+  '/': 'Dashboard',
+  '/inventory': 'Inventory',
+  '/orders': 'Orders',
+  '/documents': 'Documents',
+  '/review': 'Review',
+  '/alerts': 'Alerts',
+  '/settings': 'Settings',
+}
+
+function AlertsPage() {
+  return (
+    <div className="text-center py-16 space-y-3">
+      <h3 className="text-lg font-display font-semibold text-[var(--foreground)]">
+        Alerts
+      </h3>
+      <p className="text-sm text-[var(--muted-foreground)]">
+        Alerts page
+      </p>
+    </div>
+  )
+}
+
+function SettingsPage() {
+  return (
+    <div className="text-center py-16 space-y-3">
+      <h3 className="text-lg font-display font-semibold text-[var(--foreground)]">
+        Settings
+      </h3>
+      <p className="text-sm text-[var(--muted-foreground)]">
+        Settings page coming soon
+      </p>
+    </div>
+  )
+}
+
+export default function App() {
+  const [user, setUser] = useState<{ id: number; name: string } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [alertCount, setAlertCount] = useState(0)
+  const [reviewCount, setReviewCount] = useState(0)
+  const [error, setError] = useState<string | null>(null)
+  const location = useLocation()
+
+  const checkAuth = useCallback(async () => {
+    try {
+      const res = await auth.me()
+      setUser(res.user)
+    } catch {
+      setUser(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
+
+  // Load badge counts
+  useEffect(() => {
+    if (!user) return
+    alerts.list().then((res) => {
+      const unack = (res.items ?? []).filter((a) => !a.acknowledged)
+      setAlertCount(unack.length)
+    }).catch(() => {})
+
+    documents.reviewQueue().then((res) => {
+      setReviewCount(res.items?.length ?? 0)
+    }).catch(() => {})
+  }, [user])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-[var(--background)]">
+        <div className="w-8 h-8 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <LoginPage />
+  }
+
+  return (
+    <>
+      <ErrorBanner error={error} onDismiss={() => setError(null)} />
+      <div className="flex h-screen bg-[var(--background)] overflow-hidden">
+        <Sidebar
+          current={location.pathname}
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          alertCount={alertCount}
+          reviewCount={reviewCount}
+        />
+        <div className="flex-1 flex flex-col min-w-0">
+          <Header
+            title={PAGE_TITLES[location.pathname] ?? 'Lab Manager'}
+            darkMode={true}
+            onToggleDarkMode={() => {}}
+          />
+          <main className="flex-1 overflow-y-auto p-6">
+            <Routes>
+              <Route path="/" element={<DashboardPage onError={setError} />} />
+              <Route path="/inventory" element={<InventoryPage onError={setError} />} />
+              <Route path="/orders" element={<OrdersPage onError={setError} />} />
+              <Route path="/documents" element={<DocumentsPage onError={setError} />} />
+              <Route path="/review" element={<ReviewPage onError={setError} />} />
+              <Route path="/alerts" element={<AlertsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
+        </div>
+      </div>
+    </>
+  )
+}

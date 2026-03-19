@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 import pytest
 from meilisearch.errors import MeilisearchApiError
 from pytest_bdd import given, parsers, scenario, then, when
@@ -12,24 +11,44 @@ from lab_manager.services.search import get_search_client
 FEATURE = "../features/search.feature"
 
 
+def _meilisearch_available() -> bool:
+    """Return True only when Meilisearch is reachable and accepts authenticated requests."""
+    try:
+        # get_indexes() requires auth; health() does not — use the former.
+        get_search_client().get_indexes()
+        return True
+    except Exception:
+        return False
+
+
+_requires_meilisearch = pytest.mark.skipif(
+    not _meilisearch_available(),
+    reason="Meilisearch not available or requires authentication",
+)
+
+
 # --- Scenarios ---
 
 
+@_requires_meilisearch
 @scenario(FEATURE, "Search across all indexes")
 def test_search_across_all():
     pass
 
 
+@_requires_meilisearch
 @scenario(FEATURE, "Search for a specific vendor")
 def test_search_vendor():
     pass
 
 
+@_requires_meilisearch
 @scenario(FEATURE, "Autocomplete suggestions")
 def test_autocomplete():
     pass
 
 
+@_requires_meilisearch
 @scenario(FEATURE, "Search returns empty for unknown term")
 def test_empty_search():
     pass

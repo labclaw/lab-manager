@@ -372,28 +372,88 @@ def create_app() -> FastAPI:
     # Wire up SQLAdmin UI at /admin/
     setup_admin(app, get_engine())
 
-    # PWA: service worker must be served from root for scope
-    @app.get("/sw.js")
-    def service_worker():
-        return FileResponse(
-            STATIC_DIR / "sw.js",
-            media_type="application/javascript",
-            headers={"Service-Worker-Allowed": "/"},
-        )
-
-    @app.get("/manifest.json")
-    def manifest():
-        return FileResponse(
-            STATIC_DIR / "manifest.json",
-            media_type="application/manifest+json",
-        )
-
     # Serve frontend static assets and root
-    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    # React SPA build output lives in static/dist/
+    DIST_DIR = STATIC_DIR / "dist"
+    if DIST_DIR.is_dir():
+        # Serve bundled JS/CSS assets from dist/assets/
+        app.mount(
+            "/assets",
+            StaticFiles(directory=str(DIST_DIR / "assets")),
+            name="dist-assets",
+        )
 
-    @app.get("/")
-    def index():
-        return FileResponse(STATIC_DIR / "index.html")
+        # Serve icons from static/icons/
+        icons_dir = STATIC_DIR / "icons"
+        if icons_dir.is_dir():
+            app.mount(
+                "/icons",
+                StaticFiles(directory=str(icons_dir)),
+                name="icons",
+            )
+
+        @app.get("/sw.js")
+        def service_worker():
+            return FileResponse(
+                STATIC_DIR / "sw.js",
+                media_type="application/javascript",
+                headers={"Service-Worker-Allowed": "/"},
+            )
+
+        @app.get("/manifest.json")
+        def manifest():
+            return FileResponse(
+                STATIC_DIR / "manifest.json",
+                media_type="application/manifest+json",
+            )
+
+        @app.get("/")
+        def index():
+            return FileResponse(DIST_DIR / "index.html")
+
+        # SPA catch-all using middleware so it only fires for unmatched paths.
+        # This must be registered FIRST (so it's innermost) — it checks the
+        # response status and, if 404 from an earlier route, serves index.html.
+        @app.middleware("http")
+        async def spa_middleware(request: Request, call_next):
+            response = await call_next(request)
+            # Only intercept GET requests for non-API paths that return 404
+            if (
+                response.status_code == 404
+                and request.method == "GET"
+                and not request.url.path.startswith("/api/")
+                and not request.url.path.startswith("/admin/")
+                and not request.url.path.startswith("/static/")
+                and not request.url.path.startswith("/assets/")
+                and not request.url.path.startswith("/scans/")
+                and not request.url.path.startswith("/uploads/")
+                and request.url.path != "/favicon.svg"
+                and request.url.path != "/icons.svg"
+            ):
+                return FileResponse(DIST_DIR / "index.html")
+            return response
+    else:
+        # Fallback: serve original static files (for dev without React build)
+        app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+        @app.get("/")
+        def index():
+            return FileResponse(STATIC_DIR / "index.html")
+
+        @app.get("/sw.js")
+        def service_worker():
+            return FileResponse(
+                STATIC_DIR / "sw.js",
+                media_type="application/javascript",
+                headers={"Service-Worker-Allowed": "/"},
+            )
+
+        @app.get("/manifest.json")
+        def manifest():
+            return FileResponse(
+                STATIC_DIR / "manifest.json",
+                media_type="application/manifest+json",
+            )
 
     return app
 

@@ -13,7 +13,8 @@ services:
     environment:
       DOMAIN: ${DOMAIN:-localhost}
     depends_on:
-      - app
+      app:
+        condition: service_healthy
     restart: unless-stopped
 
   db:
@@ -33,6 +34,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    mem_limit: 2g
     restart: unless-stopped
 
   search:
@@ -44,17 +46,20 @@ services:
     environment:
       MEILI_ENV: ${MEILI_ENV:-production}
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?Set MEILI_MASTER_KEY in .env}
+      MEILI_NO_ANALYTICS: "true"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
       interval: 10s
       timeout: 5s
       retries: 5
+    mem_limit: 2g
     restart: unless-stopped
 
   app:
     build: .
     expose:
       - "8000"
+    mem_limit: 1g
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-labmanager}:${POSTGRES_PASSWORD:?err}@db:5432/${POSTGRES_DB:-labmanager}
       DATABASE_READONLY_URL: postgresql+psycopg://labmanager_ro:${POSTGRES_RO_PASSWORD:?err}@db:5432/${POSTGRES_DB:-labmanager}

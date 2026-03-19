@@ -1,19 +1,10 @@
 """Step definitions for document intake BDD scenarios."""
 
 import pytest
+from conftest import table_to_dicts as _table_to_dicts
 from pytest_bdd import given, when, then, scenario, parsers
 
-
 FEATURE = "../features/document_intake.feature"
-
-
-def _table_to_dicts(datatable: list[list]) -> list[dict]:
-    """Convert pytest-bdd raw datatable (list of lists) to list of dicts."""
-    headers = [str(h).strip() for h in datatable[0]]
-    return [
-        {headers[i]: str(cell).strip() for i, cell in enumerate(row)}
-        for row in datatable[1:]
-    ]
 
 
 # --- Scenarios ---
