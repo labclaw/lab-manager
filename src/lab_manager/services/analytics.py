@@ -256,7 +256,7 @@ def inventory_value(db: Session) -> dict:
                 func.sum(InventoryItem.quantity_on_hand * OrderItem.unit_price), 0
             )
         )
-        .join(OrderItem, InventoryItem.order_item_id == OrderItem.id)
+        .outerjoin(OrderItem, InventoryItem.order_item_id == OrderItem.id)
         .scalar()
     )
     item_count = db.query(func.count(InventoryItem.id)).scalar() or 0

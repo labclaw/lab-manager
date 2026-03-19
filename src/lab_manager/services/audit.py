@@ -34,7 +34,7 @@ def _is_auditable(obj: object) -> bool:
 
 
 # Fields that are managed by AuditMixin and should not show up as user-changes.
-_SKIP_FIELDS = {"created_at", "updated_at"}
+_SKIP_FIELDS = {"created_at", "updated_at", "password_hash"}
 
 
 def _get_table_name(obj: object) -> str:

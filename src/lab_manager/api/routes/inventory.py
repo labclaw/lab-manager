@@ -34,7 +34,7 @@ _INV_SORTABLE = {
 
 
 class InventoryItemCreate(BaseModel):
-    product_id: Optional[int] = None
+    product_id: int
     location_id: Optional[int] = None
     lot_number: Optional[str] = None
     quantity_on_hand: float = 0

@@ -34,31 +34,35 @@ class DeepSeekVLProvider(OCRProvider):
         import base64
         from openai import OpenAI
 
-        client = OpenAI(base_url=self.base_url, api_key="dummy")
-        b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
-        mime = (
-            "image/jpeg"
-            if image_path.lower().endswith((".jpg", ".jpeg"))
-            else "image/png"
-        )
+        try:
+            client = OpenAI(base_url=self.base_url, api_key="dummy")
+            b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
+            mime = (
+                "image/jpeg"
+                if image_path.lower().endswith((".jpg", ".jpeg"))
+                else "image/png"
+            )
 
-        response = client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": f"data:{mime};base64,{b64}"},
-                        },
-                        {"type": "text", "text": OCR_PROMPT},
-                    ],
-                }
-            ],
-            max_tokens=4096,
-        )
-        return response.choices[0].message.content or ""
+            response = client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:{mime};base64,{b64}"},
+                            },
+                            {"type": "text", "text": OCR_PROMPT},
+                        ],
+                    }
+                ],
+                max_tokens=4096,
+            )
+            return response.choices[0].message.content or ""
+        except Exception as e:
+            log.warning("DeepSeek OCR error: %s", e)
+            return ""
 
 
 class GLMOCRProvider(OCRProvider):
@@ -77,31 +81,35 @@ class GLMOCRProvider(OCRProvider):
         import base64
         from openai import OpenAI
 
-        client = OpenAI(base_url=self.base_url, api_key="dummy")
-        b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
-        mime = (
-            "image/jpeg"
-            if image_path.lower().endswith((".jpg", ".jpeg"))
-            else "image/png"
-        )
+        try:
+            client = OpenAI(base_url=self.base_url, api_key="dummy")
+            b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
+            mime = (
+                "image/jpeg"
+                if image_path.lower().endswith((".jpg", ".jpeg"))
+                else "image/png"
+            )
 
-        response = client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": f"data:{mime};base64,{b64}"},
-                        },
-                        {"type": "text", "text": OCR_PROMPT},
-                    ],
-                }
-            ],
-            max_tokens=4096,
-        )
-        return response.choices[0].message.content or ""
+            response = client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:{mime};base64,{b64}"},
+                            },
+                            {"type": "text", "text": OCR_PROMPT},
+                        ],
+                    }
+                ],
+                max_tokens=4096,
+            )
+            return response.choices[0].message.content or ""
+        except Exception as e:
+            log.warning("GLM OCR error: %s", e)
+            return ""
 
 
 class PaddleOCRProvider(OCRProvider):
