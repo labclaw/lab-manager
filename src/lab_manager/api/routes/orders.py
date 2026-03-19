@@ -95,11 +95,11 @@ class OrderUpdate(BaseModel):
 class OrderItemCreate(BaseModel):
     catalog_number: Optional[str] = Field(default=None, max_length=100)
     description: Optional[str] = Field(default=None, max_length=1000)
-    quantity: float = 1
+    quantity: float = Field(default=1, gt=0)
     unit: Optional[str] = Field(default=None, max_length=50)
     lot_number: Optional[str] = Field(default=None, max_length=100)
     batch_number: Optional[str] = Field(default=None, max_length=100)
-    unit_price: Optional[float] = None
+    unit_price: Optional[float] = Field(default=None, ge=0)
     product_id: Optional[int] = None
     extra: dict = {}
 
@@ -107,11 +107,11 @@ class OrderItemCreate(BaseModel):
 class OrderItemUpdate(BaseModel):
     catalog_number: Optional[str] = Field(default=None, max_length=100)
     description: Optional[str] = Field(default=None, max_length=1000)
-    quantity: Optional[float] = None
+    quantity: Optional[float] = Field(default=None, gt=0)
     unit: Optional[str] = Field(default=None, max_length=50)
     lot_number: Optional[str] = Field(default=None, max_length=100)
     batch_number: Optional[str] = Field(default=None, max_length=100)
-    unit_price: Optional[float] = None
+    unit_price: Optional[float] = Field(default=None, ge=0)
     product_id: Optional[int] = None
     extra: Optional[dict] = None
 
@@ -291,16 +291,16 @@ def delete_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)
 class ReceiveItemEntry(BaseModel):
     order_item_id: Optional[int] = None
     product_id: Optional[int] = None
-    quantity: float = 1
-    lot_number: Optional[str] = None
-    unit: Optional[str] = None
+    quantity: float = Field(default=1, gt=0)
+    lot_number: Optional[str] = Field(default=None, max_length=100)
+    unit: Optional[str] = Field(default=None, max_length=50)
     expiry_date: Optional[date] = None
 
 
 class ReceiveBody(BaseModel):
     items: list[ReceiveItemEntry]
     location_id: int
-    received_by: str
+    received_by: str = Field(max_length=200)
 
 
 @router.post("/{order_id}/receive", status_code=201)

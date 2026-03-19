@@ -39,7 +39,7 @@ class InventoryItemCreate(BaseModel):
     product_id: int
     location_id: Optional[int] = None
     lot_number: Optional[str] = Field(default=None, max_length=100)
-    quantity_on_hand: float = 0
+    quantity_on_hand: float = Field(default=0, ge=0)
     unit: Optional[str] = Field(default=None, max_length=50)
     expiry_date: Optional[date] = None
     opened_date: Optional[date] = None
@@ -85,22 +85,22 @@ class ConsumeBody(BaseModel):
 
 class TransferBody(BaseModel):
     location_id: int
-    transferred_by: str
+    transferred_by: str = Field(max_length=200)
 
 
 class AdjustBody(BaseModel):
-    new_quantity: float
-    reason: str
-    adjusted_by: str
+    new_quantity: float = Field(ge=0)
+    reason: str = Field(max_length=500)
+    adjusted_by: str = Field(max_length=200)
 
 
 class DisposeBody(BaseModel):
-    reason: str
-    disposed_by: str
+    reason: str = Field(max_length=500)
+    disposed_by: str = Field(max_length=200)
 
 
 class OpenBody(BaseModel):
-    opened_by: str
+    opened_by: str = Field(max_length=200)
 
 
 # ---------------------------------------------------------------------------
