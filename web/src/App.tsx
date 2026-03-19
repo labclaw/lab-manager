@@ -1,21 +1,24 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
-import { auth, alerts, documents } from '@/lib/api'
+import { auth, setup, alerts, documents } from '@/lib/api'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
 import { ErrorBanner } from '@/components/ui/ErrorBanner'
 import { LoginPage } from '@/pages/LoginPage'
+import { SetupPage } from '@/pages/SetupPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { InventoryPage } from '@/pages/InventoryPage'
 import { OrdersPage } from '@/pages/OrdersPage'
 import { DocumentsPage } from '@/pages/DocumentsPage'
 import { ReviewPage } from '@/pages/ReviewPage'
+import { UploadPage } from '@/pages/UploadPage'
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
   '/inventory': 'Inventory',
   '/orders': 'Orders',
   '/documents': 'Documents',
+  '/upload': 'Upload',
   '/review': 'Review',
   '/alerts': 'Alerts',
   '/settings': 'Settings',
@@ -49,23 +52,57 @@ function SettingsPage() {
 
 export default function App() {
   const [user, setUser] = useState<{ id: number; name: string } | null>(null)
+  const [needsSetup, setNeedsSetup] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(true)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [alertCount, setAlertCount] = useState(0)
   const [reviewCount, setReviewCount] = useState(0)
+  const [darkMode, setDarkMode] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const location = useLocation()
 
   const checkAuth = useCallback(async () => {
     try {
+      const setupRes = await setup.status()
+      if (setupRes.needs_setup) {
+        setNeedsSetup(true)
+        setLoading(false)
+        return
+      }
+      setNeedsSetup(false)
       const res = await auth.me()
       setUser(res.user)
     } catch {
       setUser(null)
+      setNeedsSetup(false)
     } finally {
       setLoading(false)
     }
   }, [])
+
+  useEffect(() => {
+    const stored = localStorage.getItem('darkMode')
+    const isDark = stored === 'true'
+    setDarkMode(isDark)
+    if (isDark) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [])
+
+  const toggleDarkMode = () => {
+    setDarkMode(prev => {
+      const next = !prev
+      localStorage.setItem('darkMode', String(next))
+      if (next) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+      return next
+    })
+  }
 
   useEffect(() => {
     checkAuth()
@@ -92,6 +129,10 @@ export default function App() {
     )
   }
 
+  if (needsSetup) {
+    return <SetupPage onComplete={() => { setNeedsSetup(false) }} />
+  }
+
   if (!user) {
     return <LoginPage />
   }
@@ -110,8 +151,8 @@ export default function App() {
         <div className="flex-1 flex flex-col min-w-0">
           <Header
             title={PAGE_TITLES[location.pathname] ?? 'Lab Manager'}
-            darkMode={true}
-            onToggleDarkMode={() => {}}
+            darkMode={darkMode}
+            onToggleDarkMode={toggleDarkMode}
           />
           <main className="flex-1 overflow-y-auto p-6">
             <Routes>
@@ -119,6 +160,7 @@ export default function App() {
               <Route path="/inventory" element={<InventoryPage onError={setError} />} />
               <Route path="/orders" element={<OrdersPage onError={setError} />} />
               <Route path="/documents" element={<DocumentsPage onError={setError} />} />
+              <Route path="/upload" element={<UploadPage />} />
               <Route path="/review" element={<ReviewPage onError={setError} />} />
               <Route path="/alerts" element={<AlertsPage />} />
               <Route path="/settings" element={<SettingsPage />} />

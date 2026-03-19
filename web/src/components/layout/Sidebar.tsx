@@ -9,8 +9,9 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Upload,
 } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { auth } from '@/lib/api'
 
@@ -27,6 +28,7 @@ const navItems = [
   { path: '/inventory', label: 'Inventory', icon: Package },
   { path: '/orders', label: 'Orders', icon: FlaskConical },
   { path: '/documents', label: 'Documents', icon: FileText },
+  { path: '/upload', label: 'Upload', icon: Upload },
   { path: '/review', label: 'Review', icon: ClipboardCheck },
   { path: '/alerts', label: 'Alerts', icon: Bell },
 ]
@@ -38,8 +40,6 @@ export function Sidebar({
   alertCount = 0,
   reviewCount = 0,
 }: SidebarProps) {
-  const navigate = useNavigate()
-
   const handleLogout = async () => {
     await auth.logout()
     window.location.reload()
@@ -48,7 +48,7 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        'flex flex-col h-screen bg-[var(--sidebar)] border-r border-[var(--sidebar-border)]',
+        'relative flex flex-col h-screen bg-[var(--sidebar)] border-r border-[var(--sidebar-border)]',
         'transition-all duration-300',
         collapsed ? 'w-16' : 'w-60',
       )}
@@ -123,6 +123,7 @@ export function Sidebar({
       {/* Collapse toggle */}
       <button
         onClick={onToggle}
+        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         className="hidden lg:flex absolute -right-3 top-20 items-center justify-center w-6 h-6 rounded-full bg-[var(--card)] border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
       >
         {collapsed ? (
