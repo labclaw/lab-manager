@@ -232,30 +232,95 @@ tailwind.config = {
         </div>
       </div>
 
-      <!-- ===== INVENTORY VIEW (placeholder) ===== -->
+      <!-- ===== INVENTORY VIEW ===== -->
       <div id="view-inventory" class="hidden">
-        <div class="flex flex-col items-center justify-center py-32 text-center">
-          <span class="material-symbols-outlined text-7xl text-slate-600 mb-4">inventory_2</span>
-          <h3 class="text-xl font-semibold text-slate-300 mb-2">Inventory</h3>
-          <p class="text-sm text-slate-500">Inventory view coming soon</p>
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex gap-3">
+            <select id="inv-status-filter" onchange="invFilterChanged()" class="bg-surface-dark border border-border-dark rounded-lg px-3 py-2 text-sm text-slate-300">
+              <option value="">All statuses</option>
+              <option value="available">Available</option>
+              <option value="consumed">Consumed</option>
+              <option value="expired">Expired</option>
+              <option value="disposed">Disposed</option>
+            </select>
+          </div>
+          <span id="inv-total" class="text-sm text-slate-500"></span>
         </div>
+        <div class="bg-surface-dark rounded-xl border border-border-dark overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-background-dark/50 text-slate-400 text-xs uppercase">
+              <tr>
+                <th class="px-4 py-3 text-left">Product</th>
+                <th class="px-4 py-3 text-left">Catalog #</th>
+                <th class="px-4 py-3 text-left">Lot #</th>
+                <th class="px-4 py-3 text-right">Qty</th>
+                <th class="px-4 py-3 text-left">Location</th>
+                <th class="px-4 py-3 text-left">Status</th>
+                <th class="px-4 py-3 text-left">Expires</th>
+              </tr>
+            </thead>
+            <tbody id="inv-tbody" class="divide-y divide-border-dark"></tbody>
+          </table>
+        </div>
+        <div id="inv-pagination" class="flex items-center justify-between mt-4 text-sm text-slate-400"></div>
       </div>
 
-      <!-- ===== ORDERS VIEW (placeholder) ===== -->
+      <!-- ===== ORDERS VIEW ===== -->
       <div id="view-orders" class="hidden">
-        <div class="flex flex-col items-center justify-center py-32 text-center">
-          <span class="material-symbols-outlined text-7xl text-slate-600 mb-4">shopping_cart</span>
-          <h3 class="text-xl font-semibold text-slate-300 mb-2">Orders</h3>
-          <p class="text-sm text-slate-500">Orders view coming soon</p>
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex gap-3">
+            <select id="ord-status-filter" onchange="ordFilterChange()" class="bg-surface-dark border border-border-dark rounded-lg px-3 py-2 text-sm text-slate-300">
+              <option value="">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="received">Received</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <span id="ord-total" class="text-sm text-slate-500"></span>
         </div>
+        <div class="bg-surface-dark rounded-xl border border-border-dark overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-background-dark/50 text-slate-400 text-xs uppercase">
+              <tr>
+                <th class="px-4 py-3 text-left">PO #</th>
+                <th class="px-4 py-3 text-left">Vendor</th>
+                <th class="px-4 py-3 text-left">Date</th>
+                <th class="px-4 py-3 text-left">Status</th>
+                <th class="px-4 py-3 text-right">Amount</th>
+                <th class="px-4 py-3 text-right">Items</th>
+              </tr>
+            </thead>
+            <tbody id="ord-tbody" class="divide-y divide-border-dark"></tbody>
+          </table>
+        </div>
+        <div id="ord-pagination" class="flex items-center justify-between mt-4 text-sm text-slate-400"></div>
       </div>
 
-      <!-- ===== UPLOAD VIEW (placeholder) ===== -->
+      <!-- ===== UPLOAD VIEW ===== -->
       <div id="view-upload" class="hidden">
-        <div class="flex flex-col items-center justify-center py-32 text-center">
-          <span class="material-symbols-outlined text-7xl text-slate-600 mb-4">photo_camera</span>
-          <h3 class="text-xl font-semibold text-slate-300 mb-2">Photo Upload</h3>
-          <p class="text-sm text-slate-500">Photo upload coming soon. Take a photo of any lab document to begin processing.</p>
+        <div class="max-w-2xl mx-auto">
+          <div id="upload-zone" class="border-2 border-dashed border-border-dark rounded-xl p-12 text-center cursor-pointer hover:border-primary transition-colors">
+            <span class="material-symbols-outlined text-6xl text-slate-600 mb-4">cloud_upload</span>
+            <h3 class="text-lg font-semibold text-slate-300 mb-2">Drop files here or click to upload</h3>
+            <p class="text-sm text-slate-500 mb-6">PNG, JPEG, TIFF, PDF — max 50 MB</p>
+            <div class="flex gap-3 justify-center">
+              <button id="btn-take-photo" class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/80 transition-colors flex items-center gap-2">
+                <span class="material-symbols-outlined text-lg">photo_camera</span>Take Photo
+              </button>
+              <button id="btn-choose-file" class="px-4 py-2 bg-surface-dark border border-border-dark text-slate-300 rounded-lg text-sm font-medium hover:bg-border-dark transition-colors flex items-center gap-2">
+                <span class="material-symbols-outlined text-lg">folder_open</span>Choose File
+              </button>
+            </div>
+            <input type="file" id="upload-file-input" accept="image/png,image/jpeg,image/tiff,application/pdf" class="hidden">
+            <input type="file" id="upload-camera-input" accept="image/*" capture="environment" class="hidden">
+          </div>
+          <div id="upload-preview" class="hidden mt-6 bg-surface-dark rounded-xl p-5 border border-border-dark">
+            <!-- Populated by JS -->
+          </div>
+          <div id="upload-history" class="mt-8">
+            <h4 class="text-sm font-medium text-slate-400 mb-3">Recent uploads this session</h4>
+            <div id="upload-history-list" class="space-y-2"></div>
+          </div>
         </div>
       </div>
 
@@ -297,6 +362,9 @@ tailwind.config = {
 <script src="/static/js/dashboard.js"></script>
 <script src="/static/js/documents.js"></script>
 <script src="/static/js/review.js"></script>
+<script src="/static/js/inventory.js"></script>
+<script src="/static/js/orders.js"></script>
+<script src="/static/js/upload.js"></script>
 <script src="/static/js/app.js"></script>
 <script>
 // Global search handler (navigates to documents view with search)
