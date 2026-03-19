@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -14,6 +15,18 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+psycopg://labmanager:labmanager@localhost:5432/labmanager"
     )
+
+    @model_validator(mode="after")
+    def _normalize_database_urls(self):
+        """Ensure SQLAlchemy dialect prefix for managed DB providers (e.g. DO App Platform)."""
+        for attr in ("database_url", "database_readonly_url"):
+            val = getattr(self, attr)
+            if val and val.startswith("postgresql://"):
+                object.__setattr__(
+                    self, attr, val.replace("postgresql://", "postgresql+psycopg://", 1)
+                )
+        return self
+
     meilisearch_url: str = "http://localhost:7700"
     meilisearch_api_key: str = ""
 
