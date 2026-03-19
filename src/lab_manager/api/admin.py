@@ -118,13 +118,9 @@ def _make_auth_backend():
 
     if settings.auth_enabled:
         if not settings.admin_secret_key:
-            raise RuntimeError(
-                "ADMIN_SECRET_KEY must be set when auth is enabled."
-            )
+            raise RuntimeError("ADMIN_SECRET_KEY must be set when auth is enabled.")
         if not settings.admin_password:
-            raise RuntimeError(
-                "ADMIN_PASSWORD must be set when auth is enabled."
-            )
+            raise RuntimeError("ADMIN_PASSWORD must be set when auth is enabled.")
         if hmac.compare_digest(settings.admin_password, settings.api_key):
             raise RuntimeError(
                 "ADMIN_PASSWORD must be distinct from API_KEY when auth is enabled."

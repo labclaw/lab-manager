@@ -332,7 +332,9 @@ def create_app() -> FastAPI:
         except BadSignature:
             return JSONResponse(status_code=401, content={"detail": "Invalid session"})
         if not staff:
-            return JSONResponse(status_code=401, content={"detail": "Not authenticated"})
+            return JSONResponse(
+                status_code=401, content={"detail": "Not authenticated"}
+            )
         return {"user": {"id": staff.id, "name": staff.name}}
 
     @app.post("/api/auth/logout")
