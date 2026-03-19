@@ -75,11 +75,12 @@ export interface Document {
 }
 
 export interface DashboardStats {
-  total_spending?: number
-  inventory_value?: number
-  recent_orders?: number
-  low_stock_count?: number
-  pending_review?: number
+  total_documents: number
+  documents_approved: number
+  documents_pending_review: number
+  total_orders: number
+  total_inventory_items: number
+  total_vendors: number
 }
 
 export interface Alert {
@@ -185,7 +186,7 @@ export const documents = {
     ),
   get: (id: number) => apiFetch<Document>(`/documents/${id}`),
   reviewQueue: () =>
-    apiFetch<ApiResponse<Document>>('/documents/?status=needs_review'),
+    apiFetch<ApiResponse<Document>>('/documents?status=needs_review'),
   approve: (id: number) =>
     apiFetch<Document>(`/documents/${id}/approve`, { method: 'POST' }),
   reject: (id: number, reason: string) =>

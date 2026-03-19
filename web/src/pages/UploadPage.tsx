@@ -11,6 +11,7 @@ interface UploadRecord {
   id: number
   name: string
   size: number
+  file: File
   status: UploadStatus
   progress: number
   doc?: Document
@@ -41,6 +42,7 @@ export function UploadPage() {
       id,
       name: file.name,
       size: file.size,
+      file,
       status: 'queued',
       progress: 0,
     }
@@ -90,12 +92,10 @@ export function UploadPage() {
     handleFiles(e.dataTransfer.files)
   }, [handleFiles])
 
-  const retryUpload = useCallback(async (record: UploadRecord) => {
-    // Reset and re-queue
-    setUploads((prev) => prev.map((u) => u.id === record.id ? { ...u, status: 'queued', progress: 0, error: undefined } : u))
-    // We don't have the original File anymore; mark as failed again with a message
-    setUploads((prev) => prev.map((u) => u.id === record.id ? { ...u, status: 'failed', error: 'Please re-upload this file' } : u))
-  }, [])
+  const retryUpload = useCallback((record: UploadRecord) => {
+    setUploads((prev) => prev.filter((u) => u.id !== record.id))
+    processFile(record.file)
+  }, [processFile])
 
   const clearCompleted = useCallback(() => {
     setUploads((prev) => prev.filter((u) => u.status !== 'complete'))

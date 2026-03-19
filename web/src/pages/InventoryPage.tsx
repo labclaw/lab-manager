@@ -117,7 +117,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
             <thead>
               <tr className="bg-[var(--muted)]/50">
                 <th className="px-8 py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Item Name</th>
-                <th className="px-6 py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Catalog #</th>
+                <th className="px-6 py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Lot #</th>
                 <th className="px-6 py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Vendor</th>
                 <th className="px-6 py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Location</th>
                 <th className="px-6 py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Stock</th>
@@ -241,40 +241,34 @@ export function InventoryPage({ onError }: InventoryPageProps) {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="p-6 bg-[var(--card)] rounded-3xl border border-[var(--border)] shadow-sm flex flex-col justify-between">
           <div>
-            <span className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest">Storage Status</span>
-            <h3 className="text-2xl font-bold mt-1">94%</h3>
+            <span className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest">Total Items</span>
+            <h3 className="text-2xl font-bold mt-1">{total}</h3>
           </div>
-          <div className="mt-4 w-full bg-[var(--muted)] h-1.5 rounded-full overflow-hidden">
-            <div className="bg-[var(--primary)] h-full" style={{ width: '94%' }} />
-          </div>
+          <p className="text-[11px] text-[var(--muted-foreground)] mt-3">Across all locations</p>
+        </div>
+        <div className="p-6 bg-[var(--card)] rounded-3xl border border-[var(--border)] shadow-sm">
+          <span className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest">Low Stock</span>
+          <h3 className="text-2xl font-bold mt-1 text-[var(--warning)]">
+            {items.filter((i) => i.status === 'low_stock').length}
+          </h3>
           <p className="text-[11px] text-[var(--muted-foreground)] mt-3 flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px] text-[var(--warning)]">warning</span>
-            Freezer #4 nearing capacity
+            Below minimum threshold
           </p>
         </div>
         <div className="p-6 bg-[var(--card)] rounded-3xl border border-[var(--border)] shadow-sm">
-          <span className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest">Monthly Spend</span>
-          <h3 className="text-2xl font-bold mt-1 text-[var(--foreground)]">$4,120</h3>
-          <div className="mt-4 flex items-center text-[var(--primary)] gap-1">
-            <span className="material-symbols-outlined text-sm">trending_up</span>
-            <span className="text-xs font-bold">+12% vs last month</span>
-          </div>
+          <span className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest">Expired</span>
+          <h3 className="text-2xl font-bold mt-1 text-[var(--destructive)]">
+            {items.filter((i) => i.status === 'expired').length}
+          </h3>
+          <p className="text-[11px] text-[var(--muted-foreground)] mt-3">Requires disposal</p>
         </div>
         <div className="p-6 bg-[var(--card)] rounded-3xl border border-[var(--border)] shadow-sm">
-          <span className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest">Active Orders</span>
-          <h3 className="text-2xl font-bold mt-1 text-[var(--foreground)]">12</h3>
-          <div className="mt-4 flex -space-x-2">
-            <div className="w-7 h-7 rounded-full bg-[var(--primary)] border-2 border-[var(--card)] flex items-center justify-center text-[10px] text-white font-bold">V</div>
-            <div className="w-7 h-7 rounded-full bg-[var(--muted)] border-2 border-[var(--card)] flex items-center justify-center text-[10px] text-[var(--foreground)] font-bold">S</div>
-            <div className="w-7 h-7 rounded-full bg-[var(--muted)] border-2 border-[var(--card)] flex items-center justify-center text-[10px] text-[var(--muted-foreground)] font-bold">+9</div>
-          </div>
-        </div>
-        <div className="p-6 bg-[var(--card)] rounded-3xl border border-[var(--border)] shadow-sm">
-          <span className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest">Audit Due</span>
-          <h3 className="text-2xl font-bold mt-1 text-[var(--foreground)]">14 Days</h3>
-          <button className="mt-4 text-xs font-bold text-[var(--primary)] flex items-center gap-1 hover:underline">
-            Schedule Review <span className="material-symbols-outlined text-sm">arrow_forward</span>
-          </button>
+          <span className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest">In Stock</span>
+          <h3 className="text-2xl font-bold mt-1 text-[var(--accent)]">
+            {items.filter((i) => i.status === 'in_stock' || i.status === 'available').length}
+          </h3>
+          <p className="text-[11px] text-[var(--muted-foreground)] mt-3">Available for use</p>
         </div>
       </div>
     </div>

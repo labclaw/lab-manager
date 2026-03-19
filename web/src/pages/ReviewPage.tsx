@@ -160,18 +160,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
             {queue.length} document{queue.length !== 1 ? 's' : ''} awaiting verification
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-lg">
-              search
-            </span>
-            <input
-              type="text"
-              placeholder="Search filename..."
-              className="bg-[var(--card)] border border-[var(--border)] text-sm rounded-lg pl-10 pr-4 py-1.5 w-64 text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
-            />
-          </div>
-        </div>
+        <div className="flex items-center gap-4" />
       </div>
 
       {/* Split Pane */}

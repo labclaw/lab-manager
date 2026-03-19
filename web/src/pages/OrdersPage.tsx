@@ -35,7 +35,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
   const pageSize = 20
 
   const { data: res, isLoading, error } = useQuery({
-    queryKey: ['orders', page],
+    queryKey: ['orders', page, activeTab],
     queryFn: () => ordApi.list(page, pageSize),
   })
 
@@ -267,7 +267,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-widest opacity-80 mb-1">Total Monthly Spend</h4>
                 <p className="text-2xl font-extrabold">
-                  {formatCurrency(allOrders.reduce((sum, o) => sum + (o.total_amount ?? 0), 0) || 14282.50)}
+                  {formatCurrency(allOrders.reduce((sum, o) => sum + (o.total_amount ?? 0), 0))}
                 </p>
               </div>
               <div className="mt-4 flex items-center gap-2">
@@ -288,7 +288,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
               <div>
                 <h4 className="text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-widest mb-1">Items in Transit</h4>
                 <p className="text-2xl font-extrabold text-[var(--foreground)]">
-                  {allOrders.filter((o) => o.status === 'shipped').reduce((sum, o) => sum + (o.item_count ?? 0), 0) || 42}
+                  {allOrders.filter((o) => o.status === 'shipped').reduce((sum, o) => sum + (o.item_count ?? 0), 0)}
                 </p>
               </div>
               <div className="flex -space-x-2 mt-4 overflow-hidden">

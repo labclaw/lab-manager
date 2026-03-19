@@ -4,7 +4,6 @@ import { auth } from '@/lib/api'
 export function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [remember, setRemember] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -98,20 +97,6 @@ export function LoginPage() {
                 required
               />
             </div>
-          </div>
-
-          {/* Remember Me */}
-          <div className="flex items-center gap-2 px-1">
-            <input
-              id="remember"
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-              className="w-4 h-4 rounded border-[var(--border)] bg-[var(--background)] text-[var(--primary)] focus:ring-offset-[var(--background)]"
-            />
-            <label htmlFor="remember" className="text-[var(--muted-foreground)] text-sm">
-              Remember this device
-            </label>
           </div>
 
           {/* Sign In Button */}

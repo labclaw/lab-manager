@@ -2,19 +2,10 @@ import { useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { analytics, inventory, vendors, documents } from '@/lib/api'
-import type { Vendor } from '@/lib/api'
+import type { Vendor, DashboardStats } from '@/lib/api'
 
 interface DashboardPageProps {
   readonly onError: (msg: string) => void
-}
-
-interface DashboardStats {
-  total_documents: number
-  documents_approved: number
-  documents_pending_review: number
-  total_orders: number
-  total_inventory_items: number
-  total_vendors: number
 }
 
 export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {

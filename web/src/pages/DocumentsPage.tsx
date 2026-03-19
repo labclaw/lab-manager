@@ -211,7 +211,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
                     <tr
                       key={doc.id}
                       className="hover:bg-[var(--muted)]/30 transition-colors cursor-pointer group"
-                      onClick={() => navigate(`/review`)}
+                      onClick={() => navigate(`/review?id=${doc.id}`)}
                     >
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
