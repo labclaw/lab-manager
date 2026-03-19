@@ -1,93 +1,82 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
 @import "tailwindcss";
 
 :root {
-  --font-display: 'Plus Jakarta Sans', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-display: 'Inter', sans-serif;
+  --font-body: 'Inter', sans-serif;
 
-  /* Background & Surface */
-  --background: #F8F9FC;
-  --card: #FFFFFF;
-  --popover: #FFFFFF;
-  --muted: #F1F3F8;
+  /* Light mode */
+  --background: #f6f5f8;
+  --card: #ffffff;
+  --popover: #ffffff;
+  --muted: #f1f3f8;
 
-  /* Text */
-  --foreground: #1A1A2E;
-  --muted-foreground: #6B7280;
+  --foreground: #1a1a2e;
+  --muted-foreground: #6b7280;
 
-  /* Primary (Indigo Violet) */
-  --primary: #6C5CE7;
+  --primary: #8b5cf6;
   --primary-foreground: #ffffff;
 
-  /* Accent (Vivid Teal) */
-  --accent: #00D4AA;
+  --accent: #10b981;
   --accent-foreground: #ffffff;
 
-  /* Destructive (Warm Red) */
-  --destructive: #E74C3C;
+  --destructive: #ef4444;
   --destructive-foreground: #ffffff;
 
-  /* Warning */
-  --warning: #F39C12;
-  --warning-foreground: #1A1A2E;
+  --warning: #f59e0b;
+  --warning-foreground: #1a1a2e;
 
-  /* Info */
-  --info: #5B8DEF;
+  --info: #5b8def;
   --info-foreground: #ffffff;
 
-  /* Border */
-  --border: #E5E7EB;
-  --input: #E5E7EB;
-  --ring: #6C5CE7;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #8b5cf6;
 
-  /* Radius */
   --radius: 0.5rem;
 
-  /* Sidebar */
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #1A1A2E;
-  --sidebar-border: #E5E7EB;
-  --sidebar-accent: #F1F3F8;
-  --sidebar-ring: #6C5CE7;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1a1a2e;
+  --sidebar-border: #e5e7eb;
+  --sidebar-accent: #f1f3f8;
+  --sidebar-ring: #8b5cf6;
 }
 
 .dark {
-  --background: #0B0B14;
-  --card: #12121E;
-  --popover: #12121E;
-  --muted: #1E1E2E;
+  --background: #0f0f23;
+  --card: #1a1a2e;
+  --popover: #1a1a2e;
+  --muted: #1e1e2e;
 
-  --foreground: #F0F0F5;
-  --muted-foreground: #A0A0B0;
+  --foreground: #f0f0f5;
+  --muted-foreground: #8e8ea0;
 
-  --primary: #6C5CE7;
+  --primary: #8b5cf6;
   --primary-foreground: #ffffff;
 
-  --accent: #00D4AA;
+  --accent: #10b981;
   --accent-foreground: #ffffff;
 
-  --destructive: #E74C3C;
+  --destructive: #ef4444;
   --destructive-foreground: #ffffff;
 
-  --warning: #F39C12;
-  --warning-foreground: #0B0B14;
+  --warning: #f59e0b;
+  --warning-foreground: #0f0f23;
 
-  --info: #5B8DEF;
+  --info: #5b8def;
   --info-foreground: #ffffff;
 
-  --border: rgba(255,255,255,0.06);
-  --input: rgba(255,255,255,0.06);
-  --ring: #6C5CE7;
+  --border: #2d2d44;
+  --input: #2d2d44;
+  --ring: #8b5cf6;
 
-  --sidebar: #12121E;
-  --sidebar-foreground: #F0F0F5;
-  --sidebar-border: rgba(255,255,255,0.06);
-  --sidebar-accent: #1E1E2E;
-  --sidebar-ring: #6C5CE7;
+  --sidebar: #12121e;
+  --sidebar-foreground: #f0f0f5;
+  --sidebar-border: #2d2d44;
+  --sidebar-accent: #1e1e2e;
+  --sidebar-ring: #8b5cf6;
 }
 
 @layer base {
@@ -107,9 +96,12 @@
     font-family: var(--font-display);
   }
 
-  /* Tabular nums for data tables */
   .tabular-nums {
     font-variant-numeric: tabular-nums;
+  }
+
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
 }
 

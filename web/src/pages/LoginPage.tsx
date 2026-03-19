@@ -1,11 +1,9 @@
 import { useState } from 'react'
 import { auth } from '@/lib/api'
-import { FlaskConical, Eye, EyeOff } from 'lucide-react'
 
 export function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -24,88 +22,88 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <FlaskConical className="w-10 h-10 text-[var(--primary)]" />
-          <h1 className="text-2xl font-display font-bold text-[var(--foreground)]">
-            LabClaw
-          </h1>
+    <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-4 relative">
+      {/* Background gradient blobs */}
+      <div className="fixed inset-0 -z-10 opacity-20 pointer-events-none overflow-hidden">
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-[var(--primary)] rounded-full blur-[120px]" />
+        <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-[var(--primary)]/30 rounded-full blur-[120px]" />
+      </div>
+
+      {/* Login Card */}
+      <div className="w-full max-w-96 bg-[var(--card)] border border-[var(--border)] rounded-xl p-8 shadow-2xl">
+        {/* Header / Logo */}
+        <div className="flex flex-col items-center gap-2 mb-8">
+          <div className="flex items-center gap-2">
+            <div className="bg-[var(--primary)]/20 p-2 rounded-lg flex items-center justify-center">
+              <span className="material-symbols-outlined text-[var(--primary)] text-3xl">science</span>
+            </div>
+            <h1 className="text-[var(--foreground)] text-2xl font-bold tracking-tight">LabClaw</h1>
+          </div>
+          <p className="text-[var(--muted-foreground)] text-sm font-medium">Lab Manager</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="card space-y-5">
-          <div>
-            <h2 className="text-lg font-display font-semibold text-[var(--foreground)] mb-1">
-              Sign in
-            </h2>
-            <p className="text-sm text-[var(--muted-foreground)]">
-              LabClaw Manager
-            </p>
+        {/* Error message */}
+        {error && (
+          <div className="mb-5 p-3 rounded-lg bg-[var(--destructive)]/10 border border-[var(--destructive)]/30 text-sm text-[var(--destructive)]">
+            {error}
           </div>
+        )}
 
-          {error && (
-            <div className="p-3 rounded-lg bg-[var(--destructive)]/10 border border-[var(--destructive)]/30 text-sm text-[var(--destructive)]">
-              {error}
-            </div>
-          )}
-
-          <div className="space-y-3">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-[var(--muted-foreground)] mb-1.5"
-              >
-                Email
-              </label>
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {/* Email */}
+          <div className="flex flex-col gap-2">
+            <label htmlFor="email" className="text-[var(--foreground)] text-sm font-medium ml-1">
+              Email
+            </label>
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-xl">
+                mail
+              </span>
               <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-[var(--popover)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
-                placeholder="you@lab.edu"
+                className="w-full pl-11 pr-4 py-3 bg-[var(--background)] border border-[var(--border)] rounded-lg text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:ring-2 focus:ring-[var(--ring)]/50 focus:border-[var(--primary)] transition-all outline-none"
+                placeholder="Enter your email"
                 required
                 autoFocus
               />
             </div>
+          </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-[var(--muted-foreground)] mb-1.5"
-              >
+          {/* Password */}
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-between items-center px-1">
+              <label htmlFor="password" className="text-[var(--foreground)] text-sm font-medium">
                 Password
               </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-[var(--popover)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] pr-10"
-                  placeholder="Enter your password"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
+              <a href="#" className="text-[var(--primary)] text-xs font-semibold hover:underline">
+                Forgot password?
+              </a>
+            </div>
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-xl">
+                lock
+              </span>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 bg-[var(--background)] border border-[var(--border)] rounded-lg text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:ring-2 focus:ring-[var(--ring)]/50 focus:border-[var(--primary)] transition-all outline-none"
+                placeholder="Enter your password"
+                required
+              />
             </div>
           </div>
 
+          {/* Sign In Button */}
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full flex items-center justify-center gap-2"
+            className="w-full bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-white font-bold py-3 px-4 rounded-lg mt-2 shadow-lg shadow-[var(--primary)]/20 flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
           >
             {loading ? (
               <>
@@ -113,10 +111,29 @@ export function LoginPage() {
                 <span>Signing in...</span>
               </>
             ) : (
-              'Sign In'
+              <>
+                <span>Sign In</span>
+                <span className="material-symbols-outlined text-xl">login</span>
+              </>
             )}
           </button>
         </form>
+
+        {/* Footer */}
+        <div className="mt-8 text-center">
+          <p className="text-[var(--muted-foreground)] text-sm">
+            Don't have an account?{' '}
+            <a href="#" className="text-[var(--primary)] font-semibold hover:underline">
+              Request access
+            </a>
+          </p>
+        </div>
+      </div>
+
+      {/* Security Badge */}
+      <div className="fixed bottom-6 flex items-center gap-2 text-[var(--muted-foreground)]/50">
+        <span className="material-symbols-outlined text-sm">verified_user</span>
+        <span className="text-[10px] uppercase tracking-widest font-bold">Secure Environment</span>
       </div>
     </div>
   )

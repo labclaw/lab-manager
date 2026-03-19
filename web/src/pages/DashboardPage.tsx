@@ -1,289 +1,319 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { analytics } from '@/lib/api'
-import {
-  FileText,
-  CheckCircle2,
-  AlertTriangle,
-  ShoppingCart,
-  Store,
-  TrendingUp,
-  Package,
-} from 'lucide-react'
-
-interface DocStats {
-  total_documents: number
-  documents_approved: number
-  documents_pending_review: number
-  total_products: number
-  total_vendors: number
-  total_orders: number
-  total_inventory_items: number
-  total_staff: number
-  orders_by_status?: Record<string, number>
-  inventory_by_status?: Record<string, number>
-  recent_orders?: Array<{ id: number; po_number: string | null; vendor_name: string; status: string; order_date: string }>
-  expiring_soon?: Array<{ id: number; product_name: string | null; lot_number: string | null; quantity_on_hand: number | null; expiry_date: string | null }>
-  low_stock_count?: number
-}
+import { useNavigate } from 'react-router-dom'
+import { analytics, inventory, vendors, documents } from '@/lib/api'
+import type { Vendor, DashboardStats } from '@/lib/api'
 
 interface DashboardPageProps {
-  onError?: (error: string) => void
+  readonly onError: (msg: string) => void
 }
 
-export function DashboardPage({ onError }: DashboardPageProps) {
-  const { data: stats, isLoading, error } = useQuery({
+export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
+  const navigate = useNavigate()
+
+  const { data: stats, error: statsErr } = useQuery({
     queryKey: ['dashboard'],
-    queryFn: () => analytics.dashboard() as Promise<DocStats>,
+    queryFn: () => analytics.dashboard() as Promise<DashboardStats>,
   })
 
+  const { data: lowStockData, error: lowStockErr } = useQuery({
+    queryKey: ['inventory-low-stock'],
+    queryFn: () => inventory.lowStock(),
+  })
+
+  const { data: expiringData, error: expiringErr } = useQuery({
+    queryKey: ['inventory-expiring'],
+    queryFn: () => inventory.expiring(),
+  })
+
+  const { data: vendorData, error: vendorErr } = useQuery({
+    queryKey: ['vendors-list'],
+    queryFn: () => vendors.list(1, 100),
+  })
+
+  const { data: docData, error: docErr } = useQuery({
+    queryKey: ['documents-list'],
+    queryFn: () => documents.list(1, 500),
+  })
+
+  // Report errors
   useEffect(() => {
-    if (error && onError) {
-      onError(error instanceof Error ? error.message : 'Failed to load dashboard data')
+    const err = statsErr ?? lowStockErr ?? expiringErr ?? vendorErr ?? docErr
+    if (err) {
+      onError(err instanceof Error ? err.message : 'Failed to load dashboard data')
     }
-  }, [error, onError])
+  }, [statsErr, lowStockErr, expiringErr, vendorErr, docErr, onError])
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
-      </div>
-    )
-  }
+  // Compute vendor order counts (top 5)
+  const vendorChart = useMemo(() => {
+    const list = vendorData?.items ?? []
+    const sorted = [...list]
+      .sort((a, b) => (b.order_count ?? 0) - (a.order_count ?? 0))
+      .slice(0, 5)
+    const max = sorted.length > 0 ? (sorted[0]?.order_count ?? 1) : 1
+    const totalOrders = list.reduce((s: number, v: Vendor) => s + (v.order_count ?? 0), 0)
+    return sorted.map((v) => ({
+      name: v.name,
+      count: v.order_count ?? 0,
+      pct: totalOrders > 0 ? Math.round(((v.order_count ?? 0) / totalOrders) * 100) : 0,
+      width: max > 0 ? Math.round(((v.order_count ?? 0) / max) * 100) : 0,
+    }))
+  }, [vendorData])
 
-  if (!stats) {
-    return (
-      <div className="text-center py-16 text-[var(--muted-foreground)]">
-        Failed to load dashboard data.
-      </div>
-    )
-  }
+  // Compute document type distribution (top 4)
+  const docChart = useMemo(() => {
+    const docs = docData?.items ?? []
+    const counts: Record<string, number> = {}
+    for (const d of docs) {
+      const t = d.document_type ?? 'unknown'
+      counts[t] = (counts[t] ?? 0) + 1
+    }
+    const entries = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+    const max = entries.length > 0 ? entries[0]![1] : 1
+    return entries.map(([type, count]) => ({
+      type,
+      count,
+      width: max > 0 ? Math.round((count / max) * 100) : 0,
+    }))
+  }, [docData])
 
-  const cards = [
-    {
-      icon: FileText,
-      label: 'Total Documents',
-      value: stats.total_documents,
-      sub: 'scanned lab documents',
-      color: 'text-[var(--primary)]',
-      bg: 'bg-[var(--primary)]/10',
-    },
-    {
-      icon: CheckCircle2,
-      label: 'Approved',
-      value: stats.documents_approved ?? 0,
-      sub:
-        stats.total_documents > 0
-          ? `${(((stats.documents_approved ?? 0) / stats.total_documents) * 100).toFixed(0)}% auto-approved`
-          : '0% auto-approved',
-      color: 'text-[var(--accent)]',
-      bg: 'bg-[var(--accent)]/10',
-    },
-    {
-      icon: AlertTriangle,
-      label: 'Needs Review',
-      value: stats.documents_pending_review ?? 0,
-      sub: 'awaiting scientist verification',
-      color: 'text-[var(--warning)]',
-      bg: 'bg-[var(--warning)]/10',
-    },
-    {
-      icon: ShoppingCart,
-      label: 'Orders',
-      value: stats.total_orders,
-      sub: `${stats.total_inventory_items ?? 0} line items`,
-      color: 'text-[var(--info)]',
-      bg: 'bg-[var(--info)]/10',
-    },
-    {
-      icon: Store,
-      label: 'Vendors',
-      value: stats.total_vendors,
-      sub: 'discovered from scans',
-      color: 'text-[var(--foreground)]',
-      bg: 'bg-[var(--muted)]',
-    },
-    {
-      icon: TrendingUp,
-      label: 'Products',
-      value: stats.total_products,
-      sub: `${stats.total_inventory_items ?? 0} inventory items`,
-      color: 'text-[var(--foreground)]',
-      bg: 'bg-[var(--muted)]',
-    },
-  ]
+  const totalDocs = stats?.total_documents ?? 0
+  const approved = stats?.documents_approved ?? 0
+  const needsReview = stats?.documents_pending_review ?? 0
+  const ordersCreated = stats?.total_orders ?? 0
+  const totalVendors = stats?.total_vendors ?? 0
+  const approvalPct = totalDocs > 0 ? Math.round((approved / totalDocs) * 100) : 0
 
-  const maxStatus = Math.max(
-    ...Object.values(stats.orders_by_status ?? {}),
-    1,
-  )
+  const lowStockCount = lowStockData?.items?.length ?? 0
+  const expiringCount = expiringData?.items?.length ?? 0
 
-  const maxInvStatus = Math.max(
-    ...Object.values(stats.inventory_by_status ?? {}),
-    1,
-  )
+  // Bar opacity steps for vendors
+  const vendorOpacity = ['', '/80', '/60', '/40', '/20']
+  // Bar opacity steps for docs
+  const docOpacity = ['', '/80', '/60', '/40']
 
   return (
-    <div className="space-y-6">
-      {/* Alert banner */}
-      {(stats.documents_pending_review ?? 0) > 10 && (
-        <div className="flex items-center gap-3 p-3 rounded-lg border border-[var(--warning)]/30 bg-[var(--warning)]/5">
-          <AlertTriangle className="w-5 h-5 text-[var(--warning)] shrink-0" />
-          <span className="text-sm text-[var(--warning)]">
-            {stats.documents_pending_review} documents awaiting review
-          </span>
+    <div className="space-y-8">
+      {/* Quick Actions Row */}
+      <div>
+        <h3 className="text-[var(--muted-foreground)] text-[10px] font-bold uppercase tracking-widest mb-4">
+          Quick Actions
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <button
+            onClick={() => navigate('/upload')}
+            className="flex items-center justify-center gap-3 p-4 bg-[var(--primary)] hover:brightness-110 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-[var(--primary)]/20 group"
+          >
+            <span className="material-symbols-outlined group-hover:scale-110 transition-transform">upload_file</span>
+            <span>Upload Document</span>
+          </button>
+          <button
+            onClick={() => navigate('/orders')}
+            className="flex items-center justify-center gap-3 p-4 bg-[var(--card)] border border-[var(--primary)]/20 hover:border-[var(--primary)]/50 text-[var(--foreground)] rounded-xl font-bold text-sm transition-all group"
+          >
+            <span className="material-symbols-outlined text-[var(--primary)] group-hover:scale-110 transition-transform">add_shopping_cart</span>
+            <span>New Order</span>
+          </button>
+          <button
+            onClick={() => navigate('/inventory')}
+            className="flex items-center justify-center gap-3 p-4 bg-[var(--card)] border border-[var(--primary)]/20 hover:border-[var(--primary)]/50 text-[var(--foreground)] rounded-xl font-bold text-sm transition-all group"
+          >
+            <span className="material-symbols-outlined text-[var(--primary)] group-hover:scale-110 transition-transform">inventory</span>
+            <span>Update Stock</span>
+          </button>
+          <button
+            onClick={() => navigate('/settings')}
+            className="flex items-center justify-center gap-3 p-4 bg-[var(--card)] border border-[var(--primary)]/20 hover:border-[var(--primary)]/50 text-[var(--foreground)] rounded-xl font-bold text-sm transition-all group"
+          >
+            <span className="material-symbols-outlined text-[var(--primary)] group-hover:scale-110 transition-transform">group</span>
+            <span>Manage Lab</span>
+          </button>
         </div>
-      )}
+      </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        {cards.map((c) => (
-          <div key={c.label} className="card">
-            <div className="flex items-center gap-3 mb-3">
-              <div className={`p-2 rounded-lg ${c.bg}`}>
-                <c.icon className={`w-4 h-4 ${c.color}`} />
-              </div>
-              <span className="text-xs text-[var(--muted-foreground)] uppercase tracking-wider font-medium">
-                {c.label}
-              </span>
-            </div>
-            <div className={`text-2xl font-bold ${c.color}`}>{c.value}</div>
-            <div className="text-xs text-[var(--muted-foreground)] mt-1">{c.sub}</div>
+      {/* Stats Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Total Documents */}
+        <div className="bg-[var(--card)] border border-[var(--border)] p-5 rounded-xl flex flex-col gap-1 shadow-sm">
+          <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Total Documents</span>
+            <span className="material-symbols-outlined text-lg opacity-50">description</span>
           </div>
-        ))}
-      </div>
-
-      {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Orders by Status */}
-        <div className="card">
-          <h3 className="text-sm font-semibold text-[var(--foreground)] mb-4">
-            Orders by Status
-          </h3>
-          {Object.entries(stats.orders_by_status ?? {}).length > 0 ? (
-            <div className="space-y-3">
-              {Object.entries(stats.orders_by_status ?? {})
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 8)
-                .map(([name, count]) => (
-                  <div key={name} className="flex items-center gap-3 text-sm">
-                    <div className="w-40 text-right text-[var(--muted-foreground)] truncate capitalize" title={name}>
-                      {name.replace(/_/g, ' ')}
-                    </div>
-                    <div
-                      className="h-5 bg-[var(--primary)] rounded"
-                      style={{ width: `${(count / maxStatus) * 200}px`, minWidth: '4px' }}
-                    />
-                    <div className="text-[var(--foreground)] font-semibold w-8 tabular-nums">
-                      {count}
-                    </div>
-                  </div>
-                ))}
-            </div>
-          ) : (
-            <div className="text-sm text-[var(--muted-foreground)] py-4">
-              No order data yet
-            </div>
-          )}
+          <div className="text-3xl font-bold text-[var(--foreground)] tracking-tight">{totalDocs}</div>
+          <div className="text-[11px] text-[var(--muted-foreground)] font-medium">Total lab docs processed</div>
         </div>
 
-        {/* Inventory by Status */}
-        <div className="card">
-          <h3 className="text-sm font-semibold text-[var(--foreground)] mb-4">
-            Inventory by Status
-          </h3>
-          {Object.entries(stats.inventory_by_status ?? {}).length > 0 ? (
-            <div className="space-y-3">
-              {Object.entries(stats.inventory_by_status ?? {})
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 8)
-                .map(([name, count]) => (
-                  <div key={name} className="flex items-center gap-3 text-sm">
-                    <div className="w-40 text-right text-[var(--muted-foreground)] truncate capitalize" title={name}>
-                      {name.replace(/_/g, ' ')}
-                    </div>
-                    <div
-                      className="h-5 bg-[var(--accent)] rounded"
-                      style={{ width: `${(count / maxInvStatus) * 200}px`, minWidth: '4px' }}
-                    />
-                    <div className="text-[var(--foreground)] font-semibold w-8 tabular-nums">
-                      {count}
-                    </div>
-                  </div>
-                ))}
-            </div>
-          ) : (
-            <div className="text-sm text-[var(--muted-foreground)] py-4">
-              No inventory data yet
-            </div>
-          )}
+        {/* Approved - green left border */}
+        <div className="bg-[var(--card)] border border-[var(--border)] p-5 rounded-xl flex flex-col gap-1 shadow-sm border-l-4 border-l-emerald-500">
+          <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Approved</span>
+            <span className="material-symbols-outlined text-lg text-emerald-500">check_circle</span>
+          </div>
+          <div className="text-3xl font-bold text-emerald-500 tracking-tight">{approved}</div>
+          <div className="text-[11px] text-[var(--muted-foreground)] font-medium">{approvalPct}% automation accuracy</div>
+        </div>
+
+        {/* Needs Review - amber left border */}
+        <div className="bg-[var(--card)] border border-[var(--border)] p-5 rounded-xl flex flex-col gap-1 shadow-sm border-l-4 border-l-amber-400">
+          <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Needs Review</span>
+            <span className="material-symbols-outlined text-lg text-amber-400">pending_actions</span>
+          </div>
+          <div className="text-3xl font-bold text-amber-400 tracking-tight">{needsReview}</div>
+          <div className="text-[11px] text-[var(--muted-foreground)] font-medium">Awaiting lab verification</div>
+        </div>
+
+        {/* Orders Created */}
+        <div className="bg-[var(--card)] border border-[var(--border)] p-5 rounded-xl flex flex-col gap-1 shadow-sm">
+          <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Orders Created</span>
+            <span className="material-symbols-outlined text-lg opacity-50">shopping_bag</span>
+          </div>
+          <div className="text-3xl font-bold text-[var(--foreground)] tracking-tight">{ordersCreated}</div>
+          <div className="text-[11px] text-[var(--muted-foreground)] font-medium">
+            {stats?.total_inventory_items ?? 0} line items reconciled
+          </div>
+        </div>
+
+        {/* Vendors */}
+        <div className="bg-[var(--card)] border border-[var(--border)] p-5 rounded-xl flex flex-col gap-1 shadow-sm">
+          <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Vendors</span>
+            <span className="material-symbols-outlined text-lg opacity-50">storefront</span>
+          </div>
+          <div className="text-3xl font-bold text-[var(--foreground)] tracking-tight">{totalVendors}</div>
+          <div className="text-[11px] text-[var(--muted-foreground)] font-medium">Discovered from scan history</div>
         </div>
       </div>
 
-      {/* Bottom row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Orders */}
-        <div className="card">
-          <h3 className="text-sm font-semibold text-[var(--foreground)] mb-4">
-            Recent Orders
-          </h3>
-          {stats.recent_orders && stats.recent_orders.length > 0 ? (
-            <div className="space-y-2">
-              {stats.recent_orders.slice(0, 5).map((o) => (
-                <div key={o.id} className="flex items-center justify-between text-sm py-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[var(--foreground)] font-medium">
-                      {o.vendor_name ?? 'Unknown'}
-                    </span>
-                    <span className="text-[var(--muted-foreground)]">
-                      {o.po_number ? `#${o.po_number}` : `#${o.id}`}
-                    </span>
-                  </div>
-                  <span className={`badge ${o.status === 'received' ? 'badge-accent' : o.status === 'pending' ? 'badge-warning' : 'badge-info'}`}>
-                    {o.status ?? 'unknown'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-sm text-[var(--muted-foreground)] py-4">
-              No orders yet
-            </div>
-          )}
+      {/* Alert Banners */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Critical Inventory Level */}
+        <div className="flex items-center gap-4 bg-amber-400/5 border border-amber-400/20 p-5 rounded-xl group hover:bg-amber-400/10 transition-colors">
+          <div className="size-12 rounded-full bg-amber-400/10 flex items-center justify-center text-amber-400 shrink-0">
+            <span className="material-symbols-outlined text-2xl">warning</span>
+          </div>
+          <div className="flex-1">
+            <p className="text-amber-50 text-sm font-bold">Critical Inventory Level</p>
+            <p className="text-amber-400/70 text-xs mt-0.5">
+              {lowStockCount} item{lowStockCount !== 1 ? 's are' : ' is'} below minimum stock thresholds.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/inventory')}
+            className="px-4 py-2 bg-amber-400 text-[var(--background)] rounded-lg text-xs font-bold uppercase tracking-wider hover:brightness-110 transition-colors shadow-lg shadow-amber-400/10"
+          >
+            Reorder Now
+          </button>
         </div>
 
-        {/* Expiring Soon */}
-        <div className="card">
-          <h3 className="text-sm font-semibold text-[var(--foreground)] mb-4 flex items-center gap-2">
-            <Package className="w-4 h-4" />
-            Expiring Soon (30 days)
-          </h3>
-          {stats.expiring_soon && stats.expiring_soon.length > 0 ? (
-            <div className="space-y-2">
-              {stats.expiring_soon.slice(0, 5).map((item) => (
-                <div key={item.id} className="flex items-center justify-between text-sm py-1">
-                  <div>
-                    <span className="text-[var(--foreground)]">{item.product_name ?? 'Unknown'}</span>
-                    {item.lot_number && (
-                      <span className="text-[var(--muted-foreground)] ml-2">Lot {item.lot_number}</span>
-                    )}
+        {/* Expiring Reagents */}
+        <div className="flex items-center gap-4 bg-red-500/5 border border-red-500/20 p-5 rounded-xl group hover:bg-red-500/10 transition-colors">
+          <div className="size-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 shrink-0">
+            <span className="material-symbols-outlined text-2xl">schedule</span>
+          </div>
+          <div className="flex-1">
+            <p className="text-red-50 text-sm font-bold">Expiring Reagents</p>
+            <p className="text-red-400/70 text-xs mt-0.5">
+              {expiringCount} vital item{expiringCount !== 1 ? 's' : ''} will expire within 30 days.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/inventory')}
+            className="px-4 py-2 bg-red-500 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:brightness-110 transition-colors shadow-lg shadow-red-500/10"
+          >
+            View List
+          </button>
+        </div>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Top Lab Vendors */}
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-[var(--foreground)] text-lg font-bold flex items-center gap-2">
+              <span className="material-symbols-outlined text-[var(--primary)]">analytics</span>
+              Top Lab Vendors
+            </h3>
+            <span className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest bg-[var(--muted)] px-2 py-1 rounded">
+              Last 90 Days
+            </span>
+          </div>
+          <div className="space-y-6">
+            {vendorChart.length > 0 ? (
+              vendorChart.map((v, i) => (
+                <div key={v.name} className="space-y-2 group">
+                  <div className="flex justify-between items-end">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-[var(--foreground)] font-semibold">{v.name}</span>
+                      {i === 0 && (
+                        <span className="hidden group-hover:block text-[10px] bg-[var(--primary)]/20 text-[var(--primary)] px-1.5 py-0.5 rounded font-bold">
+                          Primary Vendor
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs text-[var(--muted-foreground)] font-mono">
+                      {v.count} orders ({v.pct}%)
+                    </span>
                   </div>
-                  <span className="text-[var(--warning)] tabular-nums">
-                    {item.expiry_date ?? '?'}
-                  </span>
+                  <div className="h-2.5 w-full bg-[var(--muted)] rounded-full overflow-hidden">
+                    <div
+                      className={`h-full bg-[var(--primary)]${vendorOpacity[i] ?? ''} rounded-full transition-all duration-500`}
+                      style={{ width: `${v.width}%` }}
+                    />
+                  </div>
                 </div>
-              ))}
-              {stats.expiring_soon.length > 5 && (
-                <div className="text-xs text-[var(--muted-foreground)] pt-1">
-                  +{stats.expiring_soon.length - 5} more items
+              ))
+            ) : (
+              <div className="text-sm text-[var(--muted-foreground)] py-4">No vendor data yet</div>
+            )}
+          </div>
+        </div>
+
+        {/* Document Classification */}
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-[var(--foreground)] text-lg font-bold flex items-center gap-2">
+              <span className="material-symbols-outlined text-[var(--primary)]">folder_open</span>
+              Document Classification
+            </h3>
+            <button
+              onClick={() => navigate('/documents')}
+              className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-widest hover:underline"
+            >
+              View All Files
+            </button>
+          </div>
+          <div className="space-y-6">
+            {docChart.length > 0 ? (
+              docChart.map((d, i) => (
+                <div key={d.type} className="space-y-2 group">
+                  <div className="flex justify-between items-end">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-[var(--foreground)] font-mono">{d.type}</span>
+                      {i === 0 && totalDocs > 0 && (
+                        <span className="hidden group-hover:block text-[10px] bg-emerald-500/20 text-emerald-500 px-1.5 py-0.5 rounded font-bold">
+                          {Math.round((d.count / totalDocs) * 100)}% of docs
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs text-[var(--muted-foreground)] font-mono">{d.count} files</span>
+                  </div>
+                  <div className="h-2.5 w-full bg-[var(--muted)] rounded-full overflow-hidden">
+                    <div
+                      className={`h-full bg-emerald-500${docOpacity[i] ?? ''} rounded-full transition-all duration-500`}
+                      style={{ width: `${d.width}%` }}
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-sm text-[var(--muted-foreground)] py-4">
-              No items expiring soon
-            </div>
-          )}
+              ))
+            ) : (
+              <div className="text-sm text-[var(--muted-foreground)] py-4">No document data yet</div>
+            )}
+          </div>
         </div>
       </div>
     </div>

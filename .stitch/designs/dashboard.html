@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#8859f8",
+                        "background-light": "#f6f5f8",
+                        "background-dark": "#0f0f23",
+                        "card-dark": "#1a1a2e",
+                        "sidebar-dark": "#12121E",
+                        "accent-green": "#06d6a0",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<title>Lab Manager - Dashboard</title>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar -->
+<aside class="hidden md:flex flex-col w-64 bg-sidebar-dark border-r border-primary/10 transition-all duration-300">
+<div class="flex items-center gap-3 text-primary px-6 py-8">
+<div class="size-8 flex items-center justify-center bg-primary/10 rounded-lg">
+<span class="material-symbols-outlined text-primary text-2xl">psychology</span>
+</div>
+<div>
+<h2 class="text-slate-100 text-xl font-bold leading-none tracking-tight">Lab Manager</h2>
+<p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">MGH Neuroscience</p>
+</div>
+</div>
+<nav class="flex-1 px-4 space-y-1">
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold" href="#">
+<span class="material-symbols-outlined text-xl">dashboard</span>
+<span class="text-sm">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-primary/5 hover:text-slate-100 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">description</span>
+<span class="text-sm">Documents</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-primary/5 hover:text-slate-100 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">fact_check</span>
+<span class="text-sm">Review Queue</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-primary/5 hover:text-slate-100 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">inventory_2</span>
+<span class="text-sm">Inventory</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-primary/5 hover:text-slate-100 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">shopping_cart</span>
+<span class="text-sm">Orders</span>
+</a>
+</nav>
+<div class="p-4 mt-auto border-t border-primary/10">
+<div class="flex items-center gap-3 px-4 py-3">
+<div class="h-9 w-9 rounded-full border border-primary/30 overflow-hidden shrink-0">
+<img class="h-full w-full object-cover" data-alt="User profile picture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCYbExaRhygjRq4uebh4FbGAyQIu7Ea51OPj5j4dVntKjdynsOEGUh-yzjnW0I4O_mIK631OAiUj9wLhdyPyN9oxM5JXWswBaGWsW900oMcg_1LBQGHbWZSkOBzNLfkj4IwplGvxggQRgrgGuAUcNOH6bX9SsP6QjXE-UX06PeLAbKzPuw_qHWswssGsjGWo4pWRxdddLNVHK1_8qBme_K1i33JhdjcRR6ROxN9gw6P1apJvzKoldSI_vNCdxroOtmbO0ZHh-0JdlY7"/>
+</div>
+<div class="overflow-hidden">
+<p class="text-sm font-bold text-slate-100 truncate">Dr. Aris Thorne</p>
+</div>
+</div>
+<button class="flex items-center gap-3 w-full px-4 py-2 text-slate-400 hover:text-red-400 transition-colors text-sm font-medium">
+<span class="material-symbols-outlined text-lg">logout</span>
+<span>Sign Out</span>
+</button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<div class="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-primary/10 px-6 py-4 lg:px-10 bg-background-dark/80 backdrop-blur-md sticky top-0 z-50">
+<div class="flex items-center gap-8 flex-1">
+<label class="hidden md:flex flex-col max-w-xl w-full h-10">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full">
+<div class="text-slate-400 flex border-none bg-card-dark items-center justify-center pl-4 rounded-l-lg">
+<span class="material-symbols-outlined text-xl">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 border-none bg-card-dark text-slate-100 focus:ring-1 focus:ring-primary/50 h-full placeholder:text-slate-500 px-4 rounded-r-lg text-sm font-normal" placeholder="Search products, vendors, orders..." value=""/>
+</div>
+</label>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center rounded-lg size-10 bg-card-dark text-slate-100 hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-xl">notifications</span>
+</button>
+<div class="flex items-center gap-3 pl-4 border-l border-primary/10">
+<span class="text-sm font-medium text-slate-400">Dr. Aris Thorne</span>
+</div>
+</div>
+</header>
+<main class="flex flex-1 flex-col px-6 py-8 lg:px-10 max-w-[1600px] mx-auto w-full">
+<!-- Quick Actions Row -->
+<div class="mb-8">
+<h3 class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-4">Quick Actions</h3>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+<button class="flex items-center justify-center gap-3 p-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-primary/20 group">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">upload_file</span>
+<span>Upload Document</span>
+</button>
+<button class="flex items-center justify-center gap-3 p-4 bg-card-dark border border-primary/20 hover:border-primary/50 text-slate-100 rounded-xl font-bold text-sm transition-all group">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">add_shopping_cart</span>
+<span>New Order</span>
+</button>
+<button class="flex items-center justify-center gap-3 p-4 bg-card-dark border border-primary/20 hover:border-primary/50 text-slate-100 rounded-xl font-bold text-sm transition-all group">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">inventory</span>
+<span>Update Stock</span>
+</button>
+<button class="flex items-center justify-center gap-3 p-4 bg-card-dark border border-primary/20 hover:border-primary/50 text-slate-100 rounded-xl font-bold text-sm transition-all group">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">group</span>
+<span>Manage Lab</span>
+</button>
+</div>
+</div>
+<!-- Stats Row -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+<div class="bg-card-dark border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
+<div class="flex items-center justify-between text-slate-400 mb-2">
+<span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Documents</span>
+<span class="material-symbols-outlined text-lg opacity-50">description</span>
+</div>
+<div class="text-3xl font-bold text-white tracking-tight">279</div>
+<div class="text-[11px] text-slate-500 font-medium">Total lab docs processed</div>
+</div>
+<div class="bg-card-dark border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm border-l-4 border-l-accent-green">
+<div class="flex items-center justify-between text-slate-400 mb-2">
+<span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Approved</span>
+<span class="material-symbols-outlined text-lg text-accent-green">check_circle</span>
+</div>
+<div class="text-3xl font-bold text-accent-green tracking-tight">246</div>
+<div class="text-[11px] text-slate-500 font-medium">88% automation accuracy</div>
+</div>
+<div class="bg-card-dark border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm border-l-4 border-l-amber-400">
+<div class="flex items-center justify-between text-slate-400 mb-2">
+<span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Needs Review</span>
+<span class="material-symbols-outlined text-lg text-amber-400">pending_actions</span>
+</div>
+<div class="text-3xl font-bold text-amber-400 tracking-tight">33</div>
+<div class="text-[11px] text-slate-500 font-medium">Awaiting lab verification</div>
+</div>
+<div class="bg-card-dark border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
+<div class="flex items-center justify-between text-slate-400 mb-2">
+<span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Orders Created</span>
+<span class="material-symbols-outlined text-lg opacity-50">shopping_bag</span>
+</div>
+<div class="text-3xl font-bold text-white tracking-tight">211</div>
+<div class="text-[11px] text-slate-500 font-medium">309 line items reconciled</div>
+</div>
+<div class="bg-card-dark border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
+<div class="flex items-center justify-between text-slate-400 mb-2">
+<span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Vendors</span>
+<span class="material-symbols-outlined text-lg opacity-50">storefront</span>
+</div>
+<div class="text-3xl font-bold text-white tracking-tight">81</div>
+<div class="text-[11px] text-slate-500 font-medium">Discovered from scan history</div>
+</div>
+</div>
+<!-- High Priority Alerts -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+<div class="flex items-center gap-4 bg-amber-400/5 border border-amber-400/20 p-5 rounded-xl group hover:bg-amber-400/10 transition-colors">
+<div class="size-12 rounded-full bg-amber-400/10 flex items-center justify-center text-amber-400 shrink-0">
+<span class="material-symbols-outlined text-2xl">warning</span>
+</div>
+<div class="flex-1">
+<p class="text-amber-50 text-sm font-bold">Critical Inventory Level</p>
+<p class="text-amber-400/70 text-xs mt-0.5">7 items are below minimum stock thresholds.</p>
+</div>
+<button class="px-4 py-2 bg-amber-400 text-background-dark rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-amber-300 transition-colors shadow-lg shadow-amber-400/10">Reorder Now</button>
+</div>
+<div class="flex items-center gap-4 bg-red-500/5 border border-red-500/20 p-5 rounded-xl group hover:bg-red-500/10 transition-colors">
+<div class="size-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 shrink-0">
+<span class="material-symbols-outlined text-2xl">schedule</span>
+</div>
+<div class="flex-1">
+<p class="text-red-50 text-sm font-bold">Expiring Reagents</p>
+<p class="text-red-400/70 text-xs mt-0.5">3 vital items will expire within 30 days.</p>
+</div>
+<button class="px-4 py-2 bg-red-500 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-red-400 transition-colors shadow-lg shadow-red-500/10">View List</button>
+</div>
+</div>
+<!-- Charts Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<!-- Left: Top Vendors -->
+<div class="bg-card-dark border border-primary/10 rounded-xl p-6 shadow-sm">
+<div class="flex items-center justify-between mb-8">
+<h3 class="text-slate-100 text-lg font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">analytics</span>
+                            Top Lab Vendors
+                        </h3>
+<span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-800 px-2 py-1 rounded">Last 90 Days</span>
+</div>
+<div class="space-y-6">
+<div class="space-y-2 group">
+<div class="flex justify-between items-end">
+<div class="flex items-center gap-2">
+<span class="text-sm text-slate-200 font-semibold">MilliporeSigma</span>
+<span class="hidden group-hover:block text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-bold">Primary Vendor</span>
+</div>
+<span class="text-xs text-slate-400 font-mono">42 orders (20%)</span>
+</div>
+<div class="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full transition-all duration-500" style="width: 100%"></div>
+</div>
+</div>
+<div class="space-y-2 group">
+<div class="flex justify-between items-end">
+<div class="flex items-center gap-2">
+<span class="text-sm text-slate-200 font-semibold">Thermo Fisher</span>
+</div>
+<span class="text-xs text-slate-400 font-mono">35 orders (17%)</span>
+</div>
+<div class="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-primary/80 rounded-full transition-all duration-500" style="width: 83%"></div>
+</div>
+</div>
+<div class="space-y-2 group">
+<div class="flex justify-between items-end">
+<div class="flex items-center gap-2">
+<span class="text-sm text-slate-200 font-semibold">Invitrogen</span>
+</div>
+<span class="text-xs text-slate-400 font-mono">28 orders (13%)</span>
+</div>
+<div class="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-primary/60 rounded-full transition-all duration-500" style="width: 66%"></div>
+</div>
+</div>
+<div class="space-y-2 group">
+<div class="flex justify-between items-end">
+<div class="flex items-center gap-2">
+<span class="text-sm text-slate-200 font-semibold">BioLegend</span>
+</div>
+<span class="text-xs text-slate-400 font-mono">22 orders (10%)</span>
+</div>
+<div class="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-primary/40 rounded-full transition-all duration-500" style="width: 52%"></div>
+</div>
+</div>
+<div class="space-y-2 group">
+<div class="flex justify-between items-end">
+<div class="flex items-center gap-2">
+<span class="text-sm text-slate-200 font-semibold">VWR</span>
+</div>
+<span class="text-xs text-slate-400 font-mono">15 orders (7%)</span>
+</div>
+<div class="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-primary/20 rounded-full transition-all duration-500" style="width: 35%"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right: Document Types -->
+<div class="bg-card-dark border border-primary/10 rounded-xl p-6 shadow-sm">
+<div class="flex items-center justify-between mb-8">
+<h3 class="text-slate-100 text-lg font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">folder_open</span>
+                            Document Classification
+                        </h3>
+<button class="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline">View All Files</button>
+</div>
+<div class="space-y-6">
+<div class="space-y-2 group">
+<div class="flex justify-between items-end">
+<div class="flex items-center gap-2">
+<span class="text-sm text-slate-200 font-mono">packing_list</span>
+<span class="hidden group-hover:block text-[10px] bg-accent-green/20 text-accent-green px-1.5 py-0.5 rounded font-bold">40% of docs</span>
+</div>
+<span class="text-xs text-slate-400 font-mono">112 files</span>
+</div>
+<div class="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-accent-green rounded-full transition-all duration-500" style="width: 100%"></div>
+</div>
+</div>
+<div class="space-y-2 group">
+<div class="flex justify-between items-end">
+<div class="flex items-center gap-2">
+<span class="text-sm text-slate-200 font-mono">invoice</span>
+</div>
+<span class="text-xs text-slate-400 font-mono">84 files</span>
+</div>
+<div class="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-accent-green/80 rounded-full transition-all duration-500" style="width: 75%"></div>
+</div>
+</div>
+<div class="space-y-2 group">
+<div class="flex justify-between items-end">
+<div class="flex items-center gap-2">
+<span class="text-sm text-slate-200 font-mono">shipping_label</span>
+</div>
+<span class="text-xs text-slate-400 font-mono">53 files</span>
+</div>
+<div class="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-accent-green/60 rounded-full transition-all duration-500" style="width: 47%"></div>
+</div>
+</div>
+<div class="space-y-2 group">
+<div class="flex justify-between items-end">
+<div class="flex items-center gap-2">
+<span class="text-sm text-slate-200 font-mono">coa_certificate</span>
+</div>
+<span class="text-xs text-slate-400 font-mono">30 files</span>
+</div>
+<div class="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-accent-green/40 rounded-full transition-all duration-500" style="width: 26%"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</body></html>
