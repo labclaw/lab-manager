@@ -487,7 +487,7 @@ class TestSearchRoutes:
             mock_client = MagicMock()
             mock_gc.return_value = mock_client
             mock_client.index.return_value.search.return_value = {"hits": [{"id": 1}]}
-            resp = client.get("/api/search/?q=test&index=products")
+            resp = client.get("/api/v1/search/?q=test&index=products")
             assert resp.status_code == 200
             data = resp.json()
             assert data["index"] == "products"
@@ -497,7 +497,7 @@ class TestSearchRoutes:
             mock_client = MagicMock()
             mock_gc.return_value = mock_client
             mock_client.index.return_value.search.return_value = {"hits": []}
-            resp = client.get("/api/search/?q=test")
+            resp = client.get("/api/v1/search/?q=test")
             assert resp.status_code == 200
 
     def test_suggest_endpoint(self, client):
@@ -505,7 +505,7 @@ class TestSearchRoutes:
             mock_client = MagicMock()
             mock_gc.return_value = mock_client
             mock_client.index.return_value.search.return_value = {"hits": []}
-            resp = client.get("/api/search/suggest?q=test")
+            resp = client.get("/api/v1/search/suggest?q=test")
             assert resp.status_code == 200
 
 
@@ -523,7 +523,7 @@ class TestAskRoutes:
             "raw_results": [],
             "source": "sql",
         }
-        resp = client.post("/api/ask", json={"question": "How many?"})
+        resp = client.post("/api/v1/ask", json={"question": "How many?"})
         assert resp.status_code == 200
 
     @patch("lab_manager.services.rag.ask")
@@ -534,7 +534,7 @@ class TestAskRoutes:
             "raw_results": [],
             "source": "sql",
         }
-        resp = client.get("/api/ask?q=How+many")
+        resp = client.get("/api/v1/ask?q=How+many")
         assert resp.status_code == 200
 
 
@@ -545,19 +545,19 @@ class TestAskRoutes:
 
 class TestAuditRoutes:
     def test_list_with_table_filter(self, client):
-        resp = client.get("/api/audit/?table=vendors")
+        resp = client.get("/api/v1/audit/?table=vendors")
         assert resp.status_code == 200
 
     def test_list_with_record_id_filter(self, client):
-        resp = client.get("/api/audit/?record_id=1")
+        resp = client.get("/api/v1/audit/?record_id=1")
         assert resp.status_code == 200
 
     def test_list_with_action_filter(self, client):
-        resp = client.get("/api/audit/?action=create")
+        resp = client.get("/api/v1/audit/?action=create")
         assert resp.status_code == 200
 
     def test_list_with_changed_by_filter(self, client):
-        resp = client.get("/api/audit/?changed_by=admin")
+        resp = client.get("/api/v1/audit/?changed_by=admin")
         assert resp.status_code == 200
 
 
@@ -568,19 +568,19 @@ class TestAuditRoutes:
 
 class TestAlertRoutes:
     def test_list_with_type_filter(self, client):
-        resp = client.get("/api/alerts/?alert_type=expired")
+        resp = client.get("/api/v1/alerts/?alert_type=expired")
         assert resp.status_code == 200
 
     def test_list_with_severity_filter(self, client):
-        resp = client.get("/api/alerts/?severity=critical")
+        resp = client.get("/api/v1/alerts/?severity=critical")
         assert resp.status_code == 200
 
     def test_list_with_acknowledged_filter(self, client):
-        resp = client.get("/api/alerts/?acknowledged=true")
+        resp = client.get("/api/v1/alerts/?acknowledged=true")
         assert resp.status_code == 200
 
     def test_list_with_resolved_filter(self, client):
-        resp = client.get("/api/alerts/?resolved=true")
+        resp = client.get("/api/v1/alerts/?resolved=true")
         assert resp.status_code == 200
 
 
@@ -591,19 +591,19 @@ class TestAlertRoutes:
 
 class TestInventoryRoutes:
     def test_list_with_expiring_before(self, client):
-        resp = client.get("/api/inventory/?expiring_before=2027-01-01")
+        resp = client.get("/api/v1/inventory/?expiring_before=2027-01-01")
         assert resp.status_code == 200
 
     def test_list_with_search(self, client):
-        resp = client.get("/api/inventory/?search=test")
+        resp = client.get("/api/v1/inventory/?search=test")
         assert resp.status_code == 200
 
     def test_list_with_location_filter(self, client):
-        resp = client.get("/api/inventory/?location_id=1")
+        resp = client.get("/api/v1/inventory/?location_id=1")
         assert resp.status_code == 200
 
     def test_list_with_status_filter(self, client):
-        resp = client.get("/api/inventory/?status=available")
+        resp = client.get("/api/v1/inventory/?status=available")
         assert resp.status_code == 200
 
 
@@ -614,19 +614,19 @@ class TestInventoryRoutes:
 
 class TestProductRoutes:
     def test_list_include_inactive(self, client):
-        resp = client.get("/api/products/?include_inactive=true")
+        resp = client.get("/api/v1/products/?include_inactive=true")
         assert resp.status_code == 200
 
     def test_list_with_category(self, client):
-        resp = client.get("/api/products/?category=reagent")
+        resp = client.get("/api/v1/products/?category=reagent")
         assert resp.status_code == 200
 
     def test_list_with_catalog_search(self, client):
-        resp = client.get("/api/products/?catalog_number=ABC")
+        resp = client.get("/api/v1/products/?catalog_number=ABC")
         assert resp.status_code == 200
 
     def test_list_with_search(self, client):
-        resp = client.get("/api/products/?search=test")
+        resp = client.get("/api/v1/products/?search=test")
         assert resp.status_code == 200
 
 
@@ -656,7 +656,7 @@ class TestVendorRoutes:
                     "commit",
                     side_effect=IntegrityError("", {}, Exception()),
                 ):
-                    resp = client.delete(f"/api/vendors/{vid}")
+                    resp = client.delete(f"/api/v1/vendors/{vid}")
                     assert resp.status_code == 409
 
 
@@ -667,16 +667,16 @@ class TestVendorRoutes:
 
 class TestDocumentRoutes:
     def test_list_with_search(self, client):
-        resp = client.get("/api/documents/?search=test")
+        resp = client.get("/api/v1/documents/?search=test")
         assert resp.status_code == 200
 
     def test_list_with_extraction_model(self, client):
-        resp = client.get("/api/documents/?extraction_model=gemini")
+        resp = client.get("/api/v1/documents/?extraction_model=gemini")
         assert resp.status_code == 200
 
     def test_create_with_path_traversal(self, client):
         resp = client.post(
-            "/api/documents/",
+            "/api/v1/documents/",
             json={
                 "file_path": "../../../etc/passwd",
                 "file_name": "test.pdf",
@@ -686,7 +686,7 @@ class TestDocumentRoutes:
 
     def test_create_with_blocked_path(self, client):
         resp = client.post(
-            "/api/documents/",
+            "/api/v1/documents/",
             json={
                 "file_path": "/etc/shadow",
                 "file_name": "test.pdf",
@@ -702,15 +702,15 @@ class TestDocumentRoutes:
 
 class TestExportRoutes:
     def test_export_empty_inventory(self, client):
-        resp = client.get("/api/export/inventory.csv")
+        resp = client.get("/api/v1/export/inventory.csv")
         assert resp.status_code == 200
 
     def test_export_products_csv(self, client):
-        resp = client.get("/api/export/products.csv")
+        resp = client.get("/api/v1/export/products.csv")
         assert resp.status_code == 200
 
     def test_export_vendors_csv(self, client):
-        resp = client.get("/api/export/vendors.csv")
+        resp = client.get("/api/v1/export/vendors.csv")
         assert resp.status_code == 200
 
 

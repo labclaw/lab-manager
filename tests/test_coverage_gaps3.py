@@ -779,7 +779,7 @@ class TestAppAuthMiddleware:
     def test_x_user_header(self, client):
         """X-User header is read when auth is disabled for audit context."""
         resp = client.get(
-            "/api/vendors/",
+            "/api/v1/vendors/",
             headers={"X-User": "test-user"},
         )
         assert resp.status_code == 200
@@ -808,7 +808,7 @@ class TestDocumentPathTraversal:
         db_session.flush()
 
         resp = client.patch(
-            f"/api/documents/{doc.id}",
+            f"/api/v1/documents/{doc.id}",
             json={"file_path": "../../etc/passwd"},
         )
         assert resp.status_code == 422
@@ -837,7 +837,7 @@ class TestDocumentCreateOrder:
         db_session.flush()
 
         resp = client.post(
-            f"/api/documents/{doc.id}/review",
+            f"/api/v1/documents/{doc.id}/review",
             json={"action": "approve", "reviewed_by": "tester"},
         )
         assert resp.status_code == 200
@@ -860,7 +860,7 @@ class TestDocumentCreateOrder:
         db_session.flush()
 
         resp = client.post(
-            f"/api/documents/{doc.id}/review",
+            f"/api/v1/documents/{doc.id}/review",
             json={"action": "approve", "reviewed_by": "tester"},
         )
         assert resp.status_code == 200

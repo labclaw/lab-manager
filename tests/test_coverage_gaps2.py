@@ -445,7 +445,7 @@ class TestDocumentReview:
         db_session.flush()
 
         resp = client.post(
-            f"/api/documents/{doc.id}/review",
+            f"/api/v1/documents/{doc.id}/review",
             json={"action": "approve", "reviewed_by": "tester"},
         )
         assert resp.status_code == 200
@@ -463,7 +463,7 @@ class TestDocumentReview:
         db_session.flush()
 
         resp = client.post(
-            f"/api/documents/{doc.id}/review",
+            f"/api/v1/documents/{doc.id}/review",
             json={"action": "reject", "reviewed_by": "tester", "review_notes": "bad"},
         )
         assert resp.status_code == 200
@@ -473,7 +473,7 @@ class TestDocumentReview:
         import io
 
         resp = client.post(
-            "/api/documents/upload",
+            "/api/v1/documents/upload",
             files={"file": ("test.txt", io.BytesIO(b"hello"), "text/plain")},
         )
         assert resp.status_code == 400
@@ -482,7 +482,7 @@ class TestDocumentReview:
         import io
 
         resp = client.post(
-            "/api/documents/upload",
+            "/api/v1/documents/upload",
             files={"file": ("test.png", io.BytesIO(b"\x89PNGfake"), "image/png")},
         )
         assert resp.status_code == 201
@@ -493,7 +493,7 @@ class TestDocumentReview:
         # Create file larger than 50MB limit
         with patch("lab_manager.api.routes.documents._MAX_UPLOAD_BYTES", 10):
             resp = client.post(
-                "/api/documents/upload",
+                "/api/v1/documents/upload",
                 files={
                     "file": (
                         "big.png",
@@ -512,11 +512,11 @@ class TestDocumentReview:
 
 class TestInventoryEndpoints:
     def test_low_stock(self, client):
-        resp = client.get("/api/inventory/low-stock")
+        resp = client.get("/api/v1/inventory/low-stock")
         assert resp.status_code == 200
 
     def test_expiring(self, client):
-        resp = client.get("/api/inventory/expiring?days=30")
+        resp = client.get("/api/v1/inventory/expiring?days=30")
         assert resp.status_code == 200
 
 
@@ -534,7 +534,7 @@ class TestProductEndpoints:
         db_session.flush()
 
         resp = client.post(
-            "/api/products/",
+            "/api/v1/products/",
             json={
                 "catalog_number": "CAS-TEST",
                 "name": "CAS Product",
@@ -552,7 +552,7 @@ class TestProductEndpoints:
         db_session.flush()
 
         resp = client.post(
-            "/api/products/",
+            "/api/v1/products/",
             json={
                 "catalog_number": "CAS-TEST2",
                 "name": "CAS Product",
