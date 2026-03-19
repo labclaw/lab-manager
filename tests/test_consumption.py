@@ -6,7 +6,6 @@ from decimal import Decimal
 import pytest
 from sqlmodel import Session, SQLModel, create_engine
 
-from lab_manager.models.base import AuditMixin
 from lab_manager.models.consumption import ConsumptionAction, ConsumptionLog
 from lab_manager.models.inventory import InventoryItem
 from lab_manager.models.product import Product

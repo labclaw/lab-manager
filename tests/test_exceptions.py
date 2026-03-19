@@ -1,6 +1,5 @@
 """Tests for custom exception classes in lab_manager.exceptions."""
 
-import pytest
 
 from lab_manager.exceptions import (
     BusinessError,
