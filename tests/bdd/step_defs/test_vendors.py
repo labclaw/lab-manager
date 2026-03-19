@@ -1,17 +1,8 @@
 """Step definitions for vendor management BDD scenarios."""
 
-import os
-
-import pytest
 from pytest_bdd import given, parsers, scenario, then, when
 
 FEATURE = "../features/vendors.feature"
-
-_IS_PG = os.environ.get("DATABASE_URL", "").startswith("postgresql")
-_skip_no_pg = pytest.mark.skipif(
-    not _IS_PG,
-    reason="FK constraint enforcement requires PostgreSQL",
-)
 
 
 # --- Scenarios ---
@@ -57,8 +48,7 @@ def test_delete_vendor():
     pass
 
 
-@_skip_no_pg
-@scenario(FEATURE, "Delete vendor with linked products returns 409")
+@scenario(FEATURE, "Delete vendor with linked products succeeds (soft delete)")
 def test_delete_vendor_linked():
     pass
 

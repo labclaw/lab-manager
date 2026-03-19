@@ -70,12 +70,11 @@ Feature: Vendor Management
     Then the delete response status should be 204
     And the vendor should no longer exist
 
-  @requires_postgresql
-  Scenario: Delete vendor with linked products returns 409
+  Scenario: Delete vendor with linked products succeeds (soft delete)
     Given a vendor "Linked Vendor" exists in the system
     And a product linked to that vendor exists
     When I try to delete the vendor
-    Then the response status should be 409
+    Then the response status should be 204
 
   # --- Linked resources ---
 
