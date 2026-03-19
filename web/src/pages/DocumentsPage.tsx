@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { documents as docApi } from '@/lib/api'
 import type { Document } from '@/lib/api'
-import { Search, ChevronLeft, ChevronRight, RefreshCw, FileText } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, RefreshCw, FileText, Upload, WifiOff } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SkeletonTable } from '@/components/ui/SkeletonTable'
+import { Link } from 'react-router-dom'
 
 interface DocumentsPageProps {
   onError?: (error: string) => void
@@ -42,6 +44,22 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
   }
 
   const totalPages = Math.ceil(total / pageSize)
+
+  if (error) {
+    return (
+      <EmptyState
+        icon={WifiOff}
+        title="Could not load documents"
+        description="Check your connection and try again."
+        action={
+          <button onClick={() => refetch()} className="btn-primary flex items-center gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Retry
+          </button>
+        }
+      />
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -88,6 +106,9 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
               </th>
             </tr>
           </thead>
+          {isLoading ? (
+            <SkeletonTable columns={5} rows={5} />
+          ) : docs.length === 0 ? null : (
           <tbody>
             {docs.map((doc) => (
               <tr
@@ -118,22 +139,26 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
               </tr>
             ))}
           </tbody>
+          )}
         </table>
 
-        {docs.length === 0 && (
+        {!isLoading && docs.length === 0 && (
           <div className="py-12">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center space-y-3">
-                <div className="w-8 h-8 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
-                <span className="text-sm text-[var(--muted-foreground)] font-medium">Fetching documents...</span>
-              </div>
-            ) : (
-              <EmptyState
-                icon={FileText}
-                title={search ? "No matching documents" : "No documents found"}
-                description={search ? `No documents found matching "${search}"` : "You haven't uploaded any documents yet."}
-              />
-            )}
+            <EmptyState
+              icon={FileText}
+              title={search ? "No matching documents" : "No documents uploaded yet"}
+              description={search
+                ? `No documents found matching "${search}"`
+                : "Upload your first document to get started."}
+              action={
+                search ? undefined : (
+                  <Link to="/documents" className="btn-primary flex items-center gap-2">
+                    <Upload className="w-4 h-4" />
+                    Upload Document
+                  </Link>
+                )
+              }
+            />
           </div>
         )}
       </div>

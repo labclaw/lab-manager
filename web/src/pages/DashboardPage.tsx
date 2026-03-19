@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { analytics } from '@/lib/api'
+import { Link } from 'react-router-dom'
 import {
   FileText,
   CheckCircle2,
@@ -9,7 +10,12 @@ import {
   Store,
   TrendingUp,
   Package,
+  Upload,
+  RefreshCw,
+  LayoutDashboard,
+  WifiOff,
 } from 'lucide-react'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 interface DocStats {
   total_documents: number
@@ -45,18 +51,57 @@ export function DashboardPage({ onError }: DashboardPageProps) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="card">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-[var(--muted)] animate-pulse" />
+                <div className="h-3 w-24 rounded bg-[var(--muted)] animate-pulse" />
+              </div>
+              <div className="h-7 w-16 rounded bg-[var(--muted)] animate-pulse" />
+              <div className="h-3 w-32 rounded bg-[var(--muted)] animate-pulse mt-2" />
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
 
-  if (!stats) {
+  if (error) {
     return (
-      <div className="text-center py-16 text-[var(--muted-foreground)]">
-        Failed to load dashboard data.
-      </div>
+      <EmptyState
+        icon={WifiOff}
+        title="Could not load dashboard data"
+        description="Check your connection and try again."
+        action={
+          <button onClick={() => window.location.reload()} className="btn-primary flex items-center gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Retry
+          </button>
+        }
+      />
     )
+  }
+
+  if (stats && stats.total_documents === 0 && stats.total_orders === 0 && stats.total_vendors === 0) {
+    return (
+      <EmptyState
+        icon={LayoutDashboard}
+        title="Welcome to Lab Manager"
+        description="Upload your first document to get started."
+        action={
+          <Link to="/documents" className="btn-primary flex items-center gap-2">
+            <Upload className="w-4 h-4" />
+            Upload Document
+          </Link>
+        }
+      />
+    )
+  }
+
+  if (!stats) {
+    return null
   }
 
   const cards = [

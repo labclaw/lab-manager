@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { documents as docApi } from '@/lib/api'
 import type { Document } from '@/lib/api'
-import { CheckCircle2, XCircle, AlertTriangle, RefreshCw, ClipboardCheck } from 'lucide-react'
+import { CheckCircle2, XCircle, AlertTriangle, RefreshCw, ClipboardCheck, Upload, WifiOff } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { Link } from 'react-router-dom'
 
 interface ReviewPageProps {
   onError?: (error: string) => void
@@ -11,16 +12,19 @@ interface ReviewPageProps {
 export function ReviewPage({ onError }: ReviewPageProps) {
   const [queue, setQueue] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [action, setAction] = useState<{ id: number; type: 'approve' | 'reject' } | null>(null)
   const [rejectReason, setRejectReason] = useState('')
 
   const loadQueue = async () => {
     setLoading(true)
+    setLoadError(false)
     try {
       const res = await docApi.reviewQueue()
       setQueue(res.items ?? [])
     } catch (err) {
       console.error('Failed to load review queue:', err)
+      setLoadError(true)
     } finally {
       setLoading(false)
     }
@@ -46,11 +50,42 @@ export function ReviewPage({ onError }: ReviewPageProps) {
     }
   }
 
+  if (loadError && !loading) {
+    return (
+      <EmptyState
+        icon={WifiOff}
+        title="Could not load review queue"
+        description="Check your connection and try again."
+        action={
+          <button onClick={loadQueue} className="btn-primary flex items-center gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Retry
+          </button>
+        }
+      />
+    )
+  }
+
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 space-y-3">
-        <div className="w-8 h-8 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
-        <span className="text-sm text-[var(--muted-foreground)] font-medium">Checking queue...</span>
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="h-6 w-48 rounded bg-[var(--muted)] animate-pulse" />
+          <div className="h-5 w-12 rounded-full bg-[var(--muted)] animate-pulse" />
+        </div>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="card space-y-3 p-5">
+            <div className="flex items-center gap-3">
+              <div className="h-4 w-40 rounded bg-[var(--muted)] animate-pulse" />
+              <div className="h-5 w-20 rounded-full bg-[var(--muted)] animate-pulse" />
+            </div>
+            <div className="h-3 w-56 rounded bg-[var(--muted)] animate-pulse" />
+            <div className="flex justify-end gap-2">
+              <div className="h-8 w-24 rounded-lg bg-[var(--muted)] animate-pulse" />
+              <div className="h-8 w-24 rounded-lg bg-[var(--muted)] animate-pulse" />
+            </div>
+          </div>
+        ))}
       </div>
     )
   }
@@ -59,8 +94,14 @@ export function ReviewPage({ onError }: ReviewPageProps) {
     return (
       <EmptyState
         icon={CheckCircle2}
-        title="All caught up!"
-        description="No documents are currently pending manual review."
+        title="No documents waiting for review"
+        description="Upload a packing list or invoice to begin."
+        action={
+          <Link to="/documents" className="btn-primary flex items-center gap-2">
+            <Upload className="w-4 h-4" />
+            Upload Document
+          </Link>
+        }
       />
     )
   }
