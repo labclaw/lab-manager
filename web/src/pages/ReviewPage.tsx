@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { documents as docApi } from '@/lib/api'
 import type { Document } from '@/lib/api'
 import { CheckCircle2, XCircle, AlertTriangle, RefreshCw, ChevronRight, Upload } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { ConfidenceBadge } from '@/components/ui/ConfidenceBadge'
 import { cn } from '@/lib/utils'
 
 interface ReviewPageProps {
@@ -18,6 +19,11 @@ export function ReviewPage({ onError }: ReviewPageProps) {
   const [rejecting, setRejecting] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
+
+  const sortedQueue = useMemo(
+    () => [...queue].sort((a, b) => (a.confidence ?? 1) - (b.confidence ?? 1)),
+    [queue]
+  )
 
   const loadQueue = useCallback(async () => {
     setLoading(true)
@@ -113,7 +119,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto space-y-1">
-          {queue.map((doc) => (
+          {sortedQueue.map((doc) => (
             <button
               key={doc.id}
               onClick={() => { setSelected(doc); setRejecting(false); setRejectReason('') }}
@@ -133,6 +139,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-xs text-[var(--muted-foreground)]">{doc.vendor_name ?? 'Unknown vendor'}</span>
                 <span className="badge badge-info text-[10px]">{doc.document_type ?? 'Unknown'}</span>
+                <ConfidenceBadge confidence={doc.confidence} />
               </div>
             </button>
           ))}
