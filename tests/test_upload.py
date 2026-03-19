@@ -1,25 +1,43 @@
 """Tests for document photo upload endpoint and static file serving."""
 
 import io
+import os
 
 import pytest
 
+from lab_manager.config import get_settings
 
-@pytest.fixture(autouse=True)
-def _clean_upload_dir(client, tmp_path):
-    """Ensure each test uses a clean temporary upload directory."""
-    # The conftest sets UPLOAD_DIR=/tmp/lab-manager-test-uploads,
-    # but we override per-test with tmp_path for isolation.
-    upload_dir = tmp_path / "uploads"
-    upload_dir.mkdir()
 
-    from lab_manager.config import get_settings
+@pytest.fixture()
+def upload_dir(tmp_path):
+    """Set UPLOAD_DIR env var before app creation so StaticFiles mount uses it."""
+    d = tmp_path / "uploads"
+    d.mkdir()
+    os.environ["UPLOAD_DIR"] = str(d)
+    get_settings.cache_clear()
+    yield d
+    get_settings.cache_clear()
 
-    settings = get_settings()
-    original = settings.upload_dir
-    settings.upload_dir = str(upload_dir)
-    yield upload_dir
-    settings.upload_dir = original
+
+@pytest.fixture()
+def client(upload_dir, db_session):
+    """Override conftest client to ensure upload_dir is set before app creation."""
+    os.environ["AUTH_ENABLED"] = "false"
+    get_settings.cache_clear()
+
+    from lab_manager.api.app import create_app
+    from lab_manager.api.deps import get_db
+
+    app = create_app()
+
+    def override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    from fastapi.testclient import TestClient
+
+    with TestClient(app) as c:
+        yield c
 
 
 def _make_png_bytes() -> bytes:
@@ -55,7 +73,7 @@ def _make_jpeg_bytes() -> bytes:
 class TestUploadEndpoint:
     """POST /api/documents/upload"""
 
-    def test_upload_png_success(self, client, _clean_upload_dir):
+    def test_upload_png_success(self, client, upload_dir):
         """Successful PNG upload returns 201 with document data."""
         png = _make_png_bytes()
         resp = client.post(
@@ -68,9 +86,7 @@ class TestUploadEndpoint:
         assert "test_sample.png" in data["file_name"]
         assert data["id"] is not None
 
-    def test_upload_creates_document_record(
-        self, client, db_session, _clean_upload_dir
-    ):
+    def test_upload_creates_document_record(self, client, db_session, upload_dir):
         """Upload creates a Document row in the database."""
         from lab_manager.models.document import Document
 
@@ -86,7 +102,7 @@ class TestUploadEndpoint:
         assert doc.status == "pending"
         assert "record_test.png" in doc.file_name
 
-    def test_upload_rejected_file_type(self, client, _clean_upload_dir):
+    def test_upload_rejected_file_type(self, client, upload_dir):
         """Non-allowed file types (e.g. .exe) are rejected with 400."""
         resp = client.post(
             "/api/documents/upload",
@@ -101,7 +117,7 @@ class TestUploadEndpoint:
         assert resp.status_code == 400
         assert "not allowed" in resp.json()["detail"].lower()
 
-    def test_upload_file_too_large(self, client, _clean_upload_dir):
+    def test_upload_file_too_large(self, client, upload_dir):
         """Files exceeding 50MB are rejected with 413."""
         # Create a file just over 50MB
         big = b"\x00" * (50 * 1024 * 1024 + 1)
@@ -112,7 +128,7 @@ class TestUploadEndpoint:
         assert resp.status_code == 413
         assert "too large" in resp.json()["detail"].lower()
 
-    def test_upload_timestamp_prefix(self, client, _clean_upload_dir):
+    def test_upload_timestamp_prefix(self, client, upload_dir):
         """Uploaded filename has YYYYMMDD_HHMMSS prefix for uniqueness."""
         import re
 
@@ -123,10 +139,10 @@ class TestUploadEndpoint:
         )
         assert resp.status_code == 201
         file_name = resp.json()["file_name"]
-        # Pattern: YYYYMMDD_HHMMSS_originalname
-        assert re.match(r"\d{8}_\d{6}_photo\.png$", file_name)
+        # Pattern: YYYYMMDD_HHMMSS_UUUUUU_originalname
+        assert re.match(r"\d{8}_\d{6}_\d{6}_photo\.png$", file_name)
 
-    def test_upload_duplicate_filename_ok(self, client, _clean_upload_dir):
+    def test_upload_duplicate_filename_ok(self, client, upload_dir):
         """Two uploads of the same original filename succeed (timestamp makes them unique)."""
         png = _make_png_bytes()
 
@@ -148,7 +164,7 @@ class TestUploadEndpoint:
             or resp1.json()["id"] != resp2.json()["id"]
         )
 
-    def test_upload_saves_file_to_disk(self, client, _clean_upload_dir):
+    def test_upload_saves_file_to_disk(self, client, upload_dir):
         """Uploaded file actually exists on disk in upload_dir."""
         png = _make_png_bytes()
         resp = client.post(
@@ -157,9 +173,9 @@ class TestUploadEndpoint:
         )
         assert resp.status_code == 201
         file_name = resp.json()["file_name"]
-        assert (_clean_upload_dir / file_name).exists()
+        assert (upload_dir / file_name).exists()
 
-    def test_upload_jpeg(self, client, _clean_upload_dir):
+    def test_upload_jpeg(self, client, upload_dir):
         """JPEG uploads are accepted."""
         jpeg = _make_jpeg_bytes()
         resp = client.post(
@@ -168,7 +184,7 @@ class TestUploadEndpoint:
         )
         assert resp.status_code == 201
 
-    def test_upload_pdf(self, client, _clean_upload_dir):
+    def test_upload_pdf(self, client, upload_dir):
         """PDF uploads are accepted."""
         # Minimal PDF
         pdf = b"%PDF-1.0\n1 0 obj<</Type/Catalog>>endobj\n%%EOF"
@@ -178,7 +194,7 @@ class TestUploadEndpoint:
         )
         assert resp.status_code == 201
 
-    def test_upload_file_path_set(self, client, _clean_upload_dir):
+    def test_upload_file_path_set(self, client, upload_dir):
         """Document's file_path points to the uploads directory."""
         png = _make_png_bytes()
         resp = client.post(
@@ -196,7 +212,7 @@ class TestUploadEndpoint:
 class TestUploadStaticServing:
     """GET /uploads/{filename} serves uploaded files."""
 
-    def test_uploaded_file_accessible(self, client, _clean_upload_dir):
+    def test_uploaded_file_accessible(self, client, upload_dir):
         """After upload, the file can be retrieved via /uploads/ route."""
         png = _make_png_bytes()
         resp = client.post(
