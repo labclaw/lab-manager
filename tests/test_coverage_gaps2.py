@@ -169,7 +169,7 @@ class TestPipeline:
         img = tmp_path / "doc.png"
         img.write_bytes(b"data")
 
-        doc1 = process_document(img, db_session)
+        process_document(img, db_session)
         # Second call creates a hash-suffixed variant (same content, file exists)
         doc2 = process_document(img, db_session)
         # Pipeline dedupes by dest_name: second call finds hash-suffixed file
