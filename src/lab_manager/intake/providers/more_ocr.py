@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Optional
 
 from . import OCRProvider
-from .qwen_vllm import OCR_PROMPT
+from lab_manager.intake.prompts import OCR_PROMPT
 
 log = logging.getLogger(__name__)
 

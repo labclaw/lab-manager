@@ -27,9 +27,16 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
+
+# Set up path for imports before importing lab_manager
+PROJECT_ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
+from lab_manager.intake.prompts import EXTRACTION_PROMPT  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,47 +45,7 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-PROJECT_ROOT = Path(__file__).parent.parent
 OUTPUT_DIR = PROJECT_ROOT / "pipeline_v2_output"
-
-EXTRACTION_PROMPT = """You are extracting structured data from a scanned lab supply document image.
-
-Look at the image carefully and extract ALL fields into this EXACT JSON format:
-{
-  "vendor_name": "company that sent/sold the item",
-  "document_type": "one of: packing_list, invoice, certificate_of_analysis, shipping_label, quote, receipt, mta, other",
-  "po_number": "purchase order number (starts with PO- or is labeled PO/Purchase Order)",
-  "order_number": "sales/order number from the vendor",
-  "invoice_number": "invoice number if present",
-  "delivery_number": "delivery/shipment tracking number",
-  "order_date": "YYYY-MM-DD format",
-  "ship_date": "YYYY-MM-DD format",
-  "received_date": "handwritten date if visible, YYYY-MM-DD",
-  "received_by": "handwritten name if visible",
-  "items": [
-    {
-      "catalog_number": "exact product/catalog number",
-      "description": "product name/description",
-      "quantity": numeric_value,
-      "unit": "EA/UL/MG/ML/etc",
-      "lot_number": "lot number (NOT tracking, NOT VCAT, NOT dates)",
-      "batch_number": "batch number if different from lot",
-      "unit_price": numeric_or_null
-    }
-  ],
-  "confidence": 0.0-1.0
-}
-
-CRITICAL RULES:
-- vendor_name: the SUPPLIER company (not the shipping carrier, not the buyer's address)
-- document_type: COA = certificate_of_analysis, NOT packing_list or invoice
-- po_number: ONLY the Purchase Order number. NOT tracking numbers, NOT vendor order numbers
-- lot_number: ONLY actual lot/batch identifiers. NOT VCAT codes, NOT dates, NOT catalog numbers
-- quantity: the actual count ordered/shipped. "1,000" on Bio-Rad forms means 1.000 (one), not 1000
-- dates: use YYYY-MM-DD. For ambiguous formats (07-06-24), prefer MM-DD-YY for US documents
-- Do NOT guess. If a field is not visible, use null.
-- Output ONLY valid JSON, no markdown, no explanation.
-"""
 
 
 def get_default_vlm_providers():
@@ -206,6 +173,8 @@ def process_one(
     )
     result["final_extraction"] = clean_data
     result["needs_human"] = needs_human
+    # Document status: needs_review if _needs_human, else extracted
+    result["document_status"] = "needs_review" if needs_human else "extracted"
     result["status"] = "needs_human" if needs_human else "auto_resolved"
     result["_consensus_details"] = merged.get("_consensus", {})
 
