@@ -30,7 +30,18 @@ def add_request_id(logger: str, method: str, event_dict: dict) -> dict:
 
 
 def configure_logging() -> None:
-    """Configure structlog for JSON output with request_id."""
+    """Configure structlog for JSON or console output with request_id."""
+    from lab_manager.config import get_settings
+
+    settings = get_settings()
+    use_json = settings.log_format == "json"
+
+    renderer: structlog.types.Processor
+    if use_json:
+        renderer = structlog.processors.JSONRenderer()
+    else:
+        renderer = structlog.dev.ConsoleRenderer()
+
     structlog.configure(
         processors=[
             structlog.stdlib.filter_by_level,
@@ -50,7 +61,7 @@ def configure_logging() -> None:
     )
 
     formatter = structlog.stdlib.ProcessorFormatter(
-        processor=structlog.dev.ConsoleRenderer(),
+        processor=renderer,
         foreign_pre_chain=[
             structlog.stdlib.add_log_level,
             add_request_id,

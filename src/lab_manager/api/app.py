@@ -6,6 +6,7 @@ import hmac
 import logging
 import re
 import shutil
+import time
 from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, Request
@@ -27,6 +28,9 @@ from lab_manager.logging_config import configure_logging
 
 configure_logging()
 logger = logging.getLogger(__name__)
+import structlog
+
+access_logger = structlog.get_logger("lab_manager.api.access")
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
 SCANS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "shenlab-docs"
@@ -214,6 +218,23 @@ def create_app() -> FastAPI:
 
         request.state.user = user
         return await call_next(request)
+
+    # --- Access log middleware (outermost — registered last, runs first) ---
+    @app.middleware("http")
+    async def access_log(request: Request, call_next):
+        if request.url.path == "/api/health":
+            return await call_next(request)
+        start = time.monotonic()
+        response = await call_next(request)
+        duration_ms = round((time.monotonic() - start) * 1000, 1)
+        access_logger.info(
+            "http_request",
+            method=request.method,
+            path=request.url.path,
+            status=response.status_code,
+            duration_ms=duration_ms,
+        )
+        return response
 
     # --- Health endpoint (no auth required — in allowlist) ---
 
