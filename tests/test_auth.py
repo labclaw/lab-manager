@@ -185,14 +185,14 @@ def test_authenticated_request_with_session(auth_client, staff_user):
     assert login_resp.status_code == 200
 
     # TestClient automatically includes cookies from previous responses
-    resp = auth_client.get("/api/vendors/")
+    resp = auth_client.get("/api/v1/vendors/")
     assert resp.status_code == 200
 
 
 def test_unauthenticated_request_rejected(auth_client):
     """Without session or API key, protected endpoints should return 401."""
     # Create a fresh client without any cookies
-    resp = auth_client.get("/api/vendors/")
+    resp = auth_client.get("/api/v1/vendors/")
     assert resp.status_code == 401
 
 
@@ -201,12 +201,14 @@ def test_unauthenticated_request_rejected(auth_client):
 
 def test_api_key_auth_fallback(auth_client):
     """X-Api-Key header should work as auth fallback."""
-    resp = auth_client.get("/api/vendors/", headers={"X-Api-Key": "test-api-key-12345"})
+    resp = auth_client.get(
+        "/api/v1/vendors/", headers={"X-Api-Key": "test-api-key-12345"}
+    )
     assert resp.status_code == 200
 
 
 def test_invalid_api_key_rejected(auth_client):
-    resp = auth_client.get("/api/vendors/", headers={"X-Api-Key": "wrong-key"})
+    resp = auth_client.get("/api/v1/vendors/", headers={"X-Api-Key": "wrong-key"})
     assert resp.status_code == 401
 
 
@@ -222,7 +224,7 @@ def test_logout_then_access_rejected(auth_client, staff_user):
     auth_client.post("/api/auth/logout")
     # Clear cookies from TestClient to simulate fresh browser after cookie deletion
     auth_client.cookies.clear()
-    resp = auth_client.get("/api/vendors/")
+    resp = auth_client.get("/api/v1/vendors/")
     assert resp.status_code == 401
 
 
@@ -232,7 +234,7 @@ def test_logout_then_access_rejected(auth_client, staff_user):
 def test_tampered_cookie_rejected(auth_client):
     """A forged/tampered session cookie should be rejected."""
     auth_client.cookies.set("lab_session", "tampered-garbage-value")
-    resp = auth_client.get("/api/vendors/")
+    resp = auth_client.get("/api/v1/vendors/")
     assert resp.status_code == 401
 
 
@@ -249,7 +251,7 @@ def test_deactivated_user_session_rejected(auth_client, staff_user, auth_db_sess
     staff_user.is_active = False
     auth_db_session.commit()
     # Session cookie is still valid but user is inactive
-    resp = auth_client.get("/api/vendors/")
+    resp = auth_client.get("/api/v1/vendors/")
     assert resp.status_code == 401
 
 

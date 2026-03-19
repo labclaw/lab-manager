@@ -84,7 +84,7 @@ def _seed_data(db):
 
 def test_dashboard(client, db_session):
     _seed_data(db_session)
-    resp = client.get("/api/analytics/dashboard")
+    resp = client.get("/api/v1/analytics/dashboard")
     assert resp.status_code == 200
     data = resp.json()
     assert data["total_vendors"] == 1
@@ -101,7 +101,7 @@ def test_dashboard(client, db_session):
 
 def test_spending_by_vendor(client, db_session):
     _seed_data(db_session)
-    resp = client.get("/api/analytics/spending/by-vendor")
+    resp = client.get("/api/v1/analytics/spending/by-vendor")
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
@@ -112,7 +112,7 @@ def test_spending_by_vendor(client, db_session):
 def test_spending_by_vendor_date_filter(client, db_session):
     _seed_data(db_session)
     resp = client.get(
-        "/api/analytics/spending/by-vendor?date_from=2026-04-01&date_to=2026-05-01"
+        "/api/v1/analytics/spending/by-vendor?date_from=2026-04-01&date_to=2026-05-01"
     )
     assert resp.status_code == 200
     assert resp.json() == []
@@ -120,7 +120,7 @@ def test_spending_by_vendor_date_filter(client, db_session):
 
 def test_spending_by_month(client, db_session):
     _seed_data(db_session)
-    resp = client.get("/api/analytics/spending/by-month?months=12")
+    resp = client.get("/api/v1/analytics/spending/by-month?months=12")
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) >= 1
@@ -130,7 +130,7 @@ def test_spending_by_month(client, db_session):
 
 def test_inventory_value(client, db_session):
     _seed_data(db_session)
-    resp = client.get("/api/analytics/inventory/value")
+    resp = client.get("/api/v1/analytics/inventory/value")
     assert resp.status_code == 200
     data = resp.json()
     # 5 on hand * $50 unit_price = $250
@@ -139,7 +139,7 @@ def test_inventory_value(client, db_session):
 
 def test_inventory_report(client, db_session):
     _seed_data(db_session)
-    resp = client.get("/api/analytics/inventory/report")
+    resp = client.get("/api/v1/analytics/inventory/report")
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
@@ -150,7 +150,7 @@ def test_inventory_report(client, db_session):
 
 def test_top_products(client, db_session):
     _seed_data(db_session)
-    resp = client.get("/api/analytics/products/top?limit=5")
+    resp = client.get("/api/v1/analytics/products/top?limit=5")
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
@@ -160,7 +160,7 @@ def test_top_products(client, db_session):
 
 def test_order_history(client, db_session):
     _seed_data(db_session)
-    resp = client.get("/api/analytics/orders/history")
+    resp = client.get("/api/v1/analytics/orders/history")
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
@@ -170,7 +170,7 @@ def test_order_history(client, db_session):
 
 def test_staff_activity(client, db_session):
     _seed_data(db_session)
-    resp = client.get("/api/analytics/staff/activity")
+    resp = client.get("/api/v1/analytics/staff/activity")
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
@@ -180,7 +180,7 @@ def test_staff_activity(client, db_session):
 
 def test_vendor_summary(client, db_session):
     _seed_data(db_session)
-    resp = client.get("/api/analytics/vendors/1/summary")
+    resp = client.get("/api/v1/analytics/vendors/1/summary")
     assert resp.status_code == 200
     data = resp.json()
     assert data["name"] == "Thermo Fisher"
@@ -190,13 +190,13 @@ def test_vendor_summary(client, db_session):
 
 
 def test_vendor_summary_not_found(client, db_session):
-    resp = client.get("/api/analytics/vendors/999/summary")
+    resp = client.get("/api/v1/analytics/vendors/999/summary")
     assert resp.status_code == 404
 
 
 def test_document_stats(client, db_session):
     _seed_data(db_session)
-    resp = client.get("/api/analytics/documents/stats")
+    resp = client.get("/api/v1/analytics/documents/stats")
     assert resp.status_code == 200
     data = resp.json()
     assert data["total_documents"] == 2
@@ -210,7 +210,7 @@ def test_document_stats(client, db_session):
 
 def test_export_inventory_csv(client, db_session):
     _seed_data(db_session)
-    resp = client.get("/api/export/inventory.csv")
+    resp = client.get("/api/v1/export/inventory.csv")
     assert resp.status_code == 200
     assert "text/csv" in resp.headers["content-type"]
     assert "attachment" in resp.headers["content-disposition"]
@@ -221,7 +221,7 @@ def test_export_inventory_csv(client, db_session):
 
 def test_export_orders_csv(client, db_session):
     _seed_data(db_session)
-    resp = client.get("/api/export/orders.csv")
+    resp = client.get("/api/v1/export/orders.csv")
     assert resp.status_code == 200
     assert "text/csv" in resp.headers["content-type"]
     lines = resp.text.strip().split("\n")
@@ -230,7 +230,7 @@ def test_export_orders_csv(client, db_session):
 
 def test_export_products_csv(client, db_session):
     _seed_data(db_session)
-    resp = client.get("/api/export/products.csv")
+    resp = client.get("/api/v1/export/products.csv")
     assert resp.status_code == 200
     lines = resp.text.strip().split("\n")
     assert len(lines) == 2
@@ -239,7 +239,7 @@ def test_export_products_csv(client, db_session):
 
 def test_export_vendors_csv(client, db_session):
     _seed_data(db_session)
-    resp = client.get("/api/export/vendors.csv")
+    resp = client.get("/api/v1/export/vendors.csv")
     assert resp.status_code == 200
     lines = resp.text.strip().split("\n")
     assert len(lines) == 2
@@ -248,13 +248,13 @@ def test_export_vendors_csv(client, db_session):
 
 def test_export_empty_table(client, db_session):
     """CSV export with empty tables should return 200 with empty body."""
-    resp = client.get("/api/export/vendors.csv")
+    resp = client.get("/api/v1/export/vendors.csv")
     assert resp.status_code == 200
 
 
 def test_dashboard_empty(client, db_session):
     """Dashboard with no data should return zeros, not errors."""
-    resp = client.get("/api/analytics/dashboard")
+    resp = client.get("/api/v1/analytics/dashboard")
     assert resp.status_code == 200
     data = resp.json()
     assert data["total_products"] == 0

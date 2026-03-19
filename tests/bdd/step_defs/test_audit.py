@@ -37,7 +37,7 @@ def ctx():
 
 @when("I list audit logs", target_fixture="audit_response")
 def list_audit_logs(api):
-    r = api.get("/api/audit/")
+    r = api.get("/api/v1/audit/")
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -47,7 +47,7 @@ def list_audit_logs(api):
     target_fixture="audit_response",
 )
 def list_audit_filtered(api, table):
-    r = api.get("/api/audit/", params={"table": table})
+    r = api.get("/api/v1/audit/", params={"table": table})
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -57,7 +57,7 @@ def list_audit_filtered(api, table):
     target_fixture="audit_response",
 )
 def get_record_history(api, table, rid):
-    r = api.get(f"/api/audit/{table}/{rid}")
+    r = api.get(f"/api/v1/audit/{table}/{rid}")
     assert r.status_code == 200, r.text
     return r.json()
 

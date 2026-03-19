@@ -224,35 +224,35 @@ def create_pending_documents(db, n):
 
 @when("I run the alert check", target_fixture="check_response")
 def run_alert_check(api):
-    r = api.post("/api/alerts/check")
+    r = api.post("/api/v1/alerts/check")
     assert r.status_code == 200, r.text
     return r.json()
 
 
 @when("I list active alerts", target_fixture="list_response")
 def list_active_alerts(api):
-    r = api.get("/api/alerts/", params={"resolved": False})
+    r = api.get("/api/v1/alerts/", params={"resolved": False})
     assert r.status_code == 200, r.text
     return r.json()
 
 
 @when("I acknowledge the alert", target_fixture="ack_response")
 def acknowledge_alert(api, active_alert):
-    r = api.post(f"/api/alerts/{active_alert.id}/acknowledge")
+    r = api.post(f"/api/v1/alerts/{active_alert.id}/acknowledge")
     assert r.status_code == 200, r.text
     return r.json()
 
 
 @when("I resolve the alert", target_fixture="resolve_response")
 def resolve_alert(api, active_alert):
-    r = api.post(f"/api/alerts/{active_alert.id}/resolve")
+    r = api.post(f"/api/v1/alerts/{active_alert.id}/resolve")
     assert r.status_code == 200, r.text
     return r.json()
 
 
 @when("I request the alert summary", target_fixture="summary_response")
 def request_alert_summary(api):
-    r = api.get("/api/alerts/summary")
+    r = api.get("/api/v1/alerts/summary")
     assert r.status_code == 200, r.text
     return r.json()
 

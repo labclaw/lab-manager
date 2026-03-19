@@ -58,7 +58,7 @@ def ctx():
 
 @given('a vendor "Thermo Fisher Scientific" exists', target_fixture="test_vendor")
 def create_vendor(api):
-    r = api.post("/api/vendors/", json={"name": "Thermo Fisher Scientific"})
+    r = api.post("/api/v1/vendors/", json={"name": "Thermo Fisher Scientific"})
     assert r.status_code in (200, 201), r.text
     return r.json()
 
@@ -69,7 +69,7 @@ def create_vendor(api):
 )
 def create_product(api, test_vendor, name, catalog):
     r = api.post(
-        "/api/products/",
+        "/api/v1/products/",
         json={
             "name": name,
             "catalog_number": catalog,
@@ -86,7 +86,7 @@ def create_product(api, test_vendor, name, catalog):
 )
 def create_inventory(api, test_product, qty, lot):
     r = api.post(
-        "/api/inventory/",
+        "/api/v1/inventory/",
         json={
             "product_id": test_product["id"],
             "quantity_on_hand": float(qty),
@@ -101,7 +101,7 @@ def create_inventory(api, test_product, qty, lot):
 @given(parsers.parse('an order "{po}" for the vendor'), target_fixture="test_order")
 def create_order(api, test_vendor, po):
     r = api.post(
-        "/api/orders/",
+        "/api/v1/orders/",
         json={
             "vendor_id": test_vendor["id"],
             "po_number": po,
@@ -118,7 +118,7 @@ def create_order(api, test_vendor, po):
 )
 def add_order_item(api, test_order, test_product, name, qty, unit):
     r = api.post(
-        f"/api/orders/{test_order['id']}/items",
+        f"/api/v1/orders/{test_order['id']}/items",
         json={
             "product_id": test_product["id"],
             "catalog_number": test_product["catalog_number"],
@@ -144,7 +144,7 @@ def receive_order(api, db, test_order, test_order_item):
     db.flush()
 
     r = api.post(
-        f"/api/orders/{test_order['id']}/receive",
+        f"/api/v1/orders/{test_order['id']}/receive",
         json={
             "items": [
                 {
@@ -167,7 +167,7 @@ def receive_order(api, db, test_order, test_order_item):
 )
 def consume_with_note(api, test_item, qty, note):
     r = api.post(
-        f"/api/inventory/{test_item['id']}/consume",
+        f"/api/v1/inventory/{test_item['id']}/consume",
         json={"quantity": float(qty), "consumed_by": "Robert", "purpose": note},
     )
     return r
@@ -179,7 +179,7 @@ def consume_with_note(api, test_item, qty, note):
 )
 def try_consume(api, test_item, qty):
     r = api.post(
-        f"/api/inventory/{test_item['id']}/consume",
+        f"/api/v1/inventory/{test_item['id']}/consume",
         json={"quantity": float(qty), "consumed_by": "Robert"},
     )
     return r
@@ -191,7 +191,7 @@ def try_consume(api, test_item, qty):
 )
 def consume(api, test_item, qty):
     r = api.post(
-        f"/api/inventory/{test_item['id']}/consume",
+        f"/api/v1/inventory/{test_item['id']}/consume",
         json={"quantity": float(qty), "consumed_by": "Robert"},
     )
     return r
@@ -209,7 +209,7 @@ def transfer(api, db, test_item):
     db.flush()
 
     r = api.post(
-        f"/api/inventory/{test_item['id']}/transfer",
+        f"/api/v1/inventory/{test_item['id']}/transfer",
         json={"location_id": loc.id, "transferred_by": "Robert"},
     )
     return r
@@ -223,7 +223,7 @@ def transfer(api, db, test_item):
 )
 def adjust(api, test_item, qty, reason):
     r = api.post(
-        f"/api/inventory/{test_item['id']}/adjust",
+        f"/api/v1/inventory/{test_item['id']}/adjust",
         json={
             "new_quantity": float(qty),
             "reason": reason,
@@ -239,7 +239,7 @@ def adjust(api, test_item, qty, reason):
 )
 def dispose(api, test_item, reason):
     r = api.post(
-        f"/api/inventory/{test_item['id']}/dispose",
+        f"/api/v1/inventory/{test_item['id']}/dispose",
         json={"reason": reason, "disposed_by": "Robert"},
     )
     return r
@@ -248,7 +248,7 @@ def dispose(api, test_item, reason):
 @when("I open the inventory item", target_fixture="action_response")
 def open_item(api, test_item):
     r = api.post(
-        f"/api/inventory/{test_item['id']}/open",
+        f"/api/v1/inventory/{test_item['id']}/open",
         json={"opened_by": "Robert"},
     )
     return r
@@ -259,19 +259,19 @@ def open_item(api, test_item):
 
 @then(parsers.parse('the order status should be "{status}"'))
 def check_order_status(api, test_order, status):
-    r = api.get(f"/api/orders/{test_order['id']}")
+    r = api.get(f"/api/v1/orders/{test_order['id']}")
     assert r.json()["status"] == status
 
 
 @then(parsers.parse("the inventory item quantity should be {qty:d}"))
 def check_quantity(api, test_item, qty):
-    r = api.get(f"/api/inventory/{test_item['id']}")
+    r = api.get(f"/api/v1/inventory/{test_item['id']}")
     assert float(r.json()["quantity_on_hand"]) == float(qty)
 
 
 @then(parsers.parse("the inventory item quantity should still be {qty:d}"))
 def check_quantity_unchanged(api, test_item, qty):
-    r = api.get(f"/api/inventory/{test_item['id']}")
+    r = api.get(f"/api/v1/inventory/{test_item['id']}")
     assert float(r.json()["quantity_on_hand"]) == float(qty)
 
 
@@ -281,7 +281,7 @@ def check_quantity_unchanged(api, test_item, qty):
     )
 )
 def check_log_with_qty(api, test_item, action, qty):
-    r = api.get(f"/api/inventory/{test_item['id']}/history")
+    r = api.get(f"/api/v1/inventory/{test_item['id']}/history")
     assert r.status_code == 200
     logs = r.json()
     matching = [entry for entry in logs if entry.get("action") == action]
@@ -290,7 +290,7 @@ def check_log_with_qty(api, test_item, action, qty):
 
 @then(parsers.parse('a consumption log entry should exist with action "{action}"'))
 def check_log(api, test_item, action):
-    r = api.get(f"/api/inventory/{test_item['id']}/history")
+    r = api.get(f"/api/v1/inventory/{test_item['id']}/history")
     assert r.status_code == 200
     logs = r.json()
     matching = [entry for entry in logs if entry.get("action") == action]
@@ -304,5 +304,5 @@ def check_fail(action_response, code):
 
 @then(parsers.parse('the inventory item status should be "{status}"'))
 def check_status(api, test_item, status):
-    r = api.get(f"/api/inventory/{test_item['id']}")
+    r = api.get(f"/api/v1/inventory/{test_item['id']}")
     assert r.json()["status"] == status

@@ -335,8 +335,12 @@ def _create_order_from_doc(doc: Document, db: Session):
     if data.get("order_date"):
         try:
             order.order_date = date_type.fromisoformat(data["order_date"])
-        except ValueError:
-            pass
+        except ValueError as e:
+            logger.warning(
+                "Failed to parse order_date from document: %s",
+                data["order_date"],
+                exc_info=e,
+            )
 
     db.add(order)
     db.flush()

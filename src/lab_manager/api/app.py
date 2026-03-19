@@ -350,25 +350,27 @@ def create_app() -> FastAPI:
 
     # Auth is handled by auth_middleware — rate limiting via route decorators
     api_router = APIRouter()
-    api_router.include_router(vendors.router, prefix="/api/vendors", tags=["vendors"])
     api_router.include_router(
-        products.router, prefix="/api/products", tags=["products"]
-    )
-    api_router.include_router(orders.router, prefix="/api/orders", tags=["orders"])
-    api_router.include_router(
-        inventory.router, prefix="/api/inventory", tags=["inventory"]
+        vendors.router, prefix="/api/v1/vendors", tags=["vendors"]
     )
     api_router.include_router(
-        documents.router, prefix="/api/documents", tags=["documents"]
+        products.router, prefix="/api/v1/products", tags=["products"]
     )
-    api_router.include_router(search.router, prefix="/api/search", tags=["search"])
-    api_router.include_router(ask.router, prefix="/api/ask", tags=["ask"])
+    api_router.include_router(orders.router, prefix="/api/v1/orders", tags=["orders"])
     api_router.include_router(
-        analytics.router, prefix="/api/analytics", tags=["analytics"]
+        inventory.router, prefix="/api/v1/inventory", tags=["inventory"]
     )
-    api_router.include_router(export.router, prefix="/api/export", tags=["export"])
-    api_router.include_router(audit.router, prefix="/api/audit", tags=["audit"])
-    api_router.include_router(alerts.router, prefix="/api/alerts", tags=["alerts"])
+    api_router.include_router(
+        documents.router, prefix="/api/v1/documents", tags=["documents"]
+    )
+    api_router.include_router(search.router, prefix="/api/v1/search", tags=["search"])
+    api_router.include_router(ask.router, prefix="/api/v1/ask", tags=["ask"])
+    api_router.include_router(
+        analytics.router, prefix="/api/v1/analytics", tags=["analytics"]
+    )
+    api_router.include_router(export.router, prefix="/api/v1/export", tags=["export"])
+    api_router.include_router(audit.router, prefix="/api/v1/audit", tags=["audit"])
+    api_router.include_router(alerts.router, prefix="/api/v1/alerts", tags=["alerts"])
     app.include_router(api_router)
 
     # --- Apply rate limiting decorators to GET /api/ask endpoint ---

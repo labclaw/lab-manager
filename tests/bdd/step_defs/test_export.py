@@ -51,12 +51,12 @@ def ctx():
 
 @given("some inventory data exists for export")
 def create_inventory_for_export(api):
-    r = api.post("/api/vendors/", json={"name": f"ExportVendor-{next(_seq)}"})
+    r = api.post("/api/v1/vendors/", json={"name": f"ExportVendor-{next(_seq)}"})
     assert r.status_code == 201, r.text
     vendor = r.json()
 
     r = api.post(
-        "/api/products/",
+        "/api/v1/products/",
         json={
             "name": "Export Product",
             "catalog_number": f"EXP-{next(_seq):05d}",
@@ -67,7 +67,7 @@ def create_inventory_for_export(api):
     product = r.json()
 
     r = api.post(
-        "/api/inventory/",
+        "/api/v1/inventory/",
         json={
             "product_id": product["id"],
             "quantity_on_hand": 10,
@@ -80,12 +80,12 @@ def create_inventory_for_export(api):
 
 @given("some order data exists for export")
 def create_orders_for_export(api):
-    r = api.post("/api/vendors/", json={"name": f"OrderExportVendor-{next(_seq)}"})
+    r = api.post("/api/v1/vendors/", json={"name": f"OrderExportVendor-{next(_seq)}"})
     assert r.status_code == 201, r.text
     vendor = r.json()
 
     r = api.post(
-        "/api/orders/",
+        "/api/v1/orders/",
         json={
             "vendor_id": vendor["id"],
             "po_number": f"PO-EXP-{next(_seq):05d}",
@@ -97,12 +97,12 @@ def create_orders_for_export(api):
 
 @given("some product data exists for export")
 def create_products_for_export(api):
-    r = api.post("/api/vendors/", json={"name": f"ProdExportVendor-{next(_seq)}"})
+    r = api.post("/api/v1/vendors/", json={"name": f"ProdExportVendor-{next(_seq)}"})
     assert r.status_code == 201, r.text
     vendor = r.json()
 
     r = api.post(
-        "/api/products/",
+        "/api/v1/products/",
         json={
             "name": "Export Test Product",
             "catalog_number": f"PEXP-{next(_seq):05d}",
@@ -115,7 +115,7 @@ def create_products_for_export(api):
 @given("some vendor data exists for export")
 def create_vendors_for_export(api):
     r = api.post(
-        "/api/vendors/",
+        "/api/v1/vendors/",
         json={
             "name": f"VendExport-{next(_seq)}",
             "website": "https://example.com",
@@ -130,28 +130,28 @@ def create_vendors_for_export(api):
 
 @when("I download the inventory CSV", target_fixture="csv_response")
 def download_inventory_csv(api):
-    r = api.get("/api/export/inventory.csv")
+    r = api.get("/api/v1/export/inventory.csv")
     assert r.status_code == 200, r.text
     return r
 
 
 @when("I download the orders CSV", target_fixture="csv_response")
 def download_orders_csv(api):
-    r = api.get("/api/export/orders.csv")
+    r = api.get("/api/v1/export/orders.csv")
     assert r.status_code == 200, r.text
     return r
 
 
 @when("I download the products CSV", target_fixture="csv_response")
 def download_products_csv(api):
-    r = api.get("/api/export/products.csv")
+    r = api.get("/api/v1/export/products.csv")
     assert r.status_code == 200, r.text
     return r
 
 
 @when("I download the vendors CSV", target_fixture="csv_response")
 def download_vendors_csv(api):
-    r = api.get("/api/export/vendors.csv")
+    r = api.get("/api/v1/export/vendors.csv")
     assert r.status_code == 200, r.text
     return r
 
