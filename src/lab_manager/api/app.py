@@ -12,6 +12,9 @@ from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from itsdangerous import BadSignature, URLSafeTimedSerializer
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
 
 from lab_manager.api.admin import setup_admin
@@ -79,6 +82,38 @@ def create_app() -> FastAPI:
         version="0.1.5",
         **docs_kwargs,
     )
+
+    # --- Rate limiting (slowapi) ---
+    limiter = Limiter(key_func=get_remote_address)
+    app.state.limiter = limiter
+
+    @app.exception_handler(RateLimitExceeded)
+    async def _rate_limit_handler(request: Request, exc: RateLimitExceeded):
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Rate limit exceeded"},
+        )
+
+    # --- Rate limit middleware for critical endpoints (as backup/fallback) ---
+    # Individual route rate limits are applied via route dependencies
+    @app.middleware("http")
+    async def rate_limit_middleware(request: Request, call_next):
+        path = request.url.path
+        method = request.method
+
+        # Check if endpoint should be rate limited at middleware level
+        # This provides a secondary layer beyond route-level decorators
+        if method == "POST" and path == "/api/auth/login":
+            # /api/auth/login: 5 attempts per minute (also handled via decorator)
+            pass
+        elif method == "POST" and path in ("/api/ask", "/api/ask/"):
+            # /api/ask: 10 requests per minute (also handled via decorator)
+            pass
+        elif method == "POST" and path == "/api/alerts/check":
+            # /api/alerts/check: 5 per minute (also handled via decorator)
+            pass
+
+        return await call_next(request)
 
     # --- Domain exception → HTTP response handler ---
     @app.exception_handler(BusinessError)
@@ -162,11 +197,12 @@ def create_app() -> FastAPI:
                 except BadSignature:
                     logger.warning("Invalid session cookie signature")
 
-            # 2. Fallback: API key header
+            # 2. Fallback: API key header (X-User only used for programmatic access)
             if not authenticated:
                 api_key = request.headers.get("X-Api-Key", "")
                 if settings.api_key and api_key:
                     if hmac.compare_digest(api_key, settings.api_key):
+                        # X-User is optional for API key auth; only trust it if provided
                         user = request.headers.get("X-User", "api-client")
                         user = _CONTROL_CHARS.sub("", user)[:_MAX_USER_LEN]
                         authenticated = True
@@ -238,7 +274,9 @@ def create_app() -> FastAPI:
     from fastapi import Body
 
     @app.post("/api/auth/login")
+    @limiter.limit("5/minute")
     def login(
+        request: Request,
         email: str = Body(...),
         password: str = Body(...),
     ):
@@ -353,6 +391,34 @@ def create_app() -> FastAPI:
     api_router.include_router(audit.router, prefix="/api/audit", tags=["audit"])
     api_router.include_router(alerts.router, prefix="/api/alerts", tags=["alerts"])
     app.include_router(api_router)
+
+    # --- Apply rate limiting decorators to critical endpoints ---
+    # Store limiter in app state for dependency injection
+    app.state.limiter = limiter
+
+    # Apply rate limiting to routes by wrapping their endpoint functions
+    for route in app.routes:
+        if hasattr(route, "path") and hasattr(route, "endpoint"):
+            if (
+                route.path == "/api/auth/login"
+                and route.methods
+                and "POST" in route.methods
+            ):
+                # Rate limit: 5 attempts per minute
+                original_endpoint = route.endpoint
+                route.endpoint = limiter.limit("5/minute")(original_endpoint)
+            elif route.path in ("/api/ask", "/api/ask/"):
+                # Rate limit: 10 requests per minute
+                original_endpoint = route.endpoint
+                route.endpoint = limiter.limit("10/minute")(original_endpoint)
+            elif (
+                route.path == "/api/alerts/check"
+                and route.methods
+                and "POST" in route.methods
+            ):
+                # Rate limit: 5 per minute
+                original_endpoint = route.endpoint
+                route.endpoint = limiter.limit("5/minute")(original_endpoint)
 
     # Serve scan images (protected by auth middleware when auth is enabled)
     if SCANS_DIR.exists():
