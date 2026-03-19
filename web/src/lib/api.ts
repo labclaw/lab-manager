@@ -122,6 +122,16 @@ export const auth = {
     fetch(`${BASE}/auth/logout`, { method: 'POST' }).then(() => {}),
 }
 
+// Setup
+export const setup = {
+  status: () => apiFetch<{ needs_setup: boolean }>('/setup/status'),
+  complete: (data: { admin_name: string; admin_email: string; admin_password: string }) =>
+    apiFetch<{ status: string }>('/setup/complete', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+}
+
 // Analytics
 export const analytics = {
   dashboard: () =>
@@ -182,6 +192,19 @@ export const documents = {
       method: 'POST',
       body: JSON.stringify({ reason }),
     }),
+  upload: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return fetch('/api/documents/upload', { method: 'POST', body: form })
+      .then(async (res) => {
+        if (res.status === 401) throw new Error('Unauthorized')
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: res.statusText }))
+          throw new Error(err.detail || `HTTP ${res.status}`)
+        }
+        return res.json() as Promise<Document>
+      })
+  },
 }
 
 // Search

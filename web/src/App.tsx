@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
-import { auth, alerts, documents } from '@/lib/api'
+import { auth, setup, alerts, documents } from '@/lib/api'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
 import { ErrorBanner } from '@/components/ui/ErrorBanner'
 import { LoginPage } from '@/pages/LoginPage'
+import { SetupPage } from '@/pages/SetupPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { InventoryPage } from '@/pages/InventoryPage'
 import { OrdersPage } from '@/pages/OrdersPage'
@@ -49,6 +50,7 @@ function SettingsPage() {
 
 export default function App() {
   const [user, setUser] = useState<{ id: number; name: string } | null>(null)
+  const [needsSetup, setNeedsSetup] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(true)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [alertCount, setAlertCount] = useState(0)
@@ -59,10 +61,18 @@ export default function App() {
 
   const checkAuth = useCallback(async () => {
     try {
+      const setupRes = await setup.status()
+      if (setupRes.needs_setup) {
+        setNeedsSetup(true)
+        setLoading(false)
+        return
+      }
+      setNeedsSetup(false)
       const res = await auth.me()
       setUser(res.user)
     } catch {
       setUser(null)
+      setNeedsSetup(false)
     } finally {
       setLoading(false)
     }
@@ -115,6 +125,10 @@ export default function App() {
         <div className="w-8 h-8 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
       </div>
     )
+  }
+
+  if (needsSetup) {
+    return <SetupPage onComplete={() => { setNeedsSetup(false) }} />
   }
 
   if (!user) {
