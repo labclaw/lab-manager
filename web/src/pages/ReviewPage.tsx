@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { documents as docApi } from '@/lib/api'
 import type { Document } from '@/lib/api'
 import { CheckCircle2, XCircle, AlertTriangle, RefreshCw, ClipboardCheck } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { ConfidenceBadge } from '@/components/ui/ConfidenceBadge'
 
 interface ReviewPageProps {
   onError?: (error: string) => void
@@ -46,6 +47,14 @@ export function ReviewPage({ onError }: ReviewPageProps) {
     }
   }
 
+  const sortedQueue = useMemo(() => {
+    return [...queue].sort((a, b) => {
+      const ca = a.extraction_confidence ?? 1.0
+      const cb = b.extraction_confidence ?? 1.0
+      return ca - cb
+    })
+  }, [queue])
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-3">
@@ -55,7 +64,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
     )
   }
 
-  if (queue.length === 0) {
+  if (sortedQueue.length === 0) {
     return (
       <EmptyState
         icon={CheckCircle2}
@@ -81,7 +90,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
         </button>
       </div>
 
-      {queue.map((doc) => (
+      {sortedQueue.map((doc) => (
         <div key={doc.id} className="card">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 space-y-2">
@@ -92,6 +101,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                 <span className="badge badge-info">
                   {doc.document_type ?? 'Unknown'}
                 </span>
+                <ConfidenceBadge confidence={doc.extraction_confidence} />
               </div>
               <p className="text-sm text-[var(--muted-foreground)]">
                 Vendor: {doc.vendor_name ?? 'Unknown'}
