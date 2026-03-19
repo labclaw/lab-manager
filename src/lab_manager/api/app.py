@@ -353,6 +353,22 @@ def create_app() -> FastAPI:
             secure=get_settings().secure_cookies,
         )
         logger.info("Login successful for %s (staff_id=%s)", staff_email, staff_id)
+        # Record login usage event for DAU measurement
+        from lab_manager.database import get_db_session as _get_db_session
+        from lab_manager.models.usage_event import UsageEvent as _UsageEvent
+
+        try:
+            with _get_db_session() as _db:
+                _db.add(
+                    _UsageEvent(
+                        user_email=staff_email,
+                        event_type="login",
+                        page="/login",
+                    )
+                )
+                _db.commit()
+        except Exception:
+            logger.warning("Failed to record login usage event")
         return response
 
     @app.get("/api/auth/me")
@@ -512,6 +528,7 @@ def create_app() -> FastAPI:
         orders,
         products,
         search,
+        telemetry,
         vendors,
     )
 
@@ -541,6 +558,9 @@ def create_app() -> FastAPI:
     api_router.include_router(export.router, prefix="/api/v1/export", tags=["export"])
     api_router.include_router(audit.router, prefix="/api/v1/audit", tags=["audit"])
     api_router.include_router(alerts.router, prefix="/api/v1/alerts", tags=["alerts"])
+    api_router.include_router(
+        telemetry.router, prefix="/api/v1/telemetry", tags=["telemetry"]
+    )
     app.include_router(api_router)
 
     # --- Apply rate limiting decorators to GET /api/ask endpoint ---
