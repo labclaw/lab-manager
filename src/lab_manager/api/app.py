@@ -358,6 +358,13 @@ def create_app() -> FastAPI:
     if SCANS_DIR.exists():
         app.mount("/scans", StaticFiles(directory=str(SCANS_DIR)), name="scans")
 
+    # Serve uploaded documents at /uploads/
+    app.mount(
+        "/uploads",
+        StaticFiles(directory=settings.upload_dir),
+        name="uploads",
+    )
+
     # Wire up SQLAdmin UI at /admin/
     setup_admin(app, get_engine())
 

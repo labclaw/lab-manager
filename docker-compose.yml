@@ -77,7 +77,21 @@ services:
     volumes:
       - uploads:/app/uploads
       - backups:/backups/labmanager
+      - ${SCANS_DIR:-./shenlab-docs}:/app/shenlab-docs:ro
     restart: unless-stopped
+
+  # Cloudflare Tunnel — exposes the service to the internet
+  # Set CLOUDFLARED_TOKEN in .env to enable
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARED_TOKEN:-}
+    depends_on:
+      - caddy
+    restart: unless-stopped
+    profiles:
+      - tunnel
 
 volumes:
   pgdata:
