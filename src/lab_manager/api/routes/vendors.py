@@ -82,7 +82,7 @@ def list_vendors(
 def create_vendor(body: VendorCreate, db: Session = Depends(get_db)):
     vendor = Vendor(**body.model_dump())
     db.add(vendor)
-    db.commit()
+    db.flush()
     db.refresh(vendor)
     return vendor
 
@@ -97,7 +97,7 @@ def update_vendor(vendor_id: int, body: VendorUpdate, db: Session = Depends(get_
     vendor = get_or_404(db, Vendor, vendor_id, "Vendor")
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(vendor, key, value)
-    db.commit()
+    db.flush()
     db.refresh(vendor)
     return vendor
 
@@ -107,7 +107,7 @@ def delete_vendor(vendor_id: int, db: Session = Depends(get_db)):
     vendor = get_or_404(db, Vendor, vendor_id, "Vendor")
     try:
         db.delete(vendor)
-        db.commit()
+        db.flush()
     except IntegrityError:
         db.rollback()
         raise ConflictError(

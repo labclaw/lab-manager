@@ -169,7 +169,7 @@ def upload_document(
         status=DocumentStatus.pending,
     )
     db.add(doc)
-    db.commit()
+    db.flush()
     db.refresh(doc)
     return doc
 
@@ -245,7 +245,7 @@ def list_documents(
 def create_document(body: DocumentCreate, db: Session = Depends(get_db)):
     document = Document(**body.model_dump())
     db.add(document)
-    db.commit()
+    db.flush()
     db.refresh(document)
     return document
 
@@ -263,7 +263,7 @@ def update_document(
     doc = get_or_404(db, Document, document_id, "Document")
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(doc, key, value)
-    db.commit()
+    db.flush()
     db.refresh(doc)
     return doc
 
@@ -273,7 +273,7 @@ def delete_document(document_id: int, db: Session = Depends(get_db)):
     """Soft-delete: set status to 'deleted'."""
     doc = get_or_404(db, Document, document_id, "Document")
     doc.status = DocumentStatus.deleted
-    db.commit()
+    db.flush()
     return None
 
 
@@ -297,7 +297,7 @@ def review_document(
         doc.reviewed_by = body.reviewed_by
         doc.review_notes = body.review_notes
 
-    db.commit()
+    db.flush()
     db.refresh(doc)
     return doc
 

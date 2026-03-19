@@ -99,7 +99,7 @@ def list_equipment(
 def create_equipment(body: EquipmentCreate, db: Session = Depends(get_db)):
     equip = Equipment(**body.model_dump())
     db.add(equip)
-    db.commit()
+    db.flush()
     db.refresh(equip)
     return equip
 
@@ -116,7 +116,7 @@ def update_equipment(
     equip = get_or_404(db, Equipment, equipment_id, "Equipment")
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(equip, key, value)
-    db.commit()
+    db.flush()
     db.refresh(equip)
     return equip
 
@@ -125,6 +125,6 @@ def update_equipment(
 def delete_equipment(equipment_id: int, db: Session = Depends(get_db)):
     equip = get_or_404(db, Equipment, equipment_id, "Equipment")
     equip.status = EquipmentStatus.deleted
-    db.commit()
+    db.flush()
     db.refresh(equip)
     return equip

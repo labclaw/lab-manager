@@ -934,7 +934,7 @@ class TestProductIntegrityErrors:
         mock_product = MagicMock()
         mock_db = MagicMock()
         mock_db.get.return_value = mock_product
-        mock_db.commit.side_effect = IntegrityError(
+        mock_db.flush.side_effect = IntegrityError(
             "DELETE", {}, Exception("foreign key")
         )
 
