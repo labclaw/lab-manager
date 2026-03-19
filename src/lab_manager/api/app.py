@@ -488,7 +488,7 @@ def create_app() -> FastAPI:
                 route.endpoint = limiter.limit("10/minute")(original_endpoint)
 
     # Serve scan images (protected by auth middleware when auth is enabled)
-    if SCANS_DIR.exists():
+    if SCANS_DIR.exists():  # pragma: no cover — depends on deployment
         app.mount("/scans", StaticFiles(directory=str(SCANS_DIR)), name="scans")
 
     # Serve uploaded documents at /uploads/
@@ -506,7 +506,7 @@ def create_app() -> FastAPI:
     # Serve frontend static assets and root
     # React SPA build output lives in static/dist/
     DIST_DIR = STATIC_DIR / "dist"
-    if DIST_DIR.is_dir():
+    if DIST_DIR.is_dir():  # pragma: no cover — depends on React build artifacts
         # Serve bundled JS/CSS assets from dist/assets/
         app.mount(
             "/assets",

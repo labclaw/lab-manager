@@ -299,7 +299,7 @@ def _get_client() -> genai.Client:
         raise RuntimeError(
             "No Gemini API key found. Set GEMINI_API_KEY or EXTRACTION_API_KEY."
         )
-    return genai.Client(api_key=api_key)
+    return genai.Client(api_key=api_key)  # pragma: no cover — requires real API key
 
 
 def _validate_sql(sql: str) -> str:
