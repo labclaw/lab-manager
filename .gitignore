@@ -7,6 +7,7 @@ __pycache__/
 *.pyd
 .pytest_cache/
 .coverage
+coverage.json
 htmlcov/
 .mypy_cache/
 .ruff_cache/
@@ -14,6 +15,8 @@ htmlcov/
 .idea/
 .vscode/
 *.egg-info/
+build/
+dist/
 
 # OCR benchmark outputs
 ocr-benchmark/data/renders/
@@ -43,6 +46,8 @@ benchmarks/
 ocr-benchmark/data/scans/
 ocr-benchmark/reports/
 .gstack/
+.context/
+uploads/
 
 # Lab-specific data (real audit/extraction outputs)
 docs/audit_log.json

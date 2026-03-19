@@ -1,55 +1,88 @@
-# lab-manager
+# Lab Manager
 
-Lab inventory management system with AI document intake for academic research labs.
+Lab Manager is a lab operations app for research groups that need one place to receive supplies, review scanned documents, track inventory, and keep an audit trail.
 
-## What it does
+The product flow is straightforward:
 
-1. Staff photographs a packing list, invoice, or shipping label
-2. OCR extracts text from the scan
-3. Three VLMs extract structured data in parallel (vendor, products, quantities, lot numbers, dates)
-4. Consensus merge resolves disagreements; unresolved conflicts go to human review
-5. Approved data flows into the inventory database — searchable, trackable, auditable
+1. A lab member uploads a packing slip, invoice, or shipment image.
+2. OCR and extraction turn the document into structured order data.
+3. Low-confidence fields go to a human review queue.
+4. Approved records land in inventory, orders, analytics, search, and audit logs.
 
-## Stack
+## Release Status
 
-- **Backend:** Python 3.12+, FastAPI, SQLModel, PostgreSQL 17, Alembic
-- **Search:** Meilisearch full-text search with typo tolerance
-- **Frontend:** Vanilla JS SPA with hash routing
-- **AI Pipeline:** Multi-VLM consensus extraction (Claude, Gemini, GPT) + OCR
-- **Infrastructure:** Docker Compose, Caddy reverse proxy, Cloudflare Tunnel
-- **Package manager:** uv
+`v0.1.5` is a private preview release. The backend, database model, setup wizard, login flow, review queue, inventory lifecycle, export, search, and admin surface are in place.
 
-## Quick start
+The React frontend in [`web/`](web/) is an in-progress replacement, not the default release surface. The shipped app currently relies on the backend-served UI under [`src/lab_manager/static/`](src/lab_manager/static/).
+
+## Try It Locally
+
+Fastest path for a scientist or evaluator who just wants to see the product work:
 
 ```bash
-docker compose up -d          # PostgreSQL + Meilisearch
-uv run alembic upgrade head   # Apply migrations
-uv run uvicorn lab_manager.api.app:app --reload  # Dev server on :8000
-uv run pytest                 # Tests
+cd lab-manager
+bash scripts/bootstrap_local_env.sh "My Lab"
+docker compose up -d --build
 ```
 
-## API
+Then open `http://localhost`, finish the browser setup wizard, and sign in.
 
-71 endpoints across vendors, products, orders, inventory, documents, search, analytics, alerts, audit, and export. All list endpoints return paginated responses with filtering and sorting.
+Notes:
+- The generated local `.env` disables secure cookies so login works over plain HTTP on `localhost`.
+- AI keys are optional for a first pass. Without `GEMINI_API_KEY`, the core CRUD, login, admin, search, and inventory flows still work, but AI extraction and RAG features will stay unavailable.
+- `/admin/` uses the generated `ADMIN_PASSWORD` printed by the bootstrap script.
 
-Key workflows:
-- **Document intake:** Upload scan → OCR → VLM extraction → review → approve/reject
-- **Inventory lifecycle:** Receive → consume/transfer/adjust/dispose
-- **Search:** Full-text search via Meilisearch + NL→SQL via Gemini RAG
+## Create Your Own Lab Manager
 
-## Project structure
+For a real lab deployment, use one of these paths:
 
+1. One-command installer: [`deploy/install.sh`](deploy/install.sh)
+2. DigitalOcean droplet bootstrap: [`deploy/README.md`](deploy/README.md)
+3. Manual Docker deployment: [`DEPLOY.md`](DEPLOY.md)
+
+The installer is designed for non-technical users on Ubuntu or Debian. It generates secrets, starts the stack, and leaves the final admin-account creation to the first-run browser wizard.
+
+## What Ships Today
+
+- Backend: FastAPI, SQLModel, PostgreSQL 17, Alembic
+- Search: Meilisearch full-text search
+- Frontend: backend-served setup/login/app UI
+- AI intake: OCR + multi-model extraction + review queue
+- Infrastructure: Docker Compose, Caddy, optional Cloudflare Tunnel
+- Tooling: `uv`, pytest, Ruff, mypy, security scans in GitHub Actions
+
+Core workflows:
+- Document intake: upload, extract, review, approve, reject
+- Inventory lifecycle: receive, consume, transfer, adjust, dispose
+- Search and reporting: Meilisearch, analytics, export, alerts, audit log
+
+## Developer Quick Start
+
+```bash
+uv sync --dev
+docker compose up -d db search
+uv run alembic upgrade head
+uv run uvicorn lab_manager.api.app:create_app --factory --reload
+uv run pytest
 ```
+
+## Project Layout
+
+```text
 src/lab_manager/
-  api/           — FastAPI app + routes
-  models/        — SQLModel DB models
-  intake/        — Document intake pipeline (OCR, VLM providers, consensus)
-  services/      — Search, RAG, alerts, analytics, audit, inventory
-  config.py      — Settings from env/.env
-scripts/         — CLI tools (pipeline, populate_db, index_meilisearch)
-tests/           — pytest suite
+  api/           FastAPI app, auth, routes, admin, static serving
+  intake/        OCR, extraction providers, validation, consensus
+  models/        SQLModel models
+  services/      Search, analytics, inventory, audit, alerts, RAG
+  static/        Shipped frontend assets and PWA files
+scripts/         Bootstrap, indexing, import, maintenance utilities
+deploy/          Installer and deployment helpers
+tests/           Pytest suite
+web/             Experimental React frontend
 ```
 
-## License
+## Known Release Gaps
 
-Private — not yet open source.
+- The repository still has no public `LICENSE`, so an open release is not complete yet.
+- Version metadata is ahead of the changelog history and should stay aligned for the public cut.
+- The React frontend is not yet the canonical shipped UI; until parity is complete, release documentation should keep pointing users at the backend-served interface.
