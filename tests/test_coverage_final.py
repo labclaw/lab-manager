@@ -117,7 +117,7 @@ class TestCreateOrderFromDocNoData:
         db_session.flush()
 
         resp = client.post(
-            f"/api/documents/{doc.id}/review",
+            f"/api/v1/documents/{doc.id}/review",
             json={"action": "approve", "reviewed_by": "tester"},
         )
         assert resp.status_code == 200
@@ -206,7 +206,7 @@ class TestAppSessionCookie:
 
             app = create_app()
             with TestClient(app) as client:
-                resp = client.get("/api/vendors/")
+                resp = client.get("/api/v1/vendors/")
                 assert resp.status_code == 401
         finally:
             os.environ["AUTH_ENABLED"] = "false"
@@ -234,7 +234,7 @@ class TestAppSessionCookie:
             with TestClient(app) as client:
                 # Set invalid session cookie
                 client.cookies.set("lab_session", "invalid-cookie-data")
-                resp = client.get("/api/vendors/")
+                resp = client.get("/api/v1/vendors/")
                 assert resp.status_code == 401
         finally:
             os.environ["AUTH_ENABLED"] = "false"
@@ -346,7 +346,7 @@ class TestDocumentValidPathInValidator:
         db_session.flush()
 
         resp = client.patch(
-            f"/api/documents/{doc.id}",
+            f"/api/v1/documents/{doc.id}",
             json={"file_path": "/tmp/new_valid_path.pdf"},
         )
         assert resp.status_code == 200
@@ -365,7 +365,7 @@ class TestDocumentValidPathInValidator:
         db_session.flush()
 
         resp = client.post(
-            f"/api/documents/{doc.id}/review",
+            f"/api/v1/documents/{doc.id}/review",
             json={"action": "approve", "reviewed_by": "tester"},
         )
         assert resp.status_code == 200
