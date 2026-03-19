@@ -386,11 +386,6 @@ def create_app() -> FastAPI:
             media_type="application/manifest+json",
         )
 
-    # Serve uploaded files
-    uploads_dir = Path(settings.upload_dir)
-    uploads_dir.mkdir(parents=True, exist_ok=True)
-    app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
-
     # Serve frontend static assets and root
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
