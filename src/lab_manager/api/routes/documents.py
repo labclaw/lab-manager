@@ -149,7 +149,9 @@ def upload_document(
     now = datetime.now()
     timestamp = now.strftime("%Y%m%d_%H%M%S")
     usec = f"{now.microsecond:06d}"
-    safe_name = file.filename or "unnamed"
+    raw_name = file.filename or "unnamed"
+    # Strip directory separators and null bytes to prevent path traversal
+    safe_name = raw_name.replace("/", "_").replace("\\", "_").replace("\x00", "")
     saved_name = f"{timestamp}_{usec}_{safe_name}"
 
     # Save to disk
