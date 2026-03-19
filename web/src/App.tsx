@@ -27,10 +27,10 @@ const PAGE_TITLES: Record<string, string> = {
 function AlertsPage() {
   return (
     <div className="text-center py-16 space-y-3">
-      <h3 className="text-lg font-display font-semibold text-[var(--foreground)]">
+      <h3 className="text-lg font-display font-semibold text-slate-100">
         Alerts
       </h3>
-      <p className="text-sm text-[var(--muted-foreground)]">
+      <p className="text-sm text-slate-500">
         Alerts page
       </p>
     </div>
@@ -40,10 +40,10 @@ function AlertsPage() {
 function SettingsPage() {
   return (
     <div className="text-center py-16 space-y-3">
-      <h3 className="text-lg font-display font-semibold text-[var(--foreground)]">
+      <h3 className="text-lg font-display font-semibold text-slate-100">
         Settings
       </h3>
-      <p className="text-sm text-[var(--muted-foreground)]">
+      <p className="text-sm text-slate-500">
         Settings page coming soon
       </p>
     </div>
@@ -123,8 +123,8 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-[var(--background)]">
-        <div className="w-8 h-8 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
+      <div className="flex items-center justify-center h-screen bg-background-dark">
+        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
       </div>
     )
   }
@@ -140,7 +140,7 @@ export default function App() {
   return (
     <>
       <ErrorBanner error={error} onDismiss={() => setError(null)} />
-      <div className="flex h-screen bg-[var(--background)] overflow-hidden">
+      <div className="flex h-screen bg-background-dark overflow-hidden">
         <Sidebar
           current={location.pathname}
           collapsed={sidebarCollapsed}

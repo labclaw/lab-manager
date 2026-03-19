@@ -8,6 +8,22 @@ interface DashboardPageProps {
   readonly onError: (msg: string) => void
 }
 
+// Full Tailwind class names for bar colors (must be complete strings for purge)
+const VENDOR_BAR_CLASSES = [
+  'h-full bg-primary rounded-full transition-all duration-500',
+  'h-full bg-primary/80 rounded-full transition-all duration-500',
+  'h-full bg-primary/60 rounded-full transition-all duration-500',
+  'h-full bg-primary/40 rounded-full transition-all duration-500',
+  'h-full bg-primary/20 rounded-full transition-all duration-500',
+]
+
+const DOC_BAR_CLASSES = [
+  'h-full bg-accent-green rounded-full transition-all duration-500',
+  'h-full bg-accent-green/80 rounded-full transition-all duration-500',
+  'h-full bg-accent-green/60 rounded-full transition-all duration-500',
+  'h-full bg-accent-green/40 rounded-full transition-all duration-500',
+]
+
 export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
   const navigate = useNavigate()
 
@@ -89,107 +105,100 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
   const lowStockCount = lowStockData?.items?.length ?? 0
   const expiringCount = expiringData?.items?.length ?? 0
 
-  // Bar opacity steps for vendors
-  const vendorOpacity = ['', '/80', '/60', '/40', '/20']
-  // Bar opacity steps for docs
-  const docOpacity = ['', '/80', '/60', '/40']
-
   return (
     <div className="space-y-8">
       {/* Quick Actions Row */}
-      <div>
-        <h3 className="text-[var(--muted-foreground)] text-[10px] font-bold uppercase tracking-widest mb-4">
-          Quick Actions
-        </h3>
+      <div className="mb-8">
+        <h3 className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-4">Quick Actions</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <button
             onClick={() => navigate('/upload')}
-            className="flex items-center justify-center gap-3 p-4 bg-[var(--primary)] hover:brightness-110 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-[var(--primary)]/20 group"
+            className="flex items-center justify-center gap-3 p-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-primary/20 group"
           >
             <span className="material-symbols-outlined group-hover:scale-110 transition-transform">upload_file</span>
             <span>Upload Document</span>
           </button>
           <button
             onClick={() => navigate('/orders')}
-            className="flex items-center justify-center gap-3 p-4 bg-[var(--card)] border border-[var(--primary)]/20 hover:border-[var(--primary)]/50 text-[var(--foreground)] rounded-xl font-bold text-sm transition-all group"
+            className="flex items-center justify-center gap-3 p-4 bg-card-dark border border-primary/20 hover:border-primary/50 text-slate-100 rounded-xl font-bold text-sm transition-all group"
           >
-            <span className="material-symbols-outlined text-[var(--primary)] group-hover:scale-110 transition-transform">add_shopping_cart</span>
+            <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">add_shopping_cart</span>
             <span>New Order</span>
           </button>
           <button
             onClick={() => navigate('/inventory')}
-            className="flex items-center justify-center gap-3 p-4 bg-[var(--card)] border border-[var(--primary)]/20 hover:border-[var(--primary)]/50 text-[var(--foreground)] rounded-xl font-bold text-sm transition-all group"
+            className="flex items-center justify-center gap-3 p-4 bg-card-dark border border-primary/20 hover:border-primary/50 text-slate-100 rounded-xl font-bold text-sm transition-all group"
           >
-            <span className="material-symbols-outlined text-[var(--primary)] group-hover:scale-110 transition-transform">inventory</span>
+            <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">inventory</span>
             <span>Update Stock</span>
           </button>
           <button
             onClick={() => navigate('/settings')}
-            className="flex items-center justify-center gap-3 p-4 bg-[var(--card)] border border-[var(--primary)]/20 hover:border-[var(--primary)]/50 text-[var(--foreground)] rounded-xl font-bold text-sm transition-all group"
+            className="flex items-center justify-center gap-3 p-4 bg-card-dark border border-primary/20 hover:border-primary/50 text-slate-100 rounded-xl font-bold text-sm transition-all group"
           >
-            <span className="material-symbols-outlined text-[var(--primary)] group-hover:scale-110 transition-transform">group</span>
+            <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">group</span>
             <span>Manage Lab</span>
           </button>
         </div>
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         {/* Total Documents */}
-        <div className="bg-[var(--card)] border border-[var(--border)] p-5 rounded-xl flex flex-col gap-1 shadow-sm">
-          <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Total Documents</span>
+        <div className="bg-card-dark border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
+          <div className="flex items-center justify-between text-slate-400 mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Documents</span>
             <span className="material-symbols-outlined text-lg opacity-50">description</span>
           </div>
-          <div className="text-3xl font-bold text-[var(--foreground)] tracking-tight">{totalDocs}</div>
-          <div className="text-[11px] text-[var(--muted-foreground)] font-medium">Total lab docs processed</div>
+          <div className="text-3xl font-bold text-white tracking-tight">{totalDocs}</div>
+          <div className="text-[11px] text-slate-500 font-medium">Total lab docs processed</div>
         </div>
 
         {/* Approved - green left border */}
-        <div className="bg-[var(--card)] border border-[var(--border)] p-5 rounded-xl flex flex-col gap-1 shadow-sm border-l-4 border-l-emerald-500">
-          <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Approved</span>
-            <span className="material-symbols-outlined text-lg text-emerald-500">check_circle</span>
+        <div className="bg-card-dark border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm border-l-4 border-l-accent-green">
+          <div className="flex items-center justify-between text-slate-400 mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Approved</span>
+            <span className="material-symbols-outlined text-lg text-accent-green">check_circle</span>
           </div>
-          <div className="text-3xl font-bold text-emerald-500 tracking-tight">{approved}</div>
-          <div className="text-[11px] text-[var(--muted-foreground)] font-medium">{approvalPct}% automation accuracy</div>
+          <div className="text-3xl font-bold text-accent-green tracking-tight">{approved}</div>
+          <div className="text-[11px] text-slate-500 font-medium">{approvalPct}% automation accuracy</div>
         </div>
 
         {/* Needs Review - amber left border */}
-        <div className="bg-[var(--card)] border border-[var(--border)] p-5 rounded-xl flex flex-col gap-1 shadow-sm border-l-4 border-l-amber-400">
-          <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Needs Review</span>
+        <div className="bg-card-dark border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm border-l-4 border-l-amber-400">
+          <div className="flex items-center justify-between text-slate-400 mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Needs Review</span>
             <span className="material-symbols-outlined text-lg text-amber-400">pending_actions</span>
           </div>
           <div className="text-3xl font-bold text-amber-400 tracking-tight">{needsReview}</div>
-          <div className="text-[11px] text-[var(--muted-foreground)] font-medium">Awaiting lab verification</div>
+          <div className="text-[11px] text-slate-500 font-medium">Awaiting lab verification</div>
         </div>
 
         {/* Orders Created */}
-        <div className="bg-[var(--card)] border border-[var(--border)] p-5 rounded-xl flex flex-col gap-1 shadow-sm">
-          <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Orders Created</span>
+        <div className="bg-card-dark border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
+          <div className="flex items-center justify-between text-slate-400 mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Orders Created</span>
             <span className="material-symbols-outlined text-lg opacity-50">shopping_bag</span>
           </div>
-          <div className="text-3xl font-bold text-[var(--foreground)] tracking-tight">{ordersCreated}</div>
-          <div className="text-[11px] text-[var(--muted-foreground)] font-medium">
+          <div className="text-3xl font-bold text-white tracking-tight">{ordersCreated}</div>
+          <div className="text-[11px] text-slate-500 font-medium">
             {stats?.total_inventory_items ?? 0} line items reconciled
           </div>
         </div>
 
         {/* Vendors */}
-        <div className="bg-[var(--card)] border border-[var(--border)] p-5 rounded-xl flex flex-col gap-1 shadow-sm">
-          <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Vendors</span>
+        <div className="bg-card-dark border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
+          <div className="flex items-center justify-between text-slate-400 mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Vendors</span>
             <span className="material-symbols-outlined text-lg opacity-50">storefront</span>
           </div>
-          <div className="text-3xl font-bold text-[var(--foreground)] tracking-tight">{totalVendors}</div>
-          <div className="text-[11px] text-[var(--muted-foreground)] font-medium">Discovered from scan history</div>
+          <div className="text-3xl font-bold text-white tracking-tight">{totalVendors}</div>
+          <div className="text-[11px] text-slate-500 font-medium">Discovered from scan history</div>
         </div>
       </div>
 
       {/* Alert Banners */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {/* Critical Inventory Level */}
         <div className="flex items-center gap-4 bg-amber-400/5 border border-amber-400/20 p-5 rounded-xl group hover:bg-amber-400/10 transition-colors">
           <div className="size-12 rounded-full bg-amber-400/10 flex items-center justify-center text-amber-400 shrink-0">
@@ -203,7 +212,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
           </div>
           <button
             onClick={() => navigate('/inventory')}
-            className="px-4 py-2 bg-amber-400 text-[var(--background)] rounded-lg text-xs font-bold uppercase tracking-wider hover:brightness-110 transition-colors shadow-lg shadow-amber-400/10"
+            className="px-4 py-2 bg-amber-400 text-background-dark rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-amber-300 transition-colors shadow-lg shadow-amber-400/10"
           >
             Reorder Now
           </button>
@@ -222,7 +231,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
           </div>
           <button
             onClick={() => navigate('/inventory')}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:brightness-110 transition-colors shadow-lg shadow-red-500/10"
+            className="px-4 py-2 bg-red-500 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-red-400 transition-colors shadow-lg shadow-red-500/10"
           >
             View List
           </button>
@@ -232,13 +241,13 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Top Lab Vendors */}
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 shadow-sm">
+        <div className="bg-card-dark border border-primary/10 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-[var(--foreground)] text-lg font-bold flex items-center gap-2">
-              <span className="material-symbols-outlined text-[var(--primary)]">analytics</span>
+            <h3 className="text-slate-100 text-lg font-bold flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">analytics</span>
               Top Lab Vendors
             </h3>
-            <span className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest bg-[var(--muted)] px-2 py-1 rounded">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-800 px-2 py-1 rounded">
               Last 90 Days
             </span>
           </div>
@@ -248,41 +257,41 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
                 <div key={v.name} className="space-y-2 group">
                   <div className="flex justify-between items-end">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-[var(--foreground)] font-semibold">{v.name}</span>
+                      <span className="text-sm text-slate-200 font-semibold">{v.name}</span>
                       {i === 0 && (
-                        <span className="hidden group-hover:block text-[10px] bg-[var(--primary)]/20 text-[var(--primary)] px-1.5 py-0.5 rounded font-bold">
+                        <span className="hidden group-hover:block text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-bold">
                           Primary Vendor
                         </span>
                       )}
                     </div>
-                    <span className="text-xs text-[var(--muted-foreground)] font-mono">
+                    <span className="text-xs text-slate-400 font-mono">
                       {v.count} orders ({v.pct}%)
                     </span>
                   </div>
-                  <div className="h-2.5 w-full bg-[var(--muted)] rounded-full overflow-hidden">
+                  <div className="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden">
                     <div
-                      className={`h-full bg-[var(--primary)]${vendorOpacity[i] ?? ''} rounded-full transition-all duration-500`}
+                      className={VENDOR_BAR_CLASSES[i] ?? VENDOR_BAR_CLASSES[4]}
                       style={{ width: `${v.width}%` }}
                     />
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-sm text-[var(--muted-foreground)] py-4">No vendor data yet</div>
+              <div className="text-sm text-slate-500 py-4">No vendor data yet</div>
             )}
           </div>
         </div>
 
         {/* Document Classification */}
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 shadow-sm">
+        <div className="bg-card-dark border border-primary/10 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-[var(--foreground)] text-lg font-bold flex items-center gap-2">
-              <span className="material-symbols-outlined text-[var(--primary)]">folder_open</span>
+            <h3 className="text-slate-100 text-lg font-bold flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">folder_open</span>
               Document Classification
             </h3>
             <button
               onClick={() => navigate('/documents')}
-              className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-widest hover:underline"
+              className="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline"
             >
               View All Files
             </button>
@@ -293,25 +302,25 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
                 <div key={d.type} className="space-y-2 group">
                   <div className="flex justify-between items-end">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-[var(--foreground)] font-mono">{d.type}</span>
+                      <span className="text-sm text-slate-200 font-mono">{d.type}</span>
                       {i === 0 && totalDocs > 0 && (
-                        <span className="hidden group-hover:block text-[10px] bg-emerald-500/20 text-emerald-500 px-1.5 py-0.5 rounded font-bold">
+                        <span className="hidden group-hover:block text-[10px] bg-accent-green/20 text-accent-green px-1.5 py-0.5 rounded font-bold">
                           {Math.round((d.count / totalDocs) * 100)}% of docs
                         </span>
                       )}
                     </div>
-                    <span className="text-xs text-[var(--muted-foreground)] font-mono">{d.count} files</span>
+                    <span className="text-xs text-slate-400 font-mono">{d.count} files</span>
                   </div>
-                  <div className="h-2.5 w-full bg-[var(--muted)] rounded-full overflow-hidden">
+                  <div className="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden">
                     <div
-                      className={`h-full bg-emerald-500${docOpacity[i] ?? ''} rounded-full transition-all duration-500`}
+                      className={DOC_BAR_CLASSES[i] ?? DOC_BAR_CLASSES[3]}
                       style={{ width: `${d.width}%` }}
                     />
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-sm text-[var(--muted-foreground)] py-4">No document data yet</div>
+              <div className="text-sm text-slate-500 py-4">No document data yet</div>
             )}
           </div>
         </div>

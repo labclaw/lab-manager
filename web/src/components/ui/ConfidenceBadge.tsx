@@ -12,7 +12,7 @@ const LEVELS = [
 export function ConfidenceBadge({ confidence }: ConfidenceBadgeProps) {
   if (confidence == null) {
     return (
-      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border border-[var(--border)] text-[var(--muted-foreground)]">
+      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border border-border-dark text-slate-500">
         —
       </span>
     )
