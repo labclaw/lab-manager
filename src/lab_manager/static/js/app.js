@@ -144,20 +144,23 @@ window.addEventListener("hashchange", handleRoute);
 
 // --- Init ---
 async function init() {
-  // Load lab branding
-  loadLabConfig();
-
-  // Check if first-run setup is needed
+  // Load branding and check setup status concurrently
+  let needsSetup = false;
   try {
-    const setupR = await fetch("/api/setup/status");
+    const [, setupR] = await Promise.all([
+      loadLabConfig(),
+      fetch("/api/setup/status"),
+    ]);
     if (setupR.ok) {
       const setupData = await setupR.json();
-      if (setupData.needs_setup) {
-        document.getElementById("setup-screen").classList.remove("hidden");
-        return;
-      }
+      needsSetup = setupData.needs_setup;
     }
   } catch {}
+
+  if (needsSetup) {
+    document.getElementById("setup-screen").classList.remove("hidden");
+    return;
+  }
 
   // Check if already authenticated via session cookie
   try {
