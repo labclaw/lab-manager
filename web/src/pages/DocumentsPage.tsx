@@ -19,7 +19,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
   const pageSize = 20
 
   const { data: res, isLoading, error, refetch } = useQuery({
-    queryKey: ['documents', page, search, statusFilter],
+    queryKey: ['documents', page, statusFilter],
     queryFn: () => docApi.list(page, pageSize, statusFilter !== 'all' ? statusFilter : undefined),
   })
 
@@ -173,14 +173,14 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
 
       {/* Detail side panel */}
       {selectedDoc && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setSelectedDoc(null)} />
+        <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-label="Document details">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setSelectedDoc(null)} aria-hidden="true" />
           <div className="relative w-full max-w-md bg-[var(--card)] border-l border-[var(--border)] h-full overflow-y-auto p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-display font-semibold text-[var(--foreground)]">
                 {selectedDoc.filename ?? `Document #${selectedDoc.id}`}
               </h3>
-              <button onClick={() => setSelectedDoc(null)} className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
+              <button onClick={() => setSelectedDoc(null)} aria-label="Close details" className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
                 <XCircle className="w-5 h-5" />
               </button>
             </div>
@@ -229,6 +229,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
+              aria-label="Previous page"
               className="btn-ghost p-2"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -239,6 +240,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
+              aria-label="Next page"
               className="btn-ghost p-2"
             >
               <ChevronRight className="w-4 h-4" />

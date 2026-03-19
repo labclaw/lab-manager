@@ -14,7 +14,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
   const pageSize = 20
 
   const { data: res, isLoading, error, refetch } = useQuery({
-    queryKey: ['inventory', page, search],
+    queryKey: ['inventory', page],
     queryFn: () => invApi.list(page, pageSize),
   })
 
@@ -149,6 +149,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
+              aria-label="Previous page"
               className="btn-ghost p-2"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -159,6 +160,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
+              aria-label="Next page"
               className="btn-ghost p-2"
             >
               <ChevronRight className="w-4 h-4" />

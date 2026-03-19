@@ -26,6 +26,7 @@ export function UploadPage() {
   const [uploading, setUploading] = useState(false)
   const [uploadResult, setUploadResult] = useState<'success' | 'error' | null>(null)
   const [uploadError, setUploadError] = useState('')
+  const [validationError, setValidationError] = useState('')
   const [history, setHistory] = useState<UploadRecord[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
@@ -33,18 +34,21 @@ export function UploadPage() {
 
   const validateAndSelect = useCallback((file: File) => {
     if (!ACCEPTED_TYPES.has(file.type)) {
-      setUploadError(`Unsupported file type: ${file.type || 'unknown'}. Use PNG, JPEG, TIFF, or PDF.`)
-      setUploadResult('error')
+      setValidationError(`Unsupported file type: ${file.type || 'unknown'}. Use PNG, JPEG, TIFF, or PDF.`)
+      setSelectedFile(null)
+      setPreview(null)
       return
     }
     if (file.size > MAX_BYTES) {
-      setUploadError(`File too large (${fmtSize(file.size)}). Maximum is 50 MB.`)
-      setUploadResult('error')
+      setValidationError(`File too large (${fmtSize(file.size)}). Maximum is 50 MB.`)
+      setSelectedFile(null)
+      setPreview(null)
       return
     }
     setSelectedFile(file)
     setUploadResult(null)
     setUploadError('')
+    setValidationError('')
     if (file.type.startsWith('image/')) {
       const reader = new FileReader()
       reader.onload = (e) => setPreview(e.target?.result as string)
@@ -87,6 +91,7 @@ export function UploadPage() {
     setPreview(null)
     setUploadResult(null)
     setUploadError('')
+    setValidationError('')
   }
 
   return (
@@ -95,6 +100,14 @@ export function UploadPage() {
         <h2 className="text-lg font-display font-semibold text-[var(--foreground)]">Upload Document</h2>
         <p className="text-sm text-[var(--muted-foreground)] mt-1">Upload packing lists, invoices, or certificates for AI extraction.</p>
       </div>
+
+      {/* Validation error */}
+      {validationError && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-[var(--destructive)]/10 border border-[var(--destructive)]/30 text-sm text-[var(--destructive)]">
+          <XCircle className="w-4 h-4 shrink-0" />
+          {validationError}
+        </div>
+      )}
 
       {/* Drop zone */}
       <div
@@ -126,8 +139,10 @@ export function UploadPage() {
       </div>
 
       <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/tiff,application/pdf" className="hidden"
+        aria-label="Choose file to upload"
         onChange={(e) => { if (e.target.files?.[0]) validateAndSelect(e.target.files[0]); e.target.value = '' }} />
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden"
+        aria-label="Take photo to upload"
         onChange={(e) => { if (e.target.files?.[0]) validateAndSelect(e.target.files[0]); e.target.value = '' }} />
 
       {/* Preview */}
@@ -177,7 +192,7 @@ export function UploadPage() {
                 )}
               </div>
             </div>
-            <button onClick={resetSelection} className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors p-1">
+            <button onClick={resetSelection} aria-label="Remove selected file" className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors p-1">
               <XCircle className="w-5 h-5" />
             </button>
           </div>

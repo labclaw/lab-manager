@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { documents as docApi } from '@/lib/api'
 import type { Document } from '@/lib/api'
@@ -10,7 +10,7 @@ interface ReviewPageProps {
   onError?: (error: string) => void
 }
 
-export function ReviewPage({ onError: _onError }: ReviewPageProps) {
+export function ReviewPage({ onError }: ReviewPageProps) {
   const navigate = useNavigate()
   const [queue, setQueue] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
@@ -19,27 +19,28 @@ export function ReviewPage({ onError: _onError }: ReviewPageProps) {
   const [rejectReason, setRejectReason] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
 
-  const loadQueue = async () => {
+  const loadQueue = useCallback(async () => {
     setLoading(true)
     try {
       const res = await docApi.reviewQueue()
       const items = res.items ?? []
       setQueue(items)
-      // Auto-select first if nothing selected or selected was processed
-      if (items.length > 0 && (!selected || !items.find(d => d.id === selected.id))) {
-        setSelected(items[0])
-      }
-      if (items.length === 0) setSelected(null)
+      setSelected(prev => {
+        if (items.length === 0) return null
+        if (!prev || !items.find(d => d.id === prev.id)) return items[0]
+        return prev
+      })
     } catch (err) {
-      console.error('Failed to load review queue:', err)
+      const msg = err instanceof Error ? err.message : 'Failed to load review queue'
+      onError?.(msg)
     } finally {
       setLoading(false)
     }
-  }
+  }, [onError])
 
   useEffect(() => {
     loadQueue()
-  }, [])
+  }, [loadQueue])
 
   const handleApprove = async () => {
     if (!selected) return
@@ -48,7 +49,8 @@ export function ReviewPage({ onError: _onError }: ReviewPageProps) {
       await docApi.approve(selected.id)
       await loadQueue()
     } catch (err) {
-      console.error('Approve failed:', err)
+      const msg = err instanceof Error ? err.message : 'Failed to approve document'
+      onError?.(msg)
     } finally {
       setActionLoading(false)
     }
@@ -63,7 +65,8 @@ export function ReviewPage({ onError: _onError }: ReviewPageProps) {
       setRejectReason('')
       await loadQueue()
     } catch (err) {
-      console.error('Reject failed:', err)
+      const msg = err instanceof Error ? err.message : 'Failed to reject document'
+      onError?.(msg)
     } finally {
       setActionLoading(false)
     }

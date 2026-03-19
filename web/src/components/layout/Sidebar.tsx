@@ -48,7 +48,7 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        'flex flex-col h-screen bg-[var(--sidebar)] border-r border-[var(--sidebar-border)]',
+        'relative flex flex-col h-screen bg-[var(--sidebar)] border-r border-[var(--sidebar-border)]',
         'transition-all duration-300',
         collapsed ? 'w-16' : 'w-60',
       )}
@@ -123,6 +123,7 @@ export function Sidebar({
       {/* Collapse toggle */}
       <button
         onClick={onToggle}
+        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         className="hidden lg:flex absolute -right-3 top-20 items-center justify-center w-6 h-6 rounded-full bg-[var(--card)] border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
       >
         {collapsed ? (

@@ -40,15 +40,17 @@ export function Header({ title, onSearch, darkMode, onToggleDarkMode }: HeaderPr
           ) : null}
           <button
             onClick={() => setSearchOpen(!searchOpen)}
+            aria-label={searchOpen ? 'Close search' : 'Open search'}
             className="p-2 rounded-lg text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
           >
             <Search className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Dark mode toggle (reserved) */}
+        {/* Dark mode toggle */}
         <button
           onClick={onToggleDarkMode}
+          aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           className="p-2 rounded-lg text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
         >
           {darkMode ? (
