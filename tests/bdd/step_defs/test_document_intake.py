@@ -65,7 +65,7 @@ def create_documents_from_table(api, datatable):
     docs = []
     for row in rows:
         r = api.post(
-            "/api/documents/",
+            "/api/v1/documents/",
             json={
                 "file_name": row["file_name"],
                 "file_path": f"/uploads/{row['file_name']}",
@@ -101,7 +101,7 @@ def create_doc_with_extracted_data(api, ctx, status, datatable):
         extracted["vendor_name"] = vendor_name
 
     r = api.post(
-        "/api/documents/",
+        "/api/v1/documents/",
         json={
             "file_name": f"doc_{status}.jpg",
             "file_path": f"/uploads/doc_{status}.jpg",
@@ -134,7 +134,7 @@ def add_extracted_items(api, test_doc, ctx, datatable):
     extracted["items"] = items
     # Patch the document with updated extracted_data
     r = api.patch(
-        f"/api/documents/{test_doc['id']}",
+        f"/api/v1/documents/{test_doc['id']}",
         json={"extracted_data": extracted},
     )
     assert r.status_code == 200, r.text
@@ -147,7 +147,7 @@ def add_extracted_items(api, test_doc, ctx, datatable):
 )
 def create_doc_simple(api, status):
     r = api.post(
-        "/api/documents/",
+        "/api/v1/documents/",
         json={
             "file_name": f"doc_{status}_simple.jpg",
             "file_path": f"/uploads/doc_{status}_simple.jpg",
@@ -166,7 +166,7 @@ def create_bulk_documents(api, count, status):
     docs = []
     for i in range(count):
         r = api.post(
-            "/api/documents/",
+            "/api/v1/documents/",
             json={
                 "file_name": f"bulk_{status}_{i}.jpg",
                 "file_path": f"/uploads/bulk_{status}_{i}.jpg",
@@ -187,7 +187,7 @@ def create_bulk_documents(api, count, status):
 )
 def create_document(api, file_name, file_path):
     r = api.post(
-        "/api/documents/",
+        "/api/v1/documents/",
         json={
             "file_name": file_name,
             "file_path": file_path,
@@ -201,7 +201,7 @@ def create_document(api, file_name, file_path):
     target_fixture="list_response",
 )
 def list_documents_filtered(api, status):
-    r = api.get("/api/documents/", params={"status": status})
+    r = api.get("/api/v1/documents/", params={"status": status})
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -212,7 +212,7 @@ def list_documents_filtered(api, status):
 )
 def approve_document(api, test_doc, reviewer):
     r = api.post(
-        f"/api/documents/{test_doc['id']}/review",
+        f"/api/v1/documents/{test_doc['id']}/review",
         json={"action": "approve", "reviewed_by": reviewer},
     )
     assert r.status_code == 200, r.text
@@ -225,7 +225,7 @@ def approve_document(api, test_doc, reviewer):
 )
 def reject_document(api, test_doc, reason):
     r = api.post(
-        f"/api/documents/{test_doc['id']}/review",
+        f"/api/v1/documents/{test_doc['id']}/review",
         json={"action": "reject", "reviewed_by": "scientist", "review_notes": reason},
     )
     assert r.status_code == 200, r.text
@@ -234,7 +234,7 @@ def reject_document(api, test_doc, reason):
 
 @when("I request document statistics", target_fixture="stats_response")
 def request_stats(api):
-    r = api.get("/api/documents/stats")
+    r = api.get("/api/v1/documents/stats")
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -277,7 +277,7 @@ def check_reviewed_by(review_response, reviewer):
 @then(parsers.parse('an order should be created with po_number "{po}"'))
 def check_order_created(api, test_doc, po):
     # List orders and find one linked to this document
-    r = api.get("/api/orders/", params={"search": po})
+    r = api.get("/api/v1/orders/", params={"search": po})
     assert r.status_code == 200, r.text
     orders = r.json()["items"]
     matching = [o for o in orders if o.get("po_number") == po]
@@ -287,7 +287,7 @@ def check_order_created(api, test_doc, po):
 @then(parsers.parse('the order should have {count:d} item with catalog "{catalog}"'))
 def check_order_item(api, test_doc, count, catalog):
     # Find the order linked to this document
-    r = api.get("/api/orders/", params={"page_size": 200})
+    r = api.get("/api/v1/orders/", params={"page_size": 200})
     assert r.status_code == 200, r.text
     orders = r.json()["items"]
     doc_order = [o for o in orders if o.get("document_id") == test_doc["id"]]
@@ -297,7 +297,7 @@ def check_order_item(api, test_doc, count, catalog):
     order = doc_order[0]
 
     # Fetch order items (separate endpoint)
-    r = api.get(f"/api/orders/{order['id']}/items")
+    r = api.get(f"/api/v1/orders/{order['id']}/items")
     assert r.status_code == 200, r.text
     items = r.json().get("items", [])
     matching = [it for it in items if it.get("catalog_number") == catalog]

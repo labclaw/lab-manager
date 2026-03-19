@@ -79,6 +79,20 @@ class ProductUpdate(BaseModel):
         return _validate_cas(v)
 
 
+class ProductResponse(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: int
+    catalog_number: str
+    name: str
+    vendor_id: Optional[int] = None
+    category: Optional[str] = None
+    cas_number: Optional[str] = None
+    storage_temp: Optional[str] = None
+    unit: Optional[str] = None
+    hazard_info: Optional[str] = None
+
+
 @router.get("/")
 def list_products(
     page: int = Query(1, ge=1),
@@ -128,7 +142,7 @@ def create_product(body: ProductCreate, db: Session = Depends(get_db)):
     return product
 
 
-@router.get("/{product_id}")
+@router.get("/{product_id}", response_model=ProductResponse)
 def get_product(product_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, Product, product_id, "Product")
 

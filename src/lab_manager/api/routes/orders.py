@@ -6,7 +6,7 @@ from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db, get_or_404
@@ -57,6 +57,14 @@ class OrderCreate(BaseModel):
     document_id: Optional[int] = None
     extra: dict = {}
 
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        valid_statuses = {s.value for s in OrderStatus}
+        if v not in valid_statuses:
+            raise ValueError(f"status must be one of {valid_statuses}")
+        return v
+
 
 class OrderUpdate(BaseModel):
     po_number: Optional[str] = None
@@ -97,6 +105,22 @@ class OrderItemUpdate(BaseModel):
     unit_price: Optional[float] = None
     product_id: Optional[int] = None
     extra: Optional[dict] = None
+
+
+class OrderResponse(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: int
+    po_number: Optional[str] = None
+    vendor_id: Optional[int] = None
+    order_date: Optional[date] = None
+    ship_date: Optional[date] = None
+    received_date: Optional[date] = None
+    received_by: Optional[str] = None
+    status: str
+    delivery_number: Optional[str] = None
+    invoice_number: Optional[str] = None
+    document_id: Optional[int] = None
 
 
 # =====================
@@ -144,7 +168,7 @@ def create_order(body: OrderCreate, db: Session = Depends(get_db)):
     return order
 
 
-@router.get("/{order_id}")
+@router.get("/{order_id}", response_model=OrderResponse)
 def get_order(order_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, Order, order_id, "Order")
 
