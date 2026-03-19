@@ -71,6 +71,7 @@ export interface Document {
   created_at?: string
   review_status?: string
   source_url?: string
+  extraction_confidence?: number | null
 }
 
 export interface DashboardStats {
