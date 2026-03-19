@@ -21,8 +21,10 @@ async function loadOrders() {
     const total = document.getElementById("ord-total");
     if (total) total.textContent = data.total ? data.total + " orders" : "";
   } catch (err) {
-    if (err.message !== "Unauthorized")
+    if (err.message !== "Unauthorized") {
       console.error("Failed to load orders:", err);
+      showToast("Failed to load orders. Check your connection.", "error");
+    }
   }
 }
 

@@ -9,7 +9,10 @@ async function loadStats() {
     stats = await r.json();
     renderStats();
   } catch (err) {
-    if (err.message !== "Unauthorized") console.error("Failed to load stats:", err);
+    if (err.message !== "Unauthorized") {
+      console.error("Failed to load stats:", err);
+      showToast("Failed to load dashboard data.", "error");
+    }
   }
 }
 

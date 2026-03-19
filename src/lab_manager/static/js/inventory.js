@@ -22,8 +22,10 @@ async function loadInventory() {
       data.total != null ? data.total + " items" : "";
     renderInvPagination(data.page || 1, data.pages || 1);
   } catch (err) {
-    if (err.message !== "Unauthorized")
+    if (err.message !== "Unauthorized") {
       console.error("Failed to load inventory:", err);
+      showToast("Failed to load inventory. Check your connection.", "error");
+    }
   }
 }
 
