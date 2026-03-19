@@ -277,6 +277,16 @@ def create_app() -> FastAPI:
         try:
             with get_db_session() as db:
                 staff = db.query(Staff).filter(Staff.email == email).first()
+                # Eagerly load attributes before session closes
+                if staff:
+                    staff_id = staff.id
+                    staff_name = staff.name
+                    staff_email = staff.email
+                    staff_active = staff.is_active
+                    staff_pw_hash = staff.password_hash
+                else:
+                    staff_id = staff_name = staff_email = staff_pw_hash = None
+                    staff_active = False
         except Exception:
             logger.error("Login: database unavailable")
             return JSONResponse(
@@ -287,9 +297,9 @@ def create_app() -> FastAPI:
         # Constant-time: always run bcrypt to prevent timing oracle on user existence.
         _DUMMY_HASH = b"$2b$12$LJ3m4ys3Lg2VBe7MaBSW2.P68rAGkMgGMfkCGKEKeDqz4rMpWsSi6"
         password_ok = False
-        if staff and staff.is_active and staff.password_hash:
+        if staff and staff_active and staff_pw_hash:
             password_ok = _bcrypt.checkpw(
-                password.encode("utf-8"), staff.password_hash.encode("utf-8")
+                password.encode("utf-8"), staff_pw_hash.encode("utf-8")
             )
         else:
             _bcrypt.checkpw(password.encode("utf-8"), _DUMMY_HASH)
@@ -302,9 +312,9 @@ def create_app() -> FastAPI:
 
         # Create signed session cookie with new token (session regeneration)
         serializer = _get_serializer()
-        session_data = serializer.dumps({"staff_id": staff.id, "name": staff.name})
+        session_data = serializer.dumps({"staff_id": staff_id, "name": staff_name})
         response = JSONResponse(
-            {"status": "ok", "user": {"id": staff.id, "name": staff.name}}
+            {"status": "ok", "user": {"id": staff_id, "name": staff_name}}
         )
         response.set_cookie(
             _SESSION_COOKIE,
@@ -314,7 +324,7 @@ def create_app() -> FastAPI:
             samesite="lax",
             secure=get_settings().secure_cookies,
         )
-        logger.info("Login successful for %s (staff_id=%s)", staff.email, staff.id)
+        logger.info("Login successful for %s (staff_id=%s)", staff_email, staff_id)
         return response
 
     @app.get("/api/auth/me")
