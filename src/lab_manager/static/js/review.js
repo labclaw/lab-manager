@@ -12,8 +12,10 @@ async function loadReviewQueue() {
     reviewDocs = data.items || [];
     renderReviewQueue();
   } catch (err) {
-    if (err.message !== "Unauthorized")
+    if (err.message !== "Unauthorized") {
       console.error("Failed to load review queue:", err);
+      showToast("Failed to load review queue.", "error");
+    }
   }
 }
 
@@ -163,8 +165,10 @@ async function selectReviewDoc(idx) {
       </button>
     `;
   } catch (err) {
-    if (err.message !== "Unauthorized")
+    if (err.message !== "Unauthorized") {
       console.error("Failed to load review doc:", err);
+      showToast("Failed to load document details.", "error");
+    }
   }
 }
 
@@ -203,8 +207,10 @@ async function reviewDoc(id, action, reviewNotes) {
       showToast("Error: " + (await r.text()), "error");
     }
   } catch (err) {
-    if (err.message !== "Unauthorized")
+    if (err.message !== "Unauthorized") {
       console.error("Review action failed:", err);
+      showToast("Review action failed. Please try again.", "error");
+    }
   }
 }
 

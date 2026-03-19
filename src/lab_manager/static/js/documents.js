@@ -26,8 +26,10 @@ async function loadDocuments() {
     document.getElementById("page-info").textContent =
       "Page " + (data.page || 1) + " of " + (data.pages || 1);
   } catch (err) {
-    if (err.message !== "Unauthorized")
+    if (err.message !== "Unauthorized") {
       console.error("Failed to load documents:", err);
+      showToast("Failed to load documents. Check your connection.", "error");
+    }
   }
 }
 
