@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { documents as docApi } from '@/lib/api'
 import type { Document } from '@/lib/api'
-import { Search, ChevronLeft, ChevronRight, RefreshCw, FileText } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, RefreshCw, FileText, XCircle } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 
 interface DocumentsPageProps {
@@ -12,11 +12,13 @@ interface DocumentsPageProps {
 export function DocumentsPage({ onError }: DocumentsPageProps) {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [selectedDoc, setSelectedDoc] = useState<Document | null>(null)
   const pageSize = 20
 
   const { data: res, isLoading, error, refetch } = useQuery({
-    queryKey: ['documents', page, search],
-    queryFn: () => docApi.list(page, pageSize),
+    queryKey: ['documents', page, search, statusFilter],
+    queryFn: () => docApi.list(page, pageSize, statusFilter !== 'all' ? statusFilter : undefined),
   })
 
   useEffect(() => {
@@ -66,6 +68,29 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
         </button>
       </div>
 
+      {/* Status filter tabs */}
+      <div className="flex items-center gap-1 border-b border-[var(--border)]">
+        {[
+          { key: 'all', label: 'All' },
+          { key: 'approved', label: 'Approved' },
+          { key: 'needs_review', label: 'Needs Review' },
+          { key: 'rejected', label: 'Rejected' },
+          { key: 'processing', label: 'Processing' },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => { setStatusFilter(tab.key); setPage(1) }}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              statusFilter === tab.key
+                ? 'border-[var(--primary)] text-[var(--primary)]'
+                : 'border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* Table */}
       <div className="card !p-0 overflow-hidden">
         <table className="w-full text-sm">
@@ -92,7 +117,8 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
             {docs.map((doc) => (
               <tr
                 key={doc.id}
-                className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--muted)]/50 transition-colors"
+                onClick={() => setSelectedDoc(doc)}
+                className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--muted)]/50 transition-colors cursor-pointer"
               >
                 <td className="px-4 py-3">
                   <span className="text-[var(--foreground)] font-medium">
@@ -137,6 +163,54 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
           </div>
         )}
       </div>
+
+      {/* Detail side panel */}
+      {selectedDoc && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setSelectedDoc(null)} />
+          <div className="relative w-full max-w-md bg-[var(--card)] border-l border-[var(--border)] h-full overflow-y-auto p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-display font-semibold text-[var(--foreground)]">
+                {selectedDoc.filename ?? `Document #${selectedDoc.id}`}
+              </h3>
+              <button onClick={() => setSelectedDoc(null)} className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <span className="text-xs text-[var(--muted-foreground)] uppercase tracking-wider">Status</span>
+                <div className="mt-1">
+                  <span className={statusColor(selectedDoc.status)}>{selectedDoc.status ?? 'unknown'}</span>
+                </div>
+              </div>
+              <div>
+                <span className="text-xs text-[var(--muted-foreground)] uppercase tracking-wider">Vendor</span>
+                <p className="text-sm text-[var(--foreground)] mt-1">{selectedDoc.vendor_name ?? '—'}</p>
+              </div>
+              <div>
+                <span className="text-xs text-[var(--muted-foreground)] uppercase tracking-wider">Type</span>
+                <p className="text-sm text-[var(--foreground)] mt-1">{selectedDoc.document_type ?? '—'}</p>
+              </div>
+              <div>
+                <span className="text-xs text-[var(--muted-foreground)] uppercase tracking-wider">Date</span>
+                <p className="text-sm text-[var(--foreground)] mt-1">
+                  {selectedDoc.created_at ? new Date(selectedDoc.created_at).toLocaleString() : '—'}
+                </p>
+              </div>
+              {selectedDoc.source_url && (
+                <div>
+                  <span className="text-xs text-[var(--muted-foreground)] uppercase tracking-wider">Source</span>
+                  <p className="mt-1">
+                    <a href={selectedDoc.source_url} target="_blank" rel="noopener noreferrer"
+                      className="text-sm text-[var(--info)] hover:underline">View original scan</a>
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (
