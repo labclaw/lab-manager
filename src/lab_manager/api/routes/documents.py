@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, UploadFile
 from pydantic import BaseModel, field_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -15,7 +16,17 @@ from lab_manager.models.document import Document, DocumentStatus
 from lab_manager.models.order import Order, OrderItem, OrderStatus
 from lab_manager.models.vendor import Vendor
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
+
+_ALLOWED_CONTENT_TYPES = {
+    "image/png",
+    "image/jpeg",
+    "image/tiff",
+    "application/pdf",
+}
+_MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
 
 
 _DOC_SORTABLE = {
@@ -97,6 +108,68 @@ class ReviewAction(BaseModel):
     action: Literal["approve", "reject"]
     reviewed_by: str = "scientist"
     review_notes: Optional[str] = None
+
+
+@router.post("/upload", status_code=201)
+def upload_document(
+    file: UploadFile,
+    db: Session = Depends(get_db),
+):
+    """Upload a document photo/PDF and create a pending Document record."""
+    from datetime import datetime
+    from pathlib import Path
+
+    from fastapi.responses import JSONResponse
+
+    from lab_manager.config import get_settings
+
+    # Validate content type
+    if file.content_type not in _ALLOWED_CONTENT_TYPES:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "detail": f"File type '{file.content_type}' not allowed. "
+                f"Accepted: {', '.join(sorted(_ALLOWED_CONTENT_TYPES))}"
+            },
+        )
+
+    # Read file content and check size
+    content = file.file.read()
+    if len(content) > _MAX_UPLOAD_BYTES:
+        return JSONResponse(
+            status_code=413,
+            content={
+                "detail": f"File too large ({len(content)} bytes). "
+                f"Maximum: {_MAX_UPLOAD_BYTES} bytes (50 MB)."
+            },
+        )
+
+    # Build unique filename with timestamp prefix (include microseconds for uniqueness)
+    settings = get_settings()
+    now = datetime.now()
+    timestamp = now.strftime("%Y%m%d_%H%M%S")
+    usec = f"{now.microsecond:06d}"
+    safe_name = file.filename or "unnamed"
+    saved_name = f"{timestamp}_{usec}_{safe_name}"
+
+    # Save to disk
+    upload_dir = Path(settings.upload_dir)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    dest = upload_dir / saved_name
+    dest.write_bytes(content)
+
+    logger.info("Uploaded file %s (%d bytes)", saved_name, len(content))
+
+    # Create Document record
+    doc = Document(
+        file_path=str(dest),
+        file_name=saved_name,
+        status=DocumentStatus.pending,
+    )
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
+    return doc
 
 
 @router.get("/stats")
