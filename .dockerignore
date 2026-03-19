@@ -17,3 +17,9 @@ __pycache__/
 docs/superpowers/
 uploads/
 *.safetensors
+.claude/
+tests/
+.coverage
+htmlcov/
+.mypy_cache/
+.DS_Store

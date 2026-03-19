@@ -59,6 +59,7 @@ services:
     build: .
     expose:
       - "8000"
+    mem_limit: 1g
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-labmanager}:${POSTGRES_PASSWORD:?err}@db:5432/${POSTGRES_DB:-labmanager}
       DATABASE_READONLY_URL: postgresql+psycopg://labmanager_ro:${POSTGRES_RO_PASSWORD:?err}@db:5432/${POSTGRES_DB:-labmanager}
