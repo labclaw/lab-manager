@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -91,6 +92,8 @@ class ProductResponse(BaseModel):
     storage_temp: Optional[str] = None
     unit: Optional[str] = None
     hazard_info: Optional[str] = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 @router.get("/")

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -49,6 +50,8 @@ class VendorResponse(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     notes: Optional[str] = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 @router.get("/")
