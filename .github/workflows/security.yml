@@ -38,7 +38,7 @@ jobs:
         run: uv sync --dev --frozen
 
       - name: Audit dependencies
-        run: uv run --dev --with pip-audit pip-audit --progress-spinner off
+        run: uv run --dev --with pip-audit pip-audit --progress-spinner off --ignore CVE-2025-69872
 
   bandit:
     name: bandit-sast

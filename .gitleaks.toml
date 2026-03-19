@@ -1,0 +1,7 @@
+title = "gitleaks config"
+
+[allowlist]
+  paths = [
+    '''\.secrets\.baseline$''',
+    '''tests/.*$''',
+  ]

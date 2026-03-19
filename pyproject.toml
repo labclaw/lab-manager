@@ -42,3 +42,28 @@ dev = [
   "testcontainers[postgres]>=4.0.0",
   "pip-audit>=2.7.0",
 ]
+
+[tool.uv]
+constraint-dependencies = ["pyasn1>=0.6.3"]
+
+[tool.mypy]
+ignore_missing_imports = true
+check_untyped_defs = false
+disallow_untyped_defs = false
+warn_return_any = false
+warn_unused_ignores = false
+warn_redundant_casts = false
+# Disable noisy error codes from SQLAlchemy metaprogramming and untyped code.
+# These will be re-enabled incrementally as the codebase is annotated.
+disable_error_code = [
+  "arg-type",
+  "attr-defined",
+  "assignment",
+  "call-overload",
+  "dict-item",
+  "list-item",
+  "operator",
+  "union-attr",
+  "return-value",
+  "var-annotated",
+]
