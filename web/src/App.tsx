@@ -53,6 +53,7 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [alertCount, setAlertCount] = useState(0)
   const [reviewCount, setReviewCount] = useState(0)
+  const [darkMode, setDarkMode] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const location = useLocation()
 
@@ -66,6 +67,30 @@ export default function App() {
       setLoading(false)
     }
   }, [])
+
+  useEffect(() => {
+    const stored = localStorage.getItem('darkMode')
+    const isDark = stored === 'true'
+    setDarkMode(isDark)
+    if (isDark) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [])
+
+  const toggleDarkMode = () => {
+    setDarkMode(prev => {
+      const next = !prev
+      localStorage.setItem('darkMode', String(next))
+      if (next) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+      return next
+    })
+  }
 
   useEffect(() => {
     checkAuth()
@@ -110,8 +135,8 @@ export default function App() {
         <div className="flex-1 flex flex-col min-w-0">
           <Header
             title={PAGE_TITLES[location.pathname] ?? 'Lab Manager'}
-            darkMode={true}
-            onToggleDarkMode={() => {}}
+            darkMode={darkMode}
+            onToggleDarkMode={toggleDarkMode}
           />
           <main className="flex-1 overflow-y-auto p-6">
             <Routes>
