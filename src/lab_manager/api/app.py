@@ -90,7 +90,7 @@ def _load_session_staff(session_cookie: str):
 
         staff = db.get(Staff, staff_id)
         if staff and staff.is_active:
-            return {"id": staff.id, "name": staff.name}
+            return {"id": staff.id, "name": staff.name, "email": staff.email}
 
     logger.warning(
         "Session for inactive/missing staff_id=%s name=%s",
@@ -188,6 +188,7 @@ def create_app() -> FastAPI:
                     staff = _load_session_staff(session_cookie)
                     if staff:
                         user = staff["name"]
+                        request.state.user_email = staff["email"]
                         authenticated = True
                 except BadSignature:
                     logger.warning("Invalid session cookie signature")
@@ -331,6 +332,21 @@ def create_app() -> FastAPI:
             secure=get_settings().secure_cookies,
         )
         logger.info("Login successful for %s (staff_id=%s)", staff_email, staff_id)
+        from lab_manager.database import get_db_session
+        from lab_manager.models.usage_event import UsageEvent
+
+        try:
+            with get_db_session() as _db:
+                _db.add(
+                    UsageEvent(
+                        user_email=staff_email,
+                        event_type="login",
+                        page="/api/auth/login",
+                    )
+                )
+                _db.commit()
+        except Exception:
+            logger.warning("Failed to record login telemetry event", exc_info=True)
         return response
 
     @app.get("/api/auth/me")
@@ -490,6 +506,7 @@ def create_app() -> FastAPI:
         orders,
         products,
         search,
+        telemetry,
         vendors,
     )
 
@@ -519,6 +536,9 @@ def create_app() -> FastAPI:
     api_router.include_router(export.router, prefix="/api/v1/export", tags=["export"])
     api_router.include_router(audit.router, prefix="/api/v1/audit", tags=["audit"])
     api_router.include_router(alerts.router, prefix="/api/v1/alerts", tags=["alerts"])
+    api_router.include_router(
+        telemetry.router, prefix="/api/telemetry", tags=["telemetry"]
+    )
     app.include_router(api_router)
 
     # --- Apply rate limiting decorators to GET /api/ask endpoint ---
