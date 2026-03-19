@@ -48,3 +48,4 @@ dev = [
   "ruff>=0.11.0",
   "testcontainers[postgres]>=4.0.0",
 ]
+# ruff config line-length = 120
