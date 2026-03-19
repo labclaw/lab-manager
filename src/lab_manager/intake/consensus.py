@@ -113,7 +113,6 @@ def consensus_merge(extractions: dict[str, Optional[dict]]) -> dict:
                     "agreement": "tied",
                     "tied_groups": {k: unique_vals[k] for k in tied_groups},
                     "needs_human": True,
-                    "tied_values": {k: unique_vals[k] for k in tied_groups},
                 }
             else:
                 for model in sorted(
