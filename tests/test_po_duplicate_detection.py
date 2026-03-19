@@ -114,7 +114,7 @@ class TestCreateOrderDuplicateApi:
     def test_no_duplicate_clean_response(self, client):
         """Creating an order with a unique PO returns the order without warning."""
         resp = client.post(
-            "/api/orders/",
+            "/api/v1/orders/",
             json={"po_number": "UNIQUE-001", "status": "pending"},
         )
         assert resp.status_code == 201
@@ -127,12 +127,12 @@ class TestCreateOrderDuplicateApi:
 
     def test_duplicate_triggers_warning_same_vendor(self, client):
         """Creating a second order with the same PO+vendor returns a warning."""
-        vendor_resp = client.post("/api/vendors/", json={"name": "DupVendor"})
+        vendor_resp = client.post("/api/v1/vendors/", json={"name": "DupVendor"})
         vid = vendor_resp.json()["id"]
 
         # First order — unique
         r1 = client.post(
-            "/api/orders/",
+            "/api/v1/orders/",
             json={"po_number": "DUP-001", "vendor_id": vid, "status": "pending"},
         )
         assert r1.status_code == 201
@@ -140,7 +140,7 @@ class TestCreateOrderDuplicateApi:
 
         # Second order — duplicate
         r2 = client.post(
-            "/api/orders/",
+            "/api/v1/orders/",
             json={"po_number": "DUP-001", "vendor_id": vid, "status": "pending"},
         )
         assert r2.status_code == 201  # still 201 — duplicates warn, not block
@@ -152,15 +152,15 @@ class TestCreateOrderDuplicateApi:
 
     def test_different_vendor_same_po_no_warning(self, client):
         """Same PO# for a different vendor must not trigger a warning."""
-        v1 = client.post("/api/vendors/", json={"name": "VendorA"}).json()["id"]
-        v2 = client.post("/api/vendors/", json={"name": "VendorB"}).json()["id"]
+        v1 = client.post("/api/v1/vendors/", json={"name": "VendorA"}).json()["id"]
+        v2 = client.post("/api/v1/vendors/", json={"name": "VendorB"}).json()["id"]
 
         client.post(
-            "/api/orders/",
+            "/api/v1/orders/",
             json={"po_number": "SHARED-001", "vendor_id": v1, "status": "pending"},
         )
         resp = client.post(
-            "/api/orders/",
+            "/api/v1/orders/",
             json={"po_number": "SHARED-001", "vendor_id": v2, "status": "pending"},
         )
         assert resp.status_code == 201
@@ -168,7 +168,7 @@ class TestCreateOrderDuplicateApi:
 
     def test_no_po_number_no_warning(self, client):
         """Order without a PO# must never produce a warning."""
-        resp = client.post("/api/orders/", json={"status": "pending"})
+        resp = client.post("/api/v1/orders/", json={"status": "pending"})
         assert resp.status_code == 201
         assert "_duplicate_warning" not in resp.json()
 
@@ -178,13 +178,13 @@ class TestCreateOrderDuplicateApi:
     ):
         """A cancelled/deleted order with the same PO must not trigger a warning."""
         vendor_resp = client.post(
-            "/api/vendors/", json={"name": f"V-{cancelled_status}"}
+            "/api/v1/vendors/", json={"name": f"V-{cancelled_status}"}
         )
         vid = vendor_resp.json()["id"]
 
         # First order — then soft-cancel / delete it
         r1 = client.post(
-            "/api/orders/",
+            "/api/v1/orders/",
             json={
                 "po_number": f"INACT-{cancelled_status}",
                 "vendor_id": vid,
@@ -195,7 +195,7 @@ class TestCreateOrderDuplicateApi:
 
         # Second order with same PO — the previous inactive one should be ignored
         r2 = client.post(
-            "/api/orders/",
+            "/api/v1/orders/",
             json={
                 "po_number": f"INACT-{cancelled_status}",
                 "vendor_id": vid,

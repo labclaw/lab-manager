@@ -103,7 +103,7 @@ def ctx():
     target_fixture="prd_vendor",
 )
 def create_vendor_for_products(api, ctx, name):
-    r = api.post("/api/vendors/", json={"name": name})
+    r = api.post("/api/v1/vendors/", json={"name": name})
     assert r.status_code == 201, r.text
     v = r.json()
     ctx.setdefault("vendors", {})[name] = v
@@ -116,7 +116,7 @@ def create_vendor_for_products(api, ctx, name):
 )
 def create_product_given(api, prd_vendor, name, catalog):
     r = api.post(
-        "/api/products/",
+        "/api/v1/products/",
         json={
             "name": name,
             "catalog_number": catalog,
@@ -133,7 +133,7 @@ def create_n_products_for_vendor(api, ctx, n, vendor_name):
     for i in range(n):
         seq = next(_seq)
         r = api.post(
-            "/api/products/",
+            "/api/v1/products/",
             json={
                 "name": f"Product {seq}",
                 "catalog_number": f"PCAT-{seq:05d}",
@@ -148,7 +148,7 @@ def create_products_for_search(api, prd_vendor, datatable):
     rows = _table_to_dicts(datatable)
     for row in rows:
         r = api.post(
-            "/api/products/",
+            "/api/v1/products/",
             json={
                 "name": row["name"],
                 "catalog_number": row["catalog"],
@@ -162,7 +162,7 @@ def create_products_for_search(api, prd_vendor, datatable):
 def create_inventory_for_product(api, product, n):
     for i in range(n):
         r = api.post(
-            "/api/inventory/",
+            "/api/v1/inventory/",
             json={
                 "product_id": product["id"],
                 "quantity_on_hand": 10,
@@ -178,7 +178,7 @@ def create_order_items_for_product(api, prd_vendor, product, n):
     for i in range(n):
         # Create an order first
         r = api.post(
-            "/api/orders/",
+            "/api/v1/orders/",
             json={
                 "vendor_id": prd_vendor["id"],
                 "po_number": f"PO-PORD-{next(_seq)}",
@@ -189,7 +189,7 @@ def create_order_items_for_product(api, prd_vendor, product, n):
         order = r.json()
         # Add item referencing the product
         r = api.post(
-            f"/api/orders/{order['id']}/items",
+            f"/api/v1/orders/{order['id']}/items",
             json={
                 "product_id": product["id"],
                 "catalog_number": product["catalog_number"],
@@ -210,7 +210,7 @@ def create_order_items_for_product(api, prd_vendor, product, n):
 )
 def create_product_when(api, prd_vendor, name, catalog):
     r = api.post(
-        "/api/products/",
+        "/api/v1/products/",
         json={
             "name": name,
             "catalog_number": catalog,
@@ -228,7 +228,7 @@ def create_product_when(api, prd_vendor, name, catalog):
 )
 def create_product_with_cas(api, prd_vendor, name, catalog, cas):
     r = api.post(
-        "/api/products/",
+        "/api/v1/products/",
         json={
             "name": name,
             "catalog_number": catalog,
@@ -245,7 +245,7 @@ def create_product_with_cas(api, prd_vendor, name, catalog, cas):
 )
 def create_product_invalid_cas(api, prd_vendor, cas):
     r = api.post(
-        "/api/products/",
+        "/api/v1/products/",
         json={
             "name": "Bad CAS Product",
             "catalog_number": f"BADCAS-{next(_seq)}",
@@ -262,7 +262,7 @@ def create_product_invalid_cas(api, prd_vendor, cas):
 )
 def create_product_empty_name(api, prd_vendor):
     r = api.post(
-        "/api/products/",
+        "/api/v1/products/",
         json={
             "name": "",
             "catalog_number": f"EMPTY-{next(_seq)}",
@@ -274,7 +274,7 @@ def create_product_empty_name(api, prd_vendor):
 
 @when("I get the product by id", target_fixture="prd_detail")
 def get_product_by_id(api, product):
-    r = api.get(f"/api/products/{product['id']}")
+    r = api.get(f"/api/v1/products/{product['id']}")
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -284,7 +284,7 @@ def get_product_by_id(api, product):
     target_fixture="prd_response",
 )
 def get_product_nonexistent(api, pid):
-    return api.get(f"/api/products/{pid}")
+    return api.get(f"/api/v1/products/{pid}")
 
 
 @when(
@@ -293,7 +293,7 @@ def get_product_nonexistent(api, pid):
 )
 def list_products_for_vendor(api, ctx, vendor_name):
     v = ctx["vendors"][vendor_name]
-    r = api.get("/api/products/", params={"vendor_id": v["id"]})
+    r = api.get("/api/v1/products/", params={"vendor_id": v["id"]})
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -303,7 +303,7 @@ def list_products_for_vendor(api, ctx, vendor_name):
     target_fixture="prd_list",
 )
 def search_products(api, query):
-    r = api.get("/api/products/", params={"search": query})
+    r = api.get("/api/v1/products/", params={"search": query})
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -313,26 +313,26 @@ def search_products(api, query):
     target_fixture="prd_detail",
 )
 def update_product_name(api, product, name):
-    r = api.patch(f"/api/products/{product['id']}", json={"name": name})
+    r = api.patch(f"/api/v1/products/{product['id']}", json={"name": name})
     assert r.status_code == 200, r.text
     return r.json()
 
 
 @when("I delete the product", target_fixture="prd_response")
 def delete_product(api, product):
-    return api.delete(f"/api/products/{product['id']}")
+    return api.delete(f"/api/v1/products/{product['id']}")
 
 
 @when("I list inventory for the product", target_fixture="prd_linked_list")
 def list_product_inventory(api, product):
-    r = api.get(f"/api/products/{product['id']}/inventory")
+    r = api.get(f"/api/v1/products/{product['id']}/inventory")
     assert r.status_code == 200, r.text
     return r.json()
 
 
 @when("I list orders for the product", target_fixture="prd_linked_list")
 def list_product_orders(api, product):
-    r = api.get(f"/api/products/{product['id']}/orders")
+    r = api.get(f"/api/v1/products/{product['id']}/orders")
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -341,7 +341,7 @@ def list_product_orders(api, product):
 def create_product_max_name(api, prd_vendor):
     long_name = "A" * 500
     r = api.post(
-        "/api/products/",
+        "/api/v1/products/",
         json={
             "name": long_name,
             "catalog_number": f"MAXNAME-{next(_seq)}",

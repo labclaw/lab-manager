@@ -81,12 +81,12 @@ def ctx():
 
 @given("some baseline data exists for analytics", target_fixture="analytics_vendor")
 def create_baseline_data(api):
-    r = api.post("/api/vendors/", json={"name": "Analytics Vendor"})
+    r = api.post("/api/v1/vendors/", json={"name": "Analytics Vendor"})
     assert r.status_code == 201, r.text
     vendor = r.json()
 
     r = api.post(
-        "/api/products/",
+        "/api/v1/products/",
         json={
             "name": "Analytics Product",
             "catalog_number": f"ANAL-{next(_seq):05d}",
@@ -96,7 +96,7 @@ def create_baseline_data(api):
     assert r.status_code == 201, r.text
 
     r = api.post(
-        "/api/orders/",
+        "/api/v1/orders/",
         json={
             "vendor_id": vendor["id"],
             "po_number": f"PO-ANAL-{next(_seq):05d}",
@@ -106,7 +106,7 @@ def create_baseline_data(api):
     assert r.status_code == 201, r.text
 
     product = api.post(
-        "/api/products/",
+        "/api/v1/products/",
         json={
             "name": "Analytics Inv Product",
             "catalog_number": f"ANAL-INV-{next(_seq):05d}",
@@ -117,7 +117,7 @@ def create_baseline_data(api):
     prod_id = product.json()["id"]
 
     r = api.post(
-        "/api/inventory/",
+        "/api/v1/inventory/",
         json={
             "product_id": prod_id,
             "quantity_on_hand": 10,
@@ -135,12 +135,12 @@ def create_baseline_data(api):
     target_fixture="spend_vendor",
 )
 def create_vendor_with_priced_items(api, name):
-    r = api.post("/api/vendors/", json={"name": name})
+    r = api.post("/api/v1/vendors/", json={"name": name})
     assert r.status_code == 201, r.text
     vendor = r.json()
 
     r = api.post(
-        "/api/orders/",
+        "/api/v1/orders/",
         json={
             "vendor_id": vendor["id"],
             "po_number": f"PO-SPEND-{next(_seq):05d}",
@@ -152,7 +152,7 @@ def create_vendor_with_priced_items(api, name):
     order = r.json()
 
     r = api.post(
-        f"/api/orders/{order['id']}/items",
+        f"/api/v1/orders/{order['id']}/items",
         json={
             "catalog_number": f"SPEND-{next(_seq):05d}",
             "description": "Priced Item",
@@ -171,12 +171,12 @@ def create_vendor_with_priced_items(api, name):
     target_fixture="top_vendor",
 )
 def create_vendor_with_ordered_products(api, name):
-    r = api.post("/api/vendors/", json={"name": name})
+    r = api.post("/api/v1/vendors/", json={"name": name})
     assert r.status_code == 201, r.text
     vendor = r.json()
 
     r = api.post(
-        "/api/orders/",
+        "/api/v1/orders/",
         json={
             "vendor_id": vendor["id"],
             "po_number": f"PO-TOP-{next(_seq):05d}",
@@ -188,7 +188,7 @@ def create_vendor_with_ordered_products(api, name):
 
     for i in range(3):
         r = api.post(
-            f"/api/orders/{order['id']}/items",
+            f"/api/v1/orders/{order['id']}/items",
             json={
                 "catalog_number": f"TOP-{next(_seq):05d}",
                 "description": f"Top Product {i + 1}",
@@ -206,13 +206,13 @@ def create_vendor_with_ordered_products(api, name):
     target_fixture="hist_vendor",
 )
 def create_vendor_with_n_orders(api, name, n):
-    r = api.post("/api/vendors/", json={"name": name})
+    r = api.post("/api/v1/vendors/", json={"name": name})
     assert r.status_code == 201, r.text
     vendor = r.json()
 
     for i in range(n):
         r = api.post(
-            "/api/orders/",
+            "/api/v1/orders/",
             json={
                 "vendor_id": vendor["id"],
                 "po_number": f"PO-HIST-{next(_seq):05d}",
@@ -229,12 +229,12 @@ def create_vendor_with_n_orders(api, name, n):
     target_fixture="summary_vendor",
 )
 def create_vendor_with_products_and_orders(api, name):
-    r = api.post("/api/vendors/", json={"name": name})
+    r = api.post("/api/v1/vendors/", json={"name": name})
     assert r.status_code == 201, r.text
     vendor = r.json()
 
     r = api.post(
-        "/api/products/",
+        "/api/v1/products/",
         json={
             "name": "Summary Product",
             "catalog_number": f"SUM-{next(_seq):05d}",
@@ -244,7 +244,7 @@ def create_vendor_with_products_and_orders(api, name):
     assert r.status_code == 201, r.text
 
     r = api.post(
-        "/api/orders/",
+        "/api/v1/orders/",
         json={
             "vendor_id": vendor["id"],
             "po_number": f"PO-SUM-{next(_seq):05d}",
@@ -260,7 +260,7 @@ def create_vendor_with_products_and_orders(api, name):
 def create_docs_for_analytics(api, n):
     for i in range(n):
         r = api.post(
-            "/api/documents/",
+            "/api/v1/documents/",
             json={
                 "file_name": f"analytics_doc_{i}.jpg",
                 "file_path": f"/uploads/analytics_doc_{i}.jpg",
@@ -275,56 +275,56 @@ def create_docs_for_analytics(api, n):
 
 @when("I request the dashboard", target_fixture="dashboard_response")
 def request_dashboard(api):
-    r = api.get("/api/analytics/dashboard")
+    r = api.get("/api/v1/analytics/dashboard")
     assert r.status_code == 200, r.text
     return r.json()
 
 
 @when("I request spending by vendor", target_fixture="spending_response")
 def request_spending_by_vendor(api):
-    r = api.get("/api/analytics/spending/by-vendor")
+    r = api.get("/api/v1/analytics/spending/by-vendor")
     assert r.status_code == 200, r.text
     return r.json()
 
 
 @when("I request spending by month", target_fixture="spending_month_response")
 def request_spending_by_month(api):
-    r = api.get("/api/analytics/spending/by-month")
+    r = api.get("/api/v1/analytics/spending/by-month")
     assert r.status_code == 200, r.text
     return r.json()
 
 
 @when("I request inventory value", target_fixture="inv_value_response")
 def request_inventory_value(api):
-    r = api.get("/api/analytics/inventory/value")
+    r = api.get("/api/v1/analytics/inventory/value")
     assert r.status_code == 200, r.text
     return r.json()
 
 
 @when("I request top products", target_fixture="top_products_response")
 def request_top_products(api):
-    r = api.get("/api/analytics/products/top")
+    r = api.get("/api/v1/analytics/products/top")
     assert r.status_code == 200, r.text
     return r.json()
 
 
 @when("I request order history", target_fixture="order_history_response")
 def request_order_history(api):
-    r = api.get("/api/analytics/orders/history")
+    r = api.get("/api/v1/analytics/orders/history")
     assert r.status_code == 200, r.text
     return r.json()
 
 
 @when("I request staff activity", target_fixture="staff_response")
 def request_staff_activity(api):
-    r = api.get("/api/analytics/staff/activity")
+    r = api.get("/api/v1/analytics/staff/activity")
     assert r.status_code == 200, r.text
     return r.json()
 
 
 @when("I request the vendor summary", target_fixture="vendor_summary_response")
 def request_vendor_summary(api, summary_vendor):
-    r = api.get(f"/api/analytics/vendors/{summary_vendor['id']}/summary")
+    r = api.get(f"/api/v1/analytics/vendors/{summary_vendor['id']}/summary")
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -334,7 +334,7 @@ def request_vendor_summary(api, summary_vendor):
     target_fixture="vendor_summary_raw",
 )
 def request_vendor_summary_404(api, vid):
-    return api.get(f"/api/analytics/vendors/{vid}/summary")
+    return api.get(f"/api/v1/analytics/vendors/{vid}/summary")
 
 
 @when(
@@ -342,7 +342,7 @@ def request_vendor_summary_404(api, vid):
     target_fixture="doc_stats_response",
 )
 def request_doc_stats(api):
-    r = api.get("/api/analytics/documents/stats")
+    r = api.get("/api/v1/analytics/documents/stats")
     assert r.status_code == 200, r.text
     return r.json()
 
