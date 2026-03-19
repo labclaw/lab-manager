@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Upload,
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
@@ -27,6 +28,7 @@ const navItems = [
   { path: '/inventory', label: 'Inventory', icon: Package },
   { path: '/orders', label: 'Orders', icon: FlaskConical },
   { path: '/documents', label: 'Documents', icon: FileText },
+  { path: '/upload', label: 'Upload', icon: Upload },
   { path: '/review', label: 'Review', icon: ClipboardCheck },
   { path: '/alerts', label: 'Alerts', icon: Bell },
 ]
