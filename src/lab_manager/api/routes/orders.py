@@ -5,15 +5,28 @@ from __future__ import annotations
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from lab_manager.api.deps import get_db
+from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
+from lab_manager.exceptions import NotFoundError
 from lab_manager.models.order import Order, OrderItem, OrderStatus
 
 router = APIRouter()
+
+
+def _get_order_item_or_raise(db: Session, order_id: int, item_id: int) -> OrderItem:
+    item = (
+        db.query(OrderItem)
+        .filter(OrderItem.id == item_id, OrderItem.order_id == order_id)
+        .first()
+    )
+    if not item:
+        raise NotFoundError("Order item", item_id)
+    return item
+
 
 _ORDER_SORTABLE = {
     "id",
@@ -133,17 +146,12 @@ def create_order(body: OrderCreate, db: Session = Depends(get_db)):
 
 @router.get("/{order_id}")
 def get_order(order_id: int, db: Session = Depends(get_db)):
-    order = db.get(Order, order_id)
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-    return order
+    return get_or_404(db, Order, order_id, "Order")
 
 
 @router.patch("/{order_id}")
 def update_order(order_id: int, body: OrderUpdate, db: Session = Depends(get_db)):
-    order = db.get(Order, order_id)
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
+    order = get_or_404(db, Order, order_id, "Order")
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(order, key, value)
     db.commit()
@@ -154,9 +162,7 @@ def update_order(order_id: int, body: OrderUpdate, db: Session = Depends(get_db)
 @router.delete("/{order_id}", status_code=204)
 def delete_order(order_id: int, db: Session = Depends(get_db)):
     """Soft-delete: set status to 'deleted'."""
-    order = db.get(Order, order_id)
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
+    order = get_or_404(db, Order, order_id, "Order")
     order.status = OrderStatus.deleted
     db.commit()
     return None
@@ -176,9 +182,7 @@ def list_order_items(
     lot_number: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
-    order = db.get(Order, order_id)
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
+    get_or_404(db, Order, order_id, "Order")
     q = db.query(OrderItem).filter(OrderItem.order_id == order_id)
     if catalog_number:
         q = q.filter(ilike_col(OrderItem.catalog_number, catalog_number))
@@ -192,9 +196,7 @@ def list_order_items(
 def create_order_item(
     order_id: int, body: OrderItemCreate, db: Session = Depends(get_db)
 ):
-    order = db.get(Order, order_id)
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
+    get_or_404(db, Order, order_id, "Order")
     item = OrderItem(**body.model_dump())
     item.order_id = order_id
     db.add(item)
@@ -205,27 +207,14 @@ def create_order_item(
 
 @router.get("/{order_id}/items/{item_id}")
 def get_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)):
-    item = (
-        db.query(OrderItem)
-        .filter(OrderItem.id == item_id, OrderItem.order_id == order_id)
-        .first()
-    )
-    if not item:
-        raise HTTPException(status_code=404, detail="Order item not found")
-    return item
+    return _get_order_item_or_raise(db, order_id, item_id)
 
 
 @router.patch("/{order_id}/items/{item_id}")
 def update_order_item(
     order_id: int, item_id: int, body: OrderItemUpdate, db: Session = Depends(get_db)
 ):
-    item = (
-        db.query(OrderItem)
-        .filter(OrderItem.id == item_id, OrderItem.order_id == order_id)
-        .first()
-    )
-    if not item:
-        raise HTTPException(status_code=404, detail="Order item not found")
+    item = _get_order_item_or_raise(db, order_id, item_id)
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
     db.commit()
@@ -235,13 +224,7 @@ def update_order_item(
 
 @router.delete("/{order_id}/items/{item_id}", status_code=204)
 def delete_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)):
-    item = (
-        db.query(OrderItem)
-        .filter(OrderItem.id == item_id, OrderItem.order_id == order_id)
-        .first()
-    )
-    if not item:
-        raise HTTPException(status_code=404, detail="Order item not found")
+    item = _get_order_item_or_raise(db, order_id, item_id)
     db.delete(item)
     db.commit()
     return None
@@ -271,14 +254,8 @@ class ReceiveBody(BaseModel):
 def receive_order(order_id: int, body: ReceiveBody, db: Session = Depends(get_db)):
     """Receive a shipment — creates inventory records from order items."""
     from lab_manager.services import inventory as inv_svc
-    from lab_manager.services.inventory import InventoryError, NotFoundError
 
     items_dicts = [item.model_dump() for item in body.items]
-    try:
-        return inv_svc.receive_items(
-            order_id, items_dicts, body.location_id, body.received_by, db
-        )
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except InventoryError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return inv_svc.receive_items(
+        order_id, items_dicts, body.location_id, body.received_by, db
+    )

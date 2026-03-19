@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
 import logging
 
 import meilisearch
@@ -83,6 +84,7 @@ INDEX_CONFIG: dict[str, dict] = {
 }
 
 
+@lru_cache(maxsize=1)
 def get_search_client() -> meilisearch.Client:
     settings = get_settings()
     api_key = settings.meilisearch_api_key or None

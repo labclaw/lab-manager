@@ -36,7 +36,6 @@ def test_valid_select_with_cte():
     [
         "vendors",
         "products",
-        "staff",
         "locations",
         "documents",
         "orders",

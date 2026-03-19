@@ -2,20 +2,32 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query, UploadFile
 from pydantic import BaseModel, field_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from lab_manager.api.deps import get_db
+from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.document import Document, DocumentStatus
 from lab_manager.models.order import Order, OrderItem, OrderStatus
 from lab_manager.models.vendor import Vendor
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
+
+_ALLOWED_CONTENT_TYPES = {
+    "image/png",
+    "image/jpeg",
+    "image/tiff",
+    "application/pdf",
+}
+_MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
+
 
 _DOC_SORTABLE = {
     "id",
@@ -29,6 +41,20 @@ _DOC_SORTABLE = {
 }
 
 _VALID_STATUSES = {s.value for s in DocumentStatus}
+
+_BLOCKED_PREFIXES = ("/etc/", "/proc/", "/sys/", "/var/", "/root/", "/home/")
+
+
+def _validate_file_path(v: str) -> str:
+    """Check for path traversal and blocked system directories."""
+    from pathlib import PurePosixPath
+
+    parts = PurePosixPath(v).parts
+    if ".." in parts:
+        raise ValueError("Path traversal not allowed")
+    if any(v.startswith(b) for b in _BLOCKED_PREFIXES):
+        raise ValueError("Path traversal not allowed")
+    return v
 
 
 class DocumentCreate(BaseModel):
@@ -47,9 +73,7 @@ class DocumentCreate(BaseModel):
     @field_validator("file_path")
     @classmethod
     def no_path_traversal(cls, v: str) -> str:
-        if ".." in v or v.startswith("/etc") or v.startswith("/proc"):
-            raise ValueError("Path traversal not allowed")
-        return v
+        return _validate_file_path(v)
 
     @field_validator("status")
     @classmethod
@@ -75,10 +99,8 @@ class DocumentUpdate(BaseModel):
     @field_validator("file_path")
     @classmethod
     def no_path_traversal(cls, v: str | None) -> str | None:
-        if v is not None and (
-            ".." in v or v.startswith("/etc") or v.startswith("/proc")
-        ):
-            raise ValueError("Path traversal not allowed")
+        if v is not None:
+            _validate_file_path(v)
         return v
 
 
@@ -86,6 +108,70 @@ class ReviewAction(BaseModel):
     action: Literal["approve", "reject"]
     reviewed_by: str = "scientist"
     review_notes: Optional[str] = None
+
+
+@router.post("/upload", status_code=201)
+def upload_document(
+    file: UploadFile,
+    db: Session = Depends(get_db),
+):
+    """Upload a document photo/PDF and create a pending Document record."""
+    from datetime import datetime
+    from pathlib import Path
+
+    from fastapi.responses import JSONResponse
+
+    from lab_manager.config import get_settings
+
+    # Validate content type
+    if file.content_type not in _ALLOWED_CONTENT_TYPES:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "detail": f"File type '{file.content_type}' not allowed. "
+                f"Accepted: {', '.join(sorted(_ALLOWED_CONTENT_TYPES))}"
+            },
+        )
+
+    # Read file content and check size
+    content = file.file.read()
+    if len(content) > _MAX_UPLOAD_BYTES:
+        return JSONResponse(
+            status_code=413,
+            content={
+                "detail": f"File too large ({len(content)} bytes). "
+                f"Maximum: {_MAX_UPLOAD_BYTES} bytes (50 MB)."
+            },
+        )
+
+    # Build unique filename with timestamp prefix (include microseconds for uniqueness)
+    settings = get_settings()
+    now = datetime.now()
+    timestamp = now.strftime("%Y%m%d_%H%M%S")
+    usec = f"{now.microsecond:06d}"
+    raw_name = file.filename or "unnamed"
+    # Strip directory separators and null bytes to prevent path traversal
+    safe_name = raw_name.replace("/", "_").replace("\\", "_").replace("\x00", "")
+    saved_name = f"{timestamp}_{usec}_{safe_name}"
+
+    # Save to disk
+    upload_dir = Path(settings.upload_dir)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    dest = upload_dir / saved_name
+    dest.write_bytes(content)
+
+    logger.info("Uploaded file %s (%d bytes)", saved_name, len(content))
+
+    # Create Document record
+    doc = Document(
+        file_path=str(dest),
+        file_name=saved_name,
+        status=DocumentStatus.pending,
+    )
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
+    return doc
 
 
 @router.get("/stats")
@@ -166,10 +252,7 @@ def create_document(body: DocumentCreate, db: Session = Depends(get_db)):
 
 @router.get("/{document_id}")
 def get_document(document_id: int, db: Session = Depends(get_db)):
-    document = db.get(Document, document_id)
-    if not document:
-        raise HTTPException(status_code=404, detail="Document not found")
-    return document
+    return get_or_404(db, Document, document_id, "Document")
 
 
 @router.patch("/{document_id}")
@@ -177,9 +260,7 @@ def update_document(
     document_id: int, body: DocumentUpdate, db: Session = Depends(get_db)
 ):
     """Partial update any document fields."""
-    doc = db.get(Document, document_id)
-    if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
+    doc = get_or_404(db, Document, document_id, "Document")
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(doc, key, value)
     db.commit()
@@ -190,9 +271,7 @@ def update_document(
 @router.delete("/{document_id}", status_code=204)
 def delete_document(document_id: int, db: Session = Depends(get_db)):
     """Soft-delete: set status to 'deleted'."""
-    doc = db.get(Document, document_id)
-    if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
+    doc = get_or_404(db, Document, document_id, "Document")
     doc.status = DocumentStatus.deleted
     db.commit()
     return None
@@ -203,9 +282,7 @@ def review_document(
     document_id: int, body: ReviewAction, db: Session = Depends(get_db)
 ):
     """Approve or reject a document extraction."""
-    doc = db.get(Document, document_id)
-    if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
+    doc = get_or_404(db, Document, document_id, "Document")
 
     if body.action == "approve":
         doc.status = DocumentStatus.approved
@@ -219,8 +296,6 @@ def review_document(
         doc.status = DocumentStatus.rejected
         doc.reviewed_by = body.reviewed_by
         doc.review_notes = body.review_notes
-    else:
-        raise HTTPException(status_code=400, detail="action must be approve or reject")
 
     db.commit()
     db.refresh(doc)

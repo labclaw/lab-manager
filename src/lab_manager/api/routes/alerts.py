@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from lab_manager.api.deps import get_db
+from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import paginate
 from lab_manager.models.alert import Alert
 from lab_manager.models.base import utcnow
@@ -67,9 +67,7 @@ def acknowledge_alert(
     db: Session = Depends(get_db),
 ):
     """Mark an alert as acknowledged."""
-    alert = db.get(Alert, alert_id)
-    if not alert:
-        raise HTTPException(status_code=404, detail="Alert not found")
+    alert = get_or_404(db, Alert, alert_id, "Alert")
     alert.is_acknowledged = True
     alert.acknowledged_by = acknowledged_by
     alert.acknowledged_at = utcnow()
@@ -84,9 +82,7 @@ def resolve_alert(
     db: Session = Depends(get_db),
 ):
     """Mark an alert as resolved."""
-    alert = db.get(Alert, alert_id)
-    if not alert:
-        raise HTTPException(status_code=404, detail="Alert not found")
+    alert = get_or_404(db, Alert, alert_id, "Alert")
     alert.is_resolved = True
     if not alert.is_acknowledged:
         alert.is_acknowledged = True

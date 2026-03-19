@@ -50,6 +50,7 @@ def get_readonly_engine():
                             pool_size=5,
                             max_overflow=5,
                             pool_pre_ping=True,
+                            connect_args={"options": "-c statement_timeout=10000"},
                         )
                     except Exception:
                         import logging

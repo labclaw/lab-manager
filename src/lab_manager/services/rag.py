@@ -209,11 +209,13 @@ _FORBIDDEN_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# Columns that must never appear in RAG queries (PII, credentials)
+_FORBIDDEN_COLUMNS = re.compile(r"\bpassword_hash\b", re.IGNORECASE)
+
 # Allowed table names for FROM/JOIN clauses
 _ALLOWED_TABLES = {
     "vendors",
     "products",
-    "staff",
     "locations",
     "documents",
     "orders",
@@ -267,6 +269,9 @@ def _validate_sql(sql: str) -> str:
     if _FORBIDDEN_PATTERN.search(sql):
         raise ValueError(f"Query contains forbidden keywords: {sql[:120]}...")
 
+    if _FORBIDDEN_COLUMNS.search(sql):
+        raise ValueError("Query references forbidden columns")
+
     # Enforce table allowlist: every FROM/JOIN target must be in _ALLOWED_TABLES.
     table_refs = _TABLE_REF_PATTERN.findall(sql)
     for ref in table_refs:
@@ -318,7 +323,7 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
 
     if use_dedicated_readonly:
         # Dedicated readonly PG user — DB enforces SELECT-only
-        with readonly_engine.connect() as conn:
+        with readonly_engine.connect() as conn, conn.begin():
             conn.execute(text(f"SET LOCAL statement_timeout = '{SQL_TIMEOUT_S}s'"))
             result = conn.execute(text(sql))
             columns = list(result.keys())

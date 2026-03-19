@@ -39,3 +39,4 @@ pipeline_v2_output/
 benchmarks/
 ocr-benchmark/data/scans/
 ocr-benchmark/reports/
+.gstack/

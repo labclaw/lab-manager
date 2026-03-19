@@ -1,63 +1,55 @@
 # lab-manager
 
-Private OCR-first foundation for a lab consumables intake and inventory system.
+Lab inventory management system with AI document intake for academic research labs.
 
-This repo is organized around the first critical problem in the pipeline:
+## What it does
 
-1. New package / packing list / invoice arrives.
-2. Staff takes a photo or uploads a scan.
-3. OCR extracts usable text from low-quality real-world documents.
-4. Backend normalizes fields and archives both image and structured data.
-5. Data lands in the inventory database.
+1. Staff photographs a packing list, invoice, or shipping label
+2. OCR extracts text from the scan
+3. Three VLMs extract structured data in parallel (vendor, products, quantities, lot numbers, dates)
+4. Consensus merge resolves disagreements; unresolved conflicts go to human review
+5. Approved data flows into the inventory database — searchable, trackable, auditable
 
-The current focus is the OCR benchmark. We are using the lab's own scanned documents, not generic public datasets.
+## Stack
 
-## Repository layout
-
-- `Scan*.pdf`, `Scan*.jpeg`: original benchmark samples from the lab.
-- `ocr-benchmark/`: OCR evaluation harness, model adapters, renders, and results.
-- `scripts/`: repo bootstrap and sync helpers.
-- `docs/`: model research notes and benchmark plan.
-
-## Quality bar
-
-This repo is quality-first. A model only passes if it can reliably recover the fields that matter for operations:
-
-- vendor / supplier
-- document type
-- order date / invoice date / package date
-- shipping and billing blocks
-- PO / delivery / sales order / invoice references
-- catalog number / item description / lot or batch
-- quantity
-- handwritten receiving date or note
+- **Backend:** Python 3.12+, FastAPI, SQLModel, PostgreSQL 17, Alembic
+- **Search:** Meilisearch full-text search with typo tolerance
+- **Frontend:** Vanilla JS SPA with hash routing
+- **AI Pipeline:** Multi-VLM consensus extraction (Claude, Gemini, GPT) + OCR
+- **Infrastructure:** Docker Compose, Caddy reverse proxy, Cloudflare Tunnel
+- **Package manager:** uv
 
 ## Quick start
 
 ```bash
-cd /Users/robert/workspace/36-labclaw/lab-manager
-./scripts/bootstrap_env.sh
-python3.12 ocr-benchmark/scripts/render_docs.py
-swift ocr-benchmark/scripts/ocr_vision.swift ocr-benchmark/data/renders ocr-benchmark/results/apple_vision.json
-python3.12 ocr-benchmark/scripts/run_tesseract.py ocr-benchmark/data/renders ocr-benchmark/results/tesseract.json
-python3.12 ocr-benchmark/scripts/evaluate_fields.py ocr-benchmark/data/gold_fields.json ocr-benchmark/results/apple_vision.json
+docker compose up -d          # PostgreSQL + Meilisearch
+uv run alembic upgrade head   # Apply migrations
+uv run uvicorn lab_manager.api.app:app --reload  # Dev server on :8000
+uv run pytest                 # Tests
 ```
 
-## GPU server sync
+## API
 
-The repo is prepared to sync to another PC that has a GPU server.
+71 endpoints across vendors, products, orders, inventory, documents, search, analytics, alerts, audit, and export. All list endpoints return paginated responses with filtering and sorting.
 
-Set:
+Key workflows:
+- **Document intake:** Upload scan → OCR → VLM extraction → review → approve/reject
+- **Inventory lifecycle:** Receive → consume/transfer/adjust/dispose
+- **Search:** Full-text search via Meilisearch + NL→SQL via Gemini RAG
 
-```bash
-export LAB_GPU_HOST=user@gpu-host
-export LAB_GPU_PATH=/srv/lab-manager
+## Project structure
+
+```
+src/lab_manager/
+  api/           — FastAPI app + routes
+  models/        — SQLModel DB models
+  intake/        — Document intake pipeline (OCR, VLM providers, consensus)
+  services/      — Search, RAG, alerts, analytics, audit, inventory
+  config.py      — Settings from env/.env
+scripts/         — CLI tools (pipeline, populate_db, index_meilisearch)
+tests/           — pytest suite
 ```
 
-Then run:
+## License
 
-```bash
-./scripts/sync_gpu_server.sh
-```
-
-This uses `rsync` for working tree sync. Git remains the source of truth for version history.
+Private — not yet open source.
