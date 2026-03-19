@@ -1,6 +1,5 @@
 """Tests for custom exception classes in lab_manager.exceptions."""
 
-
 from lab_manager.exceptions import (
     BusinessError,
     ConflictError,
@@ -98,4 +97,3 @@ def test_forbidden_error_custom_message():
     err = ForbiddenError("Access denied")
     assert err.message == "Access denied"
     assert str(err) == "Access denied"
-

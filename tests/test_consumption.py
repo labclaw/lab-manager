@@ -90,7 +90,10 @@ def test_consumption_action_type():
 
 
 def test_consumption_log_creation_happy_path(
-    session: Session, mock_inventory_item: InventoryItem, mock_product: Product, mock_staff: Staff
+    session: Session,
+    mock_inventory_item: InventoryItem,
+    mock_product: Product,
+    mock_staff: Staff,
 ):
     """Test successful creation of a ConsumptionLog entry with all required fields."""
     log = ConsumptionLog(
@@ -182,7 +185,10 @@ def test_consumption_log_action_enum_validation(
 
 
 def test_consumption_log_relationships(
-    session: Session, mock_inventory_item: InventoryItem, mock_product: Product, mock_staff: Staff
+    session: Session,
+    mock_inventory_item: InventoryItem,
+    mock_product: Product,
+    mock_staff: Staff,
 ):
     """Test that relationships are correctly established."""
     log = ConsumptionLog(
@@ -208,4 +214,3 @@ def test_consumption_log_relationships(
     assert mock_inventory_item.consumption_logs[0].id == log.id
     assert len(mock_product.consumption_logs) == 1
     assert mock_product.consumption_logs[0].id == log.id
-
