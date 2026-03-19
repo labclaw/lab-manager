@@ -178,6 +178,48 @@ def test_setup_complete_short_password_rejected(setup_client):
     assert resp.status_code == 422
 
 
+@pytest.mark.parametrize("bad_email", ["notanemail", "missing@domain", "@no-local.com"])
+def test_setup_complete_invalid_email_rejected(setup_client, bad_email):
+    """Invalid email format should be rejected."""
+    resp = setup_client.post(
+        "/api/setup/complete",
+        json={
+            "admin_name": "Dr. Smith",
+            "admin_email": bad_email,
+            "admin_password": "securepass123",
+        },
+    )
+    assert resp.status_code == 422, (
+        f"Expected 422 for email '{bad_email}', got {resp.status_code}"
+    )
+
+
+def test_setup_complete_empty_name_rejected(setup_client):
+    """Empty name should be rejected."""
+    resp = setup_client.post(
+        "/api/setup/complete",
+        json={
+            "admin_name": "   ",
+            "admin_email": "smith@mit.edu",
+            "admin_password": "securepass123",
+        },
+    )
+    assert resp.status_code == 422
+
+
+def test_setup_complete_long_name_rejected(setup_client):
+    """Name exceeding 200 characters should be rejected."""
+    resp = setup_client.post(
+        "/api/setup/complete",
+        json={
+            "admin_name": "A" * 201,
+            "admin_email": "smith@mit.edu",
+            "admin_password": "securepass123",
+        },
+    )
+    assert resp.status_code == 422
+
+
 def test_setup_no_auth_required(setup_client):
     """Setup complete should be accessible without authentication."""
     resp = setup_client.post(
