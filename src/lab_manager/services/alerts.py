@@ -326,6 +326,7 @@ def persist_alerts(db: Session) -> tuple[list[Alert], list[dict]]:
         created.append(alert)
 
     if created:
+        db.commit()
         for a in created:
             db.refresh(a)
     return created, current
