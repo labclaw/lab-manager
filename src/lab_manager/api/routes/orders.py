@@ -7,7 +7,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, field_validator
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
@@ -146,7 +146,7 @@ def list_orders(
     sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
 ):
-    q = db.query(Order)
+    q = db.query(Order).options(selectinload(Order.vendor), selectinload(Order.items))
     if vendor_id is not None:
         q = q.filter(Order.vendor_id == vendor_id)
     if status:

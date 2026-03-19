@@ -9,7 +9,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field as PydanticField, field_validator
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
@@ -110,7 +110,7 @@ def list_products(
     sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
 ):
-    q = db.query(Product)
+    q = db.query(Product).options(selectinload(Product.vendor))
     if not include_inactive:
         q = q.filter(Product.is_active == True)  # noqa: E712
     if vendor_id is not None:

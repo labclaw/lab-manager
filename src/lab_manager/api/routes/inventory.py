@@ -7,7 +7,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
@@ -105,7 +105,7 @@ def list_inventory(
     sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
 ):
-    q = db.query(InventoryItem)
+    q = db.query(InventoryItem).options(selectinload(InventoryItem.product))
     if product_id is not None:
         q = q.filter(InventoryItem.product_id == product_id)
     if location_id is not None:
