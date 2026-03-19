@@ -82,6 +82,9 @@ function handleRoute() {
   if (view === "dashboard") loadStats();
   if (view === "documents") loadDocuments();
   if (view === "review") loadReviewQueue();
+  if (view === "inventory") loadInventory();
+  if (view === "orders") loadOrders();
+  if (view === "upload") loadUpload();
 }
 
 window.addEventListener("hashchange", handleRoute);
