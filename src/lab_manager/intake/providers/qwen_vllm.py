@@ -5,11 +5,10 @@ from __future__ import annotations
 import base64
 import logging
 from pathlib import Path
-from typing import Optional
 
 from . import OCRProvider
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 DEFAULT_VLLM_URL = "http://localhost:8000/v1"
 
@@ -94,13 +93,14 @@ class GeminiAPIOCRProvider(OCRProvider):
     model_id = "gemini-3.1-flash-preview"
 
     def __init__(
-        self, model: str = "gemini-3.1-flash-preview", api_key: Optional[str] = None
+        self, model: str = "gemini-3.1-flash-preview", api_key: str | None = None
     ):
         self.model = model
         self.api_key = api_key
 
     def extract_text(self, image_path: str) -> str:
         import base64
+
         from google import genai
 
         api_key = self.api_key

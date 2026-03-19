@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import Optional
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -175,8 +174,8 @@ def dashboard_summary(db: Session) -> dict:
 
 def spending_by_vendor(
     db: Session,
-    date_from: Optional[date] = None,
-    date_to: Optional[date] = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
 ) -> list[dict]:
     q = (
         db.query(
@@ -307,9 +306,9 @@ def top_products(db: Session, limit: int = 20) -> list[dict]:
 
 def order_history(
     db: Session,
-    vendor_id: Optional[int] = None,
-    date_from: Optional[date] = None,
-    date_to: Optional[date] = None,
+    vendor_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
     limit: int = 500,
 ) -> list[dict]:
     q = (
@@ -380,7 +379,7 @@ def staff_activity(db: Session) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def vendor_summary(db: Session, vendor_id: int) -> Optional[dict]:
+def vendor_summary(db: Session, vendor_id: int) -> dict | None:
     vendor = db.get(Vendor, vendor_id)
     if not vendor:
         return None
@@ -426,7 +425,7 @@ def vendor_summary(db: Session, vendor_id: int) -> Optional[dict]:
 # ---------------------------------------------------------------------------
 
 
-def inventory_report(db: Session, location_id: Optional[int] = None) -> list[dict]:
+def inventory_report(db: Session, location_id: int | None = None) -> list[dict]:
     q = (
         db.query(
             InventoryItem,

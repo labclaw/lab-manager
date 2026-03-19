@@ -316,7 +316,7 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
     Falls back to the main engine with SET TRANSACTION READ ONLY.
     Enforces a row limit to prevent memory exhaustion.
     """
-    from lab_manager.database import get_readonly_engine, get_engine
+    from lab_manager.database import get_engine, get_readonly_engine
 
     readonly_engine = get_readonly_engine()
     use_dedicated_readonly = readonly_engine is not get_engine()
@@ -328,7 +328,8 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
             result = conn.execute(text(sql))
             columns = list(result.keys())
             rows = [
-                dict(zip(columns, row)) for row in result.fetchmany(MAX_RESULT_ROWS)
+                dict(zip(columns, row, strict=False))
+                for row in result.fetchmany(MAX_RESULT_ROWS)
             ]
             return _serialize_rows(rows)
     else:
@@ -340,7 +341,8 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
             result = db.execute(text(sql))
             columns = list(result.keys())
             rows = [
-                dict(zip(columns, row)) for row in result.fetchmany(MAX_RESULT_ROWS)
+                dict(zip(columns, row, strict=False))
+                for row in result.fetchmany(MAX_RESULT_ROWS)
             ]
             nested.commit()
             return _serialize_rows(rows)

@@ -3,7 +3,7 @@
 import enum
 from datetime import date
 from decimal import Decimal
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 import sqlalchemy as sa
 from sqlalchemy import Column
@@ -35,22 +35,22 @@ class Order(AuditMixin, table=True):
         ),
     )
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    po_number: Optional[str] = Field(default=None, max_length=100, index=True)
-    vendor_id: Optional[int] = Field(
+    id: int | None = Field(default=None, primary_key=True)
+    po_number: str | None = Field(default=None, max_length=100, index=True)
+    vendor_id: int | None = Field(
         default=None,
         sa_column=Column(
             sa.Integer, sa.ForeignKey("vendors.id", ondelete="RESTRICT"), index=True
         ),
     )
-    order_date: Optional[date] = Field(default=None, index=True)
-    ship_date: Optional[date] = Field(default=None)
-    received_date: Optional[date] = Field(default=None)
-    received_by: Optional[str] = Field(default=None, max_length=200)
+    order_date: date | None = Field(default=None, index=True)
+    ship_date: date | None = Field(default=None)
+    received_date: date | None = Field(default=None)
+    received_by: str | None = Field(default=None, max_length=200)
     status: str = Field(default="pending", max_length=30, index=True)
-    delivery_number: Optional[str] = Field(default=None, max_length=100)
-    invoice_number: Optional[str] = Field(default=None, max_length=100)
-    document_id: Optional[int] = Field(
+    delivery_number: str | None = Field(default=None, max_length=100)
+    invoice_number: str | None = Field(default=None, max_length=100)
+    document_id: int | None = Field(
         default=None,
         sa_column=Column(
             sa.Integer, sa.ForeignKey("documents.id", ondelete="SET NULL")
@@ -59,14 +59,14 @@ class Order(AuditMixin, table=True):
     extra: dict = Field(default_factory=dict, sa_column=Column(sa.JSON))
 
     vendor: Optional["Vendor"] = Relationship(back_populates="orders")
-    items: List["OrderItem"] = Relationship(back_populates="order")
+    items: list["OrderItem"] = Relationship(back_populates="order")
     document: Optional["Document"] = Relationship(back_populates="orders")
 
 
 class OrderItem(AuditMixin, table=True):
     __tablename__ = "order_items"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     order_id: int = Field(
         sa_column=Column(
             sa.Integer,
@@ -75,16 +75,16 @@ class OrderItem(AuditMixin, table=True):
             nullable=False,
         ),
     )
-    catalog_number: Optional[str] = Field(default=None, max_length=100, index=True)
-    description: Optional[str] = Field(default=None, max_length=1000)
+    catalog_number: str | None = Field(default=None, max_length=100, index=True)
+    description: str | None = Field(default=None, max_length=1000)
     quantity: Decimal = Field(default=1, sa_column=Column(sa.Numeric(12, 4), default=1))
-    unit: Optional[str] = Field(default=None, max_length=50)
-    lot_number: Optional[str] = Field(default=None, max_length=100, index=True)
-    batch_number: Optional[str] = Field(default=None, max_length=100)
-    unit_price: Optional[Decimal] = Field(
+    unit: str | None = Field(default=None, max_length=50)
+    lot_number: str | None = Field(default=None, max_length=100, index=True)
+    batch_number: str | None = Field(default=None, max_length=100)
+    unit_price: Decimal | None = Field(
         default=None, sa_column=Column(sa.Numeric(12, 4), nullable=True)
     )
-    product_id: Optional[int] = Field(
+    product_id: int | None = Field(
         default=None,
         sa_column=Column(sa.Integer, sa.ForeignKey("products.id", ondelete="SET NULL")),
     )
@@ -92,4 +92,4 @@ class OrderItem(AuditMixin, table=True):
 
     order: Optional["Order"] = Relationship(back_populates="items")
     product: Optional["Product"] = Relationship(back_populates="order_items")
-    inventory_items: List["InventoryItem"] = Relationship(back_populates="order_item")
+    inventory_items: list["InventoryItem"] = Relationship(back_populates="order_item")

@@ -14,14 +14,13 @@ from fastapi.staticfiles import StaticFiles
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from sqlalchemy import text
 
+# Import to register SQLAlchemy event listeners on module load.
+import lab_manager.services.audit as _audit_svc  # noqa: F401
 from lab_manager.api.admin import setup_admin
 from lab_manager.config import get_settings
 from lab_manager.database import get_engine
 from lab_manager.exceptions import BusinessError
 from lab_manager.logging_config import configure_logging
-
-# Import to register SQLAlchemy event listeners on module load.
-import lab_manager.services.audit as _audit_svc  # noqa: F401
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -72,7 +71,7 @@ def create_app() -> FastAPI:
     # Disable interactive docs in production (exposes full API schema)
     docs_kwargs = {}
     if settings.auth_enabled:
-        docs_kwargs = dict(docs_url=None, redoc_url=None, openapi_url=None)
+        docs_kwargs = {"docs_url": None, "redoc_url": None, "openapi_url": None}
     app = FastAPI(
         title="LabClaw Lab Manager",
         description="Lab inventory management with OCR document intake",

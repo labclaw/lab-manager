@@ -5,7 +5,6 @@ from __future__ import annotations
 import math
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import Optional
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -29,12 +28,12 @@ def _log_consumption(
     db: Session,
     *,
     inventory_id: int,
-    product_id: Optional[int],
+    product_id: int | None,
     quantity_used: float,
     quantity_remaining: float,
     consumed_by: str,
     action: str,
-    purpose: Optional[str] = None,
+    purpose: str | None = None,
 ) -> ConsumptionLog:
     """Write an entry to the consumption log."""
     entry = ConsumptionLog(
@@ -135,7 +134,7 @@ def consume(
     inventory_id: int,
     quantity: float,
     consumed_by: str,
-    purpose: Optional[str],
+    purpose: str | None,
     db: Session,
 ) -> InventoryItem:
     """Reduce quantity on hand. Mark depleted if 0."""

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -22,8 +21,8 @@ def get_dashboard(db: Session = Depends(get_db)):
 
 @router.get("/spending/by-vendor")
 def get_spending_by_vendor(
-    date_from: Optional[date] = Query(None),
-    date_to: Optional[date] = Query(None),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
     db: Session = Depends(get_db),
 ):
     return svc.spending_by_vendor(db, date_from=date_from, date_to=date_to)
@@ -44,7 +43,7 @@ def get_inventory_value(db: Session = Depends(get_db)):
 
 @router.get("/inventory/report")
 def get_inventory_report(
-    location_id: Optional[int] = Query(None),
+    location_id: int | None = Query(None),
     db: Session = Depends(get_db),
 ):
     return svc.inventory_report(db, location_id=location_id)
@@ -60,9 +59,9 @@ def get_top_products(
 
 @router.get("/orders/history")
 def get_order_history(
-    vendor_id: Optional[int] = Query(None),
-    date_from: Optional[date] = Query(None),
-    date_to: Optional[date] = Query(None),
+    vendor_id: int | None = Query(None),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
     db: Session = Depends(get_db),
 ):
     return svc.order_history(

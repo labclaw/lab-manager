@@ -1,7 +1,7 @@
 """Scanned document and extraction models."""
 
 import enum
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy import Column, Text
@@ -32,17 +32,17 @@ class Document(AuditMixin, table=True):
         ),
     )
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     file_path: str = Field(max_length=1000)
     file_name: str = Field(max_length=255, unique=True)
-    document_type: Optional[str] = Field(default=None, max_length=50, index=True)
-    vendor_name: Optional[str] = Field(default=None, max_length=255)
-    ocr_text: Optional[str] = Field(default=None, sa_column=Column(Text))
-    extracted_data: Optional[dict] = Field(default=None, sa_column=Column(sa.JSON))
-    extraction_model: Optional[str] = Field(default=None, max_length=100)
-    extraction_confidence: Optional[float] = Field(default=None)
+    document_type: str | None = Field(default=None, max_length=50, index=True)
+    vendor_name: str | None = Field(default=None, max_length=255)
+    ocr_text: str | None = Field(default=None, sa_column=Column(Text))
+    extracted_data: dict | None = Field(default=None, sa_column=Column(sa.JSON))
+    extraction_model: str | None = Field(default=None, max_length=100)
+    extraction_confidence: float | None = Field(default=None)
     status: str = Field(default="pending", max_length=30, index=True)
-    review_notes: Optional[str] = Field(default=None)
-    reviewed_by: Optional[str] = Field(default=None, max_length=200)
+    review_notes: str | None = Field(default=None)
+    reviewed_by: str | None = Field(default=None, max_length=200)
 
-    orders: List["Order"] = Relationship(back_populates="document")
+    orders: list["Order"] = Relationship(back_populates="document")

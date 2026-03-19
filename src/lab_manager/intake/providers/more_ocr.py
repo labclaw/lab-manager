@@ -8,12 +8,11 @@ from __future__ import annotations
 import logging
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 from . import OCRProvider
 from .qwen_vllm import OCR_PROMPT
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class DeepSeekVLProvider(OCRProvider):
@@ -32,6 +31,7 @@ class DeepSeekVLProvider(OCRProvider):
 
     def extract_text(self, image_path: str) -> str:
         import base64
+
         from openai import OpenAI
 
         client = OpenAI(base_url=self.base_url, api_key="dummy")
@@ -75,6 +75,7 @@ class GLMOCRProvider(OCRProvider):
 
     def extract_text(self, image_path: str) -> str:
         import base64
+
         from openai import OpenAI
 
         client = OpenAI(base_url=self.base_url, api_key="dummy")
@@ -139,15 +140,14 @@ class MistralOCRProvider(OCRProvider):
     name = "mistral_pixtral"
     model_id = "pixtral-large-latest"
 
-    def __init__(
-        self, api_key: Optional[str] = None, model: str = "pixtral-large-latest"
-    ):
+    def __init__(self, api_key: str | None = None, model: str = "pixtral-large-latest"):
         self.model = model
         self.api_key = api_key
 
     def extract_text(self, image_path: str) -> str:
         import base64
         import os
+
         from openai import OpenAI
 
         api_key = self.api_key or os.environ.get("MISTRAL_API_KEY", "")

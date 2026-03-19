@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
@@ -16,10 +14,10 @@ router = APIRouter()
 
 @router.get("/")
 def list_audit_logs(
-    table: Optional[str] = Query(None),
-    record_id: Optional[int] = Query(None),
-    action: Optional[str] = Query(None),
-    changed_by: Optional[str] = Query(None),
+    table: str | None = Query(None),
+    record_id: int | None = Query(None),
+    action: str | None = Query(None),
+    changed_by: str | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),

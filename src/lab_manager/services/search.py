@@ -2,19 +2,19 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
 import logging
+from functools import lru_cache
 
 import meilisearch
 from sqlalchemy.orm import Session
 
 from lab_manager.config import get_settings
-from lab_manager.services.serialization import serialize_value as _serialize_value
-from lab_manager.models.vendor import Vendor
-from lab_manager.models.product import Product
-from lab_manager.models.order import Order, OrderItem
-from lab_manager.models.inventory import InventoryItem
 from lab_manager.models.document import Document
+from lab_manager.models.inventory import InventoryItem
+from lab_manager.models.order import Order, OrderItem
+from lab_manager.models.product import Product
+from lab_manager.models.vendor import Vendor
+from lab_manager.services.serialization import serialize_value as _serialize_value
 
 logger = logging.getLogger(__name__)
 
@@ -302,7 +302,9 @@ def sync_all(db: Session) -> dict[str, int]:
         try:
             client.index(index_name).delete_all_documents()
         except Exception:
-            pass  # index may not exist yet
+            logger.warning(
+                "Failed to delete documents from index %s", index_name, exc_info=True
+            )
     counts: dict[str, int] = {}
     counts["products"] = sync_products(db)
     counts["vendors"] = sync_vendors(db)
@@ -357,7 +359,7 @@ def suggest(query: str, limit: int = 10) -> list[dict]:
                 }
             )
     except Exception:
-        pass
+        logger.warning("Failed to search products index", exc_info=True)
 
     # Vendors: name
     try:
@@ -369,7 +371,7 @@ def suggest(query: str, limit: int = 10) -> list[dict]:
                 {"type": "vendor", "text": hit.get("name", ""), "id": hit["id"]}
             )
     except Exception:
-        pass
+        logger.warning("Failed to search vendors index", exc_info=True)
 
     # Order items: catalog_number
     try:
@@ -384,6 +386,6 @@ def suggest(query: str, limit: int = 10) -> list[dict]:
             text = hit.get("catalog_number") or hit.get("description", "")
             suggestions.append({"type": "order_item", "text": text, "id": hit["id"]})
     except Exception:
-        pass
+        logger.warning("Failed to search order_items index", exc_info=True)
 
     return suggestions[:limit]

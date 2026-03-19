@@ -5,11 +5,10 @@ from __future__ import annotations
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Optional
 
 from lab_manager.intake.providers import VLMProvider
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 MODEL_PRIORITY = [
     "opus_4_6",
@@ -26,7 +25,7 @@ def extract_parallel(
     providers: list[VLMProvider],
     image_path: str,
     prompt: str,
-) -> dict[str, Optional[dict]]:
+) -> dict[str, dict | None]:
     """Run all providers in parallel, return {name: parsed_json}."""
     results = {}
     with ThreadPoolExecutor(max_workers=min(len(providers), 5)) as executor:
@@ -47,7 +46,7 @@ def extract_parallel(
     return results
 
 
-def consensus_merge(extractions: dict[str, Optional[dict]]) -> dict:
+def consensus_merge(extractions: dict[str, dict | None]) -> dict:
     """Merge extractions using consensus voting.
 
     - 3/3 agree → unanimous (auto-resolve)

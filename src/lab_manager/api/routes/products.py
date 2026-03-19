@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, Field as PydanticField, field_validator
+from pydantic import BaseModel, field_validator
+from pydantic import Field as PydanticField
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -48,12 +48,12 @@ def _validate_cas(v: str | None) -> str | None:
 class ProductCreate(BaseModel):
     catalog_number: str = PydanticField(..., min_length=1, max_length=100)
     name: str = PydanticField(..., min_length=1, max_length=500)
-    vendor_id: Optional[int] = None
-    category: Optional[str] = PydanticField(default=None, max_length=100)
-    cas_number: Optional[str] = PydanticField(default=None, max_length=30)
-    storage_temp: Optional[str] = PydanticField(default=None, max_length=50)
-    unit: Optional[str] = PydanticField(default=None, max_length=50)
-    hazard_info: Optional[str] = PydanticField(default=None, max_length=255)
+    vendor_id: int | None = None
+    category: str | None = PydanticField(default=None, max_length=100)
+    cas_number: str | None = PydanticField(default=None, max_length=30)
+    storage_temp: str | None = PydanticField(default=None, max_length=50)
+    unit: str | None = PydanticField(default=None, max_length=50)
+    hazard_info: str | None = PydanticField(default=None, max_length=255)
     extra: dict = {}
 
     @field_validator("cas_number")
@@ -63,15 +63,15 @@ class ProductCreate(BaseModel):
 
 
 class ProductUpdate(BaseModel):
-    catalog_number: Optional[str] = PydanticField(default=None, max_length=100)
-    name: Optional[str] = PydanticField(default=None, max_length=500)
-    vendor_id: Optional[int] = None
-    category: Optional[str] = PydanticField(default=None, max_length=100)
-    cas_number: Optional[str] = PydanticField(default=None, max_length=30)
-    storage_temp: Optional[str] = PydanticField(default=None, max_length=50)
-    unit: Optional[str] = PydanticField(default=None, max_length=50)
-    hazard_info: Optional[str] = PydanticField(default=None, max_length=255)
-    extra: Optional[dict] = None
+    catalog_number: str | None = PydanticField(default=None, max_length=100)
+    name: str | None = PydanticField(default=None, max_length=500)
+    vendor_id: int | None = None
+    category: str | None = PydanticField(default=None, max_length=100)
+    cas_number: str | None = PydanticField(default=None, max_length=30)
+    storage_temp: str | None = PydanticField(default=None, max_length=50)
+    unit: str | None = PydanticField(default=None, max_length=50)
+    hazard_info: str | None = PydanticField(default=None, max_length=255)
+    extra: dict | None = None
 
     @field_validator("cas_number")
     @classmethod
@@ -83,10 +83,10 @@ class ProductUpdate(BaseModel):
 def list_products(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-    vendor_id: Optional[int] = Query(None),
-    category: Optional[str] = Query(None),
-    catalog_number: Optional[str] = Query(None),
-    search: Optional[str] = Query(None),
+    vendor_id: int | None = Query(None),
+    category: str | None = Query(None),
+    catalog_number: str | None = Query(None),
+    search: str | None = Query(None),
     include_inactive: bool = Query(False),
     sort_by: str = Query("id"),
     sort_dir: str = Query("asc", pattern="^(asc|desc)$"),

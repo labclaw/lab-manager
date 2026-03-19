@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -12,38 +12,6 @@ from lab_manager.models.document import Document, DocumentStatus
 from lab_manager.models.inventory import InventoryItem, InventoryStatus
 from lab_manager.models.order import Order, OrderStatus
 from lab_manager.models.product import Product
-
-
-# ---------------------------------------------------------------------------
-# Raw query helpers (kept for backward compat)
-# ---------------------------------------------------------------------------
-
-
-def get_expiring_items(db: Session, days_ahead: int = 30) -> list[InventoryItem]:
-    """Find inventory items expiring within the given number of days."""
-    cutoff = date.today() + timedelta(days=days_ahead)
-    return (
-        db.query(InventoryItem)
-        .filter(
-            InventoryItem.expiry_date.isnot(None),
-            InventoryItem.expiry_date <= cutoff,
-            InventoryItem.status == InventoryStatus.available,
-        )
-        .all()
-    )
-
-
-def get_low_stock_items(db: Session, threshold: float = 1) -> list[InventoryItem]:
-    """Find items at or below minimum stock level."""
-    return (
-        db.query(InventoryItem)
-        .filter(
-            InventoryItem.quantity_on_hand <= threshold,
-            InventoryItem.status == InventoryStatus.available,
-        )
-        .all()
-    )
-
 
 # ---------------------------------------------------------------------------
 # Full alert check — returns structured alert dicts
@@ -240,7 +208,7 @@ def _check_stale_orders(db: Session, stale_days: int = 30) -> list[dict]:
         .filter(
             Order.status == OrderStatus.pending,
             Order.created_at
-            <= datetime(cutoff.year, cutoff.month, cutoff.day, tzinfo=timezone.utc),
+            <= datetime(cutoff.year, cutoff.month, cutoff.day, tzinfo=UTC),
         )
         .limit(500)
         .all()

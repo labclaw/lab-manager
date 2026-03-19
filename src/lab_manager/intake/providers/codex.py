@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import logging
 import subprocess
-from typing import Optional
 
 from . import VLMProvider
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class CodexProvider(VLMProvider):
@@ -21,7 +20,7 @@ class CodexProvider(VLMProvider):
         self.model = model
         self.timeout = timeout
 
-    def extract_from_image(self, image_path: str, prompt: str) -> Optional[str]:
+    def extract_from_image(self, image_path: str, prompt: str) -> str | None:
         full_prompt = f"Look at the image file {image_path} and follow these instructions:\n\n{prompt}"
         try:
             result = subprocess.run(

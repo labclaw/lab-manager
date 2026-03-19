@@ -106,7 +106,7 @@ def _diff(session: Session, obj: object) -> dict | None:
             )
         ).first()
         if row:
-            old_values = dict(zip(changed_keys, row))
+            old_values = dict(zip(changed_keys, row, strict=False))
     else:
         for k in changed_keys:
             old_values[k] = committed.get(k)

@@ -7,48 +7,14 @@ import logging
 import shutil
 from pathlib import Path
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from lab_manager.config import get_settings
 from lab_manager.intake.extractor import extract_from_text
 from lab_manager.intake.ocr import extract_text_from_image
 from lab_manager.models.document import Document, DocumentStatus
-from lab_manager.models.vendor import Vendor
 
 logger = logging.getLogger(__name__)
-
-
-def _find_vendor(vendor_name: str, db: Session) -> Vendor | None:
-    """Find vendor by name or alias, case-insensitive."""
-    normalized = vendor_name.strip()
-    # Try exact match first (case-insensitive)
-    vendor = (
-        db.query(Vendor)
-        .filter(func.lower(Vendor.name) == func.lower(normalized))
-        .first()
-    )
-    if vendor:
-        return vendor
-    # Try partial match
-    vendor = (
-        db.query(Vendor)
-        .filter(func.lower(Vendor.name).contains(func.lower(normalized)))
-        .first()
-    )
-    if vendor:
-        return vendor
-    # Try reverse partial (vendor name in extracted name) and alias check
-    for v in db.query(Vendor).all():
-        if v.name.lower() in normalized.lower() or normalized.lower() in v.name.lower():
-            return v
-        for alias in v.aliases or []:
-            if (
-                alias.lower() in normalized.lower()
-                or normalized.lower() in alias.lower()
-            ):
-                return v
-    return None
 
 
 def process_document(image_path: Path, db: Session) -> Document:

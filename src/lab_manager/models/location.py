@@ -1,6 +1,6 @@
 """Storage location model."""
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 from sqlmodel import Field, Relationship
 
@@ -13,11 +13,11 @@ if TYPE_CHECKING:
 class StorageLocation(AuditMixin, table=True):
     __tablename__ = "locations"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     name: str = Field(max_length=200, index=True)
-    room: Optional[str] = Field(default=None, max_length=100)
-    building: Optional[str] = Field(default=None, max_length=100)
-    temperature: Optional[int] = Field(default=None)
-    description: Optional[str] = Field(default=None)
+    room: str | None = Field(default=None, max_length=100)
+    building: str | None = Field(default=None, max_length=100)
+    temperature: int | None = Field(default=None)
+    description: str | None = Field(default=None)
 
-    inventory_items: List["InventoryItem"] = Relationship(back_populates="location")
+    inventory_items: list["InventoryItem"] = Relationship(back_populates="location")
