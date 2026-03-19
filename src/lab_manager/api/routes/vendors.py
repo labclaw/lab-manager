@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -23,21 +23,21 @@ _VENDOR_SORTABLE = {"id", "created_at", "updated_at", "name", "email", "website"
 
 
 class VendorCreate(BaseModel):
-    name: str
+    name: str = Field(max_length=200)
     aliases: list[str] = []
-    website: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    notes: Optional[str] = None
+    website: Optional[str] = Field(default=None, max_length=500)
+    phone: Optional[str] = Field(default=None, max_length=50)
+    email: Optional[str] = Field(default=None, max_length=255)
+    notes: Optional[str] = Field(default=None, max_length=2000)
 
 
 class VendorUpdate(BaseModel):
-    name: Optional[str] = None
+    name: Optional[str] = Field(default=None, max_length=200)
     aliases: Optional[list[str]] = None
-    website: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    notes: Optional[str] = None
+    website: Optional[str] = Field(default=None, max_length=500)
+    phone: Optional[str] = Field(default=None, max_length=50)
+    email: Optional[str] = Field(default=None, max_length=255)
+    notes: Optional[str] = Field(default=None, max_length=2000)
 
 
 class VendorResponse(BaseModel):

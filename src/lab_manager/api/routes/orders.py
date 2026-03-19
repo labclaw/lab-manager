@@ -6,7 +6,7 @@ from datetime import date, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session, selectinload
 
 from lab_manager.api.deps import get_db, get_or_404
@@ -41,68 +41,76 @@ _ORDER_SORTABLE = {
     "vendor_id",
 }
 
+_VALID_ORDER_STATUSES = {s.value for s in OrderStatus}
+
 
 # --- Order schemas ---
 
 
 class OrderCreate(BaseModel):
-    po_number: Optional[str] = None
+    po_number: Optional[str] = Field(default=None, max_length=100)
     vendor_id: Optional[int] = None
     order_date: Optional[date] = None
     ship_date: Optional[date] = None
     received_date: Optional[date] = None
-    received_by: Optional[str] = None
+    received_by: Optional[str] = Field(default=None, max_length=200)
     status: str = OrderStatus.pending
-    delivery_number: Optional[str] = None
-    invoice_number: Optional[str] = None
+    delivery_number: Optional[str] = Field(default=None, max_length=100)
+    invoice_number: Optional[str] = Field(default=None, max_length=100)
     document_id: Optional[int] = None
     extra: dict = {}
 
     @field_validator("status")
     @classmethod
     def validate_status(cls, v: str) -> str:
-        valid_statuses = {s.value for s in OrderStatus}
-        if v not in valid_statuses:
-            raise ValueError(f"status must be one of {valid_statuses}")
+        if v not in _VALID_ORDER_STATUSES:
+            raise ValueError(f"status must be one of {_VALID_ORDER_STATUSES}")
         return v
 
 
 class OrderUpdate(BaseModel):
-    po_number: Optional[str] = None
+    po_number: Optional[str] = Field(default=None, max_length=100)
     vendor_id: Optional[int] = None
     order_date: Optional[date] = None
     ship_date: Optional[date] = None
     received_date: Optional[date] = None
-    received_by: Optional[str] = None
+    received_by: Optional[str] = Field(default=None, max_length=200)
     status: Optional[str] = None
-    delivery_number: Optional[str] = None
-    invoice_number: Optional[str] = None
+    delivery_number: Optional[str] = Field(default=None, max_length=100)
+    invoice_number: Optional[str] = Field(default=None, max_length=100)
     document_id: Optional[int] = None
     extra: Optional[dict] = None
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str | None) -> str | None:
+        if v is not None and v not in _VALID_ORDER_STATUSES:
+            raise ValueError(f"status must be one of {_VALID_ORDER_STATUSES}")
+        return v
 
 
 # --- OrderItem schemas ---
 
 
 class OrderItemCreate(BaseModel):
-    catalog_number: Optional[str] = None
-    description: Optional[str] = None
+    catalog_number: Optional[str] = Field(default=None, max_length=100)
+    description: Optional[str] = Field(default=None, max_length=1000)
     quantity: float = 1
-    unit: Optional[str] = None
-    lot_number: Optional[str] = None
-    batch_number: Optional[str] = None
+    unit: Optional[str] = Field(default=None, max_length=50)
+    lot_number: Optional[str] = Field(default=None, max_length=100)
+    batch_number: Optional[str] = Field(default=None, max_length=100)
     unit_price: Optional[float] = None
     product_id: Optional[int] = None
     extra: dict = {}
 
 
 class OrderItemUpdate(BaseModel):
-    catalog_number: Optional[str] = None
-    description: Optional[str] = None
+    catalog_number: Optional[str] = Field(default=None, max_length=100)
+    description: Optional[str] = Field(default=None, max_length=1000)
     quantity: Optional[float] = None
-    unit: Optional[str] = None
-    lot_number: Optional[str] = None
-    batch_number: Optional[str] = None
+    unit: Optional[str] = Field(default=None, max_length=50)
+    lot_number: Optional[str] = Field(default=None, max_length=100)
+    batch_number: Optional[str] = Field(default=None, max_length=100)
     unit_price: Optional[float] = None
     product_id: Optional[int] = None
     extra: Optional[dict] = None
