@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
@@ -21,7 +20,6 @@ class AskRequest(BaseModel):
 class AskResponse(BaseModel):
     question: str
     answer: str
-    sql: Optional[str] = None
     raw_results: list = []
     source: str = "sql"
 

@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import logging
+
 from sqladmin import Admin, ModelView
+
+log = logging.getLogger(__name__)
 
 from lab_manager.models.vendor import Vendor
 from lab_manager.models.product import Product
@@ -153,6 +157,9 @@ def _make_auth_backend():
         import secrets
 
         secret = secrets.token_hex(32)
+        log.warning(
+            "No ADMIN_SECRET_KEY or API_KEY set — admin sessions will not persist across restarts"
+        )
     return AdminAuthBackend(secret_key=secret)
 
 

@@ -28,6 +28,12 @@ from lab_manager.logging_config import configure_logging
 configure_logging()
 logger = logging.getLogger(__name__)
 
+_settings = get_settings()
+if not _settings.auth_enabled:
+    logger.warning(
+        "AUTH_ENABLED=false — all endpoints are accessible without authentication"
+    )
+
 STATIC_DIR = Path(__file__).parent.parent / "static"
 SCANS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "shenlab-docs"
 
