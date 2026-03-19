@@ -36,6 +36,7 @@ def setup_client(setup_engine, setup_db_session):
     """TestClient with auth_enabled=True and empty DB (no admin yet)."""
     os.environ["AUTH_ENABLED"] = "true"
     os.environ["ADMIN_SECRET_KEY"] = "test-secret-key-for-signing"
+    os.environ["ADMIN_PASSWORD"] = "test-admin-password-12345"
     os.environ["SECURE_COOKIES"] = "false"
     os.environ["LAB_NAME"] = "Test Lab"
     os.environ["LAB_SUBTITLE"] = "Unit Testing"
@@ -64,6 +65,7 @@ def setup_client(setup_engine, setup_db_session):
     db_module._session_factory = original_factory
     os.environ.pop("LAB_NAME", None)
     os.environ.pop("LAB_SUBTITLE", None)
+    os.environ.pop("ADMIN_PASSWORD", None)
     os.environ["AUTH_ENABLED"] = "false"
     get_settings.cache_clear()
 
