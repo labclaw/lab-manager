@@ -3,6 +3,58 @@
 
 const VIEWS = ["dashboard", "documents", "review", "inventory", "orders", "upload"];
 
+// --- Setup wizard (first-run) ---
+async function handleSetup(e) {
+  e.preventDefault();
+  const btn = document.getElementById("setup-btn");
+  const errDiv = document.getElementById("setup-error");
+  btn.disabled = true;
+  btn.textContent = "Creating account...";
+  errDiv.style.display = "none";
+  try {
+    const r = await fetch("/api/setup/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        admin_name: document.getElementById("setup-admin-name").value,
+        admin_email: document.getElementById("setup-admin-email").value,
+        admin_password: document.getElementById("setup-admin-password").value,
+      }),
+    });
+    if (r.ok) {
+      // Setup done — switch to login with pre-filled email
+      document.getElementById("setup-screen").classList.add("hidden");
+      document.getElementById("login-screen").classList.remove("hidden");
+      document.getElementById("login-email").value =
+        document.getElementById("setup-admin-email").value;
+      document.getElementById("login-password").focus();
+    } else {
+      const err = await r.json().catch(() => ({ detail: "Setup failed" }));
+      errDiv.textContent = err.detail || "Setup failed";
+      errDiv.style.display = "block";
+    }
+  } catch {
+    errDiv.textContent = "Network error. Please try again.";
+    errDiv.style.display = "block";
+  }
+  btn.disabled = false;
+  btn.textContent = "Create Admin Account";
+}
+
+// --- Load lab config (name, subtitle) ---
+async function loadLabConfig() {
+  try {
+    const r = await fetch("/api/config");
+    if (r.ok) {
+      const cfg = await r.json();
+      const nameEl = document.getElementById("sidebar-lab-name");
+      const subEl = document.getElementById("sidebar-lab-subtitle");
+      if (nameEl && cfg.lab_name) nameEl.textContent = cfg.lab_name;
+      if (subEl) subEl.textContent = cfg.lab_subtitle || "";
+    }
+  } catch {}
+}
+
 // --- Auth ---
 async function handleLogin(e) {
   e.preventDefault();
@@ -46,6 +98,7 @@ async function handleLogout() {
 }
 
 function showApp() {
+  document.getElementById("setup-screen").classList.add("hidden");
   document.getElementById("login-screen").classList.add("hidden");
   document.getElementById("main-app").classList.remove("hidden");
   document.getElementById("user-display-name").textContent = currentUser
@@ -91,6 +144,24 @@ window.addEventListener("hashchange", handleRoute);
 
 // --- Init ---
 async function init() {
+  // Load branding and check setup status concurrently
+  let needsSetup = false;
+  try {
+    const [, setupR] = await Promise.all([
+      loadLabConfig(),
+      fetch("/api/setup/status"),
+    ]);
+    if (setupR.ok) {
+      const setupData = await setupR.json();
+      needsSetup = setupData.needs_setup;
+    }
+  } catch {}
+
+  if (needsSetup) {
+    document.getElementById("setup-screen").classList.remove("hidden");
+    return;
+  }
+
   // Check if already authenticated via session cookie
   try {
     const r = await fetch("/api/auth/me");

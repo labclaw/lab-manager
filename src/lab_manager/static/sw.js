@@ -1,5 +1,5 @@
-// Service Worker for Shen Lab Manager PWA
-const CACHE_NAME = 'shenlab-v1';
+// Service Worker for LabClaw Lab Manager PWA
+const CACHE_NAME = 'labclaw-v2';
 const STATIC_ASSETS = [
   '/',
   '/static/index.html',
