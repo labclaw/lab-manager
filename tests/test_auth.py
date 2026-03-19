@@ -200,7 +200,9 @@ def test_unauthenticated_request_rejected(auth_client):
 
 def test_api_key_auth_fallback(auth_client):
     """X-Api-Key header should work as auth fallback."""
-    resp = auth_client.get("/api/v1/vendors/", headers={"X-Api-Key": "test-api-key-12345"})
+    resp = auth_client.get(
+        "/api/v1/vendors/", headers={"X-Api-Key": "test-api-key-12345"}
+    )
     assert resp.status_code == 200
 
 

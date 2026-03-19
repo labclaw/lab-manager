@@ -55,7 +55,9 @@ def test_vendor_list_filter_name(client):
 
 
 def test_vendor_list_search(client):
-    client.post("/api/v1/vendors/", json={"name": "Bio-Rad", "email": "info@biorad.com"})
+    client.post(
+        "/api/v1/vendors/", json={"name": "Bio-Rad", "email": "info@biorad.com"}
+    )
     client.post("/api/v1/vendors/", json={"name": "Sigma"})
     resp = client.get("/api/v1/vendors/?search=biorad")
     data = resp.json()
@@ -281,7 +283,9 @@ def test_order_items_crud(client):
     assert resp.json()["catalog_number"] == "X100"
 
     # Update item
-    resp = client.patch(f"/api/v1/orders/{oid}/items/{iid}", json={"lot_number": "LOT-1"})
+    resp = client.patch(
+        f"/api/v1/orders/{oid}/items/{iid}", json={"lot_number": "LOT-1"}
+    )
     assert resp.status_code == 200
     assert resp.json()["lot_number"] == "LOT-1"
 
@@ -322,7 +326,9 @@ def test_order_items_filter(client):
 
 def _make_product(client, catalog="TEST-INV", name="InvTestProduct"):
     """Helper to create a product and return its id."""
-    resp = client.post("/api/v1/products/", json={"catalog_number": catalog, "name": name})
+    resp = client.post(
+        "/api/v1/products/", json={"catalog_number": catalog, "name": name}
+    )
     return resp.json()["id"]
 
 
