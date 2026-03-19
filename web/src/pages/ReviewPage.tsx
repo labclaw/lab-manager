@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { documents as docApi } from '@/lib/api'
 import type { Document } from '@/lib/api'
-import { CheckCircle2, XCircle, AlertTriangle, RefreshCw, ClipboardCheck, Upload, WifiOff } from 'lucide-react'
+import { CheckCircle2, XCircle, AlertTriangle, RefreshCw, Upload, WifiOff } from 'lucide-react'
+import { ConfidenceBadge } from '@/components/ui/ConfidenceBadge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Link } from 'react-router-dom'
 
@@ -90,7 +91,12 @@ export function ReviewPage({ onError }: ReviewPageProps) {
     )
   }
 
-  if (queue.length === 0) {
+  const sortedQueue = useMemo(
+    () => [...queue].sort((a, b) => (a.extraction_confidence ?? 1) - (b.extraction_confidence ?? 1)),
+    [queue]
+  )
+
+  if (sortedQueue.length === 0) {
     return (
       <EmptyState
         icon={CheckCircle2}
@@ -114,7 +120,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
           <h2 className="text-lg font-display font-semibold text-[var(--foreground)]">
             Review Queue
           </h2>
-          <span className="badge badge-warning">{queue.length}</span>
+          <span className="badge badge-warning">{sortedQueue.length}</span>
         </div>
         <button onClick={loadQueue} className="btn-ghost flex items-center gap-2">
           <RefreshCw className="w-4 h-4" />
@@ -122,7 +128,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
         </button>
       </div>
 
-      {queue.map((doc) => (
+      {sortedQueue.map((doc) => (
         <div key={doc.id} className="card">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 space-y-2">
@@ -133,6 +139,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                 <span className="badge badge-info">
                   {doc.document_type ?? 'Unknown'}
                 </span>
+                <ConfidenceBadge confidence={doc.extraction_confidence} />
               </div>
               <p className="text-sm text-[var(--muted-foreground)]">
                 Vendor: {doc.vendor_name ?? 'Unknown'}
