@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     # Read-only DB for RAG queries (falls back to main engine + SET TRANSACTION READ ONLY)
     database_readonly_url: str = ""
 
+    # Lab identity (configurable per deployment)
+    lab_name: str = "My Lab"
+    lab_subtitle: str = ""
+
     # Auth
     api_key: str = ""
     admin_secret_key: str = ""
