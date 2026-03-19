@@ -76,5 +76,5 @@ databases:
   - name: db
     engine: PG
     version: "16"
-    size: db-s-dev-database
+    size: db-s-1vcpu-1gb
     num_nodes: 1
