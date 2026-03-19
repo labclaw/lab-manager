@@ -277,9 +277,10 @@ def create_app() -> FastAPI:
             logger.error("Health check: disk check failed: %s", e)
             checks["disk"] = "error"
 
-        # Only core services (postgresql, meilisearch) can degrade health.
-        # LLM and disk are informational — don't take service out of rotation.
-        core = {k: v for k, v in checks.items() if k in ("postgresql", "meilisearch")}
+        # Only PostgreSQL is truly core — without it the app can't serve any data.
+        # Meilisearch is important but starts independently (especially on managed
+        # platforms like DO App Platform) and shouldn't take the app out of rotation.
+        core = {k: v for k, v in checks.items() if k in ("postgresql",)}
         all_ok = all(v == "ok" for v in core.values())
         return JSONResponse(
             {"status": "ok" if all_ok else "degraded", "services": checks},
