@@ -56,9 +56,7 @@ def main() -> None:
         print()
         print("Orders with these variants:")
         for name in manual_renames:
-            cnt = conn.execute(
-                text("SELECT COUNT(*) FROM orders WHERE received_by = :n"), {"n": name}
-            ).scalar()
+            cnt = conn.execute(text("SELECT COUNT(*) FROM orders WHERE received_by = :n"), {"n": name}).scalar()
             inv_cnt = conn.execute(
                 text("SELECT COUNT(*) FROM inventory WHERE received_by = :n"),
                 {"n": name},
@@ -81,17 +79,13 @@ def main() -> None:
 
         for old_name, new_name in manual_renames.items():
             for tbl, col in tables_cols:
-                assert (tbl, col) in _SAFE_TABLES_COLS, (
-                    f"unexpected table/col: {tbl}.{col}"
-                )
+                assert (tbl, col) in _SAFE_TABLES_COLS, f"unexpected table/col: {tbl}.{col}"
                 result = conn.execute(
                     text(f"UPDATE {tbl} SET {col} = :new WHERE {col} = :old"),
                     {"new": new_name, "old": old_name},
                 )
                 if result.rowcount > 0:
-                    print(
-                        f"  {tbl}.{col}: {old_name!r} -> {new_name!r}  ({result.rowcount} rows)"
-                    )
+                    print(f"  {tbl}.{col}: {old_name!r} -> {new_name!r}  ({result.rowcount} rows)")
 
         # ── Merge staff records ──
         print()
@@ -100,19 +94,13 @@ def main() -> None:
         print("=" * 70)
 
         # Delete "Shen, Shiqian" (id=12), keep "Shiqian Shen" (id=13)
-        r = conn.execute(
-            text("SELECT id FROM staff WHERE name = 'Shen, Shiqian'")
-        ).fetchone()
+        r = conn.execute(text("SELECT id FROM staff WHERE name = 'Shen, Shiqian'")).fetchone()
         if r:
-            print(
-                f"  Deleting staff id={r[0]} 'Shen, Shiqian' (keeping 'Shiqian Shen')"
-            )
+            print(f"  Deleting staff id={r[0]} 'Shen, Shiqian' (keeping 'Shiqian Shen')")
             conn.execute(text("DELETE FROM staff WHERE id = :sid"), {"sid": r[0]})
 
         # Delete "Wang Pei!" (id=16), keep "Pei Wang" (id=9)
-        r = conn.execute(
-            text("SELECT id FROM staff WHERE name = 'Wang Pei!'")
-        ).fetchone()
+        r = conn.execute(text("SELECT id FROM staff WHERE name = 'Wang Pei!'")).fetchone()
         if r:
             print(f"  Deleting staff id={r[0]} 'Wang Pei!' (keeping 'Pei Wang')")
             conn.execute(text("DELETE FROM staff WHERE id = :sid"), {"sid": r[0]})
@@ -138,9 +126,7 @@ def main() -> None:
         ).fetchall()
 
         for row in staff_after:
-            print(
-                f"  id={row[0]:>3}  name={row[1]!r:<25}  orders={row[2]}  inventory={row[3]}"
-            )
+            print(f"  id={row[0]:>3}  name={row[1]!r:<25}  orders={row[2]}  inventory={row[3]}")
 
         print()
         print("=" * 70)

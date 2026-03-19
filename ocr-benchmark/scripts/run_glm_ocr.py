@@ -19,7 +19,8 @@ Rules:
 - Output plain text only.
 - Preserve reading order from top to bottom.
 - Keep line breaks where possible.
-- Include table rows, part numbers, PO numbers, dates, lot or batch numbers, addresses, and handwritten notes.
+- Include table rows, part numbers, PO numbers, dates,
+  lot or batch numbers, addresses, and handwritten notes.
 - Do not summarize.
 - Do not explain.
 """

@@ -10,7 +10,7 @@ from pathlib import Path
 
 import torch
 from PIL import Image
-from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor
+from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
 
 MODEL_ID = "Qwen/Qwen2.5-VL-3B-Instruct"
 PROMPT = """You are performing OCR on a lab supply document.
@@ -19,7 +19,8 @@ Rules:
 - Output plain text only.
 - Preserve reading order from top to bottom.
 - Keep line breaks where possible.
-- Include table rows, part numbers, PO numbers, dates, lot or batch numbers, addresses, and handwritten notes.
+- Include table rows, part numbers, PO numbers, dates,
+  lot or batch numbers, addresses, and handwritten notes.
 - Do not summarize.
 - Do not explain.
 """
@@ -27,9 +28,7 @@ Rules:
 
 def main() -> None:
     if len(sys.argv) < 3:
-        raise SystemExit(
-            "usage: python run_qwen_vl.py <input_dir> <output_json> [model_id]"
-        )
+        raise SystemExit("usage: python run_qwen_vl.py <input_dir> <output_json> [model_id]")
 
     input_dir = Path(sys.argv[1])
     output_json = Path(sys.argv[2])
@@ -68,9 +67,7 @@ def main() -> None:
                 ],
             }
         ]
-        text_input = processor.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
+        text_input = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         inputs = processor(
             text=[text_input],
             images=[image],

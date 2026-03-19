@@ -8,7 +8,6 @@ import pytest
 
 from lab_manager.services.rag import _validate_sql
 
-
 # --- Valid queries that SHOULD pass ---
 
 
@@ -24,10 +23,7 @@ def test_valid_select_with_join():
 
 def test_valid_select_with_cte():
     """CTE aliases are checked against table allowlist, so CTE alias must match an allowed table."""
-    sql = (
-        "WITH orders AS (SELECT * FROM orders WHERE order_date > '2025-01-01') "
-        "SELECT * FROM orders"
-    )
+    sql = "WITH orders AS (SELECT * FROM orders WHERE order_date > '2025-01-01') SELECT * FROM orders"
     assert _validate_sql(sql) == sql
 
 
@@ -54,10 +50,7 @@ def test_valid_aggregate_query():
 
 
 def test_valid_subquery_in_where():
-    sql = (
-        "SELECT * FROM products WHERE vendor_id IN "
-        "(SELECT id FROM vendors WHERE name ILIKE '%fisher%')"
-    )
+    sql = "SELECT * FROM products WHERE vendor_id IN (SELECT id FROM vendors WHERE name ILIKE '%fisher%')"
     assert _validate_sql(sql) == sql.strip()
 
 

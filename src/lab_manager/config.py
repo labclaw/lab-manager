@@ -11,9 +11,7 @@ class Settings(BaseSettings):
     """Application configuration."""
 
     # In production, set DATABASE_URL via env var; this default is for local dev/test only.
-    database_url: str = (
-        "postgresql+psycopg://labmanager:labmanager@localhost:5432/labmanager"
-    )
+    database_url: str = "postgresql+psycopg://labmanager:labmanager@localhost:5432/labmanager"
     meilisearch_url: str = "http://localhost:7700"
     meilisearch_api_key: str = ""
 

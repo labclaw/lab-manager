@@ -62,9 +62,7 @@ def _make_png_bytes() -> bytes:
 def _make_jpeg_bytes() -> bytes:
     """Return minimal valid JPEG bytes."""
     # Minimal JFIF: SOI + APP0 + minimal data + EOI
-    return (
-        b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xd9"
-    )
+    return b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xd9"
 
 
 # --- Task 8: Upload endpoint tests ---
@@ -159,10 +157,7 @@ class TestUploadEndpoint:
         )
         # Even if same second, we handle it (or it just works at different seconds)
         assert resp2.status_code == 201
-        assert (
-            resp1.json()["file_name"] != resp2.json()["file_name"]
-            or resp1.json()["id"] != resp2.json()["id"]
-        )
+        assert resp1.json()["file_name"] != resp2.json()["file_name"] or resp1.json()["id"] != resp2.json()["id"]
 
     def test_upload_saves_file_to_disk(self, client, upload_dir):
         """Uploaded file actually exists on disk in upload_dir."""

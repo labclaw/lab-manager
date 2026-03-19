@@ -1,12 +1,13 @@
 """Alembic migration environment."""
 
-from alembic import context
 from sqlalchemy import create_engine
 from sqlmodel import SQLModel
 
+from alembic import context
+from lab_manager.config import get_settings
+
 # Import all models so they register with SQLModel.metadata
 from lab_manager.models import *  # noqa: F401, F403
-from lab_manager.config import get_settings
 
 target_metadata = SQLModel.metadata
 

@@ -1,7 +1,7 @@
 """Step definitions for inventory lifecycle BDD scenarios."""
 
 import pytest
-from pytest_bdd import given, when, then, scenario, parsers
+from pytest_bdd import given, parsers, scenario, then, when
 
 FEATURE = "../features/inventory.feature"
 
@@ -160,9 +160,7 @@ def receive_order(api, db, test_order, test_order_item):
 
 
 @when(
-    parsers.parse(
-        'I consume {qty:d} bottles from the inventory item with note "{note}"'
-    ),
+    parsers.parse('I consume {qty:d} bottles from the inventory item with note "{note}"'),
     target_fixture="action_response",
 )
 def consume_with_note(api, test_item, qty, note):
@@ -216,9 +214,7 @@ def transfer(api, db, test_item):
 
 
 @when(
-    parsers.parse(
-        'I adjust the inventory item to {qty:d} bottles with reason "{reason}"'
-    ),
+    parsers.parse('I adjust the inventory item to {qty:d} bottles with reason "{reason}"'),
     target_fixture="action_response",
 )
 def adjust(api, test_item, qty, reason):
@@ -275,11 +271,7 @@ def check_quantity_unchanged(api, test_item, qty):
     assert float(r.json()["quantity_on_hand"]) == float(qty)
 
 
-@then(
-    parsers.parse(
-        'a consumption log entry should exist with action "{action}" and quantity {qty:d}'
-    )
-)
+@then(parsers.parse('a consumption log entry should exist with action "{action}" and quantity {qty:d}'))
 def check_log_with_qty(api, test_item, action, qty):
     r = api.get(f"/api/inventory/{test_item['id']}/history")
     assert r.status_code == 200

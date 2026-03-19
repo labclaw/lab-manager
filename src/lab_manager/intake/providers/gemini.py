@@ -31,13 +31,11 @@ class GeminiProvider(VLMProvider):
             )
             if result.returncode == 0:
                 return result.stdout.strip()
-            log.warning(
-                "Gemini failed (rc=%d): %s", result.returncode, result.stderr[:200]
-            )
+            logger.warning("Gemini failed (rc=%d): %s", result.returncode, result.stderr[:200])
             return None
         except subprocess.TimeoutExpired:
-            log.warning("Gemini timed out (%ds) for %s", self.timeout, image_path)
+            logger.warning("Gemini timed out (%ds) for %s", self.timeout, image_path)
             return None
         except Exception as e:
-            log.warning("Gemini error: %s", e)
+            logger.warning("Gemini error: %s", e)
             return None

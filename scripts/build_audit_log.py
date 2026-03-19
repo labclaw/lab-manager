@@ -140,17 +140,12 @@ def build_audit_entry(
         },
         # Stage 2: OCR
         "stage_2_ocr": {
-            "model": ocr_entry.get("model", "unknown")
-            if ocr_entry
-            else doc.extraction_model,
+            "model": ocr_entry.get("model", "unknown") if ocr_entry else doc.extraction_model,
             "elapsed_s": ocr_entry.get("elapsed_s") if ocr_entry else None,
             "text_length": len(doc.ocr_text) if doc.ocr_text else 0,
-            "text_preview": (doc.ocr_text[:200] + "...")
-            if doc.ocr_text and len(doc.ocr_text) > 200
-            else doc.ocr_text,
+            "text_preview": (doc.ocr_text[:200] + "...") if doc.ocr_text and len(doc.ocr_text) > 200 else doc.ocr_text,
             "line_count": len(ocr_entry.get("lines", [])) if ocr_entry else None,
-            "is_empty": not doc.ocr_text
-            or doc.ocr_text.strip() in ("", "(No text detected)"),
+            "is_empty": not doc.ocr_text or doc.ocr_text.strip() in ("", "(No text detected)"),
         },
         # Stage 3: LLM extraction
         "stage_3_extraction": {
@@ -223,9 +218,7 @@ def build_audit_entry(
         entry["stage_6_reviews"]["opus_4_6"] = {
             "status": opus_review.get("status", "unknown"),
             "error_count": len(opus_errors),
-            "critical_count": sum(
-                1 for e in opus_errors if e.get("severity") == "critical"
-            ),
+            "critical_count": sum(1 for e in opus_errors if e.get("severity") == "critical"),
             "minor_count": sum(1 for e in opus_errors if e.get("severity") == "minor"),
             "errors": opus_errors,
         }
@@ -265,7 +258,7 @@ def build_audit_entry(
         has_critical = False
 
         for field, field_errors in by_field.items():
-            sources = list(set(e["source"] for e in field_errors))
+            sources = list({e["source"] for e in field_errors})
             severities = [e.get("severity", "unknown") for e in field_errors]
             is_critical = "critical" in severities
 
@@ -300,11 +293,7 @@ def build_audit_entry(
             "consensus_errors": consensus,
             "error_categories": sorted(categories),
             "needs_correction": has_critical,
-            "correction_priority": "high"
-            if has_critical
-            else "low"
-            if all_errors
-            else "none",
+            "correction_priority": "high" if has_critical else "low" if all_errors else "none",
         }
 
     return entry
@@ -319,9 +308,7 @@ def build_summary(audit_entries: list[dict]) -> dict:
         if not e["stage_7_error_analysis"]["needs_correction"]
         and e["stage_7_error_analysis"]["correction_priority"] == "none"
     )
-    needs_fix = sum(
-        1 for e in audit_entries if e["stage_7_error_analysis"]["needs_correction"]
-    )
+    needs_fix = sum(1 for e in audit_entries if e["stage_7_error_analysis"]["needs_correction"])
     minor_only = total - correct - needs_fix
 
     # Error category distribution
@@ -432,22 +419,19 @@ def build_summary(audit_entries: list[dict]) -> dict:
             "critical_error_rate": round(needs_fix / total * 100, 1) if total else 0,
         },
         "error_categories": dict(sorted(category_counts.items(), key=lambda x: -x[1])),
-        "top_error_fields": dict(
-            sorted(field_error_counts.items(), key=lambda x: -x[1])[:20]
-        ),
+        "top_error_fields": dict(sorted(field_error_counts.items(), key=lambda x: -x[1])[:20]),
         "confidence_distribution": conf_bins,
         "accuracy_by_confidence": accuracy_by_conf,
         "document_type_accuracy": type_accuracy,
         "vendor_identification_issues": vendor_issues,
         "key_findings": {
-            "most_common_error": max(category_counts, key=category_counts.get)
-            if category_counts
-            else None,
-            "confidence_calibration": "Confidence scores may not correlate well with actual accuracy — high-confidence docs still have critical errors"
-            if any(
-                accuracy_by_conf.get("0.95-1.0", {}).get("critical_errors", 0) > 0
-                for _ in [1]
+            "most_common_error": max(category_counts, key=category_counts.get) if category_counts else None,
+            "confidence_calibration": (
+                "Confidence scores may not correlate well with"
+                " actual accuracy — high-confidence docs still"
+                " have critical errors"
             )
+            if any(accuracy_by_conf.get("0.95-1.0", {}).get("critical_errors", 0) > 0 for _ in [1])
             else "Confidence calibration appears reasonable",
             "document_type_issues": sum(
                 1
@@ -509,9 +493,7 @@ def main():
             order = db.query(Order).filter(Order.document_id == doc.id).first()
             order_items = []
             if order:
-                order_items = (
-                    db.query(OrderItem).filter(OrderItem.order_id == order.id).all()
-                )
+                order_items = db.query(OrderItem).filter(OrderItem.order_id == order.id).all()
 
             # Find reviews
             opus_review = opus_reviews.get(doc.id)
@@ -532,17 +514,13 @@ def main():
     # Write full audit log
     DOCS_DIR.mkdir(exist_ok=True)
     audit_path = DOCS_DIR / "audit_log.json"
-    audit_path.write_text(
-        json.dumps(audit_entries, indent=2, default=str, ensure_ascii=False)
-    )
+    audit_path.write_text(json.dumps(audit_entries, indent=2, default=str, ensure_ascii=False))
     log.info("Wrote full audit log: %s (%d entries)", audit_path, len(audit_entries))
 
     # Write aggregate summary
     summary = build_summary(audit_entries)
     summary_path = DOCS_DIR / "audit_summary.json"
-    summary_path.write_text(
-        json.dumps(summary, indent=2, default=str, ensure_ascii=False)
-    )
+    summary_path.write_text(json.dumps(summary, indent=2, default=str, ensure_ascii=False))
     log.info("Wrote audit summary: %s", summary_path)
 
     # Print key stats
@@ -550,13 +528,9 @@ def main():
     log.info("=" * 60)
     log.info("AUDIT SUMMARY")
     log.info("  Total documents: %d", t["documents"])
-    log.info(
-        "  Correct (no errors): %d (%.1f%%)", t["correct_no_errors"], t["accuracy_rate"]
-    )
+    log.info("  Correct (no errors): %d (%.1f%%)", t["correct_no_errors"], t["accuracy_rate"])
     log.info("  Minor errors only: %d", t["minor_errors_only"])
-    log.info(
-        "  Critical errors: %d (%.1f%%)", t["critical_errors"], t["critical_error_rate"]
-    )
+    log.info("  Critical errors: %d (%.1f%%)", t["critical_errors"], t["critical_error_rate"])
     log.info("")
     log.info("Error categories:")
     for cat, count in summary["error_categories"].items():

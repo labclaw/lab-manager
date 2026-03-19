@@ -26,6 +26,18 @@ _INV_SORTABLE = {
     "status",
 }
 
+_Db = Depends(get_db)
+_InvPage = Query(1, ge=1)
+_InvPageSize = Query(50, ge=1, le=200)
+_InvProductId = Query(None)
+_InvLocationId = Query(None)
+_InvStatus = Query(None)
+_InvExpiringBefore = Query(None)
+_InvSearch = Query(None)
+_InvSortBy = Query("id")
+_InvSortDir = Query("asc", pattern="^(asc|desc)$")
+_InvDays = Query(30, ge=1)
+
 
 # ---------------------------------------------------------------------------
 # Schemas
@@ -93,16 +105,16 @@ class OpenBody(BaseModel):
 
 @router.get("/")
 def list_inventory(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=200),
-    product_id: int | None = Query(None),
-    location_id: int | None = Query(None),
-    status: str | None = Query(None),
-    expiring_before: date | None = Query(None),
-    search: str | None = Query(None),
-    sort_by: str = Query("id"),
-    sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
-    db: Session = Depends(get_db),
+    page: int = _InvPage,
+    page_size: int = _InvPageSize,
+    product_id: int | None = _InvProductId,
+    location_id: int | None = _InvLocationId,
+    status: str | None = _InvStatus,
+    expiring_before: date | None = _InvExpiringBefore,
+    search: str | None = _InvSearch,
+    sort_by: str = _InvSortBy,
+    sort_dir: str = _InvSortDir,
+    db: Session = _Db,
 ):
     q = db.query(InventoryItem)
     if product_id is not None:
@@ -114,16 +126,13 @@ def list_inventory(
     if expiring_before:
         q = q.filter(InventoryItem.expiry_date <= expiring_before)
     if search:
-        q = q.filter(
-            ilike_col(InventoryItem.lot_number, search)
-            | ilike_col(InventoryItem.notes, search)
-        )
+        q = q.filter(ilike_col(InventoryItem.lot_number, search) | ilike_col(InventoryItem.notes, search))
     q = apply_sort(q, InventoryItem, sort_by, sort_dir, _INV_SORTABLE)
     return paginate(q, page, page_size)
 
 
 @router.post("/", status_code=201)
-def create_inventory_item(body: InventoryItemCreate, db: Session = Depends(get_db)):
+def create_inventory_item(body: InventoryItemCreate, db: Session = _Db):
     item = InventoryItem(**body.model_dump())
     db.add(item)
     db.commit()
@@ -132,13 +141,13 @@ def create_inventory_item(body: InventoryItemCreate, db: Session = Depends(get_d
 
 
 @router.get("/low-stock")
-def low_stock(db: Session = Depends(get_db)):
+def low_stock(db: Session = _Db):
     """Products below their reorder level."""
     return inv_svc.get_low_stock(db)
 
 
 @router.get("/expiring")
-def expiring(days: int = Query(30, ge=1), db: Session = Depends(get_db)):
+def expiring(days: int = _InvDays, db: Session = _Db):
     """Items expiring within N days."""
     return inv_svc.get_expiring(db, days=days)
 
@@ -149,14 +158,12 @@ def expiring(days: int = Query(30, ge=1), db: Session = Depends(get_db)):
 
 
 @router.get("/{item_id}")
-def get_inventory_item(item_id: int, db: Session = Depends(get_db)):
+def get_inventory_item(item_id: int, db: Session = _Db):
     return get_or_404(db, InventoryItem, item_id, "Inventory item")
 
 
 @router.patch("/{item_id}")
-def update_inventory_item(
-    item_id: int, body: InventoryItemUpdate, db: Session = Depends(get_db)
-):
+def update_inventory_item(item_id: int, body: InventoryItemUpdate, db: Session = _Db):
     item = get_or_404(db, InventoryItem, item_id, "Inventory item")
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
@@ -166,7 +173,7 @@ def update_inventory_item(
 
 
 @router.delete("/{item_id}", status_code=204)
-def delete_inventory_item(item_id: int, db: Session = Depends(get_db)):
+def delete_inventory_item(item_id: int, db: Session = _Db):
     """Soft-delete: set status to 'deleted'."""
     item = get_or_404(db, InventoryItem, item_id, "Inventory item")
     item.status = InventoryStatus.deleted
@@ -175,31 +182,31 @@ def delete_inventory_item(item_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{item_id}/history")
-def item_history(item_id: int, db: Session = Depends(get_db)):
+def item_history(item_id: int, db: Session = _Db):
     """Consumption log for a specific inventory item."""
     return inv_svc.get_item_history(item_id, db)
 
 
 @router.post("/{item_id}/consume")
-def consume_item(item_id: int, body: ConsumeBody, db: Session = Depends(get_db)):
+def consume_item(item_id: int, body: ConsumeBody, db: Session = _Db):
     return inv_svc.consume(item_id, body.quantity, body.consumed_by, body.purpose, db)
 
 
 @router.post("/{item_id}/transfer")
-def transfer_item(item_id: int, body: TransferBody, db: Session = Depends(get_db)):
+def transfer_item(item_id: int, body: TransferBody, db: Session = _Db):
     return inv_svc.transfer(item_id, body.location_id, body.transferred_by, db)
 
 
 @router.post("/{item_id}/adjust")
-def adjust_item(item_id: int, body: AdjustBody, db: Session = Depends(get_db)):
+def adjust_item(item_id: int, body: AdjustBody, db: Session = _Db):
     return inv_svc.adjust(item_id, body.new_quantity, body.reason, body.adjusted_by, db)
 
 
 @router.post("/{item_id}/dispose")
-def dispose_item(item_id: int, body: DisposeBody, db: Session = Depends(get_db)):
+def dispose_item(item_id: int, body: DisposeBody, db: Session = _Db):
     return inv_svc.dispose(item_id, body.reason, body.disposed_by, db)
 
 
 @router.post("/{item_id}/open")
-def open_item(item_id: int, body: OpenBody, db: Session = Depends(get_db)):
+def open_item(item_id: int, body: OpenBody, db: Session = _Db):
     return inv_svc.open_item(item_id, body.opened_by, db)

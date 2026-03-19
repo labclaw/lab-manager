@@ -31,13 +31,11 @@ class CodexProvider(VLMProvider):
             )
             if result.returncode == 0:
                 return result.stdout.strip()
-            log.warning(
-                "Codex failed (rc=%d): %s", result.returncode, result.stderr[:200]
-            )
+            logger.warning("Codex failed (rc=%d): %s", result.returncode, result.stderr[:200])
             return None
         except subprocess.TimeoutExpired:
-            log.warning("Codex timed out (%ds) for %s", self.timeout, image_path)
+            logger.warning("Codex timed out (%ds) for %s", self.timeout, image_path)
             return None
         except Exception as e:
-            log.warning("Codex error: %s", e)
+            logger.warning("Codex error: %s", e)
             return None

@@ -45,6 +45,17 @@ _VALID_STATUSES = {s.value for s in DocumentStatus}
 
 _BLOCKED_PREFIXES = ("/etc/", "/proc/", "/sys/", "/var/", "/root/", "/home/")
 
+_Db = Depends(get_db)
+_DocPage = Query(1, ge=1)
+_DocPageSize = Query(50, ge=1, le=200)
+_DocStatus = Query(None)
+_DocType = Query(None)
+_DocVendorName = Query(None)
+_DocModel = Query(None)
+_DocSearch = Query(None)
+_DocSortBy = Query("id")
+_DocSortDir = Query("asc", pattern="^(asc|desc)$")
+
 
 def _validate_file_path(v: str) -> str:
     """Check for path traversal and blocked system directories."""
@@ -114,7 +125,7 @@ class ReviewAction(BaseModel):
 @router.post("/upload", status_code=201)
 def upload_document(
     file: UploadFile,
-    db: Session = Depends(get_db),
+    db: Session = _Db,
 ):
     """Upload a document photo/PDF and create a pending Document record."""
     from datetime import datetime
@@ -139,10 +150,7 @@ def upload_document(
     if len(content) > _MAX_UPLOAD_BYTES:
         return JSONResponse(
             status_code=413,
-            content={
-                "detail": f"File too large ({len(content)} bytes). "
-                f"Maximum: {_MAX_UPLOAD_BYTES} bytes (50 MB)."
-            },
+            content={"detail": f"File too large ({len(content)} bytes). Maximum: {_MAX_UPLOAD_BYTES} bytes (50 MB)."},
         )
 
     # Build unique filename with timestamp prefix (include microseconds for uniqueness)
@@ -176,19 +184,11 @@ def upload_document(
 
 
 @router.get("/stats")
-def document_stats(db: Session = Depends(get_db)):
+def document_stats(db: Session = _Db):
     """Dashboard stats."""
     total = db.query(func.count(Document.id)).scalar()
-    by_status = dict(
-        db.query(Document.status, func.count(Document.id))
-        .group_by(Document.status)
-        .all()
-    )
-    by_type = dict(
-        db.query(Document.document_type, func.count(Document.id))
-        .group_by(Document.document_type)
-        .all()
-    )
+    by_status = dict(db.query(Document.status, func.count(Document.id)).group_by(Document.status).all())
+    by_type = dict(db.query(Document.document_type, func.count(Document.id)).group_by(Document.document_type).all())
     total_orders = db.query(func.count(Order.id)).scalar()
     total_items = db.query(func.count(OrderItem.id)).scalar()
     total_vendors = db.query(func.count(Vendor.id)).scalar()
@@ -213,16 +213,16 @@ def document_stats(db: Session = Depends(get_db)):
 
 @router.get("/")
 def list_documents(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=200),
-    status: str | None = Query(None),
-    document_type: str | None = Query(None),
-    vendor_name: str | None = Query(None),
-    extraction_model: str | None = Query(None),
-    search: str | None = Query(None),
-    sort_by: str = Query("id"),
-    sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
-    db: Session = Depends(get_db),
+    page: int = _DocPage,
+    page_size: int = _DocPageSize,
+    status: str | None = _DocStatus,
+    document_type: str | None = _DocType,
+    vendor_name: str | None = _DocVendorName,
+    extraction_model: str | None = _DocModel,
+    search: str | None = _DocSearch,
+    sort_by: str = _DocSortBy,
+    sort_dir: str = _DocSortDir,
+    db: Session = _Db,
 ):
     q = db.query(Document)
     if status:
@@ -234,16 +234,13 @@ def list_documents(
     if extraction_model:
         q = q.filter(Document.extraction_model == extraction_model)
     if search:
-        q = q.filter(
-            ilike_col(Document.vendor_name, search)
-            | ilike_col(Document.file_name, search)
-        )
+        q = q.filter(ilike_col(Document.vendor_name, search) | ilike_col(Document.file_name, search))
     q = apply_sort(q, Document, sort_by, sort_dir, _DOC_SORTABLE)
     return paginate(q, page, page_size)
 
 
 @router.post("/", status_code=201)
-def create_document(body: DocumentCreate, db: Session = Depends(get_db)):
+def create_document(body: DocumentCreate, db: Session = _Db):
     document = Document(**body.model_dump())
     db.add(document)
     db.commit()
@@ -252,14 +249,12 @@ def create_document(body: DocumentCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/{document_id}")
-def get_document(document_id: int, db: Session = Depends(get_db)):
+def get_document(document_id: int, db: Session = _Db):
     return get_or_404(db, Document, document_id, "Document")
 
 
 @router.patch("/{document_id}")
-def update_document(
-    document_id: int, body: DocumentUpdate, db: Session = Depends(get_db)
-):
+def update_document(document_id: int, body: DocumentUpdate, db: Session = _Db):
     """Partial update any document fields."""
     doc = get_or_404(db, Document, document_id, "Document")
     for key, value in body.model_dump(exclude_unset=True).items():
@@ -270,7 +265,7 @@ def update_document(
 
 
 @router.delete("/{document_id}", status_code=204)
-def delete_document(document_id: int, db: Session = Depends(get_db)):
+def delete_document(document_id: int, db: Session = _Db):
     """Soft-delete: set status to 'deleted'."""
     doc = get_or_404(db, Document, document_id, "Document")
     doc.status = DocumentStatus.deleted
@@ -279,9 +274,7 @@ def delete_document(document_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{document_id}/review")
-def review_document(
-    document_id: int, body: ReviewAction, db: Session = Depends(get_db)
-):
+def review_document(document_id: int, body: ReviewAction, db: Session = _Db):
     """Approve or reject a document extraction."""
     doc = get_or_404(db, Document, document_id, "Document")
 
@@ -314,11 +307,7 @@ def _create_order_from_doc(doc: Document, db: Session):
     vendor = None
     vendor_name = data.get("vendor_name") or doc.vendor_name
     if vendor_name:
-        vendor = (
-            db.query(Vendor)
-            .filter(func.lower(Vendor.name) == func.lower(vendor_name.strip()))
-            .first()
-        )
+        vendor = db.query(Vendor).filter(func.lower(Vendor.name) == func.lower(vendor_name.strip())).first()
         if not vendor:
             vendor = Vendor(name=vendor_name)
             db.add(vendor)

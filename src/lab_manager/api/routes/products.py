@@ -31,6 +31,21 @@ _PRODUCT_SORTABLE = {
 
 _CAS_RE = re.compile(r"^\d{2,7}-\d{2}-\d$")
 
+_Db = Depends(get_db)
+_ProdPage = Query(1, ge=1)
+_ProdPageSize = Query(50, ge=1, le=200)
+_ProdVendorId = Query(None)
+_ProdCategory = Query(None)
+_ProdCatalog = Query(None)
+_ProdSearch = Query(None)
+_ProdInactive = Query(False)
+_ProdSortBy = Query("id")
+_ProdSortDir = Query("asc", pattern="^(asc|desc)$")
+_ProdInvPage = Query(1, ge=1)
+_ProdInvPageSize = Query(50, ge=1, le=200)
+_ProdOrdPage = Query(1, ge=1)
+_ProdOrdPageSize = Query(50, ge=1, le=200)
+
 
 def _validate_cas(v: str | None) -> str | None:
     if v is None:
@@ -39,9 +54,7 @@ def _validate_cas(v: str | None) -> str | None:
     if not v:
         return None
     if not _CAS_RE.match(v):
-        raise ValueError(
-            f"Invalid CAS number format: {v!r}. Expected format: NNNNN-NN-N"
-        )
+        raise ValueError(f"Invalid CAS number format: {v!r}. Expected format: NNNNN-NN-N")
     return v
 
 
@@ -81,16 +94,16 @@ class ProductUpdate(BaseModel):
 
 @router.get("/")
 def list_products(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=200),
-    vendor_id: int | None = Query(None),
-    category: str | None = Query(None),
-    catalog_number: str | None = Query(None),
-    search: str | None = Query(None),
-    include_inactive: bool = Query(False),
-    sort_by: str = Query("id"),
-    sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
-    db: Session = Depends(get_db),
+    page: int = _ProdPage,
+    page_size: int = _ProdPageSize,
+    vendor_id: int | None = _ProdVendorId,
+    category: str | None = _ProdCategory,
+    catalog_number: str | None = _ProdCatalog,
+    search: str | None = _ProdSearch,
+    include_inactive: bool = _ProdInactive,
+    sort_by: str = _ProdSortBy,
+    sort_dir: str = _ProdSortDir,
+    db: Session = _Db,
 ):
     q = db.query(Product)
     if not include_inactive:
@@ -112,7 +125,7 @@ def list_products(
 
 
 @router.post("/", status_code=201)
-def create_product(body: ProductCreate, db: Session = Depends(get_db)):
+def create_product(body: ProductCreate, db: Session = _Db):
     product = Product(**body.model_dump())
     db.add(product)
     try:
@@ -122,19 +135,19 @@ def create_product(body: ProductCreate, db: Session = Depends(get_db)):
         if "uq_product_catalog_vendor" in str(e.orig):
             raise ConflictError(
                 f"Product with catalog_number={body.catalog_number!r} already exists for this vendor"
-            )
-        raise ConflictError("Duplicate or constraint violation")
+            ) from e
+        raise ConflictError("Duplicate or constraint violation") from e
     db.refresh(product)
     return product
 
 
 @router.get("/{product_id}")
-def get_product(product_id: int, db: Session = Depends(get_db)):
+def get_product(product_id: int, db: Session = _Db):
     return get_or_404(db, Product, product_id, "Product")
 
 
 @router.patch("/{product_id}")
-def update_product(product_id: int, body: ProductUpdate, db: Session = Depends(get_db)):
+def update_product(product_id: int, body: ProductUpdate, db: Session = _Db):
     product = get_or_404(db, Product, product_id, "Product")
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(product, key, value)
@@ -143,55 +156,43 @@ def update_product(product_id: int, body: ProductUpdate, db: Session = Depends(g
     except IntegrityError as e:
         db.rollback()
         if "uq_product_catalog_vendor" in str(e.orig):
-            raise ConflictError(
-                f"catalog_number {body.catalog_number!r} already exists for this vendor"
-            )
-        raise ConflictError("Constraint violation")
+            raise ConflictError(f"catalog_number {body.catalog_number!r} already exists for this vendor") from e
+        raise ConflictError("Constraint violation") from e
     db.refresh(product)
     return product
 
 
 @router.delete("/{product_id}", status_code=204)
-def delete_product(product_id: int, db: Session = Depends(get_db)):
+def delete_product(product_id: int, db: Session = _Db):
     product = get_or_404(db, Product, product_id, "Product")
     try:
         db.delete(product)
         db.commit()
-    except IntegrityError:
+    except IntegrityError as e:
         db.rollback()
-        raise ConflictError(
-            "Cannot delete product: it is referenced by inventory or order items"
-        )
+        raise ConflictError("Cannot delete product: it is referenced by inventory or order items") from e
     return None
 
 
 @router.get("/{product_id}/inventory")
 def list_product_inventory(
     product_id: int,
-    page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=200),
-    db: Session = Depends(get_db),
+    page: int = _ProdInvPage,
+    page_size: int = _ProdInvPageSize,
+    db: Session = _Db,
 ):
     get_or_404(db, Product, product_id, "Product")
-    q = (
-        db.query(InventoryItem)
-        .filter(InventoryItem.product_id == product_id)
-        .order_by(InventoryItem.id)
-    )
+    q = db.query(InventoryItem).filter(InventoryItem.product_id == product_id).order_by(InventoryItem.id)
     return paginate(q, page, page_size)
 
 
 @router.get("/{product_id}/orders")
 def list_product_orders(
     product_id: int,
-    page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=200),
-    db: Session = Depends(get_db),
+    page: int = _ProdOrdPage,
+    page_size: int = _ProdOrdPageSize,
+    db: Session = _Db,
 ):
     get_or_404(db, Product, product_id, "Product")
-    q = (
-        db.query(OrderItem)
-        .filter(OrderItem.product_id == product_id)
-        .order_by(OrderItem.id)
-    )
+    q = db.query(OrderItem).filter(OrderItem.product_id == product_id).order_by(OrderItem.id)
     return paginate(q, page, page_size)

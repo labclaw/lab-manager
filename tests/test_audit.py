@@ -33,11 +33,7 @@ def test_audit_update(db_session):
     db_session.commit()
     set_current_user(None)
 
-    logs = (
-        db_session.query(AuditLog)
-        .filter(AuditLog.table_name == "vendors", AuditLog.action == "update")
-        .all()
-    )
+    logs = db_session.query(AuditLog).filter(AuditLog.table_name == "vendors", AuditLog.action == "update").all()
     assert len(logs) == 1
     entry = logs[0]
     assert entry.changed_by == "editor"
@@ -57,11 +53,7 @@ def test_audit_delete(db_session):
     db_session.commit()
     set_current_user(None)
 
-    logs = (
-        db_session.query(AuditLog)
-        .filter(AuditLog.table_name == "vendors", AuditLog.action == "delete")
-        .all()
-    )
+    logs = db_session.query(AuditLog).filter(AuditLog.table_name == "vendors", AuditLog.action == "delete").all()
     assert len(logs) == 1
     entry = logs[0]
     assert entry.record_id == vid

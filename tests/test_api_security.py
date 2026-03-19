@@ -13,8 +13,8 @@ def test_create_product_empty_catalog_number_rejected(client):
 
 
 def test_create_product_duplicate_returns_409(client, db_session):
-    from lab_manager.models.vendor import Vendor
     from lab_manager.models.product import Product
+    from lab_manager.models.vendor import Vendor
 
     v = Vendor(name="409 Vendor")
     db_session.add(v)
@@ -100,6 +100,7 @@ def test_create_document_valid_status_accepted(client):
 def test_rag_unicode_bypass_blocked():
     """Unicode tricks should not bypass the SQL validator."""
     import pytest
+
     from lab_manager.services.rag import _validate_sql
 
     # Fullwidth semicolon (U+FF1B) normalizes to ASCII ';' under NFKC
@@ -114,6 +115,7 @@ def test_rag_unicode_bypass_blocked():
 def test_rag_subquery_table_blocked():
     """Subqueries referencing disallowed tables should be blocked."""
     import pytest
+
     from lab_manager.services.rag import _validate_sql
 
     with pytest.raises(ValueError):
@@ -164,8 +166,8 @@ def test_create_product_null_cas_accepted(client):
 
 def test_update_product_catalog_conflict_returns_409(client, db_session):
     """PATCH catalog_number to collide with existing product should 409."""
-    from lab_manager.models.vendor import Vendor
     from lab_manager.models.product import Product
+    from lab_manager.models.vendor import Vendor
 
     v = Vendor(name="Update Conflict Vendor")
     db_session.add(v)

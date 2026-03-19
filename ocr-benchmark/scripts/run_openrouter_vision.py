@@ -11,14 +11,14 @@ from pathlib import Path
 
 from openai import OpenAI
 
-
 PROMPT = """You are performing OCR on a lab supply document.
 Transcribe visible text as faithfully as possible.
 Rules:
 - Output plain text only.
 - Preserve reading order from top to bottom.
 - Keep line breaks where possible.
-- Include table rows, part numbers, PO numbers, dates, lot or batch numbers, addresses, and handwritten notes.
+- Include table rows, part numbers, PO numbers, dates,
+  lot or batch numbers, addresses, and handwritten notes.
 - Do not summarize.
 - Do not explain.
 """
@@ -60,9 +60,7 @@ def run_model(client: OpenAI, model: str, image_path: Path) -> dict[str, str]:
 
 def main() -> None:
     if len(sys.argv) != 4:
-        raise SystemExit(
-            "usage: python run_openrouter_vision.py <model> <input_dir> <output_json>"
-        )
+        raise SystemExit("usage: python run_openrouter_vision.py <model> <input_dir> <output_json>")
 
     model = sys.argv[1]
     input_dir = Path(sys.argv[2])

@@ -2,6 +2,7 @@
 """Seed the database with known vendors from our scan data."""
 
 from sqlalchemy.orm import Session
+
 from lab_manager.database import get_engine
 from lab_manager.models.vendor import Vendor
 

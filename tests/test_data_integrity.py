@@ -1,18 +1,18 @@
 """Tests for data integrity: session management, constraints."""
 
+import contextlib
+
 import pytest  # noqa: F401 — used in later tests
 from sqlalchemy.exc import IntegrityError  # noqa: F401
 from sqlalchemy.pool import StaticPool
-from sqlmodel import SQLModel, Session, create_engine
+from sqlmodel import Session, SQLModel, create_engine
 
 from lab_manager.models.product import Product  # noqa: F401
 from lab_manager.models.vendor import Vendor
 
 
 def _make_engine():
-    engine = create_engine(
-        "sqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False}
-    )
+    engine = create_engine("sqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False})
     import lab_manager.models  # noqa: F401
 
     SQLModel.metadata.create_all(engine)
@@ -37,10 +37,8 @@ def test_get_db_auto_commits_on_success():
         session = next(gen)
         session.add(Vendor(name="Test Vendor"))
         # Simulate successful exit
-        try:
+        with contextlib.suppress(StopIteration):
             next(gen)
-        except StopIteration:
-            pass
 
         # Verify data persisted
         with Session(engine) as check:
@@ -68,16 +66,12 @@ def test_get_db_rollback_on_exception():
         session = next(gen)
         session.add(Vendor(name="Rollback Vendor"))
         # Simulate exception
-        try:
+        with contextlib.suppress(ValueError):
             gen.throw(ValueError("simulated error"))
-        except ValueError:
-            pass
 
         # Verify data NOT persisted
         with Session(engine) as check:
-            vendor = (
-                check.query(Vendor).filter(Vendor.name == "Rollback Vendor").first()
-            )
+            vendor = check.query(Vendor).filter(Vendor.name == "Rollback Vendor").first()
             assert vendor is None, "Vendor should NOT be committed after error"
     finally:
         db_mod._session_factory = original_factory

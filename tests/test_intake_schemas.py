@@ -40,6 +40,4 @@ def test_extraction_prompt_matches_valid_doc_types():
     match = re.search(r"document_type:\s*one of\s+(.+)", EXTRACTION_PROMPT)
     assert match, "EXTRACTION_PROMPT must contain a 'document_type: one of ...' line"
     prompt_types = {t.strip() for t in match.group(1).split(",")}
-    assert prompt_types == VALID_DOC_TYPES, (
-        f"Prompt types {prompt_types} != schema types {VALID_DOC_TYPES}"
-    )
+    assert prompt_types == VALID_DOC_TYPES, f"Prompt types {prompt_types} != schema types {VALID_DOC_TYPES}"

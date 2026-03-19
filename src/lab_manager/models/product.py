@@ -18,20 +18,14 @@ if TYPE_CHECKING:
 
 class Product(AuditMixin, table=True):
     __tablename__ = "products"
-    __table_args__ = (
-        sa.UniqueConstraint(
-            "catalog_number", "vendor_id", name="uq_product_catalog_vendor"
-        ),
-    )
+    __table_args__ = (sa.UniqueConstraint("catalog_number", "vendor_id", name="uq_product_catalog_vendor"),)
 
     id: int | None = Field(default=None, primary_key=True)
     catalog_number: str = Field(max_length=100, index=True)
     name: str = Field(max_length=500)
     vendor_id: int | None = Field(
         default=None,
-        sa_column=Column(
-            sa.Integer, sa.ForeignKey("vendors.id", ondelete="RESTRICT"), index=True
-        ),
+        sa_column=Column(sa.Integer, sa.ForeignKey("vendors.id", ondelete="RESTRICT"), index=True),
     )
     category: str | None = Field(default=None, max_length=100, index=True)
     cas_number: str | None = Field(default=None, max_length=30)
@@ -40,15 +34,9 @@ class Product(AuditMixin, table=True):
     hazard_info: str | None = Field(default=None, max_length=255)
     extra: dict = Field(default_factory=dict, sa_column=Column(sa.JSON))
 
-    min_stock_level: Decimal | None = Field(
-        default=None, sa_column=Column(sa.Numeric(12, 4), nullable=True)
-    )
-    max_stock_level: Decimal | None = Field(
-        default=None, sa_column=Column(sa.Numeric(12, 4), nullable=True)
-    )
-    reorder_quantity: Decimal | None = Field(
-        default=None, sa_column=Column(sa.Numeric(12, 4), nullable=True)
-    )
+    min_stock_level: Decimal | None = Field(default=None, sa_column=Column(sa.Numeric(12, 4), nullable=True))
+    max_stock_level: Decimal | None = Field(default=None, sa_column=Column(sa.Numeric(12, 4), nullable=True))
+    reorder_quantity: Decimal | None = Field(default=None, sa_column=Column(sa.Numeric(12, 4), nullable=True))
     shelf_life_days: int | None = Field(default=None)
     storage_requirements: str | None = Field(default=None, max_length=500)
     is_hazardous: bool = Field(default=False)

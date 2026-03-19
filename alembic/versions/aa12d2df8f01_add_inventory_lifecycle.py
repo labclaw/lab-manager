@@ -6,18 +6,18 @@ Create Date: 2026-03-14 11:22:09.841916
 
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 import sqlmodel
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "aa12d2df8f01"
-down_revision: Union[str, None] = "656b400b42d2"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "656b400b42d2"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -26,22 +26,12 @@ def upgrade() -> None:
         "alerts",
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
-        sa.Column(
-            "created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True
-        ),
+        sa.Column("created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column(
-            "alert_type", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=False
-        ),
-        sa.Column(
-            "severity", sqlmodel.sql.sqltypes.AutoString(length=20), nullable=False
-        ),
-        sa.Column(
-            "message", sqlmodel.sql.sqltypes.AutoString(length=1000), nullable=False
-        ),
-        sa.Column(
-            "entity_type", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=False
-        ),
+        sa.Column("alert_type", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=False),
+        sa.Column("severity", sqlmodel.sql.sqltypes.AutoString(length=20), nullable=False),
+        sa.Column("message", sqlmodel.sql.sqltypes.AutoString(length=1000), nullable=False),
+        sa.Column("entity_type", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=False),
         sa.Column("entity_id", sa.Integer(), nullable=False),
         sa.Column("is_acknowledged", sa.Boolean(), nullable=False),
         sa.Column(
@@ -53,31 +43,21 @@ def upgrade() -> None:
         sa.Column("is_resolved", sa.Boolean(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        op.f("ix_alerts_alert_type"), "alerts", ["alert_type"], unique=False
-    )
+    op.create_index(op.f("ix_alerts_alert_type"), "alerts", ["alert_type"], unique=False)
     op.create_index(op.f("ix_alerts_severity"), "alerts", ["severity"], unique=False)
     op.create_table(
         "consumption_log",
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
-        sa.Column(
-            "created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True
-        ),
+        sa.Column("created_by", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("inventory_id", sa.Integer(), nullable=False),
         sa.Column("product_id", sa.Integer(), nullable=True),
         sa.Column("quantity_used", sa.Float(), nullable=False),
         sa.Column("quantity_remaining", sa.Float(), nullable=False),
-        sa.Column(
-            "consumed_by", sqlmodel.sql.sqltypes.AutoString(length=200), nullable=False
-        ),
-        sa.Column(
-            "purpose", sqlmodel.sql.sqltypes.AutoString(length=500), nullable=True
-        ),
-        sa.Column(
-            "action", sqlmodel.sql.sqltypes.AutoString(length=30), nullable=False
-        ),
+        sa.Column("consumed_by", sqlmodel.sql.sqltypes.AutoString(length=200), nullable=False),
+        sa.Column("purpose", sqlmodel.sql.sqltypes.AutoString(length=500), nullable=True),
+        sa.Column("action", sqlmodel.sql.sqltypes.AutoString(length=30), nullable=False),
         sa.ForeignKeyConstraint(
             ["inventory_id"],
             ["inventory.id"],

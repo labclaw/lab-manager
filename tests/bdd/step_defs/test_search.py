@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 import pytest
 from meilisearch.errors import MeilisearchApiError
 from pytest_bdd import given, parsers, scenario, then, when
@@ -87,7 +86,7 @@ def index_table_data(api, datatable):
     """
     # Convert list-of-lists to list-of-dicts using the header row.
     header = [str(c) for c in datatable[0]]
-    rows = [dict(zip(header, [str(c) for c in row])) for row in datatable[1:]]
+    rows = [dict(zip(header, [str(c) for c in row], strict=False)) for row in datatable[1:]]
 
     client = get_search_client()
     vendor_ids = {}
@@ -181,10 +180,7 @@ def create_and_index_products(api, p1, p2, p3):
 
     # Index into Meilisearch
     client = get_search_client()
-    docs = [
-        {"id": p["id"], "name": p["name"], "catalog_number": p.get("catalog_number")}
-        for p in products
-    ]
+    docs = [{"id": p["id"], "name": p["name"], "catalog_number": p.get("catalog_number")} for p in products]
     _index_documents(client, "products", docs)
     return products
 
@@ -229,9 +225,7 @@ def request_suggestions(api, query):
 def check_results_from_index(search_response, index):
     """Verify that search results include hits from the specified index."""
     results = search_response.get("results", {})
-    assert index in results, (
-        f"Expected results from '{index}' index, got indexes: {list(results.keys())}"
-    )
+    assert index in results, f"Expected results from '{index}' index, got indexes: {list(results.keys())}"
     assert len(results[index]) > 0, f"No hits in '{index}' index"
 
 
@@ -259,18 +253,14 @@ def check_result_name(search_response, name):
     """Verify the name of the first hit in a single-index search."""
     hits = search_response.get("hits", [])
     assert len(hits) > 0, "No hits returned"
-    assert hits[0].get("name") == name, (
-        f"Expected name '{name}', got '{hits[0].get('name')}'"
-    )
+    assert hits[0].get("name") == name, f"Expected name '{name}', got '{hits[0].get('name')}'"
 
 
 @then(parsers.parse("I should get at least {count:d} suggestions"))
 def check_min_suggestions(suggest_response, count):
     """Verify minimum number of autocomplete suggestions."""
     suggestions = suggest_response.get("suggestions", [])
-    assert len(suggestions) >= count, (
-        f"Expected at least {count} suggestions, got {len(suggestions)}"
-    )
+    assert len(suggestions) >= count, f"Expected at least {count} suggestions, got {len(suggestions)}"
 
 
 @then(parsers.parse('all suggestions should be of type "{type_name}"'))
@@ -279,9 +269,7 @@ def check_suggestion_types(suggest_response, type_name):
     suggestions = suggest_response.get("suggestions", [])
     assert len(suggestions) > 0, "No suggestions returned"
     for s in suggestions:
-        assert s.get("type") == type_name, (
-            f"Expected type '{type_name}', got '{s.get('type')}' for suggestion: {s}"
-        )
+        assert s.get("type") == type_name, f"Expected type '{type_name}', got '{s.get('type')}' for suggestion: {s}"
 
 
 @then(parsers.parse("I should get {count:d} total results"))

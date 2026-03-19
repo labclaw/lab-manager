@@ -16,11 +16,11 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from lab_manager.database import get_engine
-from lab_manager.models.product import Product
 from lab_manager.models.inventory import InventoryItem
-from lab_manager.models.staff import Staff
 from lab_manager.models.location import StorageLocation
 from lab_manager.models.order import Order, OrderItem
+from lab_manager.models.product import Product
+from lab_manager.models.staff import Staff
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -270,18 +270,13 @@ def populate_locations(db: Session) -> dict[str, int]:
 # ---------------------------------------------------------------------------
 
 
-def populate_inventory(
-    db: Session, catalog_map: dict[str, int], loc_map: dict[str, int]
-) -> int:
+def populate_inventory(db: Session, catalog_map: dict[str, int], loc_map: dict[str, int]) -> int:
     """Create inventory records from order_items of received orders."""
     log.info("=== Populating inventory ===")
 
     # Check existing inventory by order_item_id to avoid duplicates
     existing_oi_ids = {
-        row[0]
-        for row in db.query(InventoryItem.order_item_id)
-        .filter(InventoryItem.order_item_id.isnot(None))
-        .all()
+        row[0] for row in db.query(InventoryItem.order_item_id).filter(InventoryItem.order_item_id.isnot(None)).all()
     }
     if existing_oi_ids:
         log.info(

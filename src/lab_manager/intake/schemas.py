@@ -19,20 +19,14 @@ VALID_DOC_TYPES = {
 class ExtractedItem(BaseModel):
     """A single line item from a packing list / invoice."""
 
-    catalog_number: str | None = Field(
-        None, description="Product catalog or item number"
-    )
+    catalog_number: str | None = Field(None, description="Product catalog or item number")
     description: str | None = Field(None, description="Product description")
     quantity: float | None = Field(None, description="Quantity ordered/shipped")
     unit: str | None = Field(None, description="Unit of measure (EA, UL, MG, etc.)")
     lot_number: str | None = Field(None, description="Lot or batch number")
-    batch_number: str | None = Field(
-        None, description="Batch number if different from lot"
-    )
+    batch_number: str | None = Field(None, description="Batch number if different from lot")
     cas_number: str | None = Field(None, description="CAS registry number")
-    storage_temp: str | None = Field(
-        None, description="Storage temperature requirement"
-    )
+    storage_temp: str | None = Field(None, description="Storage temperature requirement")
     unit_price: float | None = Field(None, description="Price per unit")
 
 
@@ -51,9 +45,7 @@ class ExtractedDocument(BaseModel):
     ship_date: str | None = Field(None, description="Shipping date")
     received_date: str | None = Field(None, description="Handwritten receiving date")
     received_by: str | None = Field(None, description="Person who received the package")
-    ship_to_address: str | None = Field(
-        None, description="Shipping destination address"
-    )
+    ship_to_address: str | None = Field(None, description="Shipping destination address")
     bill_to_address: str | None = Field(None, description="Billing address")
     items: list[ExtractedItem] = Field(default_factory=list, description="Line items")
     confidence: float | None = Field(None, description="Extraction confidence 0-1")
@@ -62,7 +54,5 @@ class ExtractedDocument(BaseModel):
     @classmethod
     def check_document_type(cls, v: str) -> str:
         if v not in VALID_DOC_TYPES:
-            raise ValueError(
-                f"invalid document_type: {v!r}, must be one of {VALID_DOC_TYPES}"
-            )
+            raise ValueError(f"invalid document_type: {v!r}, must be one of {VALID_DOC_TYPES}")
         return v

@@ -9,9 +9,7 @@ import uuid
 import structlog
 
 # Context variable for per-request correlation ID.
-request_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
-    "request_id", default=None
-)
+request_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar("request_id", default=None)
 
 
 def generate_request_id() -> str:

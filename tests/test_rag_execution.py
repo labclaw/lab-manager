@@ -10,6 +10,7 @@ import os
 
 import pytest
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlmodel import Session
 
 _DB_URL = os.environ.get("DATABASE_URL", "sqlite://")
@@ -24,10 +25,7 @@ def pg_session(db_engine):
     with Session(db_engine) as session:
         # Insert test data into the vendors table (allowed by RAG)
         session.execute(
-            text(
-                "INSERT INTO vendors (name, created_by) VALUES "
-                "('Test Vendor A', 'test'), ('Test Vendor B', 'test')"
-            )
+            text("INSERT INTO vendors (name, created_by) VALUES ('Test Vendor A', 'test'), ('Test Vendor B', 'test')")
         )
         session.commit()
         yield session
@@ -52,7 +50,7 @@ def test_read_only_blocks_update(pg_session):
     """SET TRANSACTION READ ONLY should prevent UPDATE."""
     from lab_manager.services.rag import _execute_sql
 
-    with pytest.raises(Exception):
+    with pytest.raises((OperationalError, ProgrammingError)):  # noqa: B017
         _execute_sql(
             pg_session,
             "UPDATE vendors SET name = 'evil' WHERE id = 1",
@@ -63,7 +61,7 @@ def test_read_only_blocks_delete(pg_session):
     """SET TRANSACTION READ ONLY should prevent DELETE."""
     from lab_manager.services.rag import _execute_sql
 
-    with pytest.raises(Exception):
+    with pytest.raises((OperationalError, ProgrammingError)):  # noqa: B017
         _execute_sql(
             pg_session,
             "DELETE FROM vendors WHERE id = 1",
@@ -98,7 +96,7 @@ def test_savepoint_rollback_on_error(pg_session):
     from lab_manager.services.rag import _execute_sql
 
     # Execute a query that will fail (bad syntax)
-    with pytest.raises(Exception):
+    with pytest.raises((OperationalError, ProgrammingError)):  # noqa: B017
         _execute_sql(pg_session, "SELECT * FROM nonexistent_table_xyz")
 
     # Session should still be usable after rollback

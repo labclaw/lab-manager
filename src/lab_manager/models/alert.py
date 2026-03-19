@@ -11,7 +11,7 @@ from sqlmodel import Field
 from lab_manager.models.base import AuditMixin
 
 
-class AlertType(str, enum.Enum):
+class AlertType(enum.StrEnum):
     expired = "expired"
     expiring_soon = "expiring_soon"
     out_of_stock = "out_of_stock"
@@ -20,7 +20,7 @@ class AlertType(str, enum.Enum):
     stale_orders = "stale_orders"
 
 
-class AlertSeverity(str, enum.Enum):
+class AlertSeverity(enum.StrEnum):
     critical = "critical"
     warning = "warning"
     info = "info"

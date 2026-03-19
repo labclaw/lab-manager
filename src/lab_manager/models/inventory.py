@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from lab_manager.models.product import Product
 
 
-class InventoryStatus(str, enum.Enum):
+class InventoryStatus(enum.StrEnum):
     available = "available"
     opened = "opened"
     depleted = "depleted"
@@ -51,14 +51,10 @@ class InventoryItem(AuditMixin, table=True):
     )
     location_id: int | None = Field(
         default=None,
-        sa_column=Column(
-            sa.Integer, sa.ForeignKey("locations.id", ondelete="SET NULL"), index=True
-        ),
+        sa_column=Column(sa.Integer, sa.ForeignKey("locations.id", ondelete="SET NULL"), index=True),
     )
     lot_number: str | None = Field(default=None, max_length=100)
-    quantity_on_hand: Decimal = Field(
-        default=0, sa_column=Column(sa.Numeric(12, 4), default=0)
-    )
+    quantity_on_hand: Decimal = Field(default=0, sa_column=Column(sa.Numeric(12, 4), default=0))
     unit: str | None = Field(default=None, max_length=50)
     expiry_date: date | None = Field(default=None, index=True)
     opened_date: date | None = Field(default=None)
@@ -67,16 +63,10 @@ class InventoryItem(AuditMixin, table=True):
     received_by: str | None = Field(default=None, max_length=200)
     order_item_id: int | None = Field(
         default=None,
-        sa_column=Column(
-            sa.Integer, sa.ForeignKey("order_items.id", ondelete="SET NULL")
-        ),
+        sa_column=Column(sa.Integer, sa.ForeignKey("order_items.id", ondelete="SET NULL")),
     )
 
     product: "Product" = Relationship(back_populates="inventory_items")
-    location: Optional["StorageLocation"] = Relationship(
-        back_populates="inventory_items"
-    )
+    location: Optional["StorageLocation"] = Relationship(back_populates="inventory_items")
     order_item: Optional["OrderItem"] = Relationship(back_populates="inventory_items")
-    consumption_logs: list["ConsumptionLog"] = Relationship(
-        back_populates="inventory_item"
-    )
+    consumption_logs: list["ConsumptionLog"] = Relationship(back_populates="inventory_item")

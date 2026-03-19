@@ -84,15 +84,15 @@ CRITICAL RULES:
 def get_default_vlm_providers():
     """Get the 3 SOTA VLM providers."""
     from lab_manager.intake.providers.claude import ClaudeProvider
-    from lab_manager.intake.providers.gemini import GeminiProvider
     from lab_manager.intake.providers.codex import CodexProvider
+    from lab_manager.intake.providers.gemini import GeminiProvider
 
     return [ClaudeProvider(), GeminiProvider(), CodexProvider()]
 
 
 def get_vlm_providers(names: list[str]):
     """Get VLM providers by name."""
-    from lab_manager.intake.providers.more_ocr import get_provider, VLM_PROVIDERS
+    from lab_manager.intake.providers.more_ocr import VLM_PROVIDERS, get_provider
 
     return [get_provider(n, VLM_PROVIDERS) for n in names]
 
@@ -106,9 +106,9 @@ def process_one(
 ) -> dict:
     """Process a single document through the full v2 pipeline."""
     from lab_manager.intake.consensus import (
-        extract_parallel,
         consensus_merge,
         cross_model_review,
+        extract_parallel,
     )
     from lab_manager.intake.validator import validate
 
@@ -152,9 +152,7 @@ def process_one(
         "elapsed_s": round(stage1_time, 1),
         "models_succeeded": success_count,
         "models_total": len(vlm_providers),
-        "per_model": {
-            model: {"success": data is not None} for model, data in extractions.items()
-        },
+        "per_model": {model: {"success": data is not None} for model, data in extractions.items()},
     }
     log.info(
         "  Stage 1: %d/%d succeeded (%.1fs)",
@@ -201,9 +199,7 @@ def process_one(
     }
 
     # Final status
-    needs_human = merged.get("_needs_human", False) or any(
-        i["severity"] == "critical" for i in issues
-    )
+    needs_human = merged.get("_needs_human", False) or any(i["severity"] == "critical" for i in issues)
     result["final_extraction"] = clean_data
     result["needs_human"] = needs_human
     result["status"] = "needs_human" if needs_human else "auto_resolved"
@@ -218,9 +214,7 @@ def main():
     parser.add_argument("ocr_json", help="Path to OCR results JSON")
     parser.add_argument("--start", type=int, default=0)
     parser.add_argument("--end", type=int, default=None)
-    parser.add_argument(
-        "--no-review", action="store_true", help="Skip cross-model review"
-    )
+    parser.add_argument("--no-review", action="store_true", help="Skip cross-model review")
     parser.add_argument(
         "--vlms",
         default=None,
@@ -252,9 +246,7 @@ def main():
 
     for i, entry in enumerate(subset, args.start + 1):
         t0 = time.time()
-        result = process_one(
-            entry, i, total, vlm_providers, do_review=not args.no_review
-        )
+        result = process_one(entry, i, total, vlm_providers, do_review=not args.no_review)
         result["total_elapsed_s"] = round(time.time() - t0, 1)
 
         stats[result["status"]] = stats.get(result["status"], 0) + 1
@@ -262,9 +254,7 @@ def main():
 
         # Save incrementally
         out_path = OUTPUT_DIR / f"results_{args.start}_{args.start + len(subset)}.json"
-        out_path.write_text(
-            json.dumps(all_results, indent=2, default=str, ensure_ascii=False)
-        )
+        out_path.write_text(json.dumps(all_results, indent=2, default=str, ensure_ascii=False))
 
     total_time = time.time() - t_start
 
@@ -287,9 +277,7 @@ def main():
         "stats": stats,
         "elapsed_s": round(total_time, 1),
     }
-    (OUTPUT_DIR / f"summary_{args.start}_{args.start + len(subset)}.json").write_text(
-        json.dumps(summary, indent=2)
-    )
+    (OUTPUT_DIR / f"summary_{args.start}_{args.start + len(subset)}.json").write_text(json.dumps(summary, indent=2))
 
 
 if __name__ == "__main__":

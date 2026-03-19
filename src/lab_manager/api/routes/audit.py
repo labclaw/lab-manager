@@ -11,16 +11,24 @@ from lab_manager.models.audit import AuditLog
 
 router = APIRouter()
 
+_Table = Query(None)
+_RecordId = Query(None)
+_Action = Query(None)
+_ChangedBy = Query(None)
+_Page = Query(1, ge=1)
+_PageSize = Query(100, ge=1, le=500)
+_Db = Depends(get_db)
+
 
 @router.get("/")
 def list_audit_logs(
-    table: str | None = Query(None),
-    record_id: int | None = Query(None),
-    action: str | None = Query(None),
-    changed_by: str | None = Query(None),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(100, ge=1, le=500),
-    db: Session = Depends(get_db),
+    table: str | None = _Table,
+    record_id: int | None = _RecordId,
+    action: str | None = _Action,
+    changed_by: str | None = _ChangedBy,
+    page: int = _Page,
+    page_size: int = _PageSize,
+    db: Session = _Db,
 ):
     """Query the audit log with optional filters."""
     q = db.query(AuditLog)
@@ -40,9 +48,9 @@ def list_audit_logs(
 def get_record_history(
     table: str,
     record_id: int,
-    page: int = Query(1, ge=1),
-    page_size: int = Query(100, ge=1, le=500),
-    db: Session = Depends(get_db),
+    page: int = _Page,
+    page_size: int = _PageSize,
+    db: Session = _Db,
 ):
     """Full change history for a specific record."""
     q = (

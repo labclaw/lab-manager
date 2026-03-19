@@ -12,9 +12,7 @@ from lab_manager.models.base import AuditMixin, utcnow
 from lab_manager.services.serialization import serialize_value as _serialize_value
 
 # Context variable to track the current user per-request.
-_current_user: contextvars.ContextVar[str | None] = contextvars.ContextVar(
-    "_current_user", default=None
-)
+_current_user: contextvars.ContextVar[str | None] = contextvars.ContextVar("_current_user", default=None)
 
 
 def set_current_user(user: str | None) -> None:
@@ -88,10 +86,7 @@ def _diff(session: Session, obj: object) -> dict | None:
 
     # For old values we check committed_state; if NO_VALUE, fetch from DB.
     committed = state.committed_state
-    need_db_load = any(
-        isinstance(committed.get(k), LoaderCallableStatus) or k not in committed
-        for k in changed_keys
-    )
+    need_db_load = any(isinstance(committed.get(k), LoaderCallableStatus) or k not in committed for k in changed_keys)
 
     old_values: dict = {}
     if need_db_load:
@@ -101,9 +96,7 @@ def _diff(session: Session, obj: object) -> dict | None:
         from sqlalchemy import select
 
         row = session.execute(
-            select(*[mapper.columns[k] for k in changed_keys]).where(
-                mapper.columns[pk_col.name] == pk_val
-            )
+            select(*[mapper.columns[k] for k in changed_keys]).where(mapper.columns[pk_col.name] == pk_val)
         ).first()
         if row:
             old_values = dict(zip(changed_keys, row, strict=False))

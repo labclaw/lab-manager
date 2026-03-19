@@ -36,11 +36,7 @@ class DeepSeekVLProvider(OCRProvider):
 
         client = OpenAI(base_url=self.base_url, api_key="dummy")
         b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
-        mime = (
-            "image/jpeg"
-            if image_path.lower().endswith((".jpg", ".jpeg"))
-            else "image/png"
-        )
+        mime = "image/jpeg" if image_path.lower().endswith((".jpg", ".jpeg")) else "image/png"
 
         response = client.chat.completions.create(
             model=self.model,
@@ -67,9 +63,7 @@ class GLMOCRProvider(OCRProvider):
     name = "glm_4v"
     model_id = "glm-5"
 
-    def __init__(
-        self, base_url: str = "http://localhost:8000/v1", model: str = "THUDM/glm-4v-9b"
-    ):
+    def __init__(self, base_url: str = "http://localhost:8000/v1", model: str = "THUDM/glm-4v-9b"):
         self.base_url = base_url
         self.model = model
 
@@ -80,11 +74,7 @@ class GLMOCRProvider(OCRProvider):
 
         client = OpenAI(base_url=self.base_url, api_key="dummy")
         b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
-        mime = (
-            "image/jpeg"
-            if image_path.lower().endswith((".jpg", ".jpeg"))
-            else "image/png"
-        )
+        mime = "image/jpeg" if image_path.lower().endswith((".jpg", ".jpeg")) else "image/png"
 
         response = client.chat.completions.create(
             model=self.model,
@@ -154,11 +144,7 @@ class MistralOCRProvider(OCRProvider):
         client = OpenAI(base_url="https://api.mistral.ai/v1", api_key=api_key)
 
         b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
-        mime = (
-            "image/jpeg"
-            if image_path.lower().endswith((".jpg", ".jpeg"))
-            else "image/png"
-        )
+        mime = "image/jpeg" if image_path.lower().endswith((".jpg", ".jpeg")) else "image/png"
 
         response = client.chat.completions.create(
             model=self.model,
@@ -204,7 +190,7 @@ class ClaudeOCRProvider(OCRProvider):
                 return result.stdout.strip()
             return ""
         except Exception as e:
-            log.warning("Claude OCR error: %s", e)
+            logger.warning("Claude OCR error: %s", e)
             return ""
 
 
@@ -230,7 +216,7 @@ class CodexOCRProvider(OCRProvider):
                 return result.stdout.strip()
             return ""
         except Exception as e:
-            log.warning("Codex OCR error: %s", e)
+            logger.warning("Codex OCR error: %s", e)
             return ""
 
 

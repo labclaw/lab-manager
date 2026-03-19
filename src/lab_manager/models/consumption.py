@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from lab_manager.models.product import Product
 
 
-class ConsumptionAction(str, enum.Enum):
+class ConsumptionAction(enum.StrEnum):
     receive = "receive"
     consume = "consume"
     transfer = "transfer"
@@ -44,19 +44,13 @@ class ConsumptionLog(AuditMixin, table=True):
     )
     product_id: int | None = Field(
         default=None,
-        sa_column=Column(
-            sa.Integer, sa.ForeignKey("products.id", ondelete="SET NULL"), index=True
-        ),
+        sa_column=Column(sa.Integer, sa.ForeignKey("products.id", ondelete="SET NULL"), index=True),
     )
     quantity_used: Decimal = Field(sa_column=Column(sa.Numeric(12, 4), nullable=False))
-    quantity_remaining: Decimal = Field(
-        sa_column=Column(sa.Numeric(12, 4), nullable=False)
-    )
+    quantity_remaining: Decimal = Field(sa_column=Column(sa.Numeric(12, 4), nullable=False))
     consumed_by: str = Field(max_length=200)
     purpose: str | None = Field(default=None, max_length=500)
     action: str = Field(max_length=30)
 
-    inventory_item: Optional["InventoryItem"] = Relationship(
-        back_populates="consumption_logs"
-    )
+    inventory_item: Optional["InventoryItem"] = Relationship(back_populates="consumption_logs")
     product: Optional["Product"] = Relationship(back_populates="consumption_logs")

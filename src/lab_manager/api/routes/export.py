@@ -19,6 +19,11 @@ router = APIRouter()
 
 _DANGEROUS_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
 
+_Db = Depends(get_db)
+_ExportLocationId = Query(None)
+_ExportDateFrom = Query(None)
+_ExportDateTo = Query(None)
+
 
 def _escape_cell(value):
     """Prefix formula-like cell values with a single quote to prevent Excel injection.
@@ -60,8 +65,8 @@ def _csv_response(rows: list[dict], filename: str) -> StreamingResponse:
 
 @router.get("/inventory.csv")
 def export_inventory(
-    location_id: int | None = Query(None),
-    db: Session = Depends(get_db),
+    location_id: int | None = _ExportLocationId,
+    db: Session = _Db,
 ):
     rows = svc.inventory_report(db, location_id=location_id)
     return _csv_response(rows, "inventory.csv")
@@ -69,19 +74,17 @@ def export_inventory(
 
 @router.get("/orders.csv")
 def export_orders(
-    vendor_id: int | None = Query(None),
-    date_from: date | None = Query(None),
-    date_to: date | None = Query(None),
-    db: Session = Depends(get_db),
+    vendor_id: int | None = _ExportLocationId,
+    date_from: date | None = _ExportDateFrom,
+    date_to: date | None = _ExportDateTo,
+    db: Session = _Db,
 ):
-    rows = svc.order_history(
-        db, vendor_id=vendor_id, date_from=date_from, date_to=date_to
-    )
+    rows = svc.order_history(db, vendor_id=vendor_id, date_from=date_from, date_to=date_to)
     return _csv_response(rows, "orders.csv")
 
 
 @router.get("/products.csv")
-def export_products(db: Session = Depends(get_db)):
+def export_products(db: Session = _Db):
     fieldnames = [
         "id",
         "catalog_number",
@@ -121,7 +124,7 @@ def export_products(db: Session = Depends(get_db)):
 
 
 @router.get("/vendors.csv")
-def export_vendors(db: Session = Depends(get_db)):
+def export_vendors(db: Session = _Db):
     fieldnames = ["id", "name", "website", "phone", "email", "notes"]
     query = db.query(Vendor).order_by(Vendor.id).yield_per(100)
 

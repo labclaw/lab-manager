@@ -148,9 +148,7 @@ def sync_vendors(db: Session) -> int:
             d["name"] = v.name
         # Flatten aliases list to a comma-separated string
         if v.aliases:
-            d["aliases"] = (
-                ", ".join(v.aliases) if isinstance(v.aliases, list) else str(v.aliases)
-            )
+            d["aliases"] = ", ".join(v.aliases) if isinstance(v.aliases, list) else str(v.aliases)
         if v.website:
             d["website"] = v.website
         if v.email:
@@ -268,9 +266,7 @@ def sync_inventory(db: Session) -> int:
         d: dict = {"id": item.id}
         if item.lot_number:
             d["lot_number"] = item.lot_number
-        d["quantity_on_hand"] = (
-            float(item.quantity_on_hand) if item.quantity_on_hand is not None else 0
-        )
+        d["quantity_on_hand"] = float(item.quantity_on_hand) if item.quantity_on_hand is not None else 0
         if item.unit:
             d["unit"] = item.unit
         if item.expiry_date:
@@ -302,9 +298,7 @@ def sync_all(db: Session) -> dict[str, int]:
         try:
             client.index(index_name).delete_all_documents()
         except Exception:
-            logger.warning(
-                "Failed to delete documents from index %s", index_name, exc_info=True
-            )
+            logger.warning("Failed to delete documents from index %s", index_name, exc_info=True)
     counts: dict[str, int] = {}
     counts["products"] = sync_products(db)
     counts["vendors"] = sync_vendors(db)
@@ -363,13 +357,9 @@ def suggest(query: str, limit: int = 10) -> list[dict]:
 
     # Vendors: name
     try:
-        resp = client.index("vendors").search(
-            query, {"limit": limit, "attributesToRetrieve": ["id", "name"]}
-        )
+        resp = client.index("vendors").search(query, {"limit": limit, "attributesToRetrieve": ["id", "name"]})
         for hit in resp.get("hits", []):
-            suggestions.append(
-                {"type": "vendor", "text": hit.get("name", ""), "id": hit["id"]}
-            )
+            suggestions.append({"type": "vendor", "text": hit.get("name", ""), "id": hit["id"]})
     except Exception:
         logger.warning("Failed to search vendors index", exc_info=True)
 

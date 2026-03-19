@@ -10,8 +10,7 @@ from pathlib import Path
 
 import torch
 from PIL import Image
-from transformers import AutoProcessor, AutoModelForImageTextToText
-
+from transformers import AutoModelForImageTextToText, AutoProcessor
 
 MODEL_ID = "stepfun-ai/GOT-OCR-2.0-hf"
 

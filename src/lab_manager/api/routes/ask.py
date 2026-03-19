@@ -11,6 +11,9 @@ from lab_manager.services.rag import ask
 
 router = APIRouter()
 
+_Db = Depends(get_db)
+_Q = Query(..., description="Question in plain English or Chinese")
+
 
 class AskRequest(BaseModel):
     question: str = Field(..., max_length=2000)
@@ -26,7 +29,7 @@ class AskResponse(BaseModel):
 
 @router.post("", response_model=AskResponse)
 @router.post("/", response_model=AskResponse, include_in_schema=False)
-def ask_post(body: AskRequest, db: Session = Depends(get_db)):
+def ask_post(body: AskRequest, db: Session = _Db):
     """Ask a natural language question about lab inventory (POST)."""
     return ask(body.question, db)
 
@@ -34,8 +37,8 @@ def ask_post(body: AskRequest, db: Session = Depends(get_db)):
 @router.get("", response_model=AskResponse)
 @router.get("/", response_model=AskResponse, include_in_schema=False)
 def ask_get(
-    q: str = Query(..., description="Question in plain English or Chinese"),
-    db: Session = Depends(get_db),
+    q: str = _Q,
+    db: Session = _Db,
 ):
     """Ask a natural language question about lab inventory (GET)."""
     return ask(q, db)

@@ -1,8 +1,7 @@
 """Step definitions for document intake BDD scenarios."""
 
 import pytest
-from pytest_bdd import given, when, then, scenario, parsers
-
+from pytest_bdd import given, parsers, scenario, then, when
 
 FEATURE = "../features/document_intake.feature"
 
@@ -10,10 +9,7 @@ FEATURE = "../features/document_intake.feature"
 def _table_to_dicts(datatable: list[list]) -> list[dict]:
     """Convert pytest-bdd raw datatable (list of lists) to list of dicts."""
     headers = [str(h).strip() for h in datatable[0]]
-    return [
-        {headers[i]: str(cell).strip() for i, cell in enumerate(row)}
-        for row in datatable[1:]
-    ]
+    return [{headers[i]: str(cell).strip() for i, cell in enumerate(row)} for row in datatable[1:]]
 
 
 # --- Scenarios ---
@@ -291,9 +287,7 @@ def check_order_item(api, test_doc, count, catalog):
     assert r.status_code == 200, r.text
     orders = r.json()["items"]
     doc_order = [o for o in orders if o.get("document_id") == test_doc["id"]]
-    assert len(doc_order) == 1, (
-        f"Expected 1 order for doc {test_doc['id']}, found {len(doc_order)}"
-    )
+    assert len(doc_order) == 1, f"Expected 1 order for doc {test_doc['id']}, found {len(doc_order)}"
     order = doc_order[0]
 
     # Fetch order items (separate endpoint)
@@ -301,9 +295,7 @@ def check_order_item(api, test_doc, count, catalog):
     assert r.status_code == 200, r.text
     items = r.json().get("items", [])
     matching = [it for it in items if it.get("catalog_number") == catalog]
-    assert len(matching) == count, (
-        f"Expected {count} items with catalog {catalog}, found {len(matching)}"
-    )
+    assert len(matching) == count, f"Expected {count} items with catalog {catalog}, found {len(matching)}"
 
 
 @then(parsers.parse('the document review_notes should contain "{text}"'))

@@ -10,10 +10,11 @@ from pathlib import Path
 
 import torch
 from PIL import Image
-from transformers import AutoProcessor, AutoModelForImageTextToText
+from transformers import AutoModelForImageTextToText, AutoProcessor
 
 MODEL_ID = "Qwen/Qwen3-VL-4B-Instruct"
-PROMPT = """You are performing OCR on a scanned lab supply document (packing list, invoice, or shipping label).
+PROMPT = """You are performing OCR on a scanned lab supply document
+(packing list, invoice, or shipping label).
 Transcribe ALL visible text as faithfully as possible, character by character.
 
 Critical rules:
@@ -21,9 +22,12 @@ Critical rules:
 - Preserve reading order from top to bottom, left to right.
 - Keep line breaks where they appear on the document.
 - Pay extra attention to:
-  * Catalog/part numbers (e.g., AB2251-1, MAB5406) — distinguish digit 1 from letter I carefully.
-  * Batch/lot numbers (e.g., SDBB4556, 4361991) — include ALL batch numbers even if partially visible.
-  * Handwritten text and dates (e.g., 3/9/26, 2026.3.07) — transcribe handwritten notes exactly as written.
+  * Catalog/part numbers (e.g., AB2251-1, MAB5406) —
+    distinguish digit 1 from letter I carefully.
+  * Batch/lot numbers (e.g., SDBB4556, 4361991) —
+    include ALL batch numbers even if partially visible.
+  * Handwritten text and dates (e.g., 3/9/26, 2026.3.07) —
+    transcribe handwritten notes exactly as written.
   * PO numbers, delivery numbers, order numbers.
 - Include ALL text including fine print, footer text, and handwritten annotations.
 - Do not summarize or explain. Do not add any commentary.
@@ -33,9 +37,7 @@ Critical rules:
 
 def main() -> None:
     if len(sys.argv) < 3:
-        raise SystemExit(
-            "usage: python run_qwen3_vl_v2.py <input_dir> <output_json> [model_id]"
-        )
+        raise SystemExit("usage: python run_qwen3_vl_v2.py <input_dir> <output_json> [model_id]")
 
     input_dir = Path(sys.argv[1])
     output_json = Path(sys.argv[2])
@@ -74,9 +76,7 @@ def main() -> None:
                 ],
             }
         ]
-        text_input = processor.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
+        text_input = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         inputs = processor(
             text=[text_input],
             images=[image],

@@ -12,9 +12,7 @@ router = APIRouter()
 @router.get("/")
 def search_endpoint(
     q: str = Query(..., min_length=1, description="Search query"),
-    index: str | None = Query(
-        None, description="Specific index to search (omit for all)"
-    ),
+    index: str | None = Query(None, description="Specific index to search (omit for all)"),
     limit: int = Query(20, ge=1, le=100, description="Max results per index"),
 ) -> dict:
     """Search across all indexes or a specific one."""

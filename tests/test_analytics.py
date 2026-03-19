@@ -5,13 +5,13 @@ from datetime import date
 
 def _seed_data(db):
     """Insert minimal data to exercise analytics queries."""
-    from lab_manager.models.vendor import Vendor
-    from lab_manager.models.product import Product
-    from lab_manager.models.order import Order, OrderItem
-    from lab_manager.models.inventory import InventoryItem
     from lab_manager.models.document import Document
-    from lab_manager.models.staff import Staff
+    from lab_manager.models.inventory import InventoryItem
     from lab_manager.models.location import StorageLocation
+    from lab_manager.models.order import Order, OrderItem
+    from lab_manager.models.product import Product
+    from lab_manager.models.staff import Staff
+    from lab_manager.models.vendor import Vendor
 
     vendor = Vendor(name="Thermo Fisher")
     db.add(vendor)
@@ -111,9 +111,7 @@ def test_spending_by_vendor(client, db_session):
 
 def test_spending_by_vendor_date_filter(client, db_session):
     _seed_data(db_session)
-    resp = client.get(
-        "/api/analytics/spending/by-vendor?date_from=2026-04-01&date_to=2026-05-01"
-    )
+    resp = client.get("/api/analytics/spending/by-vendor?date_from=2026-04-01&date_to=2026-05-01")
     assert resp.status_code == 200
     assert resp.json() == []
 

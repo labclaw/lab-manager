@@ -19,7 +19,8 @@ MODELS = {
     "nemoretriever-parse": "nvidia/nemoretriever-parse",
 }
 
-PROMPT = """You are performing OCR on a scanned lab supply document (packing list, invoice, or shipping label).
+PROMPT = """You are performing OCR on a scanned lab supply document
+(packing list, invoice, or shipping label).
 Transcribe ALL visible text as faithfully as possible, character by character.
 
 Critical rules:
@@ -27,9 +28,12 @@ Critical rules:
 - Preserve reading order from top to bottom, left to right.
 - Keep line breaks where they appear on the document.
 - Pay extra attention to:
-  * Catalog/part numbers (e.g., AB2251-1, MAB5406) — distinguish digit 1 from letter I carefully.
-  * Batch/lot numbers (e.g., SDBB4556, 4361991) — include ALL batch numbers even if partially visible.
-  * Handwritten text and dates (e.g., 3/9/26, 2026.3.07) — transcribe handwritten notes exactly as written.
+  * Catalog/part numbers (e.g., AB2251-1, MAB5406) —
+    distinguish digit 1 from letter I carefully.
+  * Batch/lot numbers (e.g., SDBB4556, 4361991) —
+    include ALL batch numbers even if partially visible.
+  * Handwritten text and dates (e.g., 3/9/26, 2026.3.07) —
+    transcribe handwritten notes exactly as written.
   * PO numbers, delivery numbers, order numbers.
 - Include ALL text including fine print, footer text, and handwritten annotations.
 - Do not summarize or explain. Do not add any commentary.
@@ -45,10 +49,7 @@ def call_vlm(api_key: str, model_id: str, image_path: Path) -> str:
     """Call a VLM model via chat completions API."""
     b64 = image_to_b64(image_path)
     suffix = image_path.suffix.lower().lstrip(".")
-    if suffix in ("jpg", "jpeg"):
-        mime = "image/jpeg"
-    else:
-        mime = f"image/{suffix}"
+    mime = "image/jpeg" if suffix in ("jpg", "jpeg") else f"image/{suffix}"
 
     payload = {
         "model": model_id,
@@ -84,10 +85,7 @@ def call_parse(api_key: str, image_path: Path) -> str:
     """Call nemoretriever-parse using image_url content + tools."""
     b64 = image_to_b64(image_path)
     suffix = image_path.suffix.lower().lstrip(".")
-    if suffix in ("jpg", "jpeg"):
-        mime = "image/jpeg"
-    else:
-        mime = f"image/{suffix}"
+    mime = "image/jpeg" if suffix in ("jpg", "jpeg") else f"image/{suffix}"
 
     payload = {
         "model": "nvidia/nemoretriever-parse",
@@ -137,9 +135,7 @@ def call_parse(api_key: str, image_path: Path) -> str:
 
 def main() -> None:
     if len(sys.argv) < 3:
-        raise SystemExit(
-            "usage: python run_nvidia_api.py <input_dir> <output_dir> [model_key]"
-        )
+        raise SystemExit("usage: python run_nvidia_api.py <input_dir> <output_dir> [model_key]")
 
     input_dir = Path(sys.argv[1])
     output_dir = Path(sys.argv[2])
@@ -152,9 +148,7 @@ def main() -> None:
     models_to_run = {}
     if model_key:
         if model_key not in MODELS:
-            raise SystemExit(
-                f"Unknown model key: {model_key}. Choose from: {list(MODELS.keys())}"
-            )
+            raise SystemExit(f"Unknown model key: {model_key}. Choose from: {list(MODELS.keys())}")
         models_to_run[model_key] = MODELS[model_key]
     else:
         models_to_run = MODELS

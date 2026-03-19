@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -71,5 +70,5 @@ def parse_json_response(text: str) -> dict | None:
                 return json.loads(cleaned[start:end])
             except json.JSONDecodeError:
                 pass
-    log.warning("Failed to parse JSON: %s...", text[:100])
+    logger.warning("Failed to parse JSON: %s...", text[:100])
     return None

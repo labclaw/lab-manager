@@ -20,7 +20,9 @@ Rules:
 - lot_number / batch_number: exact as printed
 - quantity: numeric value
 - Do NOT guess or hallucinate. If a field is not visible, leave it null.
-- confidence: your overall confidence (0.0-1.0) that the extraction is correct. 1.0 = all fields clearly visible and unambiguous. Below 0.7 = poor quality scan or uncertain fields.
+- confidence: your overall confidence (0.0-1.0) that the extraction is correct.
+  1.0 = all fields clearly visible and unambiguous.
+  Below 0.7 = poor quality scan or uncertain fields.
 """
 
 

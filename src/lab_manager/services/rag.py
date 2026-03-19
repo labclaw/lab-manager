@@ -227,9 +227,7 @@ _ALLOWED_TABLES = {
 _ALLOWED_START = re.compile(r"^\s*(SELECT|WITH)\b", re.IGNORECASE)
 
 # Extract table names from FROM/JOIN clauses
-_TABLE_REF_PATTERN = re.compile(
-    r"\b(?:FROM|JOIN)\s+([A-Za-z_][A-Za-z0-9_.]*)", re.IGNORECASE
-)
+_TABLE_REF_PATTERN = re.compile(r"\b(?:FROM|JOIN)\s+([A-Za-z_][A-Za-z0-9_.]*)", re.IGNORECASE)
 
 
 @functools.lru_cache(maxsize=1)
@@ -242,9 +240,7 @@ def _get_client() -> genai.Client:
 
         api_key = os.environ.get("GEMINI_API_KEY", "")
     if not api_key:
-        raise RuntimeError(
-            "No Gemini API key found. Set GEMINI_API_KEY or EXTRACTION_API_KEY."
-        )
+        raise RuntimeError("No Gemini API key found. Set GEMINI_API_KEY or EXTRACTION_API_KEY.")
     return genai.Client(api_key=api_key)
 
 
@@ -327,10 +323,7 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
             conn.execute(text(f"SET LOCAL statement_timeout = '{SQL_TIMEOUT_S}s'"))
             result = conn.execute(text(sql))
             columns = list(result.keys())
-            rows = [
-                dict(zip(columns, row, strict=False))
-                for row in result.fetchmany(MAX_RESULT_ROWS)
-            ]
+            rows = [dict(zip(columns, row, strict=False)) for row in result.fetchmany(MAX_RESULT_ROWS)]
             return _serialize_rows(rows)
     else:
         # Fallback: main engine with application-level READ ONLY
@@ -340,10 +333,7 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
         try:
             result = db.execute(text(sql))
             columns = list(result.keys())
-            rows = [
-                dict(zip(columns, row, strict=False))
-                for row in result.fetchmany(MAX_RESULT_ROWS)
-            ]
+            rows = [dict(zip(columns, row, strict=False)) for row in result.fetchmany(MAX_RESULT_ROWS)]
             nested.commit()
             return _serialize_rows(rows)
         except Exception:
@@ -351,9 +341,7 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
             raise
 
 
-def _format_answer(
-    client: genai.Client, question: str, sql: str, results: list[dict]
-) -> str:
+def _format_answer(client: genai.Client, question: str, sql: str, results: list[dict]) -> str:
     """Ask Gemini to format query results into a human-readable answer."""
     # Truncate results for the prompt if too many rows
     display_results = results[:50]
@@ -378,11 +366,7 @@ def _fallback_search(question: str) -> dict:
         if not hits:
             hits = search(question, index="order_items", limit=20)
 
-        answer = (
-            f"Found {len(hits)} results via text search."
-            if hits
-            else "No results found via text search either."
-        )
+        answer = f"Found {len(hits)} results via text search." if hits else "No results found via text search either."
         return {
             "question": question,
             "answer": answer,

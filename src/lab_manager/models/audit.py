@@ -19,7 +19,5 @@ class AuditLog(SQLModel, table=True):
     record_id: int = Field(index=True)
     action: str = Field(max_length=20)  # create, update, delete
     changed_by: str | None = Field(default=None, max_length=100)
-    changes: dict = Field(
-        default_factory=dict, sa_column=Column(_JSONB().with_variant(JSON, "sqlite"))
-    )
+    changes: dict = Field(default_factory=dict, sa_column=Column(_JSONB().with_variant(JSON, "sqlite")))
     timestamp: datetime = Field(default_factory=utcnow)

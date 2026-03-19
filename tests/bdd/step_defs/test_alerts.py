@@ -83,9 +83,7 @@ def _create_product(db, vendor_id, catalog_number, min_stock_level=None):
     return product
 
 
-def _create_inventory_item(
-    db, product_id, quantity, expiry_date=None, lot_number="LOT001"
-):
+def _create_inventory_item(db, product_id, quantity, expiry_date=None, lot_number="LOT001"):
     """Create an inventory item directly in the DB."""
     item = InventoryItem(
         product_id=product_id,
@@ -100,9 +98,7 @@ def _create_inventory_item(
     return item
 
 
-def _create_alert(
-    db, alert_type="expiring_soon", severity="warning", is_resolved=False, entity_id=1
-):
+def _create_alert(db, alert_type="expiring_soon", severity="warning", is_resolved=False, entity_id=1):
     """Create an alert directly in the DB."""
     alert = Alert(
         alert_type=alert_type,
@@ -141,9 +137,7 @@ def create_product_with_min_stock(db, level):
 
 @given(parsers.parse("inventory total quantity is {qty:d}"))
 def create_inventory_below_min(db, low_stock_product, qty):
-    _create_inventory_item(
-        db, low_stock_product.id, quantity=qty, lot_number="LOT-LOW-001"
-    )
+    _create_inventory_item(db, low_stock_product.id, quantity=qty, lot_number="LOT-LOW-001")
 
 
 @given(parsers.parse("{n:d} active alerts exist"))
@@ -190,18 +184,14 @@ def create_expiring_items(db, n):
     for i in range(n):
         product = _create_product(db, vendor.id, f"CAT-SUMEXP-{i:03d}")
         expiry = date.today() + timedelta(days=10 + i)
-        _create_inventory_item(
-            db, product.id, quantity=5, expiry_date=expiry, lot_number=f"LOT-SUMEXP-{i}"
-        )
+        _create_inventory_item(db, product.id, quantity=5, expiry_date=expiry, lot_number=f"LOT-SUMEXP-{i}")
 
 
 @given(parsers.parse("{n:d} products with low stock"))
 def create_low_stock_products(db, n):
     vendor = _create_vendor(db)
     for i in range(n):
-        product = _create_product(
-            db, vendor.id, f"CAT-SUMLOW-{i:03d}", min_stock_level=100
-        )
+        product = _create_product(db, vendor.id, f"CAT-SUMLOW-{i:03d}", min_stock_level=100)
         _create_inventory_item(db, product.id, quantity=1, lot_number=f"LOT-SUMLOW-{i}")
 
 
@@ -269,8 +259,7 @@ def check_expiry_alert_created(check_response):
 def check_alert_type(check_response, alert_type):
     summary = check_response["summary"]
     assert alert_type in summary["by_type"], (
-        f"Expected alert_type '{alert_type}' in summary by_type, "
-        f"got: {summary['by_type']}"
+        f"Expected alert_type '{alert_type}' in summary by_type, got: {summary['by_type']}"
     )
 
 
@@ -281,17 +270,13 @@ def check_low_stock_alert_created(check_response):
 
 @then(parsers.parse("I should see {n:d} alerts"))
 def check_alert_count(list_response, n):
-    assert list_response["total"] == n, (
-        f"Expected {n} alerts, got {list_response['total']}"
-    )
+    assert list_response["total"] == n, f"Expected {n} alerts, got {list_response['total']}"
 
 
 @then("all alerts should be unresolved")
 def check_all_unresolved(list_response):
     for alert in list_response["items"]:
-        assert alert["is_resolved"] is False, (
-            f"Alert {alert['id']} should be unresolved"
-        )
+        assert alert["is_resolved"] is False, f"Alert {alert['id']} should be unresolved"
 
 
 @then("the alert should be acknowledged")
@@ -306,9 +291,7 @@ def check_resolved(resolve_response):
 
 @then(parsers.parse("the summary should show {n:d} total active alerts"))
 def check_summary_total(summary_response, n):
-    assert summary_response["total"] == n, (
-        f"Expected {n} total alerts, got {summary_response['total']}"
-    )
+    assert summary_response["total"] == n, f"Expected {n} total alerts, got {summary_response['total']}"
 
 
 @then("the summary should break down by type")

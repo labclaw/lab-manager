@@ -35,9 +35,7 @@ def test_vendor_name_is_template():
 def test_invalid_document_type():
     data = {"document_type": "foobar"}
     issues = validate(data)
-    assert any(
-        i["field"] == "document_type" and i["severity"] == "critical" for i in issues
-    )
+    assert any(i["field"] == "document_type" and i["severity"] == "critical" for i in issues)
 
 
 def test_valid_document_types():
@@ -66,10 +64,7 @@ def test_quantity_zero():
 def test_quantity_negative():
     data = {"items": [{"quantity": -5}]}
     issues = validate(data)
-    assert any(
-        i["issue"] == "negative_quantity" and i["severity"] == "critical"
-        for i in issues
-    )
+    assert any(i["issue"] == "negative_quantity" and i["severity"] == "critical" for i in issues)
 
 
 def test_quantity_large():

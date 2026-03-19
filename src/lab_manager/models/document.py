@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from lab_manager.models.order import Order
 
 
-class DocumentStatus(str, enum.Enum):
+class DocumentStatus(enum.StrEnum):
     pending = "pending"
     extracted = "extracted"
     needs_review = "needs_review"

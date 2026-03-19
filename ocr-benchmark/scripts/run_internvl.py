@@ -19,7 +19,8 @@ Rules:
 - Output plain text only.
 - Preserve reading order from top to bottom.
 - Keep line breaks where possible.
-- Include table rows, part numbers, PO numbers, dates, lot or batch numbers, addresses, and handwritten notes.
+- Include table rows, part numbers, PO numbers, dates,
+  lot or batch numbers, addresses, and handwritten notes.
 - Do not summarize.
 - Do not explain.
 """
@@ -27,9 +28,7 @@ Rules:
 
 def main() -> None:
     if len(sys.argv) < 3:
-        raise SystemExit(
-            "usage: python run_internvl.py <input_dir> <output_json> [model_id]"
-        )
+        raise SystemExit("usage: python run_internvl.py <input_dir> <output_json> [model_id]")
 
     input_dir = Path(sys.argv[1])
     output_json = Path(sys.argv[2])
@@ -60,9 +59,7 @@ def main() -> None:
         t0 = time.time()
 
         image = Image.open(image_path).convert("RGB")
-        pixel_values = model.image_processor(images=[image], return_tensors="pt")[
-            "pixel_values"
-        ]
+        pixel_values = model.image_processor(images=[image], return_tensors="pt")["pixel_values"]
         pixel_values = pixel_values.to(model.device, dtype=torch.bfloat16)
 
         generation_config = {"max_new_tokens": 4096, "do_sample": False}

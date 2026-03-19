@@ -6,7 +6,6 @@ import shutil
 import subprocess
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = ROOT / "ocr-benchmark" / "data" / "renders"
 
@@ -33,11 +32,7 @@ def main() -> None:
     scan_dir = ROOT / "ocr-benchmark" / "data" / "scans"
     if not scan_dir.exists():
         scan_dir = ROOT
-    docs = sorted(
-        path
-        for path in scan_dir.iterdir()
-        if path.is_file() and path.name.startswith("Scan")
-    )
+    docs = sorted(path for path in scan_dir.iterdir() if path.is_file() and path.name.startswith("Scan"))
     for path in docs:
         suffix = path.suffix.lower()
         if suffix == ".pdf":

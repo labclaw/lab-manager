@@ -7,7 +7,7 @@ import json
 import re
 import sys
 import unicodedata
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -60,21 +60,16 @@ def evaluate(gold: list[dict], ocr_docs: dict[str, dict]) -> dict:
 
 def main() -> None:
     if len(sys.argv) < 3:
-        raise SystemExit(
-            "usage: python generate_report.py <gold_json> <result1.json> [result2.json ...]"
-        )
+        raise SystemExit("usage: python generate_report.py <gold_json> <result1.json> [result2.json ...]")
 
     gold = json.loads(Path(sys.argv[1]).read_text())
     result_files = [Path(p) for p in sys.argv[2:]]
 
-    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     report_lines = []
     report_lines.append(f"# OCR Benchmark Report — {ts}")
     report_lines.append("")
-    report_lines.append(
-        f"Gold standard: {len(gold)} documents, "
-        f"{sum(len(d['fields']) for d in gold)} fields total"
-    )
+    report_lines.append(f"Gold standard: {len(gold)} documents, {sum(len(d['fields']) for d in gold)} fields total")
     report_lines.append("")
 
     summary_rows = []
@@ -110,22 +105,16 @@ def main() -> None:
     report_lines.append("| Rank | Model | Field Recall | Score | Avg Time/Doc |")
     report_lines.append("|------|-------|-------------|-------|-------------|")
     for i, row in enumerate(summary_rows, 1):
-        report_lines.append(
-            f"| {i} | {row['model']} | {row['recall']} | {row['score']}% | {row['avg_time']}s |"
-        )
+        report_lines.append(f"| {i} | {row['model']} | {row['recall']} | {row['score']}% | {row['avg_time']}s |")
     report_lines.append("")
 
     for model_name, ev in all_evals.items():
         report_lines.append(f"## {model_name}")
         report_lines.append("")
-        report_lines.append(
-            f"Overall field recall: **{ev['hits']}/{ev['total']} ({ev['recall_pct']}%)**"
-        )
+        report_lines.append(f"Overall field recall: **{ev['hits']}/{ev['total']} ({ev['recall_pct']}%)**")
         report_lines.append("")
         for doc in ev["per_doc"]:
-            report_lines.append(
-                f"### {doc['file']} — {doc['recall']} ({doc['score']}%)"
-            )
+            report_lines.append(f"### {doc['file']} — {doc['recall']} ({doc['score']}%)")
             report_lines.append("")
             for f in doc["fields"]:
                 status = "PASS" if f["found"] else "FAIL"

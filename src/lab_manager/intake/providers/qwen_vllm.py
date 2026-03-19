@@ -79,10 +79,10 @@ class GeminiOCRProvider(OCRProvider):
             )
             if result.returncode == 0:
                 return result.stdout.strip()
-            log.warning("Gemini OCR failed: %s", result.stderr[:200])
+            logger.warning("Gemini OCR failed: %s", result.stderr[:200])
             return ""
         except Exception as e:
-            log.warning("Gemini OCR error: %s", e)
+            logger.warning("Gemini OCR error: %s", e)
             return ""
 
 
@@ -92,9 +92,7 @@ class GeminiAPIOCRProvider(OCRProvider):
     name = "gemini_api_flash"
     model_id = "gemini-3.1-flash-preview"
 
-    def __init__(
-        self, model: str = "gemini-3.1-flash-preview", api_key: str | None = None
-    ):
+    def __init__(self, model: str = "gemini-3.1-flash-preview", api_key: str | None = None):
         self.model = model
         self.api_key = api_key
 
@@ -107,9 +105,7 @@ class GeminiAPIOCRProvider(OCRProvider):
         if not api_key:
             import os
 
-            api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get(
-                "EXTRACTION_API_KEY", ""
-            )
+            api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("EXTRACTION_API_KEY", "")
 
         client = genai.Client(api_key=api_key)
         image_bytes = Path(image_path).read_bytes()

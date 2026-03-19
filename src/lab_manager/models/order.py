@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from lab_manager.models.vendor import Vendor
 
 
-class OrderStatus(str, enum.Enum):
+class OrderStatus(enum.StrEnum):
     pending = "pending"
     shipped = "shipped"
     received = "received"
@@ -39,9 +39,7 @@ class Order(AuditMixin, table=True):
     po_number: str | None = Field(default=None, max_length=100, index=True)
     vendor_id: int | None = Field(
         default=None,
-        sa_column=Column(
-            sa.Integer, sa.ForeignKey("vendors.id", ondelete="RESTRICT"), index=True
-        ),
+        sa_column=Column(sa.Integer, sa.ForeignKey("vendors.id", ondelete="RESTRICT"), index=True),
     )
     order_date: date | None = Field(default=None, index=True)
     ship_date: date | None = Field(default=None)
@@ -52,9 +50,7 @@ class Order(AuditMixin, table=True):
     invoice_number: str | None = Field(default=None, max_length=100)
     document_id: int | None = Field(
         default=None,
-        sa_column=Column(
-            sa.Integer, sa.ForeignKey("documents.id", ondelete="SET NULL")
-        ),
+        sa_column=Column(sa.Integer, sa.ForeignKey("documents.id", ondelete="SET NULL")),
     )
     extra: dict = Field(default_factory=dict, sa_column=Column(sa.JSON))
 
@@ -81,9 +77,7 @@ class OrderItem(AuditMixin, table=True):
     unit: str | None = Field(default=None, max_length=50)
     lot_number: str | None = Field(default=None, max_length=100, index=True)
     batch_number: str | None = Field(default=None, max_length=100)
-    unit_price: Decimal | None = Field(
-        default=None, sa_column=Column(sa.Numeric(12, 4), nullable=True)
-    )
+    unit_price: Decimal | None = Field(default=None, sa_column=Column(sa.Numeric(12, 4), nullable=True))
     product_id: int | None = Field(
         default=None,
         sa_column=Column(sa.Integer, sa.ForeignKey("products.id", ondelete="SET NULL")),

@@ -41,15 +41,11 @@ OUTPUT_DIR = PROJECT_ROOT / "pipeline_v2_output"
 
 # Best OCR benchmark results (Gemini 2.5 Flash API)
 OCR_DETAIL_FILE = BENCHMARKS_DIR / "ocr_bench_detail_20260314_102147_partial.json"
-OCR_GEMINI_API_FILE = (
-    BENCHMARKS_DIR / "ocr_bench_gemini_api_20260314_102147_partial.json"
-)
+OCR_GEMINI_API_FILE = BENCHMARKS_DIR / "ocr_bench_gemini_api_20260314_102147_partial.json"
 
 # Also load SOTA benchmark if available (has Gemini Pro results)
 SOTA_DETAIL_FILE = BENCHMARKS_DIR / "ocr_bench_detail_20260314_120849_partial.json"
-SOTA_GEMINI_PRO_FILE = (
-    BENCHMARKS_DIR / "ocr_bench_gemini_pro_20260314_120849_partial.json"
-)
+SOTA_GEMINI_PRO_FILE = BENCHMARKS_DIR / "ocr_bench_gemini_pro_20260314_120849_partial.json"
 
 EXTRACTION_PROMPT = """You are extracting structured data from a scanned lab supply document image.
 
@@ -213,10 +209,7 @@ def parse_json_response(text: str) -> dict | None:
     if text.startswith("```"):
         lines = text.split("\n")
         # Remove first line (```json) and last line (```)
-        if lines[-1].strip() == "```":
-            lines = lines[1:-1]
-        else:
-            lines = lines[1:]
+        lines = lines[1:-1] if lines[-1].strip() == "```" else lines[1:]
         text = "\n".join(lines)
 
     try:
@@ -398,9 +391,7 @@ def update_database(results: list[dict], dry_run: bool = False):
 
             # Normalize document type
             if "document_type" in extraction:
-                extraction["document_type"] = normalize_doc_type(
-                    extraction.get("document_type")
-                )
+                extraction["document_type"] = normalize_doc_type(extraction.get("document_type"))
 
             if dry_run:
                 log.info(
@@ -478,9 +469,7 @@ def rebuild_derived_tables(db):
     # Also clear vendors — rebuild from scratch with normalization
     db.execute(text("DELETE FROM vendors"))
     db.commit()
-    log.info(
-        "Cleared: consumption_log, inventory, order_items, orders, products, vendors"
-    )
+    log.info("Cleared: consumption_log, inventory, order_items, orders, products, vendors")
 
     # Get all documents with extracted_data
     docs = db.execute(
@@ -513,19 +502,13 @@ def rebuild_derived_tables(db):
         vendor_map[vname.strip().lower()] = vid
 
     # Default location (Room Temperature Shelf)
-    default_location = db.execute(
-        text("SELECT id FROM locations WHERE name LIKE '%Room Temp%' LIMIT 1")
-    ).scalar()
+    default_location = db.execute(text("SELECT id FROM locations WHERE name LIKE '%Room Temp%' LIMIT 1")).scalar()
     if not default_location:
         default_location = db.execute(text("SELECT id FROM locations LIMIT 1")).scalar()
 
     for doc_id, file_name, extracted_data_raw, doc_vendor_name in docs:
         try:
-            data = (
-                extracted_data_raw
-                if isinstance(extracted_data_raw, dict)
-                else json.loads(extracted_data_raw)
-            )
+            data = extracted_data_raw if isinstance(extracted_data_raw, dict) else json.loads(extracted_data_raw)
         except (json.JSONDecodeError, TypeError):
             log.warning("Invalid JSON for doc %d (%s)", doc_id, file_name)
             continue
@@ -545,9 +528,7 @@ def rebuild_derived_tables(db):
                 # Create new vendor
                 new_vid = db.execute(
                     text(
-                        "INSERT INTO vendors (name, created_at, updated_at)"
-                        " VALUES (:name, now(), now())"
-                        " RETURNING id"
+                        "INSERT INTO vendors (name, created_at, updated_at) VALUES (:name, now(), now()) RETURNING id"
                     ),
                     {"name": vendor_name.strip()},
                 ).scalar()
@@ -803,9 +784,7 @@ def main():
     # Step 4: Process each image
     results = []
     OUTPUT_DIR.mkdir(exist_ok=True)
-    output_file = (
-        OUTPUT_DIR / f"improve_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    )
+    output_file = OUTPUT_DIR / f"improve_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
 
     stats = {
         "total": len(subset),
@@ -900,15 +879,10 @@ def main():
 
         # Save incrementally (append single result to avoid O(n²) rewrites)
         if len(results) == 1:
-            output_file.write_text(
-                "[\n" + json.dumps(result, indent=2, default=str, ensure_ascii=False)
-            )
+            output_file.write_text("[\n" + json.dumps(result, indent=2, default=str, ensure_ascii=False))
         else:
             with open(output_file, "a") as f:
-                f.write(
-                    ",\n"
-                    + json.dumps(result, indent=2, default=str, ensure_ascii=False)
-                )
+                f.write(",\n" + json.dumps(result, indent=2, default=str, ensure_ascii=False))
 
         # Progress log every 20 docs
         if (i + 1) % 20 == 0:
@@ -951,9 +925,7 @@ def main():
         "stats": stats,
         "total_elapsed_s": round(total_time, 1),
     }
-    summary_file = (
-        OUTPUT_DIR / f"improve_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    )
+    summary_file = OUTPUT_DIR / f"improve_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     summary_file.write_text(json.dumps(summary, indent=2))
     log.info("Results saved to %s", output_file)
     log.info("Summary saved to %s", summary_file)

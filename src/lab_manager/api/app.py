@@ -127,9 +127,7 @@ def create_app() -> FastAPI:
         user = "system"
 
         # Allowlisted paths — no auth required.
-        is_allowed = path in _AUTH_ALLOWLIST or path.startswith(
-            _AUTH_ALLOWLIST_PREFIXES
-        )
+        is_allowed = path in _AUTH_ALLOWLIST or path.startswith(_AUTH_ALLOWLIST_PREFIXES)
 
         if settings.auth_enabled and not is_allowed:
             authenticated = False
@@ -164,11 +162,10 @@ def create_app() -> FastAPI:
             # 2. Fallback: API key header
             if not authenticated:
                 api_key = request.headers.get("X-Api-Key", "")
-                if settings.api_key and api_key:
-                    if hmac.compare_digest(api_key, settings.api_key):
-                        user = request.headers.get("X-User", "api-client")
-                        user = _CONTROL_CHARS.sub("", user)[:_MAX_USER_LEN]
-                        authenticated = True
+                if settings.api_key and api_key and hmac.compare_digest(api_key, settings.api_key):
+                    user = request.headers.get("X-User", "api-client")
+                    user = _CONTROL_CHARS.sub("", user)[:_MAX_USER_LEN]
+                    authenticated = True
 
             if not authenticated:
                 return JSONResponse(
@@ -260,9 +257,7 @@ def create_app() -> FastAPI:
         _DUMMY_HASH = b"$2b$12$LJ3m4ys3Lg2VBe7MaBSW2.P68rAGkMgGMfkCGKEKeDqz4rMpWsSi6"
         password_ok = False
         if staff and staff.is_active and staff.password_hash:
-            password_ok = _bcrypt.checkpw(
-                password.encode("utf-8"), staff.password_hash.encode("utf-8")
-            )
+            password_ok = _bcrypt.checkpw(password.encode("utf-8"), staff.password_hash.encode("utf-8"))
         else:
             _bcrypt.checkpw(password.encode("utf-8"), _DUMMY_HASH)
 
@@ -275,9 +270,7 @@ def create_app() -> FastAPI:
         # Create signed session cookie with new token (session regeneration)
         serializer = _get_serializer()
         session_data = serializer.dumps({"staff_id": staff.id, "name": staff.name})
-        response = JSONResponse(
-            {"status": "ok", "user": {"id": staff.id, "name": staff.name}}
-        )
+        response = JSONResponse({"status": "ok", "user": {"id": staff.id, "name": staff.name}})
         response.set_cookie(
             _SESSION_COOKIE,
             session_data,
@@ -297,15 +290,11 @@ def create_app() -> FastAPI:
             return {"user": {"id": 0, "name": "Lab User"}}
         session_cookie = request.cookies.get(_SESSION_COOKIE)
         if not session_cookie:
-            return JSONResponse(
-                status_code=401, content={"detail": "Not authenticated"}
-            )
+            return JSONResponse(status_code=401, content={"detail": "Not authenticated"})
         try:
             serializer = _get_serializer()
             data = serializer.loads(session_cookie, max_age=_SESSION_MAX_AGE)
-            return {
-                "user": {"id": data.get("staff_id"), "name": data.get("name", "User")}
-            }
+            return {"user": {"id": data.get("staff_id"), "name": data.get("name", "User")}}
         except BadSignature:
             return JSONResponse(status_code=401, content={"detail": "Invalid session"})
 
@@ -333,21 +322,13 @@ def create_app() -> FastAPI:
     # Auth is handled by auth_middleware — no per-route dependency needed.
     api_router = APIRouter()
     api_router.include_router(vendors.router, prefix="/api/vendors", tags=["vendors"])
-    api_router.include_router(
-        products.router, prefix="/api/products", tags=["products"]
-    )
+    api_router.include_router(products.router, prefix="/api/products", tags=["products"])
     api_router.include_router(orders.router, prefix="/api/orders", tags=["orders"])
-    api_router.include_router(
-        inventory.router, prefix="/api/inventory", tags=["inventory"]
-    )
-    api_router.include_router(
-        documents.router, prefix="/api/documents", tags=["documents"]
-    )
+    api_router.include_router(inventory.router, prefix="/api/inventory", tags=["inventory"])
+    api_router.include_router(documents.router, prefix="/api/documents", tags=["documents"])
     api_router.include_router(search.router, prefix="/api/search", tags=["search"])
     api_router.include_router(ask.router, prefix="/api/ask", tags=["ask"])
-    api_router.include_router(
-        analytics.router, prefix="/api/analytics", tags=["analytics"]
-    )
+    api_router.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
     api_router.include_router(export.router, prefix="/api/export", tags=["export"])
     api_router.include_router(audit.router, prefix="/api/audit", tags=["audit"])
     api_router.include_router(alerts.router, prefix="/api/alerts", tags=["alerts"])

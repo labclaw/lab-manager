@@ -15,13 +15,25 @@ from lab_manager.models.order import Order, OrderItem, OrderStatus
 
 router = APIRouter()
 
+_Db = Depends(get_db)
+_OrderPage = Query(1, ge=1)
+_OrderPageSize = Query(50, ge=1, le=200)
+_OrderVendorId = Query(None)
+_OrderStatus = Query(None)
+_OrderPoNumber = Query(None)
+_OrderDateFrom = Query(None)
+_OrderDateTo = Query(None)
+_OrderReceivedBy = Query(None)
+_OrderSortBy = Query("id")
+_OrderSortDir = Query("asc", pattern="^(asc|desc)$")
+_OrderItemPage = Query(1, ge=1)
+_OrderItemPageSize = Query(50, ge=1, le=200)
+_OrderItemCatalog = Query(None)
+_OrderItemLot = Query(None)
+
 
 def _get_order_item_or_raise(db: Session, order_id: int, item_id: int) -> OrderItem:
-    item = (
-        db.query(OrderItem)
-        .filter(OrderItem.id == item_id, OrderItem.order_id == order_id)
-        .first()
-    )
+    item = db.query(OrderItem).filter(OrderItem.id == item_id, OrderItem.order_id == order_id).first()
     if not item:
         raise NotFoundError("Order item", item_id)
     return item
@@ -105,17 +117,17 @@ class OrderItemUpdate(BaseModel):
 
 @router.get("/")
 def list_orders(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=200),
-    vendor_id: int | None = Query(None),
-    status: str | None = Query(None),
-    po_number: str | None = Query(None),
-    date_from: date | None = Query(None),
-    date_to: date | None = Query(None),
-    received_by: str | None = Query(None),
-    sort_by: str = Query("id"),
-    sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
-    db: Session = Depends(get_db),
+    page: int = _OrderPage,
+    page_size: int = _OrderPageSize,
+    vendor_id: int | None = _OrderVendorId,
+    status: str | None = _OrderStatus,
+    po_number: str | None = _OrderPoNumber,
+    date_from: date | None = _OrderDateFrom,
+    date_to: date | None = _OrderDateTo,
+    received_by: str | None = _OrderReceivedBy,
+    sort_by: str = _OrderSortBy,
+    sort_dir: str = _OrderSortDir,
+    db: Session = _Db,
 ):
     q = db.query(Order)
     if vendor_id is not None:
@@ -135,7 +147,7 @@ def list_orders(
 
 
 @router.post("/", status_code=201)
-def create_order(body: OrderCreate, db: Session = Depends(get_db)):
+def create_order(body: OrderCreate, db: Session = _Db):
     order = Order(**body.model_dump())
     db.add(order)
     db.commit()
@@ -144,12 +156,12 @@ def create_order(body: OrderCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/{order_id}")
-def get_order(order_id: int, db: Session = Depends(get_db)):
+def get_order(order_id: int, db: Session = _Db):
     return get_or_404(db, Order, order_id, "Order")
 
 
 @router.patch("/{order_id}")
-def update_order(order_id: int, body: OrderUpdate, db: Session = Depends(get_db)):
+def update_order(order_id: int, body: OrderUpdate, db: Session = _Db):
     order = get_or_404(db, Order, order_id, "Order")
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(order, key, value)
@@ -159,7 +171,7 @@ def update_order(order_id: int, body: OrderUpdate, db: Session = Depends(get_db)
 
 
 @router.delete("/{order_id}", status_code=204)
-def delete_order(order_id: int, db: Session = Depends(get_db)):
+def delete_order(order_id: int, db: Session = _Db):
     """Soft-delete: set status to 'deleted'."""
     order = get_or_404(db, Order, order_id, "Order")
     order.status = OrderStatus.deleted
@@ -175,11 +187,11 @@ def delete_order(order_id: int, db: Session = Depends(get_db)):
 @router.get("/{order_id}/items")
 def list_order_items(
     order_id: int,
-    page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=200),
-    catalog_number: str | None = Query(None),
-    lot_number: str | None = Query(None),
-    db: Session = Depends(get_db),
+    page: int = _OrderItemPage,
+    page_size: int = _OrderItemPageSize,
+    catalog_number: str | None = _OrderItemCatalog,
+    lot_number: str | None = _OrderItemLot,
+    db: Session = _Db,
 ):
     get_or_404(db, Order, order_id, "Order")
     q = db.query(OrderItem).filter(OrderItem.order_id == order_id)
@@ -192,9 +204,7 @@ def list_order_items(
 
 
 @router.post("/{order_id}/items", status_code=201)
-def create_order_item(
-    order_id: int, body: OrderItemCreate, db: Session = Depends(get_db)
-):
+def create_order_item(order_id: int, body: OrderItemCreate, db: Session = _Db):
     get_or_404(db, Order, order_id, "Order")
     item = OrderItem(**body.model_dump())
     item.order_id = order_id
@@ -205,14 +215,12 @@ def create_order_item(
 
 
 @router.get("/{order_id}/items/{item_id}")
-def get_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)):
+def get_order_item(order_id: int, item_id: int, db: Session = _Db):
     return _get_order_item_or_raise(db, order_id, item_id)
 
 
 @router.patch("/{order_id}/items/{item_id}")
-def update_order_item(
-    order_id: int, item_id: int, body: OrderItemUpdate, db: Session = Depends(get_db)
-):
+def update_order_item(order_id: int, item_id: int, body: OrderItemUpdate, db: Session = _Db):
     item = _get_order_item_or_raise(db, order_id, item_id)
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
@@ -222,7 +230,7 @@ def update_order_item(
 
 
 @router.delete("/{order_id}/items/{item_id}", status_code=204)
-def delete_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)):
+def delete_order_item(order_id: int, item_id: int, db: Session = _Db):
     item = _get_order_item_or_raise(db, order_id, item_id)
     db.delete(item)
     db.commit()
@@ -250,11 +258,9 @@ class ReceiveBody(BaseModel):
 
 
 @router.post("/{order_id}/receive", status_code=201)
-def receive_order(order_id: int, body: ReceiveBody, db: Session = Depends(get_db)):
+def receive_order(order_id: int, body: ReceiveBody, db: Session = _Db):
     """Receive a shipment — creates inventory records from order items."""
     from lab_manager.services import inventory as inv_svc
 
     items_dicts = [item.model_dump() for item in body.items]
-    return inv_svc.receive_items(
-        order_id, items_dicts, body.location_id, body.received_by, db
-    )
+    return inv_svc.receive_items(order_id, items_dicts, body.location_id, body.received_by, db)

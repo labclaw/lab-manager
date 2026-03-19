@@ -124,11 +124,7 @@ def _make_auth_backend():
             username = form.get("username", "")
             password = form.get("password", "")
             admin_pw = settings.admin_password or settings.api_key
-            if (
-                admin_pw
-                and hmac.compare_digest(username, "admin")
-                and hmac.compare_digest(password, admin_pw)
-            ):
+            if admin_pw and hmac.compare_digest(username, "admin") and hmac.compare_digest(password, admin_pw):
                 request.session["authenticated"] = True
                 return True
             return False
@@ -158,9 +154,7 @@ def _make_auth_backend():
 
 def setup_admin(app, engine):
     auth_backend = _make_auth_backend()
-    admin = Admin(
-        app, engine, title="LabClaw Manager", authentication_backend=auth_backend
-    )
+    admin = Admin(app, engine, title="LabClaw Manager", authentication_backend=auth_backend)
     admin.add_view(VendorAdmin)
     admin.add_view(ProductAdmin)
     admin.add_view(StaffAdmin)

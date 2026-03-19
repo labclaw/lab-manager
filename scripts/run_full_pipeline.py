@@ -7,13 +7,15 @@ Usage:
 
 from __future__ import annotations
 
+import contextlib
 import json
+import logging
 import sys
 import time
-import logging
 from datetime import date, datetime
 from pathlib import Path
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from lab_manager.config import get_settings
@@ -23,7 +25,6 @@ from lab_manager.intake.schemas import ExtractedDocument
 from lab_manager.models.document import Document
 from lab_manager.models.order import Order, OrderItem
 from lab_manager.models.vendor import Vendor
-from sqlalchemy import func
 
 logging.basicConfig(
     level=logging.INFO,
@@ -36,35 +37,22 @@ log = logging.getLogger(__name__)
 def find_vendor(vendor_name: str, db: Session) -> Vendor | None:
     """Find vendor by name or alias, case-insensitive."""
     normalized = vendor_name.strip()
-    vendor = (
-        db.query(Vendor)
-        .filter(func.lower(Vendor.name) == func.lower(normalized))
-        .first()
-    )
+    vendor = db.query(Vendor).filter(func.lower(Vendor.name) == func.lower(normalized)).first()
     if vendor:
         return vendor
-    vendor = (
-        db.query(Vendor)
-        .filter(func.lower(Vendor.name).contains(func.lower(normalized)))
-        .first()
-    )
+    vendor = db.query(Vendor).filter(func.lower(Vendor.name).contains(func.lower(normalized))).first()
     if vendor:
         return vendor
     for v in db.query(Vendor).all():
         if v.name.lower() in normalized.lower() or normalized.lower() in v.name.lower():
             return v
         for alias in v.aliases or []:
-            if (
-                alias.lower() in normalized.lower()
-                or normalized.lower() in alias.lower()
-            ):
+            if alias.lower() in normalized.lower() or normalized.lower() in alias.lower():
                 return v
     return None
 
 
-def create_order(
-    extracted: ExtractedDocument, doc: Document, db: Session
-) -> Order | None:
+def create_order(extracted: ExtractedDocument, doc: Document, db: Session) -> Order | None:
     """Create Order + OrderItems from extracted data."""
     if not extracted.vendor_name:
         return None
@@ -86,15 +74,11 @@ def create_order(
     )
 
     if extracted.order_date:
-        try:
+        with contextlib.suppress(ValueError):
             order.order_date = date.fromisoformat(extracted.order_date)
-        except ValueError:
-            pass
     if extracted.ship_date:
-        try:
+        with contextlib.suppress(ValueError):
             order.ship_date = date.fromisoformat(extracted.ship_date)
-        except ValueError:
-            pass
 
     db.add(order)
     db.flush()
@@ -198,9 +182,7 @@ def process_one(entry: dict, db: Session, settings) -> str:
 
 def main():
     if len(sys.argv) < 2:
-        raise SystemExit(
-            "Usage: python scripts/run_full_pipeline.py <ocr_results.json>"
-        )
+        raise SystemExit("Usage: python scripts/run_full_pipeline.py <ocr_results.json>")
 
     results_path = Path(sys.argv[1])
     results = json.loads(results_path.read_text())
@@ -243,10 +225,7 @@ def main():
     log.info("Results: %s", json.dumps(stats, indent=2))
 
     # Save summary
-    summary_path = (
-        results_path.parent
-        / f"pipeline_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    )
+    summary_path = results_path.parent / f"pipeline_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     summary = {
         "source": str(results_path),
         "total": total,

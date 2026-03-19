@@ -15,16 +15,17 @@ Create Date: 2026-03-16 12:00:00.000000
 
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
+
+import sqlalchemy as sa
 
 from alembic import op
-import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "e5f6a7b8c9d0"
-down_revision: Union[str, None] = "d4e5f6a7b8c9"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "d4e5f6a7b8c9"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -52,15 +53,11 @@ def upgrade() -> None:
                 dup_id = dup_row[0]
                 # Reassign order_items and inventory to the kept product
                 conn.execute(
-                    sa.text(
-                        "UPDATE order_items SET product_id = :keep WHERE product_id = :dup"
-                    ),
+                    sa.text("UPDATE order_items SET product_id = :keep WHERE product_id = :dup"),
                     {"keep": keep_id, "dup": dup_id},
                 )
                 conn.execute(
-                    sa.text(
-                        "UPDATE inventory SET product_id = :keep WHERE product_id = :dup"
-                    ),
+                    sa.text("UPDATE inventory SET product_id = :keep WHERE product_id = :dup"),
                     {"keep": keep_id, "dup": dup_id},
                 )
                 conn.execute(
@@ -68,9 +65,7 @@ def upgrade() -> None:
                     {"dup": dup_id},
                 )
 
-    op.create_unique_constraint(
-        "uq_product_catalog_vendor", "products", ["catalog_number", "vendor_id"]
-    )
+    op.create_unique_constraint("uq_product_catalog_vendor", "products", ["catalog_number", "vendor_id"])
 
     # 2. Product stock levels: float -> Numeric(12,4)
     op.alter_column(
@@ -93,9 +88,7 @@ def upgrade() -> None:
     )
 
     # 3. Inventory: product_id NOT NULL (fix orphan rows first)
-    orphan_count = conn.execute(
-        sa.text("SELECT COUNT(*) FROM inventory WHERE product_id IS NULL")
-    ).scalar()
+    orphan_count = conn.execute(sa.text("SELECT COUNT(*) FROM inventory WHERE product_id IS NULL")).scalar()
     if orphan_count > 0:
         # Create placeholder product for orphans
         conn.execute(
@@ -104,9 +97,7 @@ def upgrade() -> None:
                 "VALUES ('_ORPHAN', 'Unknown Product (migration orphan)', NOW(), NOW())"
             )
         )
-        placeholder_id = conn.execute(
-            sa.text("SELECT id FROM products WHERE catalog_number = '_ORPHAN'")
-        ).scalar()
+        placeholder_id = conn.execute(sa.text("SELECT id FROM products WHERE catalog_number = '_ORPHAN'")).scalar()
         conn.execute(
             sa.text("UPDATE inventory SET product_id = :pid WHERE product_id IS NULL"),
             {"pid": placeholder_id},
@@ -115,17 +106,11 @@ def upgrade() -> None:
     op.alter_column("inventory", "product_id", nullable=False, existing_type=sa.Integer)
 
     # 4. Inventory: quantity >= 0 CHECK (fix existing negatives first)
-    conn.execute(
-        sa.text("UPDATE inventory SET quantity_on_hand = 0 WHERE quantity_on_hand < 0")
-    )
-    op.create_check_constraint(
-        "ck_inventory_qty_nonneg", "inventory", "quantity_on_hand >= 0"
-    )
+    conn.execute(sa.text("UPDATE inventory SET quantity_on_hand = 0 WHERE quantity_on_hand < 0"))
+    op.create_check_constraint("ck_inventory_qty_nonneg", "inventory", "quantity_on_hand >= 0")
 
     # 5. Vendor aliases: JSON -> JSONB
-    op.execute(
-        "ALTER TABLE vendors ALTER COLUMN aliases TYPE JSONB USING aliases::jsonb"
-    )
+    op.execute("ALTER TABLE vendors ALTER COLUMN aliases TYPE JSONB USING aliases::jsonb")
 
     # 6. Product extra: JSON -> JSONB
     op.execute("ALTER TABLE products ALTER COLUMN extra TYPE JSONB USING extra::jsonb")

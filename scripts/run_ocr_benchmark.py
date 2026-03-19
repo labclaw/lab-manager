@@ -79,9 +79,7 @@ def ocr_gemini_pro(image_path: str) -> str:
     """Gemini 2.5 Pro via Google GenAI API (best Gemini available via API)."""
     from google import genai
 
-    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get(
-        "EXTRACTION_API_KEY", ""
-    )
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("EXTRACTION_API_KEY", "")
     client = genai.Client(api_key=api_key)
 
     b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
@@ -176,9 +174,7 @@ def char_edit_distance(a: str, b: str) -> int:
             if c1 == c2:
                 new_distances.append(distances[i1])
             else:
-                new_distances.append(
-                    1 + min(distances[i1], distances[i1 + 1], new_distances[-1])
-                )
+                new_distances.append(1 + min(distances[i1], distances[i1 + 1], new_distances[-1]))
         distances = new_distances
     return distances[-1]
 
@@ -230,9 +226,7 @@ def main():
         if name in MODEL_REGISTRY:
             models[name] = MODEL_REGISTRY[name]
         else:
-            log.warning(
-                "Unknown model: %s (available: %s)", name, list(MODEL_REGISTRY.keys())
-            )
+            log.warning("Unknown model: %s (available: %s)", name, list(MODEL_REGISTRY.keys()))
 
     log.info("=" * 70)
     log.info("OCR BENCHMARK: %d models x %d documents", len(models), len(test_files))
@@ -250,15 +244,11 @@ def main():
     for i, file_name in enumerate(test_files, 1):
         resized_path = str(RESIZED_DIR / file_name)
         if not Path(resized_path).exists():
-            log.warning(
-                "[%d/%d] SKIP %s (no resized image)", i, len(test_files), file_name
-            )
+            log.warning("[%d/%d] SKIP %s (no resized image)", i, len(test_files), file_name)
             continue
 
         ref_text = baseline_map.get(file_name, "")
-        log.info(
-            "[%d/%d] %s (ref: %d chars)", i, len(test_files), file_name, len(ref_text)
-        )
+        log.info("[%d/%d] %s (ref: %d chars)", i, len(test_files), file_name, len(ref_text))
 
         doc_result = {
             "file_name": file_name,
@@ -266,7 +256,7 @@ def main():
             "models": {},
         }
 
-        for name, (desc, model_id, ocr_fn) in models.items():
+        for name, (_desc, model_id, ocr_fn) in models.items():
             t0 = time.time()
             try:
                 text = ocr_fn(resized_path)
@@ -308,19 +298,13 @@ def main():
 
         # Save incrementally
         if i % 10 == 0:
-            _save_results(
-                OUTPUT_DIR, ts, results, all_detail, models, test_files, partial=True
-            )
+            _save_results(OUTPUT_DIR, ts, results, all_detail, models, test_files, partial=True)
 
     # Final save
-    _save_results(
-        OUTPUT_DIR, ts, results, all_detail, models, test_files, partial=False
-    )
+    _save_results(OUTPUT_DIR, ts, results, all_detail, models, test_files, partial=False)
 
 
-def _save_results(
-    output_dir, ts, results, all_detail, models, test_files, partial=False
-):
+def _save_results(output_dir, ts, results, all_detail, models, test_files, partial=False):
     """Save benchmark results and print summary."""
     suffix = "_partial" if partial else ""
 
@@ -358,9 +342,7 @@ def _save_results(
             "avg_line_count": round(sum(e["line_count"] for e in successes) / n),
             "avg_word_count": round(sum(e["word_count"] for e in successes) / n),
             "avg_elapsed_s": round(sum(e["elapsed_s"] for e in successes) / n, 2),
-            "avg_jaccard_sim": round(
-                sum(e["jaccard_similarity"] for e in successes) / n, 4
-            ),
+            "avg_jaccard_sim": round(sum(e["jaccard_similarity"] for e in successes) / n, 4),
             "avg_edit_distance": round(sum(e["edit_distance"] for e in successes) / n),
             "total_elapsed_s": round(sum(e["elapsed_s"] for e in entries), 1),
         }
@@ -381,9 +363,7 @@ def _save_results(
             "EditDist",
         )
         log.info("-" * 70)
-        for name, stats in sorted(
-            summary["models"].items(), key=lambda x: -x[1]["avg_jaccard_sim"]
-        ):
+        for name, stats in sorted(summary["models"].items(), key=lambda x: -x[1]["avg_jaccard_sim"]):
             log.info(
                 "%-15s %5d %8d %7.1fs %9.4f %8d",
                 name,

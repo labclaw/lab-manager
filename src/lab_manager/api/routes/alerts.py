@@ -13,16 +13,25 @@ from lab_manager.services.alerts import get_alert_summary, persist_alerts
 
 router = APIRouter()
 
+_AlertType = Query(None)
+_Severity = Query(None)
+_Acknowledged = Query(None)
+_Resolved = Query(None, description="Filter by resolved status")
+_Page = Query(1, ge=1)
+_PageSize = Query(50, ge=1, le=200)
+_Db = Depends(get_db)
+_AcknowledgedBy = Query(None)
+
 
 @router.get("/")
 def list_alerts(
-    alert_type: str | None = Query(None),
-    severity: str | None = Query(None),
-    acknowledged: bool | None = Query(None),
-    resolved: bool | None = Query(None, description="Filter by resolved status"),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=200),
-    db: Session = Depends(get_db),
+    alert_type: str | None = _AlertType,
+    severity: str | None = _Severity,
+    acknowledged: bool | None = _Acknowledged,
+    resolved: bool | None = _Resolved,
+    page: int = _Page,
+    page_size: int = _PageSize,
+    db: Session = _Db,
 ):
     """List alerts with optional filters. Defaults to unresolved."""
     q = db.query(Alert)
@@ -42,13 +51,13 @@ def list_alerts(
 
 
 @router.get("/summary")
-def alert_summary(db: Session = Depends(get_db)):
+def alert_summary(db: Session = _Db):
     """Return alert counts grouped by type and severity."""
     return get_alert_summary(db)
 
 
 @router.post("/check")
-def run_alert_check(db: Session = Depends(get_db)):
+def run_alert_check(db: Session = _Db):
     """Trigger alert checks, persist new alerts, return summary."""
     created, current = persist_alerts(db)
     summary = get_alert_summary(db, alerts=current)
@@ -61,8 +70,8 @@ def run_alert_check(db: Session = Depends(get_db)):
 @router.post("/{alert_id}/acknowledge")
 def acknowledge_alert(
     alert_id: int,
-    acknowledged_by: str | None = Query(None),
-    db: Session = Depends(get_db),
+    acknowledged_by: str | None = _AcknowledgedBy,
+    db: Session = _Db,
 ):
     """Mark an alert as acknowledged."""
     alert = get_or_404(db, Alert, alert_id, "Alert")
@@ -77,7 +86,7 @@ def acknowledge_alert(
 @router.post("/{alert_id}/resolve")
 def resolve_alert(
     alert_id: int,
-    db: Session = Depends(get_db),
+    db: Session = _Db,
 ):
     """Mark an alert as resolved."""
     alert = get_or_404(db, Alert, alert_id, "Alert")
