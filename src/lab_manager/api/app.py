@@ -381,7 +381,24 @@ def create_app() -> FastAPI:
         from lab_manager.database import get_db_session
         from lab_manager.models.staff import Staff
 
-        # Validate before opening DB session
+        # Validate inputs before opening DB session
+        admin_name = admin_name.strip()
+        admin_email = admin_email.strip().lower()
+        if not admin_name or len(admin_name) > 200:
+            return JSONResponse(
+                status_code=422,
+                content={"detail": "Name must be between 1 and 200 characters"},
+            )
+        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", admin_email):
+            return JSONResponse(
+                status_code=422,
+                content={"detail": "Invalid email address"},
+            )
+        if len(admin_email) > 255:
+            return JSONResponse(
+                status_code=422,
+                content={"detail": "Email must be 255 characters or fewer"},
+            )
         if len(admin_password) < 8:
             return JSONResponse(
                 status_code=422,
@@ -429,7 +446,7 @@ def create_app() -> FastAPI:
                     content={"detail": "Setup already completed"},
                 )
 
-            logger.info("Setup complete: admin user created (%s)", admin_email)
+            logger.info("Setup complete: admin user created")
             return {
                 "status": "ok",
                 "message": "Admin account created. You can now sign in.",
