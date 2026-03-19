@@ -99,5 +99,9 @@ def get_db_session() -> Generator[Session, None, None]:
     session = factory()
     try:
         yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
     finally:
         session.close()

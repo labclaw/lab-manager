@@ -32,30 +32,34 @@ class QwenVLLMProvider(OCRProvider):
     def extract_text(self, image_path: str) -> str:
         from openai import OpenAI
 
-        client = OpenAI(base_url=self.base_url, api_key="dummy")
+        try:
+            client = OpenAI(base_url=self.base_url, api_key="dummy")
 
-        image_bytes = Path(image_path).read_bytes()
-        b64 = base64.b64encode(image_bytes).decode()
-        suffix = Path(image_path).suffix.lower().lstrip(".")
-        mime = "image/jpeg" if suffix in ("jpg", "jpeg") else f"image/{suffix}"
+            image_bytes = Path(image_path).read_bytes()
+            b64 = base64.b64encode(image_bytes).decode()
+            suffix = Path(image_path).suffix.lower().lstrip(".")
+            mime = "image/jpeg" if suffix in ("jpg", "jpeg") else f"image/{suffix}"
 
-        response = client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": f"data:{mime};base64,{b64}"},
-                        },
-                        {"type": "text", "text": OCR_PROMPT},
-                    ],
-                },
-            ],
-            max_tokens=4096,
-        )
-        return response.choices[0].message.content or ""
+            response = client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:{mime};base64,{b64}"},
+                            },
+                            {"type": "text", "text": OCR_PROMPT},
+                        ],
+                    },
+                ],
+                max_tokens=4096,
+            )
+            return response.choices[0].message.content or ""
+        except Exception as e:
+            log.warning("Qwen vLLM OCR error: %s", e)
+            return ""
 
 
 class GeminiOCRProvider(OCRProvider):
@@ -89,14 +93,12 @@ class GeminiOCRProvider(OCRProvider):
 
 
 class GeminiAPIOCRProvider(OCRProvider):
-    """Gemini 3.1 Flash via Google GenAI API for OCR."""
+    """Gemini 2.5 Flash via Google GenAI API for OCR."""
 
     name = "gemini_api_flash"
-    model_id = "gemini-3.1-flash-preview"
+    model_id = "gemini-2.5-flash"
 
-    def __init__(
-        self, model: str = "gemini-3.1-flash-preview", api_key: Optional[str] = None
-    ):
+    def __init__(self, model: str = "gemini-2.5-flash", api_key: Optional[str] = None):
         self.model = model
         self.api_key = api_key
 
@@ -104,30 +106,34 @@ class GeminiAPIOCRProvider(OCRProvider):
         import base64
         from google import genai
 
-        api_key = self.api_key
-        if not api_key:
-            import os
+        try:
+            api_key = self.api_key
+            if not api_key:
+                import os
 
-            api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get(
-                "EXTRACTION_API_KEY", ""
+                api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get(
+                    "EXTRACTION_API_KEY", ""
+                )
+
+            client = genai.Client(api_key=api_key)
+            image_bytes = Path(image_path).read_bytes()
+            b64 = base64.b64encode(image_bytes).decode()
+            suffix = Path(image_path).suffix.lower().lstrip(".")
+            mime = "image/jpeg" if suffix in ("jpg", "jpeg") else f"image/{suffix}"
+
+            response = client.models.generate_content(
+                model=self.model,
+                contents=[
+                    {
+                        "role": "user",
+                        "parts": [
+                            {"inline_data": {"mime_type": mime, "data": b64}},
+                            {"text": OCR_PROMPT},
+                        ],
+                    },
+                ],
             )
-
-        client = genai.Client(api_key=api_key)
-        image_bytes = Path(image_path).read_bytes()
-        b64 = base64.b64encode(image_bytes).decode()
-        suffix = Path(image_path).suffix.lower().lstrip(".")
-        mime = "image/jpeg" if suffix in ("jpg", "jpeg") else f"image/{suffix}"
-
-        response = client.models.generate_content(
-            model=self.model,
-            contents=[
-                {
-                    "role": "user",
-                    "parts": [
-                        {"inline_data": {"mime_type": mime, "data": b64}},
-                        {"text": OCR_PROMPT},
-                    ],
-                },
-            ],
-        )
-        return response.text
+            return response.text or ""
+        except Exception as e:
+            log.warning("Gemini API OCR error: %s", e)
+            return ""

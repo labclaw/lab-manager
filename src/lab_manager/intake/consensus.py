@@ -60,9 +60,10 @@ def consensus_merge(extractions: dict[str, Optional[dict]]) -> dict:
 
     if len(valid) == 1:
         model, data = next(iter(valid.items()))
-        data["_consensus"] = {"method": "single_model", "model": model}
-        data["_needs_human"] = True
-        return data
+        result = dict(data)
+        result["_consensus"] = {"method": "single_model", "model": model}
+        result["_needs_human"] = True
+        return result
 
     all_fields = set()
     for data in valid.values():
