@@ -50,7 +50,7 @@ function renderStats() {
       icon: "shopping_cart",
       label: "Orders",
       value: s.total_orders,
-      sub: s.total_items + " line items",
+      sub: parseInt(s.total_items, 10) + " line items",
       color: "text-primary",
     },
     {
@@ -67,11 +67,11 @@ function renderStats() {
       (c) => `
     <div class="bg-surface-dark border border-border-dark rounded-xl p-5">
       <div class="flex items-center gap-3 mb-2">
-        <span class="material-symbols-outlined text-slate-500 text-xl">${c.icon}</span>
-        <span class="text-xs text-slate-500 uppercase tracking-wider font-medium">${c.label}</span>
+        <span class="material-symbols-outlined text-slate-500 text-xl">${escapeHtml(c.icon)}</span>
+        <span class="text-xs text-slate-500 uppercase tracking-wider font-medium">${escapeHtml(c.label)}</span>
       </div>
-      <div class="text-3xl font-bold ${c.color}">${c.value}</div>
-      <div class="text-xs text-slate-500 mt-1">${c.sub}</div>
+      <div class="text-3xl font-bold ${escapeHtml(c.color)}">${escapeHtml(String(c.value))}</div>
+      <div class="text-xs text-slate-500 mt-1">${escapeHtml(c.sub)}</div>
     </div>`
     )
     .join("");
@@ -89,9 +89,9 @@ function renderStats() {
   alertContainer.innerHTML = alerts
     .map(
       (a) => `
-    <div class="flex items-center gap-3 p-3 rounded-lg border ${a.cls}">
-      <span class="material-symbols-outlined text-amber-400">${a.icon}</span>
-      <span class="text-sm text-slate-300">${a.text}</span>
+    <div class="flex items-center gap-3 p-3 rounded-lg border ${escapeHtml(a.cls)}">
+      <span class="material-symbols-outlined text-amber-400">${escapeHtml(a.icon)}</span>
+      <span class="text-sm text-slate-300">${escapeHtml(a.text)}</span>
     </div>`
     )
     .join("");
@@ -116,7 +116,7 @@ function renderVendorChart(s) {
     <div class="flex items-center gap-3 mb-2 text-sm">
       <div class="w-36 text-right text-slate-400 truncate" title="${escapeHtml(v.name || "")}">${escapeHtml(v.name || "")}</div>
       <div class="h-5 bg-primary rounded" style="width: ${(v.count / maxCount) * 200}px; min-width: 4px;"></div>
-      <div class="text-slate-300 font-semibold w-8">${v.count}</div>
+      <div class="text-slate-300 font-semibold w-8">${parseInt(v.count, 10)}</div>
     </div>`
     )
     .join("");
@@ -139,7 +139,7 @@ function renderTypeChart(s) {
     <div class="flex items-center gap-3 mb-2 text-sm">
       <div class="w-36 text-right text-slate-400 truncate">${escapeHtml(name || "")}</div>
       <div class="h-5 bg-accent-green rounded" style="width: ${(count / maxType) * 200}px; min-width: 4px;"></div>
-      <div class="text-slate-300 font-semibold w-8">${count}</div>
+      <div class="text-slate-300 font-semibold w-8">${parseInt(count, 10)}</div>
     </div>`
     )
     .join("");

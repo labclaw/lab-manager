@@ -74,10 +74,12 @@
 
 ## CEO Review (2026-03-18) — Pre-open-source
 
-### TODO-13: escapeHtml() for all innerHTML calls (XSS prevention)
-- All JS modules use `.innerHTML` without escaping — stored XSS vector
-- Risk is low for internal lab (data from OCR, not web input), but blocks open-source
-- Add `escapeHtml()` utility and apply to all innerHTML assignments in static/js/*.js
+### TODO-13: escapeHtml() for all innerHTML calls (XSS prevention) ✅ (fix/xss-innerhtml)
+- escapeHtml() exists in api.js and is applied to all API string values before innerHTML
+- Fixed bug: `if (!s)` → `if (s == null || s === "")` so numeric 0 is handled correctly
+- dashboard.js: added escapeHtml() to all card/alert template interpolations
+- orders.js / inventory.js: parseInt() for page numbers from API responses
+- Added 2 API-level XSS tests in test_api_security.py (vendor/product names with HTML chars)
 - Priority: P2 | Effort: S | Depends on: nothing
 
 ### TODO-14: Duplicate order detection (PO# matching)

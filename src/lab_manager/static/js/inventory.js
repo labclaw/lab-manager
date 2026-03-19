@@ -20,7 +20,7 @@ async function loadInventory() {
     renderInvRows(items);
     document.getElementById("inv-total").textContent =
       data.total != null ? data.total + " items" : "";
-    renderInvPagination(data.page || 1, data.pages || 1);
+    renderInvPagination(parseInt(data.page, 10) || 1, parseInt(data.pages, 10) || 1);
   } catch (err) {
     if (err.message !== "Unauthorized") {
       console.error("Failed to load inventory:", err);

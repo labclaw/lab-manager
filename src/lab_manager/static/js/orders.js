@@ -78,8 +78,8 @@ function formatCurrency(amount) {
 function renderOrdPagination(data) {
   const el = document.getElementById("ord-pagination");
   if (!el) return;
-  const page = data.page || 1;
-  const pages = data.pages || 1;
+  const page = parseInt(data.page, 10) || 1;
+  const pages = parseInt(data.pages, 10) || 1;
   el.innerHTML = `
     <button onclick="ordChangePage(-1)" ${page <= 1 ? "disabled" : ""}
       class="px-3 py-1.5 rounded-lg border border-border-dark text-slate-400 hover:text-white hover:border-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm">
