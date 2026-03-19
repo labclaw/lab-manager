@@ -1,13 +1,10 @@
 """Step definitions for document intake BDD scenarios."""
 
 import pytest
+from conftest import table_to_dicts as _table_to_dicts
 from pytest_bdd import given, when, then, scenario, parsers
 
-
 FEATURE = "../features/document_intake.feature"
-
-
-from conftest import table_to_dicts as _table_to_dicts
 
 
 # --- Scenarios ---

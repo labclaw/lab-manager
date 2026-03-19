@@ -3,6 +3,7 @@
 import itertools
 
 import pytest
+from conftest import table_to_dicts as _table_to_dicts
 from pytest_bdd import given, parsers, scenario, then, when
 
 FEATURE = "../features/products.feature"
@@ -92,9 +93,6 @@ def ctx():
 
 
 # --- Helpers ---
-
-
-from conftest import table_to_dicts as _table_to_dicts
 
 
 # --- Given steps ---
