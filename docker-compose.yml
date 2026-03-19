@@ -74,6 +74,8 @@ services:
       EXTRACTION_MODEL: ${EXTRACTION_MODEL:-gemini-3.1-flash-preview}
       RAG_MODEL: ${RAG_MODEL:-gemini-2.5-flash}
       UPLOAD_DIR: /app/uploads
+      SCANS_DIR: ${SCANS_DIR:-/app/shenlab-docs}
+      DEVICES_DIR: ${DEVICES_DIR:-/app/shenlab-devices}
     depends_on:
       db:
         condition: service_healthy

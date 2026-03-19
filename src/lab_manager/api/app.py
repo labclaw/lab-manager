@@ -29,8 +29,23 @@ configure_logging()
 logger = logging.getLogger(__name__)
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
-SCANS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "shenlab-docs"
-DEVICES_DIR = Path(__file__).resolve().parent.parent.parent.parent / "shenlab-devices"
+
+
+def _get_scans_dir() -> Path:
+    """Return scans directory from config or fall back to default path."""
+    settings = get_settings()
+    if settings.scans_dir:
+        return Path(settings.scans_dir)
+    return Path(__file__).resolve().parent.parent.parent.parent / "shenlab-docs"
+
+
+def _get_devices_dir() -> Path:
+    """Return devices directory from config or fall back to default path."""
+    settings = get_settings()
+    if settings.devices_dir:
+        return Path(settings.devices_dir)
+    return Path(__file__).resolve().parent.parent.parent.parent / "shenlab-devices"
+
 
 # Strip control characters from X-User header to prevent log injection.
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
@@ -518,8 +533,9 @@ def create_app() -> FastAPI:
                 route.endpoint = limiter.limit("10/minute")(original_endpoint)
 
     # Serve scan images (protected by auth middleware when auth is enabled)
-    if SCANS_DIR.exists():  # pragma: no cover — depends on deployment
-        app.mount("/scans", StaticFiles(directory=str(SCANS_DIR)), name="scans")
+    scans_dir = _get_scans_dir()
+    if scans_dir.exists():  # pragma: no cover — depends on deployment
+        app.mount("/scans", StaticFiles(directory=str(scans_dir)), name="scans")
 
     # Serve uploaded documents at /uploads/
     upload_path = Path(settings.upload_dir)
@@ -531,9 +547,11 @@ def create_app() -> FastAPI:
     )
 
     # Serve device photos
-    if DEVICES_DIR.exists():  # pragma: no cover — depends on deployment
+    if _get_devices_dir().exists():  # pragma: no cover — depends on deployment
         app.mount(
-            "/lab-devices", StaticFiles(directory=str(DEVICES_DIR)), name="devices"
+            "/lab-devices",
+            StaticFiles(directory=str(_get_devices_dir())),
+            name="devices",
         )
 
     # Wire up SQLAdmin UI at /admin/
