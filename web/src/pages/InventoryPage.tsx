@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { inventory as invApi } from '@/lib/api'
-import type { InventoryItem } from '@/lib/api'
 import { RefreshCw, Search, ChevronLeft, ChevronRight, PackageSearch } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 
@@ -133,8 +132,8 @@ export function InventoryPage({ onError }: InventoryPageProps) {
             ) : (
               <EmptyState
                 icon={PackageSearch}
-                title={search ? "No matching items" : "No inventory items"}
-                description={search ? `No items found matching "${search}"` : "Your laboratory inventory is currently empty."}
+                title={search ? "No matching items" : "Inventory is empty"}
+                description={search ? `No items found matching "${search}"` : "Process documents through the review queue to populate inventory."}
               />
             )}
           </div>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { documents as docApi } from '@/lib/api'
 import type { Document } from '@/lib/api'
-import { CheckCircle2, XCircle, AlertTriangle, RefreshCw, ChevronRight } from 'lucide-react'
+import { CheckCircle2, XCircle, AlertTriangle, RefreshCw, ChevronRight, Upload } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { cn } from '@/lib/utils'
 
@@ -9,7 +10,8 @@ interface ReviewPageProps {
   onError?: (error: string) => void
 }
 
-export function ReviewPage({ onError }: ReviewPageProps) {
+export function ReviewPage({ onError: _onError }: ReviewPageProps) {
+  const navigate = useNavigate()
   const [queue, setQueue] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Document | null>(null)
@@ -80,8 +82,13 @@ export function ReviewPage({ onError }: ReviewPageProps) {
     return (
       <EmptyState
         icon={CheckCircle2}
-        title="All caught up!"
-        description="No documents are currently pending manual review."
+        title="No documents waiting for review"
+        description="Upload a packing list or invoice to begin."
+        action={
+          <button onClick={() => navigate('/upload')} className="btn-primary flex items-center gap-2 text-sm">
+            <Upload className="w-4 h-4" /> Upload Document
+          </button>
+        }
       />
     )
   }

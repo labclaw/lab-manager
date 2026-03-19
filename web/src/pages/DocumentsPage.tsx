@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { documents as docApi } from '@/lib/api'
 import type { Document } from '@/lib/api'
-import { Search, ChevronLeft, ChevronRight, RefreshCw, FileText, XCircle } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, RefreshCw, FileText, XCircle, Upload } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 
 interface DocumentsPageProps {
@@ -10,6 +11,7 @@ interface DocumentsPageProps {
 }
 
 export function DocumentsPage({ onError }: DocumentsPageProps) {
+  const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -156,8 +158,13 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
             ) : (
               <EmptyState
                 icon={FileText}
-                title={search ? "No matching documents" : "No documents found"}
-                description={search ? `No documents found matching "${search}"` : "You haven't uploaded any documents yet."}
+                title={search ? "No matching documents" : "No documents yet"}
+                description={search ? `No documents found matching "${search}"` : "Upload a packing list or invoice to get started."}
+                action={!search ? (
+                  <button onClick={() => navigate('/upload')} className="btn-primary flex items-center gap-2 text-sm">
+                    <Upload className="w-4 h-4" /> Upload Document
+                  </button>
+                ) : undefined}
               />
             )}
           </div>
