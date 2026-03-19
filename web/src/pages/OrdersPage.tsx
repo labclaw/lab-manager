@@ -15,7 +15,7 @@ interface OrdersPageProps {
   onError?: (error: string) => void
 }
 
-export function OrdersPage({ onError }: OrdersPageProps) {
+export function OrdersPage({ onError: _onError }: OrdersPageProps) {
   const [orders, setOrders] = useState<Order[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
