@@ -72,6 +72,12 @@ def _get_serializer() -> URLSafeTimedSerializer:
 
 
 def _load_session_staff(session_cookie: str):
+    """Load staff from session cookie, returning a detach-safe dict.
+
+    Returns ``{"id": ..., "name": ...}`` or *None*.  Eagerly extracts
+    attributes inside the DB session so callers never hit a
+    ``DetachedInstanceError``.
+    """
     serializer = _get_serializer()
     data = serializer.loads(session_cookie, max_age=_SESSION_MAX_AGE)
     staff_id = data.get("staff_id")
@@ -84,7 +90,8 @@ def _load_session_staff(session_cookie: str):
 
         staff = db.get(Staff, staff_id)
         if staff and staff.is_active:
-            return staff
+            # Eagerly read attributes while session is open
+            return {"id": staff.id, "name": staff.name}
 
     logger.warning(
         "Session for inactive/missing staff_id=%s name=%s",
@@ -181,7 +188,7 @@ def create_app() -> FastAPI:
                 try:
                     staff = _load_session_staff(session_cookie)
                     if staff:
-                        user = staff.name
+                        user = staff["name"]
                         authenticated = True
                 except BadSignature:
                     logger.warning("Invalid session cookie signature")
@@ -346,7 +353,7 @@ def create_app() -> FastAPI:
             return JSONResponse(
                 status_code=401, content={"detail": "Not authenticated"}
             )
-        return {"user": {"id": staff.id, "name": staff.name}}
+        return {"user": {"id": staff["id"], "name": staff["name"]}}
 
     @app.post("/api/auth/logout")
     def logout():
