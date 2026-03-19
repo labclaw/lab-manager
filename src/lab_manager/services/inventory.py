@@ -119,8 +119,8 @@ def receive_items(
     order.status = OrderStatus.received
     order.received_date = today
     order.received_by = received_by
-    db.commit()
 
+    db.commit()
     for inv in created:
         db.refresh(inv)
     return created

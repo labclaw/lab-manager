@@ -33,7 +33,7 @@ DB_SCHEMA = """\
 CREATE TABLE vendors (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) UNIQUE NOT NULL,
-    aliases JSON,           -- list of alternate names
+    aliases JSON,
     website VARCHAR(500),
     phone VARCHAR(50),
     email VARCHAR(255),
@@ -54,6 +54,14 @@ CREATE TABLE products (
     unit VARCHAR(50),
     hazard_info VARCHAR(255),
     extra JSON,
+    min_stock_level NUMERIC(12, 4),
+    max_stock_level NUMERIC(12, 4),
+    reorder_quantity NUMERIC(12, 4),
+    shelf_life_days INTEGER,
+    storage_requirements VARCHAR(500),
+    is_hazardous BOOLEAN DEFAULT FALSE,
+    is_controlled BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ,
     created_by VARCHAR(100)
@@ -65,8 +73,10 @@ CREATE TABLE staff (
     email VARCHAR(255) UNIQUE,
     role VARCHAR(50) DEFAULT 'member',
     is_active BOOLEAN DEFAULT TRUE,
+    password_hash VARCHAR(255),
     created_at TIMESTAMPTZ,
-    updated_at TIMESTAMPTZ
+    updated_at TIMESTAMPTZ,
+    created_by VARCHAR(100)
 );
 
 CREATE TABLE locations (
@@ -74,7 +84,7 @@ CREATE TABLE locations (
     name VARCHAR(200) NOT NULL,
     room VARCHAR(100),
     building VARCHAR(100),
-    temperature INTEGER,      -- storage temp in Celsius
+    temperature INTEGER,
     description TEXT,
     created_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ,
@@ -85,7 +95,7 @@ CREATE TABLE documents (
     id SERIAL PRIMARY KEY,
     file_path VARCHAR(1000) NOT NULL,
     file_name VARCHAR(255) UNIQUE NOT NULL,
-    document_type VARCHAR(50),   -- 'packing_list', 'invoice', 'coa', 'shipping_label'
+    document_type VARCHAR(50),
     vendor_name VARCHAR(255),
     ocr_text TEXT,
     extracted_data JSON,
@@ -107,7 +117,7 @@ CREATE TABLE orders (
     ship_date DATE,
     received_date DATE,
     received_by VARCHAR(200),
-    status VARCHAR(30) DEFAULT 'pending',  -- 'pending', 'shipped', 'received', 'cancelled'
+    status VARCHAR(30) DEFAULT 'pending',
     delivery_number VARCHAR(100),
     invoice_number VARCHAR(100),
     document_id INTEGER REFERENCES documents(id),
@@ -122,11 +132,11 @@ CREATE TABLE order_items (
     order_id INTEGER NOT NULL REFERENCES orders(id),
     catalog_number VARCHAR(100),
     description VARCHAR(1000),
-    quantity FLOAT DEFAULT 1,
+    quantity NUMERIC(12, 4) DEFAULT 1,
     unit VARCHAR(50),
     lot_number VARCHAR(100),
     batch_number VARCHAR(100),
-    unit_price FLOAT,
+    unit_price NUMERIC(12, 4),
     product_id INTEGER REFERENCES products(id),
     extra JSON,
     created_at TIMESTAMPTZ,
@@ -136,20 +146,60 @@ CREATE TABLE order_items (
 
 CREATE TABLE inventory (
     id SERIAL PRIMARY KEY,
-    product_id INTEGER REFERENCES products(id),
+    product_id INTEGER NOT NULL REFERENCES products(id),
     location_id INTEGER REFERENCES locations(id),
     lot_number VARCHAR(100),
-    quantity_on_hand FLOAT DEFAULT 0,
+    quantity_on_hand NUMERIC(12, 4) DEFAULT 0,
     unit VARCHAR(50),
     expiry_date DATE,
     opened_date DATE,
-    status VARCHAR(30) DEFAULT 'available',  -- 'available', 'low', 'expired', 'depleted'
+    status VARCHAR(30) DEFAULT 'available',
     notes TEXT,
     received_by VARCHAR(200),
     order_item_id INTEGER REFERENCES order_items(id),
     created_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ,
     created_by VARCHAR(100)
+);
+
+CREATE TABLE consumption_log (
+    id SERIAL PRIMARY KEY,
+    inventory_id INTEGER NOT NULL REFERENCES inventory(id),
+    product_id INTEGER REFERENCES products(id),
+    quantity_used NUMERIC(12, 4) NOT NULL,
+    quantity_remaining NUMERIC(12, 4) NOT NULL,
+    consumed_by VARCHAR(200) NOT NULL,
+    purpose VARCHAR(500),
+    action VARCHAR(30) NOT NULL,
+    created_at TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ,
+    created_by VARCHAR(100)
+);
+
+CREATE TABLE alerts (
+    id SERIAL PRIMARY KEY,
+    alert_type VARCHAR(50) NOT NULL,
+    severity VARCHAR(20) NOT NULL,
+    message VARCHAR(1000) NOT NULL,
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id INTEGER NOT NULL,
+    is_acknowledged BOOLEAN DEFAULT FALSE,
+    acknowledged_by VARCHAR(200),
+    acknowledged_at TIMESTAMPTZ,
+    is_resolved BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ,
+    created_by VARCHAR(100)
+);
+
+CREATE TABLE audit_log (
+    id SERIAL PRIMARY KEY,
+    table_name VARCHAR(100) NOT NULL,
+    record_id INTEGER NOT NULL,
+    action VARCHAR(20) NOT NULL,
+    changed_by VARCHAR(100),
+    changes JSON,
+    timestamp TIMESTAMPTZ NOT NULL
 );
 """
 
@@ -163,7 +213,7 @@ DATABASE SCHEMA:
 RULES:
 - Output ONLY the SQL query, nothing else. No markdown, no explanation.
 - Only SELECT queries. Never use INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE, GRANT, or REVOKE.
-- Only query these tables: vendors, products, staff, locations, documents, orders, order_items, inventory.
+- Only query these tables: vendors, products, staff, locations, documents, orders, order_items, inventory, consumption_log, alerts, audit_log.
 - Do NOT access system catalogs (pg_shadow, pg_authid, information_schema, pg_catalog).
 - Do NOT call functions with side effects (pg_terminate_backend, set_config, dblink, lo_import, etc.).
 - Use JOINs when the question involves related tables (e.g., vendor name for a product).
@@ -216,11 +266,15 @@ _FORBIDDEN_COLUMNS = re.compile(r"\bpassword_hash\b", re.IGNORECASE)
 _ALLOWED_TABLES = {
     "vendors",
     "products",
+    "staff",
     "locations",
     "documents",
     "orders",
     "order_items",
     "inventory",
+    "consumption_log",
+    "alerts",
+    "audit_log",
 }
 
 # Allow only SELECT (including WITH/CTE)

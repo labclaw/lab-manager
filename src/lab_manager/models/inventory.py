@@ -68,7 +68,7 @@ class InventoryItem(AuditMixin, table=True):
     order_item_id: Optional[int] = Field(
         default=None,
         sa_column=Column(
-            sa.Integer, sa.ForeignKey("order_items.id", ondelete="SET NULL")
+            sa.Integer, sa.ForeignKey("order_items.id", ondelete="SET NULL"), index=True
         ),
     )
 
