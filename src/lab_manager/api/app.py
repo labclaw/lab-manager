@@ -182,6 +182,7 @@ def create_app() -> FastAPI:
                     staff = _load_session_staff(session_cookie)
                     if staff:
                         user = staff.name
+                        request.state.user_email = staff.email
                         authenticated = True
                 except BadSignature:
                     logger.warning("Invalid session cookie signature")

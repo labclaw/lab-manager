@@ -7,9 +7,9 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Request
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import func, text
+from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db
 from lab_manager.models.usage_event import UsageEvent
@@ -21,8 +21,12 @@ _RATE_LIMIT_WINDOW = 60  # seconds
 
 
 def _is_rate_limited(user_email: str, page: Optional[str]) -> bool:
-    key = f"{user_email}:{page or ''}"
+    key = f"{user_email}:{page or ""}"
     now = time.monotonic()
+    cutoff = now - _RATE_LIMIT_WINDOW
+    stale = [k for k, v in _rate_limit_store.items() if v < cutoff]
+    for k in stale:
+        del _rate_limit_store[k]
     last = _rate_limit_store.get(key, 0)
     if now - last < _RATE_LIMIT_WINDOW:
         return True
@@ -33,28 +37,23 @@ def _is_rate_limited(user_email: str, page: Optional[str]) -> bool:
 @router.post("/event")
 def record_event(request: Request, body: dict, db: Session = Depends(get_db)):
     user = getattr(request.state, "user", None)
+    user_email = getattr(request.state, "user_email", None) or user
     if not user or user in ("system", "api-client"):
-        from fastapi import HTTPException
-
         raise HTTPException(status_code=401, detail="Authentication required")
 
     event_type = body.get("event_type", "")
     if event_type not in ("login", "page_view", "action"):
-        from fastapi import HTTPException
-
         raise HTTPException(status_code=422, detail="Invalid event_type")
 
     page = body.get("page")
-    if _is_rate_limited(user, page):
-        from fastapi import HTTPException
-
+    if _is_rate_limited(user_email, page):
         raise HTTPException(status_code=429, detail="Rate limit exceeded")
 
     metadata_raw = body.get("metadata")
     metadata_json = json.dumps(metadata_raw) if metadata_raw is not None else None
 
     event = UsageEvent(
-        user_email=user,
+        user_email=user_email,
         event_type=event_type,
         page=page,
         metadata_json=metadata_json,
@@ -82,12 +81,17 @@ def get_dau(days: int = Query(30, ge=1, le=90), db: Session = Depends(get_db)):
 
 @router.get("/events")
 def list_events(
+    request: Request,
     event_type: Optional[str] = Query(None),
     user_email: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
+    user = getattr(request.state, "user", None)
+    if not user or user in ("system", "api-client"):
+        raise HTTPException(status_code=401, detail="Authentication required")
+
     q = db.query(UsageEvent)
     if event_type:
         q = q.filter(UsageEvent.event_type == event_type)

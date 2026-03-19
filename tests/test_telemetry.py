@@ -216,7 +216,7 @@ class TestDAU:
             headers={"X-User": "user1@example.com"},
         )
 
-        resp = telemetry_client.get("/api/telemetry/dau")
+        resp = telemetry_client.get("/api/telemetry/dau", headers={"X-User": "user1@example.com"})
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) >= 1
@@ -224,7 +224,7 @@ class TestDAU:
         assert today["dau"] == 2
 
     def test_dau_empty(self, telemetry_client):
-        resp = telemetry_client.get("/api/telemetry/dau")
+        resp = telemetry_client.get("/api/telemetry/dau", headers={"X-User": "user1@example.com"})
         assert resp.status_code == 200
         data = resp.json()
         assert data == []
@@ -247,7 +247,7 @@ class TestListEvents:
             headers={"X-User": "filter@example.com"},
         )
 
-        resp = telemetry_client.get("/api/telemetry/events?event_type=login")
+        resp = telemetry_client.get("/api/telemetry/events?event_type=login", headers={"X-User": "filter@example.com"})
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 1
