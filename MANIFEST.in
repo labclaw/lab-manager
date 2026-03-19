@@ -1,0 +1,5 @@
+include src/lab_manager/static/index.html
+include src/lab_manager/static/manifest.json
+include src/lab_manager/static/sw.js
+recursive-include src/lab_manager/static/js *.js
+recursive-include src/lab_manager/static/icons *

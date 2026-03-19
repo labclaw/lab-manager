@@ -2,6 +2,16 @@
 
 All notable changes to LabClaw Lab Manager will be documented in this file.
 
+## [0.1.5] - 2026-03-19
+
+### Fixed
+- Wheel builds now include the shipped static frontend assets required for the backend-served UI
+
+### Changed
+- Reworked release docs around local trial, one-command deployment, and first-run browser setup
+- Added a local environment bootstrap script for evaluators who want to try Lab Manager on `localhost`
+- Clarified that the React frontend is still an in-progress release surface
+
 ## [0.1.2] - 2026-03-16
 
 ### Added
