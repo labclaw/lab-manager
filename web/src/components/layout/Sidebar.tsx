@@ -1,36 +1,22 @@
-import {
-  LayoutDashboard,
-  Package,
-  FileText,
-  ClipboardCheck,
-  Bell,
-  Settings,
-  FlaskConical,
-  ChevronLeft,
-  ChevronRight,
-  LogOut,
-  Upload,
-} from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { auth } from '@/lib/api'
 
 interface SidebarProps {
-  current: string
-  collapsed: boolean
-  onToggle: () => void
-  alertCount?: number
-  reviewCount?: number
+  readonly current: string
+  readonly collapsed: boolean
+  readonly onToggle: () => void
+  readonly alertCount?: number
+  readonly reviewCount?: number
 }
 
 const navItems = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/inventory', label: 'Inventory', icon: Package },
-  { path: '/orders', label: 'Orders', icon: FlaskConical },
-  { path: '/documents', label: 'Documents', icon: FileText },
-  { path: '/upload', label: 'Upload', icon: Upload },
-  { path: '/review', label: 'Review', icon: ClipboardCheck },
-  { path: '/alerts', label: 'Alerts', icon: Bell },
+  { path: '/', label: 'Dashboard', icon: 'dashboard' },
+  { path: '/documents', label: 'Documents', icon: 'description' },
+  { path: '/review', label: 'Review Queue', icon: 'fact_check' },
+  { path: '/inventory', label: 'Inventory', icon: 'inventory_2' },
+  { path: '/orders', label: 'Orders', icon: 'shopping_cart' },
+  { path: '/upload', label: 'Upload', icon: 'upload_file' },
 ]
 
 export function Sidebar({
@@ -50,23 +36,26 @@ export function Sidebar({
       className={cn(
         'relative flex flex-col h-screen bg-[var(--sidebar)] border-r border-[var(--sidebar-border)]',
         'transition-all duration-300',
-        collapsed ? 'w-16' : 'w-60',
+        collapsed ? 'w-16' : 'w-64',
       )}
     >
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 h-14 border-b border-[var(--sidebar-border)]">
-        <FlaskConical className="w-6 h-6 text-[var(--primary)] shrink-0" />
+      {/* Logo */}
+      <div className="flex items-center gap-3 px-6 py-6">
+        <div className="w-8 h-8 bg-[var(--primary)] rounded-lg flex items-center justify-center text-white shrink-0">
+          <span className="material-symbols-outlined text-xl">biotech</span>
+        </div>
         {!collapsed && (
-          <span className="font-display font-bold text-lg text-[var(--foreground)]">
-            Lab Manager
-          </span>
+          <div>
+            <h1 className="text-[var(--foreground)] text-lg font-bold leading-none tracking-tight">
+              Lab Manager
+            </h1>
+          </div>
         )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-4 space-y-1 px-2 overflow-y-auto">
+      <nav className="flex-1 px-3 space-y-1">
         {navItems.map((item) => {
-          const Icon = item.icon
           const isActive = current === item.path
           const badge =
             item.path === '/alerts' && alertCount > 0
@@ -79,17 +68,22 @@ export function Sidebar({
               key={item.path}
               to={item.path}
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                 isActive
-                  ? 'bg-[var(--primary)]/15 text-[var(--primary)] border-l-[3px] border-[var(--accent)]'
+                  ? 'bg-[var(--primary)]/10 text-[var(--primary)] border-l-[3px] border-[var(--primary)]'
                   : 'text-[var(--muted-foreground)] hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-foreground)]',
               )}
               title={collapsed ? item.label : undefined}
             >
-              <Icon className="w-5 h-5 shrink-0" />
+              <span className={cn(
+                'material-symbols-outlined text-[22px]',
+                isActive && 'fill-1',
+              )} style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}>
+                {item.icon}
+              </span>
               {!collapsed && <span>{item.label}</span>}
               {!collapsed && badge > 0 && (
-                <span className="ml-auto badge badge-destructive text-[10px]">
+                <span className="ml-auto bg-[var(--destructive)]/15 text-[var(--destructive)] text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                   {badge}
                 </span>
               )}
@@ -99,23 +93,21 @@ export function Sidebar({
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-[var(--sidebar-border)] p-2 space-y-1">
+      <div className="border-t border-[var(--sidebar-border)] p-3 space-y-1">
         <Link
           to="/settings"
-          className={cn(
-            'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-foreground)] transition-colors',
-          )}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-foreground)] transition-colors"
           title={collapsed ? 'Settings' : undefined}
         >
-          <Settings className="w-5 h-5 shrink-0" />
+          <span className="material-symbols-outlined text-[22px]">settings</span>
           {!collapsed && <span>Settings</span>}
         </Link>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--destructive)]/10 hover:text-[var(--destructive)] transition-colors"
-          title={collapsed ? 'Logout' : undefined}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--muted-foreground)] hover:text-[var(--destructive)] hover:bg-[var(--destructive)]/10 transition-colors"
+          title={collapsed ? 'Sign Out' : undefined}
         >
-          <LogOut className="w-5 h-5 shrink-0" />
+          <span className="material-symbols-outlined text-[22px]">logout</span>
           {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
@@ -126,11 +118,9 @@ export function Sidebar({
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         className="hidden lg:flex absolute -right-3 top-20 items-center justify-center w-6 h-6 rounded-full bg-[var(--card)] border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
       >
-        {collapsed ? (
-          <ChevronRight className="w-3 h-3" />
-        ) : (
-          <ChevronLeft className="w-3 h-3" />
-        )}
+        <span className="material-symbols-outlined text-sm">
+          {collapsed ? 'chevron_right' : 'chevron_left'}
+        </span>
       </button>
     </aside>
   )
