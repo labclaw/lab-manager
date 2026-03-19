@@ -1,6 +1,6 @@
 # 文档处理流水线 — 扫描文档从上传到入库的完整路径
 Feature: Document Intake Pipeline
-  As a lab manager at Shen Lab
+  As a lab manager at the lab
   I want scanned documents to be processed through OCR and extraction
   So that order data enters our system accurately with human verification
 

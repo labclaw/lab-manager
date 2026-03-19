@@ -3,7 +3,7 @@
 
 Usage:
     uv run python scripts/set_staff_password.py <email> <password>
-    uv run python scripts/set_staff_password.py admin@shenlab.org mysecretpassword
+    uv run python scripts/set_staff_password.py admin@example.com mysecretpassword
 """
 
 from __future__ import annotations

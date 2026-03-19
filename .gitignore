@@ -37,8 +37,17 @@ ocr-benchmark/tmp/
 # Data files (large, not tracked)
 shenlab-docs/
 shenlab-docs.zip
+shenlab-devices/
 pipeline_v2_output/
 benchmarks/
 ocr-benchmark/data/scans/
 ocr-benchmark/reports/
 .gstack/
+
+# Lab-specific data (real audit/extraction outputs)
+docs/audit_log.json
+docs/audit_summary.json
+docs/full-audit-report.md
+docs/pipeline-results-summary.md
+docs/audit_analysis_report.md
+docs/comprehensive-research-report.md

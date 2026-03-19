@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Process all scanned documents in shenlab-docs/ through the intake pipeline."""
+"""Process all scanned documents in the lab docs directory through the intake pipeline."""
 
 from __future__ import annotations
 
+import os
 import sys
 import time
 from pathlib import Path
@@ -14,7 +15,8 @@ from lab_manager.intake.pipeline import process_document
 
 
 def main():
-    scan_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("shenlab-docs")
+    default_dir = os.environ.get("LAB_DOCS_DIR", "lab-docs")
+    scan_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(default_dir)
     if not scan_dir.exists():
         raise SystemExit(f"Directory not found: {scan_dir}")
 

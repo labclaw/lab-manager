@@ -73,7 +73,7 @@ lab-manager/
 │   └── test_search.py                 # CREATE: search tests
 └── scripts/
     ├── seed_vendors.py                # CREATE: seed known vendors from scan data
-    └── process_scans.py               # CREATE: batch process shenlab-docs/
+    └── process_scans.py               # CREATE: batch process lab-docs/
 ```
 
 ---
@@ -379,7 +379,7 @@ def test_product_model():
 
 
 def test_staff_model():
-    s = Staff(name="Shiqian Shen", email="sshen@mgh.harvard.edu", role="PI")
+    s = Staff(name="Jane Smith", email="jane@example.com", role="PI")
     assert s.role == "PI"
 
 
@@ -1825,7 +1825,7 @@ Create `scripts/process_scans.py`:
 
 ```python
 #!/usr/bin/env python3
-"""Process all scanned documents in shenlab-docs/ through the intake pipeline."""
+"""Process all scanned documents in lab-docs/ through the intake pipeline."""
 from __future__ import annotations
 
 import sys
@@ -1839,7 +1839,7 @@ from lab_manager.intake.pipeline import process_document
 
 
 def main():
-    scan_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("shenlab-docs")
+    scan_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("lab-docs")
     if not scan_dir.exists():
         raise SystemExit(f"Directory not found: {scan_dir}")
 
