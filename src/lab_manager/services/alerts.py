@@ -127,7 +127,11 @@ def _check_out_of_stock(db: Session) -> list[dict]:
             InventoryItem.product_id,
             func.coalesce(func.sum(InventoryItem.quantity_on_hand), 0).label("total"),
         )
-        .filter(InventoryItem.status == InventoryStatus.available)
+        .filter(
+            InventoryItem.status.in_(
+                [InventoryStatus.available, InventoryStatus.opened]
+            )
+        )
         .group_by(InventoryItem.product_id)
         .subquery()
     )
@@ -166,7 +170,11 @@ def _check_low_stock(db: Session) -> list[dict]:
             InventoryItem.product_id,
             func.sum(InventoryItem.quantity_on_hand).label("total"),
         )
-        .filter(InventoryItem.status == InventoryStatus.available)
+        .filter(
+            InventoryItem.status.in_(
+                [InventoryStatus.available, InventoryStatus.opened]
+            )
+        )
         .group_by(InventoryItem.product_id)
         .subquery()
     )
@@ -326,7 +334,7 @@ def persist_alerts(db: Session) -> tuple[list[Alert], list[dict]]:
         created.append(alert)
 
     if created:
-        db.commit()
+        db.flush()
         for a in created:
             db.refresh(a)
     return created, current

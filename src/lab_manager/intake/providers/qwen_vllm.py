@@ -89,14 +89,12 @@ class GeminiOCRProvider(OCRProvider):
 
 
 class GeminiAPIOCRProvider(OCRProvider):
-    """Gemini 3.1 Flash via Google GenAI API for OCR."""
+    """Gemini 2.5 Flash via Google GenAI API for OCR."""
 
     name = "gemini_api_flash"
-    model_id = "gemini-3.1-flash-preview"
+    model_id = "gemini-2.5-flash"
 
-    def __init__(
-        self, model: str = "gemini-3.1-flash-preview", api_key: Optional[str] = None
-    ):
+    def __init__(self, model: str = "gemini-2.5-flash", api_key: Optional[str] = None):
         self.model = model
         self.api_key = api_key
 
@@ -130,4 +128,4 @@ class GeminiAPIOCRProvider(OCRProvider):
                 },
             ],
         )
-        return response.text
+        return response.text or ""
