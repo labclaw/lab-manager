@@ -8,9 +8,9 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field as PydanticField, field_validator
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import selectinload
-from sqlmodel import Session
+from sqlalchemy.orm import Session, selectinload
 
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
@@ -111,23 +111,23 @@ def list_products(
     sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
 ):
-    q = db.query(Product).options(selectinload(Product.vendor))
+    q = select(Product).options(selectinload(Product.vendor))
     if not include_inactive:
-        q = q.filter(Product.is_active == True)  # noqa: E712
+        q = q.where(Product.is_active == True)  # noqa: E712
     if vendor_id is not None:
-        q = q.filter(Product.vendor_id == vendor_id)
+        q = q.where(Product.vendor_id == vendor_id)
     if category:
-        q = q.filter(ilike_col(Product.category, category))
+        q = q.where(ilike_col(Product.category, category))
     if catalog_number:
-        q = q.filter(ilike_col(Product.catalog_number, catalog_number))
+        q = q.where(ilike_col(Product.catalog_number, catalog_number))
     if search:
-        q = q.filter(
+        q = q.where(
             ilike_col(Product.name, search)
             | ilike_col(Product.catalog_number, search)
             | ilike_col(Product.cas_number, search)
         )
     q = apply_sort(q, Product, sort_by, sort_dir, _PRODUCT_SORTABLE)
-    return paginate(q, page, page_size)
+    return paginate(q, db, page, page_size)
 
 
 @router.post("/", status_code=201)
@@ -195,11 +195,11 @@ def list_product_inventory(
 ):
     get_or_404(db, Product, product_id, "Product")
     q = (
-        db.query(InventoryItem)
-        .filter(InventoryItem.product_id == product_id)
+        select(InventoryItem)
+        .where(InventoryItem.product_id == product_id)
         .order_by(InventoryItem.id)
     )
-    return paginate(q, page, page_size)
+    return paginate(q, db, page, page_size)
 
 
 @router.get("/{product_id}/orders")
@@ -211,8 +211,8 @@ def list_product_orders(
 ):
     get_or_404(db, Product, product_id, "Product")
     q = (
-        db.query(OrderItem)
-        .filter(OrderItem.product_id == product_id)
+        select(OrderItem)
+        .where(OrderItem.product_id == product_id)
         .order_by(OrderItem.id)
     )
-    return paginate(q, page, page_size)
+    return paginate(q, db, page, page_size)

@@ -10,20 +10,21 @@ import time
 from pathlib import Path
 
 import structlog
-from fastapi import APIRouter, FastAPI, Request
+from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
-from sqlalchemy import text
+from sqlalchemy import select, text
 from starlette.middleware.cors import CORSMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 # Import to register SQLAlchemy event listeners on module load.
 import lab_manager.services.audit as _audit_svc  # noqa: F401
 from lab_manager.api.admin import setup_admin
+from lab_manager.api.deps import get_db
 from lab_manager.config import get_settings
 from lab_manager.database import get_engine
 from lab_manager.exceptions import BusinessError
@@ -57,6 +58,7 @@ def _spa_assets_ready(static_dir: Path) -> bool:
 
     return all((dist_dir / ref.lstrip("/")).is_file() for ref in asset_refs)
 
+
 # Strip control characters from X-User header to prevent log injection.
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 _MAX_USER_LEN = 100
@@ -65,6 +67,12 @@ _MAX_USER_LEN = 100
 _AUTH_ALLOWLIST = {
     "/",
     "/api/health",
+    "/api/auth/login",
+    "/api/auth/logout",
+    "/api/auth/me",
+    "/api/setup/status",
+    "/api/setup/complete",
+    "/api/config",
     "/api/v1/auth/login",
     "/api/v1/auth/logout",
     "/api/v1/auth/me",
@@ -136,7 +144,9 @@ def create_app() -> FastAPI:
     # Ensure upload directory exists at startup (not per-request in health check)
     Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
     scans_dir = Path(settings.scans_dir).expanduser() if settings.scans_dir else None
-    devices_dir = Path(settings.devices_dir).expanduser() if settings.devices_dir else None
+    devices_dir = (
+        Path(settings.devices_dir).expanduser() if settings.devices_dir else None
+    )
     # Disable interactive docs in production (exposes full API schema)
     docs_kwargs = {}
     if settings.auth_enabled:
@@ -367,6 +377,7 @@ def create_app() -> FastAPI:
 
     from fastapi import Body
 
+    @app.post("/api/auth/login", include_in_schema=False)
     @app.post("/api/v1/auth/login")
     @limiter.limit("5/minute")
     def login(
@@ -381,7 +392,7 @@ def create_app() -> FastAPI:
 
         try:
             with get_db_session() as db:
-                staff = db.query(Staff).filter(Staff.email == email).first()
+                staff = db.scalars(select(Staff).where(Staff.email == email)).first()
                 # Eagerly load attributes before session closes
                 if staff:
                     staff_id = staff.id
@@ -448,6 +459,7 @@ def create_app() -> FastAPI:
             logger.warning("Failed to record login usage event")
         return response
 
+    @app.get("/api/auth/me", include_in_schema=False)
     @app.get("/api/v1/auth/me")
     def auth_me(request: Request):
         """Return current user info from session cookie. Used by frontend to check auth state."""
@@ -469,6 +481,7 @@ def create_app() -> FastAPI:
             )
         return {"user": {"id": staff["id"], "name": staff["name"]}}
 
+    @app.post("/api/auth/logout", include_in_schema=False)
     @app.post("/api/v1/auth/logout")
     def logout():
         response = JSONResponse({"status": "ok"})
@@ -477,6 +490,7 @@ def create_app() -> FastAPI:
 
     # --- Lab config endpoint (public — frontend reads lab name) ---
 
+    @app.get("/api/config", include_in_schema=False)
     @app.get("/api/v1/config")
     def lab_config():
         cfg = get_settings()
@@ -492,20 +506,21 @@ def create_app() -> FastAPI:
         from lab_manager.models.staff import Staff
 
         return (
-            db.query(Staff)
-            .filter(Staff.password_hash.isnot(None), Staff.is_active.is_(True))
-            .first()
+            db.scalars(
+                select(Staff).where(
+                    Staff.password_hash.isnot(None), Staff.is_active.is_(True)
+                )
+            ).first()
             is not None
         )
 
+    @app.get("/api/setup/status", include_in_schema=False)
     @app.get("/api/v1/setup/status")
-    def setup_status():
+    def setup_status(db=Depends(get_db)):
         """Check if initial setup is needed (no admin user with password exists)."""
-        from lab_manager.database import get_db_session
+        return {"needs_setup": not _admin_exists(db)}
 
-        with get_db_session() as db:
-            return {"needs_setup": not _admin_exists(db)}
-
+    @app.post("/api/setup/complete", include_in_schema=False)
     @app.post("/api/v1/setup/complete")
     @limiter.limit("3/minute")
     def setup_complete(
@@ -513,12 +528,12 @@ def create_app() -> FastAPI:
         admin_name: str = Body(...),
         admin_email: str = Body(...),
         admin_password: str = Body(...),
+        db=Depends(get_db),
     ):
         """First-run setup: create the admin user. Only works when no admin exists."""
         import bcrypt as _bcrypt
         from sqlalchemy.exc import IntegrityError
 
-        from lab_manager.database import get_db_session
         from lab_manager.models.staff import Staff
 
         # Validate inputs before opening DB session
@@ -551,46 +566,45 @@ def create_app() -> FastAPI:
                 content={"detail": "Password must be 72 bytes or fewer"},
             )
 
-        with get_db_session() as db:
-            if _admin_exists(db):
-                return JSONResponse(
-                    status_code=409,
-                    content={"detail": "Setup already completed"},
-                )
+        if _admin_exists(db):
+            return JSONResponse(
+                status_code=409,
+                content={"detail": "Setup already completed"},
+            )
 
-            # Create or update staff record
-            staff = db.query(Staff).filter(Staff.email == admin_email).first()
-            if staff:
-                staff.name = admin_name
-                staff.role = "admin"
-                staff.is_active = True
-            else:
-                staff = Staff(
-                    name=admin_name,
-                    email=admin_email,
-                    role="admin",
-                    is_active=True,
-                )
-                db.add(staff)
+        # Create or update staff record
+        staff = db.scalars(select(Staff).where(Staff.email == admin_email)).first()
+        if staff:
+            staff.name = admin_name
+            staff.role = "admin"
+            staff.is_active = True
+        else:
+            staff = Staff(
+                name=admin_name,
+                email=admin_email,
+                role="admin",
+                is_active=True,
+            )
+            db.add(staff)
 
-            staff.password_hash = _bcrypt.hashpw(
-                admin_password.encode("utf-8"), _bcrypt.gensalt()
-            ).decode("utf-8")
+        staff.password_hash = _bcrypt.hashpw(
+            admin_password.encode("utf-8"), _bcrypt.gensalt()
+        ).decode("utf-8")
 
-            try:
-                db.commit()
-            except IntegrityError:
-                db.rollback()
-                return JSONResponse(
-                    status_code=409,
-                    content={"detail": "Setup already completed"},
-                )
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            return JSONResponse(
+                status_code=409,
+                content={"detail": "Setup already completed"},
+            )
 
-            logger.info("Setup complete: admin user created")
-            return {
-                "status": "ok",
-                "message": "Admin account created. You can now sign in.",
-            }
+        logger.info("Setup complete: admin user created")
+        return {
+            "status": "ok",
+            "message": "Admin account created. You can now sign in.",
+        }
 
     # Register route modules
     from lab_manager.api.routes import (
@@ -680,7 +694,9 @@ def create_app() -> FastAPI:
     # artifacts, so we check for assets/ to decide SPA vs legacy mode.
     DIST_DIR = STATIC_DIR / "dist"
     SPA_ASSETS = DIST_DIR / "assets"
-    if _spa_assets_ready(STATIC_DIR):  # pragma: no cover — depends on React build artifacts
+    if _spa_assets_ready(
+        STATIC_DIR
+    ):  # pragma: no cover — depends on React build artifacts
         app.mount(
             "/assets",
             StaticFiles(directory=str(SPA_ASSETS)),

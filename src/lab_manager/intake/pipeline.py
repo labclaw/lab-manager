@@ -7,8 +7,8 @@ import logging
 import shutil
 from pathlib import Path
 
-from sqlalchemy import func
-from sqlmodel import Session
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session)
 
 from lab_manager.config import get_settings
 from lab_manager.intake.extractor import extract_from_text
@@ -23,23 +23,19 @@ def _find_vendor(vendor_name: str, db: Session) -> Vendor | None:
     """Find vendor by name or alias, case-insensitive."""
     normalized = vendor_name.strip()
     # Try exact match first (case-insensitive)
-    vendor = (
-        db.query(Vendor)
-        .filter(func.lower(Vendor.name) == func.lower(normalized))
-        .first()
-    )
+    vendor = db.scalars(
+        select(Vendor).where(func.lower(Vendor.name) == func.lower(normalized))
+    ).first()
     if vendor:
         return vendor
     # Try partial match
-    vendor = (
-        db.query(Vendor)
-        .filter(func.lower(Vendor.name).contains(func.lower(normalized)))
-        .first()
-    )
+    vendor = db.scalars(
+        select(Vendor).where(func.lower(Vendor.name).contains(func.lower(normalized)))
+    ).first()
     if vendor:
         return vendor
     # Try reverse partial (vendor name in extracted name) and alias check
-    for v in db.query(Vendor).all():
+    for v in db.scalars(select(Vendor)).all():
         if v.name.lower() in normalized.lower() or normalized.lower() in v.name.lower():
             return v
         for alias in v.aliases or []:
@@ -78,7 +74,9 @@ def process_document(image_path: Path, db: Session) -> Document:
         dest = upload_dir / dest_name
 
     # Check by dest_name (the actual name that will be stored)
-    existing = db.query(Document).filter(Document.file_name == dest_name).first()
+    existing = db.scalars(
+        select(Document).where(Document.file_name == dest_name)
+    ).first()
     if existing:
         return existing
 
