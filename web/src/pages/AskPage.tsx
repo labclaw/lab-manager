@@ -25,6 +25,25 @@ const SUGGESTED_PROMPTS = [
   'Which items are expiring soon?',
 ] as const
 
+function buildContextualQuestion(turns: AskTurn[], currentQuestion: string): string {
+  const trimmed = currentQuestion.trim()
+  const priorTurns = turns.filter((turn) => turn.status === 'done' && turn.answer).slice(-3)
+  if (priorTurns.length === 0) return trimmed
+
+  const transcript = priorTurns.map((turn) => (
+    `User: ${turn.question}\nAssistant: ${turn.answer ?? ''}`
+  )).join('\n\n')
+
+  const contextualQuestion = [
+    'Continue this lab operations conversation using the recent context when it is relevant.',
+    'Keep the answer grounded in the lab manager data and do not invent facts.',
+    `Recent conversation:\n${transcript}`,
+    `Current question: ${trimmed}`,
+  ].join('\n\n')
+
+  return contextualQuestion.slice(0, 2000)
+}
+
 function formatEvidenceRow(row: AskEvidenceRow): string {
   return JSON.stringify(row, null, 2)
 }
@@ -124,7 +143,7 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
     setQuestion('')
 
     try {
-      const response = (await ask.query(trimmed)) as AskResponse
+      const response = (await ask.query(buildContextualQuestion(turns, trimmed))) as AskResponse
       setTurns((current) =>
         current.map((turn) =>
           turn.id === turnId
@@ -208,6 +227,12 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
                   setQuestion(e.target.value)
                   setLocalError(null)
                 }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault()
+                    void submitQuestion(question)
+                  }
+                }}
                 placeholder="What orders from Sigma-Aldrich arrived this month?"
                 rows={8}
                 className="w-full rounded-2xl border border-outline bg-surface-container-lowest px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-primary focus:ring-1 focus:ring-primary resize-none"
@@ -237,7 +262,7 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
               Grounding
             </div>
             <p className="text-sm text-slate-400 leading-6">
-              Answers are sourced from the lab database through `/api/v1/ask`. This surface is intentionally read-only.
+              Answers are sourced from the lab database through `/api/v1/ask`. This surface is intentionally read-only, and follow-up questions carry recent conversation context forward.
             </p>
           </div>
 
