@@ -29,7 +29,12 @@ _ENV_KEYS = (
 
 
 def _asset_refs(html: str) -> list[str]:
-    return re.findall(r'(?:src|href)=["\'](/assets/[^"\']+)["\']', html)
+    # Release gate should validate whichever shipped frontend mode is active:
+    # SPA build assets (/assets/*) or legacy static assets (/static/*).
+    return re.findall(
+        r'(?:src|href)=["\']((?:/assets/|/static/)[^"\']+)["\']',
+        html,
+    )
 
 
 @pytest.fixture(scope="module")
@@ -120,7 +125,7 @@ def test_root_serves_existing_assets(release_client: TestClient):
     assert "text/html" in resp.headers.get("content-type", "")
 
     assets = _asset_refs(resp.text)
-    assert assets, "root page should reference built frontend assets"
+    assert assets, "root page should reference shipped frontend assets"
     for asset in assets:
         asset_resp = release_client.get(asset)
         assert asset_resp.status_code == 200, asset
