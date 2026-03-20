@@ -7,8 +7,8 @@ from datetime import date, timedelta
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy import func, select
+from sqlmodel import Session
 
 from lab_manager.exceptions import NotFoundError, ValidationError
 from lab_manager.models.consumption import ConsumptionAction, ConsumptionLog
@@ -89,7 +89,9 @@ def receive_items(
     if order_item_ids:
         order_items_map = {
             oi.id: oi
-            for oi in db.query(OrderItem).filter(OrderItem.id.in_(order_item_ids)).all()
+            for oi in db.exec(
+                select(OrderItem).where(OrderItem.id.in_(order_item_ids))
+            ).all()
             if oi.id is not None
         }
 
@@ -331,21 +333,19 @@ def open_item(
 
 def get_stock_level(product_id: int, db: Session) -> dict:
     """Total quantity on hand for a product across all locations."""
-    result = (
-        db.query(func.sum(InventoryItem.quantity_on_hand))
-        .filter(
+    result = db.exec(
+        select(func.sum(InventoryItem.quantity_on_hand)).where(
             InventoryItem.product_id == product_id,
             InventoryItem.status.in_(ACTIVE_STATUSES),
         )
-        .scalar()
-    )
+    ).scalar()
     return {"product_id": product_id, "total_quantity": result or 0}
 
 
 def get_low_stock(db: Session) -> list[dict]:
     """Products where total stock is below min_stock_level."""
-    rows = (
-        db.query(
+    rows = db.exec(
+        select(
             Product.id,
             Product.name,
             Product.catalog_number,
@@ -359,12 +359,11 @@ def get_low_stock(db: Session) -> list[dict]:
             (InventoryItem.product_id == Product.id)
             & (InventoryItem.status.in_(ACTIVE_STATUSES)),
         )
-        .filter(Product.min_stock_level.isnot(None))
+        .where(Product.min_stock_level.isnot(None))
         .group_by(
             Product.id, Product.name, Product.catalog_number, Product.min_stock_level
         )
-        .all()
-    )
+    ).all()
     return [
         {
             "product_id": r.id,
@@ -381,15 +380,13 @@ def get_low_stock(db: Session) -> list[dict]:
 def get_expiring(db: Session, days: int = 30) -> list[InventoryItem]:
     """Items expiring within N days."""
     cutoff = date.today() + timedelta(days=days)
-    return (
-        db.query(InventoryItem)
-        .filter(
+    return db.exec(
+        select(InventoryItem).where(
             InventoryItem.expiry_date.isnot(None),
             InventoryItem.expiry_date <= cutoff,
             InventoryItem.status.in_(ACTIVE_STATUSES),
         )
-        .all()
-    )
+    ).all()
 
 
 def get_consumption_history(
@@ -401,15 +398,14 @@ def get_consumption_history(
     from lab_manager.models.base import utcnow
 
     cutoff = utcnow() - timedelta(days=days)
-    return (
-        db.query(ConsumptionLog)
-        .filter(
+    return db.exec(
+        select(ConsumptionLog)
+        .where(
             ConsumptionLog.product_id == product_id,
             ConsumptionLog.created_at >= cutoff,
         )
         .order_by(ConsumptionLog.created_at.desc())
-        .all()
-    )
+    ).all()
 
 
 def get_item_history(
@@ -417,9 +413,8 @@ def get_item_history(
     db: Session,
 ) -> list[ConsumptionLog]:
     """All consumption log entries for a specific inventory item."""
-    return (
-        db.query(ConsumptionLog)
-        .filter(ConsumptionLog.inventory_id == inventory_id)
+    return db.exec(
+        select(ConsumptionLog)
+        .where(ConsumptionLog.inventory_id == inventory_id)
         .order_by(ConsumptionLog.created_at.desc())
-        .all()
-    )
+    ).all()
