@@ -9,7 +9,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from lab_manager.models.document import Document, DocumentStatus
-from lab_manager.models.inventory import ACTIVE_STATUSES, InventoryItem, InventoryStatus
+from lab_manager.models.inventory import ACTIVE_STATUSES, InventoryItem
 from lab_manager.models.location import StorageLocation
 from lab_manager.models.order import Order, OrderItem
 from lab_manager.models.product import Product
