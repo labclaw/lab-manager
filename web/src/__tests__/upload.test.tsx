@@ -96,10 +96,11 @@ describe('UploadPage', () => {
         http.post('/api/v1/documents/upload', () => {
           return HttpResponse.json({
             id: 99,
-            filename: 'test_invoice.pdf',
+            file_name: 'test_invoice.pdf',
             vendor_name: 'TestVendor',
             document_type: 'invoice',
-            status: 'pending',
+            status: 'needs_review',
+            extraction_confidence: 0.85,
           })
         }),
       )
@@ -160,14 +161,25 @@ describe('UploadPage', () => {
       })
     })
 
-    it('shows progress bar during upload', async () => {
+    it('shows in-flight status during upload', async () => {
       const user = userEvent.setup()
 
-      // Delay the response to keep the upload in progress state
+      // Return non-final status to keep the upload in processing state
       server.use(
-        http.post('/api/v1/documents/upload', async () => {
-          await new Promise((r) => setTimeout(r, 5000))
-          return HttpResponse.json({ id: 99, filename: 'test.pdf', status: 'pending' })
+        http.post('/api/v1/documents/upload', () => {
+          return HttpResponse.json({
+            id: 99,
+            file_name: 'test.pdf',
+            status: 'pending',
+          })
+        }),
+        // Poll endpoint returns the same non-final status
+        http.get('/api/documents/:id', () => {
+          return HttpResponse.json({
+            id: 99,
+            file_name: 'test.pdf',
+            status: 'pending',
+          })
         }),
       )
 
@@ -178,14 +190,9 @@ describe('UploadPage', () => {
 
       await user.upload(fileInput, file)
 
-      // The progress bar should appear while uploading
+      // After upload resolves with non-final status, the component enters "processing" state
       await waitFor(() => {
-        const progressBar = screen.queryByRole('progressbar')
-        const uploadingText = screen.queryByText('Uploading...')
-        // Either progressbar or uploading text or processing text should be present
-        expect(
-          progressBar || uploadingText || screen.queryByText(/Processing AI/i),
-        ).toBeTruthy()
+        expect(screen.getByText(/Processing AI/i)).toBeInTheDocument()
       })
     })
 
