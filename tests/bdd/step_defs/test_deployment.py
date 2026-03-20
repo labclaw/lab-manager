@@ -313,7 +313,7 @@ def create_app_for_mode(app_mode, ctx):
 )
 def complete_deploy_setup(api, ctx, name, email, password):
     ctx["response"] = api.post(
-        "/api/setup/complete",
+        "/api/v1/setup/complete",
         json={
             "admin_name": name,
             "admin_email": email,
@@ -410,7 +410,7 @@ def check_content_type(ctx, expected):
 
 @then("the setup status should indicate setup is no longer needed")
 def setup_no_longer_needed(api):
-    resp = api.get("/api/setup/status")
+    resp = api.get("/api/v1/setup/status")
     assert resp.status_code == 200
     assert resp.json()["needs_setup"] is False
 
