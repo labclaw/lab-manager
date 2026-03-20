@@ -149,16 +149,6 @@ export function ReviewPage({ onError }: ReviewPageProps) {
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-lg">
-              search
-            </span>
-            <input
-              className="bg-[var(--card)] border-[var(--border)] text-sm rounded-lg pl-10 pr-4 py-1.5 w-64 focus:ring-primary focus:border-primary"
-              placeholder="Search filename..."
-              type="text"
-            />
-          </div>
           <button className="p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
             <span className="material-symbols-outlined">filter_list</span>
           </button>
@@ -606,20 +596,6 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                   </button>
                   <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-[var(--background)] border border-[var(--border)] rounded text-[9px] font-bold text-[var(--muted-foreground)] opacity-0 group-hover:opacity-100 transition-opacity">
                     &#8984;&#8629;
-                  </span>
-                </div>
-                <div className="relative group">
-                  <button
-                    disabled={actionLoading}
-                    className="px-6 py-2.5 bg-[var(--card)] border border-primary/40 hover:border-primary text-[var(--foreground)] font-bold rounded-lg text-sm transition-all flex items-center gap-2 hover:bg-primary/5 disabled:opacity-50"
-                  >
-                    <span className="material-symbols-outlined text-lg text-primary">
-                      edit_document
-                    </span>
-                    Edit &amp; Approve
-                  </button>
-                  <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-[var(--background)] border border-[var(--border)] rounded text-[9px] font-bold text-[var(--muted-foreground)] opacity-0 group-hover:opacity-100 transition-opacity">
-                    &#8984;E
                   </span>
                 </div>
               </div>

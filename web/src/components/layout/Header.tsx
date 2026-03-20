@@ -35,7 +35,6 @@ export function Header({ title, onSearch, showSearch = true, darkMode, onToggleD
     if (!query.trim()) return
     setShowSuggestions(false)
     if (onSearch) onSearch(query)
-    search.query(query).catch(() => {})
   }, [onSearch])
 
   useEffect(() => {

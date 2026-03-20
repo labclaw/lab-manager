@@ -85,11 +85,11 @@ export function InventoryPage({ onError }: InventoryPageProps) {
       {/* Filters & Actions Bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-[var(--card)] rounded-xl shadow-sm hover:bg-surface-container-high transition-colors text-sm font-medium border border-outline">
+          <button disabled className="flex items-center gap-2 px-4 py-2 bg-[var(--card)] rounded-xl shadow-sm text-sm font-medium border border-outline opacity-50 cursor-not-allowed" title="Coming soon">
             <span className="material-symbols-outlined text-lg">filter_list</span>
             <span>Filters</span>
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-[var(--card)] rounded-xl shadow-sm hover:bg-surface-container-high transition-colors text-sm font-medium border border-outline">
+          <button disabled className="flex items-center gap-2 px-4 py-2 bg-[var(--card)] rounded-xl shadow-sm text-sm font-medium border border-outline opacity-50 cursor-not-allowed" title="Coming soon">
             <span className="material-symbols-outlined text-lg">category</span>
             <span>Category</span>
           </button>
@@ -99,11 +99,11 @@ export function InventoryPage({ onError }: InventoryPageProps) {
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <button className="bg-surface-container-high text-primary font-semibold px-6 py-2.5 rounded-xl text-sm flex items-center gap-2 hover:bg-surface-container-highest transition-colors">
+          <button disabled className="bg-surface-container-high text-primary font-semibold px-6 py-2.5 rounded-xl text-sm flex items-center gap-2 opacity-50 cursor-not-allowed" title="Coming soon">
             <span className="material-symbols-outlined text-lg">add_circle</span>
             <span>New Item</span>
           </button>
-          <button className="bg-primary text-white font-semibold px-6 py-2.5 rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform">
+          <button disabled className="bg-primary text-white font-semibold px-6 py-2.5 rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-primary/20 opacity-50 cursor-not-allowed" title="Coming soon">
             <span className="material-symbols-outlined text-lg">local_shipping</span>
             <span>Bulk Order</span>
           </button>
@@ -237,47 +237,6 @@ export function InventoryPage({ onError }: InventoryPageProps) {
         )}
       </section>
 
-      {/* Bottom Stats Bento Cards — matches Stitch design */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="p-6 bg-[var(--card)] rounded-3xl border border-outline shadow-sm flex flex-col justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Storage Status</span>
-            <h3 className="text-2xl font-bold mt-1">{total > 0 ? '94%' : '0%'}</h3>
-          </div>
-          <div className="mt-4 w-full bg-surface-container-lowest h-1.5 rounded-full overflow-hidden">
-            <div className="bg-primary h-full" style={{ width: total > 0 ? '94%' : '0%' }} />
-          </div>
-          <p className="text-[11px] text-on-surface-variant mt-3 flex items-center gap-1">
-            <span className="material-symbols-outlined text-[14px] text-primary">warning</span>
-            {total > 0 ? 'Freezer #4 nearing capacity' : 'No items stored'}
-          </p>
-        </div>
-        <div className="p-6 bg-[var(--card)] rounded-3xl border border-outline shadow-sm">
-          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Monthly Spend</span>
-          <h3 className="text-2xl font-bold mt-1 text-on-surface">
-            ${total > 0 ? '4,120' : '0'}
-          </h3>
-          <div className="mt-4 flex items-center text-primary gap-1">
-            <span className="material-symbols-outlined text-sm">trending_up</span>
-            <span className="text-xs font-bold">{total > 0 ? '+12% vs last month' : 'No spending data'}</span>
-          </div>
-        </div>
-        <div className="p-6 bg-[var(--card)] rounded-3xl border border-outline shadow-sm">
-          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Active Orders</span>
-          <h3 className="text-2xl font-bold mt-1 text-on-surface">0</h3>
-          <div className="mt-4 flex -space-x-2">
-            <div className="w-7 h-7 rounded-full bg-primary border-2 border-[var(--card)] flex items-center justify-center text-[10px] text-white font-bold">V</div>
-            <div className="w-7 h-7 rounded-full bg-[var(--border)] border-2 border-[var(--card)] flex items-center justify-center text-[10px] text-[var(--muted-foreground)] font-bold">S</div>
-          </div>
-        </div>
-        <div className="p-6 bg-[var(--card)] rounded-3xl border border-outline shadow-sm">
-          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Audit Due</span>
-          <h3 className="text-2xl font-bold mt-1 text-on-surface">14 Days</h3>
-          <button className="mt-4 text-xs font-bold text-primary flex items-center gap-1 hover:underline">
-            Schedule Review <span className="material-symbols-outlined text-sm">arrow_forward</span>
-          </button>
-        </div>
-      </div>
     </div>
   )
 }
