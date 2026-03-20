@@ -27,8 +27,10 @@ def client(upload_dir, db_session):
 
     from lab_manager.api.app import create_app
     from lab_manager.api.deps import get_db
+    from lab_manager.api.routes import documents
 
     app = create_app()
+    documents._run_extraction = lambda doc_id: None
 
     def override_get_db():
         yield db_session

@@ -351,7 +351,9 @@ def _get_client() -> dict[str, Any]:
             os.environ.get("NVIDIA_BUILD_API_KEY", ""),
         )
         if not nvidia_api_key:
-            raise RuntimeError("No NVIDIA Build API key found. Set NVIDIA_BUILD_API_KEY.")
+            raise RuntimeError(
+                "No NVIDIA Build API key found. Set NVIDIA_BUILD_API_KEY."
+            )
         return {
             "model": resolved_model,
             "api_key": nvidia_api_key,

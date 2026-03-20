@@ -1,6 +1,7 @@
 """BDD step definitions for user experience tests."""
+
 import pytest
-from pytest_bdd import given, when, then, scenarios, parsers
+from pytest_bdd import given, scenarios, then, when
 
 scenarios("../features/user_experience.feature")
 
@@ -13,6 +14,7 @@ def ctx():
 
 
 # --- Given steps ---
+
 
 @given("the system is set up")
 def system_setup(api):
@@ -105,6 +107,7 @@ def api_error_occurs():
 
 # --- When steps ---
 
+
 @when("I navigate to the dashboard", target_fixture="dashboard_response")
 def navigate_dashboard(api):
     """Navigate to dashboard."""
@@ -172,6 +175,7 @@ def error_notification_appears():
 
 
 # --- Then steps ---
+
 
 @then("the page should load within 2 seconds")
 def page_loads_fast(dashboard_response):
