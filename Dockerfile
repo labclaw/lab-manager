@@ -13,7 +13,6 @@ RUN uv sync --frozen --no-dev
 COPY alembic/ alembic/
 COPY alembic.ini .
 COPY scripts/ scripts/
-COPY docker/entrypoint.sh /entrypoint.sh
 
 RUN groupadd -r app && useradd -r -g app -d /home/app -m app \
     && mkdir -p /app/uploads /backups/labmanager \
@@ -25,4 +24,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD curl -f http://localhost:8000/api/health || exit 1
 
-ENTRYPOINT ["/entrypoint.sh"]
+CMD ["uv", "run", "uvicorn", "lab_manager.api.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]

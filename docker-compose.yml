@@ -56,7 +56,9 @@ services:
     restart: unless-stopped
 
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     expose:
       - "8000"
     mem_limit: 1g
