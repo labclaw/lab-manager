@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 class DocumentStatus(str, enum.Enum):
     pending = "pending"
+    processing = "processing"
     extracted = "extracted"
     needs_review = "needs_review"
     approved = "approved"
@@ -27,7 +28,7 @@ class Document(AuditMixin, table=True):
     __tablename__ = "documents"
     __table_args__ = (
         sa.CheckConstraint(
-            "status IN ('pending','extracted','needs_review','approved','rejected','ocr_failed','deleted')",
+            "status IN ('pending','processing','extracted','needs_review','approved','rejected','ocr_failed','deleted')",
             name="ck_documents_status",
         ),
     )

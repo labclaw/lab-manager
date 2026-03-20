@@ -62,16 +62,52 @@ export interface InventoryItem {
   status?: string
 }
 
+export interface ExtractedItem {
+  catalog_number?: string
+  description?: string
+  quantity?: number
+  unit?: string
+  lot_number?: string
+  batch_number?: string
+  cas_number?: string
+  storage_temp?: string
+  unit_price?: number
+}
+
+export interface ExtractedDocument {
+  vendor_name?: string
+  document_type?: string
+  po_number?: string
+  order_number?: string
+  invoice_number?: string
+  delivery_number?: string
+  order_date?: string
+  ship_date?: string
+  received_date?: string
+  received_by?: string
+  ship_to_address?: string
+  bill_to_address?: string
+  items?: ExtractedItem[]
+  confidence?: number
+}
+
 export interface Document {
   id: number
-  filename?: string
+  file_name?: string
+  file_path?: string
   vendor_name?: string
   document_type?: string
   status?: string
-  confidence?: number
+  extraction_confidence?: number
   created_at?: string
+  updated_at?: string
   review_status?: string
   source_url?: string
+  ocr_text?: string
+  extracted_data?: ExtractedDocument
+  extraction_model?: string
+  review_notes?: string
+  reviewed_by?: string
 }
 
 export interface DashboardStats {

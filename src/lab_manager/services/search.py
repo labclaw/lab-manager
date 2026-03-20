@@ -314,6 +314,107 @@ def sync_all(db: Session) -> dict[str, int]:
     return counts
 
 
+def index_document_record(doc: Document) -> None:
+    """Upsert a single Document into Meilisearch."""
+    d: dict = {"id": doc.id}
+    if doc.file_name:
+        d["file_name"] = doc.file_name
+    if doc.document_type:
+        d["document_type"] = doc.document_type
+    if doc.vendor_name:
+        d["vendor_name"] = doc.vendor_name
+    if doc.status:
+        d["status"] = doc.status
+    if doc.ocr_text:
+        d["ocr_text"] = doc.ocr_text[:5000]
+    client = get_search_client()
+    client.index("documents").add_documents([d], primary_key="id")
+
+
+def index_vendor_record(vendor: Vendor) -> None:
+    """Upsert a single Vendor into Meilisearch."""
+    d: dict = {"id": vendor.id}
+    if vendor.name:
+        d["name"] = vendor.name
+    if vendor.aliases:
+        d["aliases"] = (
+            ", ".join(vendor.aliases)
+            if isinstance(vendor.aliases, list)
+            else str(vendor.aliases)
+        )
+    if vendor.website:
+        d["website"] = vendor.website
+    if vendor.email:
+        d["email"] = vendor.email
+    client = get_search_client()
+    client.index("vendors").add_documents([d], primary_key="id")
+
+
+def index_order_record(order: Order) -> None:
+    """Upsert a single Order into Meilisearch."""
+    fields = [
+        "id",
+        "po_number",
+        "order_date",
+        "ship_date",
+        "received_date",
+        "received_by",
+        "status",
+        "delivery_number",
+        "invoice_number",
+        "vendor_id",
+    ]
+    d = _make_doc(order, fields)
+    client = get_search_client()
+    client.index("orders").add_documents([d], primary_key="id")
+
+
+def index_order_item_record(item: OrderItem) -> None:
+    """Upsert a single OrderItem into Meilisearch."""
+    fields = [
+        "id",
+        "catalog_number",
+        "description",
+        "lot_number",
+        "batch_number",
+        "quantity",
+        "unit",
+        "unit_price",
+        "order_id",
+    ]
+    d = _make_doc(item, fields)
+    client = get_search_client()
+    client.index("order_items").add_documents([d], primary_key="id")
+
+
+def index_product_record(product: Product) -> None:
+    """Upsert a single Product into Meilisearch."""
+    fields = ["id", "catalog_number", "name", "category", "cas_number", "vendor_id"]
+    d = _make_doc(product, fields)
+    client = get_search_client()
+    client.index("products").add_documents([d], primary_key="id")
+
+
+def index_inventory_record(item: InventoryItem) -> None:
+    """Upsert a single InventoryItem into Meilisearch."""
+    d: dict = {"id": item.id}
+    if item.lot_number:
+        d["lot_number"] = item.lot_number
+    d["quantity_on_hand"] = (
+        float(item.quantity_on_hand) if item.quantity_on_hand is not None else 0
+    )
+    if item.unit:
+        d["unit"] = item.unit
+    if item.expiry_date:
+        d["expiry_date"] = item.expiry_date.isoformat()
+    if item.status:
+        d["status"] = item.status
+    if item.notes:
+        d["notes"] = item.notes
+    client = get_search_client()
+    client.index("inventory").add_documents([d], primary_key="id")
+
+
 def search(query: str, index: str = "products", limit: int = 20) -> list[dict]:
     """Search a single index."""
     client = get_search_client()
