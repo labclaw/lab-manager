@@ -212,7 +212,7 @@ def check_script_not_execute():
 def check_html_escaped(api):
     r = api.get("/api/v1/products/1")
     # Response should not contain executable HTML
-    pass
+    assert "<script>" not in r.text
 
 
 @then("the request should be rejected")

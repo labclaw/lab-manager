@@ -205,7 +205,7 @@ def request_invalid_api_key(api_client):
 @given(parsers.parse('a user exists with status "{status}"'))
 def user_with_status(api_client, status):
     """Create user with status."""
-    resp = api_client.post(
+    api_client.post(
         "/api/v1/staff",
         json={
             "name": "Test User",
@@ -263,6 +263,7 @@ def cookie_httponly(api_client):
     # Check cookie attributes from response headers
     set_cookie = api_client.response.headers.get("set-cookie", "")
     # Note: HttpOnly is set by server, we verify the attribute exists
+    assert isinstance(set_cookie, str)
     assert api_client.response.cookies is not None
 
 
@@ -271,6 +272,7 @@ def cookie_samesite(api_client):
     """Verify SameSite."""
     set_cookie = api_client.response.headers.get("set-cookie", "")
     # SameSite should be in the cookie header
+    assert isinstance(set_cookie, str)
     assert api_client.response.cookies is not None
 
 
