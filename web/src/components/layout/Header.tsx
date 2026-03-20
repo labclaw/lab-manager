@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { search } from '@/lib/api'
 
 interface HeaderProps {
@@ -10,11 +9,11 @@ interface HeaderProps {
 }
 
 export function Header({ title: _title, onSearch, darkMode, onToggleDarkMode }: HeaderProps) {
-  const navigate = useNavigate()
+  void _title
   const [searchQuery, setSearchQuery] = useState('')
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value)
