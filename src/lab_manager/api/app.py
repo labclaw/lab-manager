@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 
 import structlog
-from fastapi import APIRouter, FastAPI, Request
+from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from itsdangerous import BadSignature, URLSafeTimedSerializer
@@ -24,6 +24,7 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 # Import to register SQLAlchemy event listeners on module load.
 import lab_manager.services.audit as _audit_svc  # noqa: F401
 from lab_manager.api.admin import setup_admin
+from lab_manager.api.deps import get_db
 from lab_manager.config import get_settings
 from lab_manager.database import get_engine
 from lab_manager.exceptions import BusinessError
@@ -362,25 +363,24 @@ def create_app() -> FastAPI:
         request: Request,
         email: str = Body(...),
         password: str = Body(...),
+        db=Depends(get_db),
     ):
         import bcrypt as _bcrypt
 
-        from lab_manager.database import get_db_session
         from lab_manager.models.staff import Staff
 
         try:
-            with get_db_session() as db:
-                staff = db.scalars(select(Staff).where(Staff.email == email)).first()
-                # Eagerly load attributes before session closes
-                if staff:
-                    staff_id = staff.id
-                    staff_name = staff.name
-                    staff_email = staff.email
-                    staff_active = staff.is_active
-                    staff_pw_hash = staff.password_hash
-                else:
-                    staff_id = staff_name = staff_email = staff_pw_hash = None
-                    staff_active = False
+            staff = db.scalars(select(Staff).where(Staff.email == email)).first()
+            # Eagerly load attributes before session closes
+            if staff:
+                staff_id = staff.id
+                staff_name = staff.name
+                staff_email = staff.email
+                staff_active = staff.is_active
+                staff_pw_hash = staff.password_hash
+            else:
+                staff_id = staff_name = staff_email = staff_pw_hash = None
+                staff_active = False
         except Exception:
             logger.error("Login: database unavailable")
             return JSONResponse(
@@ -494,12 +494,9 @@ def create_app() -> FastAPI:
 
     @app.get("/api/setup/status", include_in_schema=False)
     @app.get("/api/v1/setup/status")
-    def setup_status():
+    def setup_status(db=Depends(get_db)):
         """Check if initial setup is needed (no admin user with password exists)."""
-        from lab_manager.database import get_db_session
-
-        with get_db_session() as db:
-            return {"needs_setup": not _admin_exists(db)}
+        return {"needs_setup": not _admin_exists(db)}
 
     @app.post("/api/setup/complete", include_in_schema=False)
     @app.post("/api/v1/setup/complete")
@@ -509,12 +506,12 @@ def create_app() -> FastAPI:
         admin_name: str = Body(...),
         admin_email: str = Body(...),
         admin_password: str = Body(...),
+        db=Depends(get_db),
     ):
         """First-run setup: create the admin user. Only works when no admin exists."""
         import bcrypt as _bcrypt
         from sqlalchemy.exc import IntegrityError
 
-        from lab_manager.database import get_db_session
         from lab_manager.models.staff import Staff
 
         # Validate inputs before opening DB session
@@ -547,46 +544,45 @@ def create_app() -> FastAPI:
                 content={"detail": "Password must be 72 bytes or fewer"},
             )
 
-        with get_db_session() as db:
-            if _admin_exists(db):
-                return JSONResponse(
-                    status_code=409,
-                    content={"detail": "Setup already completed"},
-                )
+        if _admin_exists(db):
+            return JSONResponse(
+                status_code=409,
+                content={"detail": "Setup already completed"},
+            )
 
-            # Create or update staff record
-            staff = db.scalars(select(Staff).where(Staff.email == admin_email)).first()
-            if staff:
-                staff.name = admin_name
-                staff.role = "admin"
-                staff.is_active = True
-            else:
-                staff = Staff(
-                    name=admin_name,
-                    email=admin_email,
-                    role="admin",
-                    is_active=True,
-                )
-                db.add(staff)
+        # Create or update staff record
+        staff = db.scalars(select(Staff).where(Staff.email == admin_email)).first()
+        if staff:
+            staff.name = admin_name
+            staff.role = "admin"
+            staff.is_active = True
+        else:
+            staff = Staff(
+                name=admin_name,
+                email=admin_email,
+                role="admin",
+                is_active=True,
+            )
+            db.add(staff)
 
-            staff.password_hash = _bcrypt.hashpw(
-                admin_password.encode("utf-8"), _bcrypt.gensalt()
-            ).decode("utf-8")
+        staff.password_hash = _bcrypt.hashpw(
+            admin_password.encode("utf-8"), _bcrypt.gensalt()
+        ).decode("utf-8")
 
-            try:
-                db.commit()
-            except IntegrityError:
-                db.rollback()
-                return JSONResponse(
-                    status_code=409,
-                    content={"detail": "Setup already completed"},
-                )
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            return JSONResponse(
+                status_code=409,
+                content={"detail": "Setup already completed"},
+            )
 
-            logger.info("Setup complete: admin user created")
-            return {
-                "status": "ok",
-                "message": "Admin account created. You can now sign in.",
-            }
+        logger.info("Setup complete: admin user created")
+        return {
+            "status": "ok",
+            "message": "Admin account created. You can now sign in.",
+        }
 
     # Register route modules
     from lab_manager.api.routes import (

@@ -151,6 +151,8 @@ jobs:
           DATABASE_URL: postgresql+psycopg://labmanager:labmanager@localhost:${{ job.services.postgres.ports[5432] }}/labmanager
           MEILISEARCH_URL: http://localhost:${{ job.services.meilisearch.ports[7700] }}
         run: |
+          # The maintained release gate is the core suite. Legacy BDD coverage
+          # remains available for iterative work, but does not block release CI.
           uv run pytest tests --ignore=tests/bdd --tb=short -q \
             --cov=lab_manager \
             --cov-report=term-missing \

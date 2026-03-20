@@ -101,12 +101,12 @@ const mockExpiring = {
 }
 
 export const handlers = [
-  // Auth (not under /v1)
+  // Auth
   http.get('/api/v1/auth/me', () => HttpResponse.json({ user: mockUser })),
   http.post('/api/v1/auth/login', () => HttpResponse.json({ status: 'ok', user: mockUser })),
   http.post('/api/v1/auth/logout', () => HttpResponse.json({})),
 
-  // Setup (not under /v1)
+  // Setup
   http.get('/api/v1/setup/status', () => HttpResponse.json({ needs_setup: false })),
 
   // Analytics
