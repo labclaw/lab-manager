@@ -124,7 +124,7 @@ def sync_products(db: Session) -> int:
     fields = ["id", "catalog_number", "name", "category", "cas_number", "vendor_id"]
     count = 0
     batch: list[dict] = []
-    for product in db.scalars(select(Product)).yield_per(_BATCH_SIZE):
+    for product in db.scalars(select(Product).execution_options(yield_per=_BATCH_SIZE)):
         batch.append(_make_doc(product, fields))
         if len(batch) >= _BATCH_SIZE:
             client.index("products").add_documents(batch, primary_key="id")
@@ -143,7 +143,7 @@ def sync_vendors(db: Session) -> int:
     client = get_search_client()
     count = 0
     batch: list[dict] = []
-    for v in db.scalars(select(Vendor)).yield_per(_BATCH_SIZE):
+    for v in db.scalars(select(Vendor).execution_options(yield_per=_BATCH_SIZE)):
         d: dict = {"id": v.id}
         if v.name:
             d["name"] = v.name
@@ -186,7 +186,7 @@ def sync_orders(db: Session) -> int:
     ]
     count = 0
     batch: list[dict] = []
-    for order in db.scalars(select(Order)).yield_per(_BATCH_SIZE):
+    for order in db.scalars(select(Order).execution_options(yield_per=_BATCH_SIZE)):
         batch.append(_make_doc(order, fields))
         if len(batch) >= _BATCH_SIZE:
             client.index("orders").add_documents(batch, primary_key="id")
@@ -216,7 +216,7 @@ def sync_order_items(db: Session) -> int:
     ]
     count = 0
     batch: list[dict] = []
-    for item in db.scalars(select(OrderItem)).yield_per(_BATCH_SIZE):
+    for item in db.scalars(select(OrderItem).execution_options(yield_per=_BATCH_SIZE)):
         batch.append(_make_doc(item, fields))
         if len(batch) >= _BATCH_SIZE:
             client.index("order_items").add_documents(batch, primary_key="id")
@@ -235,7 +235,7 @@ def sync_documents(db: Session) -> int:
     client = get_search_client()
     count = 0
     batch: list[dict] = []
-    for doc in db.scalars(select(Document)).yield_per(_BATCH_SIZE):
+    for doc in db.scalars(select(Document).execution_options(yield_per=_BATCH_SIZE)):
         d: dict = {"id": doc.id}
         if doc.file_name:
             d["file_name"] = doc.file_name
@@ -265,7 +265,9 @@ def sync_inventory(db: Session) -> int:
     client = get_search_client()
     count = 0
     batch: list[dict] = []
-    for item in db.scalars(select(InventoryItem)).yield_per(_BATCH_SIZE):
+    for item in db.scalars(
+        select(InventoryItem).execution_options(yield_per=_BATCH_SIZE)
+    ):
         d: dict = {"id": item.id}
         if item.lot_number:
             d["lot_number"] = item.lot_number
