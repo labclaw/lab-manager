@@ -108,7 +108,9 @@ def _ocr_gemini(image_path: Path, settings) -> str:
 def _ocr_nvidia(image_path: Path, settings, model: str) -> str:
     import httpx
 
-    api_key = settings.nvidia_build_api_key or os.environ.get("NVIDIA_BUILD_API_KEY", "")
+    api_key = settings.nvidia_build_api_key or os.environ.get(
+        "NVIDIA_BUILD_API_KEY", ""
+    )
     if not api_key:
         raise RuntimeError("No NVIDIA OCR key configured")
 
@@ -184,7 +186,9 @@ def extract_text_from_image(image_path: Path) -> str:
             return _ocr_gemini(image_path, settings)
         except Exception as e:
             logger.warning("Gemini OCR failed, trying NVIDIA fallback: %s", e)
-            if settings.nvidia_build_api_key or os.environ.get("NVIDIA_BUILD_API_KEY", ""):
+            if settings.nvidia_build_api_key or os.environ.get(
+                "NVIDIA_BUILD_API_KEY", ""
+            ):
                 return _ocr_nvidia(
                     image_path,
                     settings,

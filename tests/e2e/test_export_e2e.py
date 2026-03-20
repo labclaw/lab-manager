@@ -103,7 +103,7 @@ class TestExportFormatValidation:
         # Empty CSV is valid when no data exists
         if content:
             reader = csv.reader(io.StringIO(content))
-            headers = next(reader, [])
+            next(reader, [])
             # May still be empty for empty data
             # Just check the endpoint returns valid CSV format
 
@@ -117,7 +117,7 @@ class TestExportFormatValidation:
         # Empty CSV is valid when no data exists
         if content:
             reader = csv.reader(io.StringIO(content))
-            headers = next(reader, [])
+            next(reader, [])
             # May still be empty for empty data
 
 

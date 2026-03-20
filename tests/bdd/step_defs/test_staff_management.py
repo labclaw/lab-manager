@@ -88,7 +88,9 @@ def create_staff_table(api, datatable):
 
 @when(parsers.parse('I create a staff member with email "{email}"'))
 def create_staff_email(api, email):
-    r = api.post("/api/v1/staff/", json={"name": "Test", "email": email, "role": "staff"})
+    r = api.post(
+        "/api/v1/staff/", json={"name": "Test", "email": email, "role": "staff"}
+    )
     return r
 
 

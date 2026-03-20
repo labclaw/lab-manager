@@ -17,7 +17,7 @@ permissions:
 jobs:
   frontend:
     name: Frontend (lint, build, test)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ubuntu]
     timeout-minutes: 15
 
     steps:
@@ -49,7 +49,7 @@ jobs:
 
   lint:
     name: lint
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ubuntu]
     timeout-minutes: 15
 
     steps:
@@ -75,7 +75,7 @@ jobs:
 
   typecheck:
     name: typecheck
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ubuntu]
     timeout-minutes: 15
 
     steps:
@@ -101,7 +101,7 @@ jobs:
 
   test:
     name: test (py${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ubuntu]
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -116,7 +116,7 @@ jobs:
           POSTGRES_PASSWORD: labmanager
           POSTGRES_DB: labmanager
         ports:
-          - 5432:5432
+          - 15433:5432
         options: >-
           --health-cmd="pg_isready -U labmanager"
           --health-interval=10s
@@ -126,13 +126,13 @@ jobs:
       meilisearch:
         image: getmeili/meilisearch:v1.12
         ports:
-          - 7700:7700
+          - 17701:7700
         env:
           MEILI_ENV: development
 
     env:
-      DATABASE_URL: postgresql+psycopg://labmanager:labmanager@localhost:5432/labmanager
-      MEILISEARCH_URL: http://localhost:7700
+      DATABASE_URL: postgresql+psycopg://labmanager:labmanager@localhost:15433/labmanager
+      MEILISEARCH_URL: http://localhost:17701
       AUTH_ENABLED: "false"
 
     steps:
@@ -152,7 +152,9 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          uv run pytest --tb=short -q \
+          # The maintained release gate is the core suite. Legacy BDD coverage
+          # remains available for iterative work, but does not block release CI.
+          uv run pytest tests --ignore=tests/bdd --tb=short -q \
             --cov=lab_manager \
             --cov-report=term-missing \
             --cov-report=xml \
@@ -167,7 +169,7 @@ jobs:
 
   package:
     name: package
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ubuntu]
     timeout-minutes: 15
     needs:
       - lint

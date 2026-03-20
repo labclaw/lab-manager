@@ -630,7 +630,7 @@ class TestSetupFlow:
 
             # Verify setup is now complete
             verify_resp = e2e_client.get("/api/v1/setup/status")
-            assert verify_resp.json().get("needs_setup") == False
+            assert not verify_resp.json().get("needs_setup")
 
 
 @pytest.mark.e2e

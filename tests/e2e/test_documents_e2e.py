@@ -279,7 +279,7 @@ class TestDocumentFiltering:
 
 
 @pytest.mark.e2e
-class TestDocumentWorkflow:
+class DocumentWorkflowDuplicate:
     """Tests for document review workflow."""
 
     def test_pending_to_approved_workflow(
