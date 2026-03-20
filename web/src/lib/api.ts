@@ -161,10 +161,10 @@ async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
   return res.json()
 }
 
-// Auth (not under /v1)
+// Auth
 export const auth = {
   login: (email: string, password: string) =>
-    fetch('/api/auth/login', {
+    fetch('/api/v1/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -177,7 +177,7 @@ export const auth = {
       return res.json() as Promise<{ status: string; user: User }>
     }),
   me: () =>
-    fetch('/api/auth/me').then(async (res) => {
+    fetch('/api/v1/auth/me').then(async (res) => {
       if (res.status === 401) throw new Error('Unauthorized')
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }))
@@ -186,18 +186,18 @@ export const auth = {
       return res.json() as Promise<{ user: User }>
     }),
   logout: () =>
-    fetch('/api/auth/logout', { method: 'POST' }).then(() => {}),
+    fetch('/api/v1/auth/logout', { method: 'POST' }).then(() => {}),
 }
 
-// Setup (not under /v1)
+// Setup
 export const setup = {
   status: () =>
-    fetch('/api/setup/status').then(async (res) => {
+    fetch('/api/v1/setup/status').then(async (res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       return res.json() as Promise<{ needs_setup: boolean }>
     }),
   complete: (data: { admin_name: string; admin_email: string; admin_password: string }) =>
-    fetch('/api/setup/complete', {
+    fetch('/api/v1/setup/complete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
