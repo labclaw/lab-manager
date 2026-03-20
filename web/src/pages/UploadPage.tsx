@@ -122,7 +122,7 @@ export function UploadPage() {
         )
       case 'uploading':
         return (
-          <span className="text-xs font-bold text-[#8E8EA0]">{record.progress}%</span>
+          <span className="text-xs font-bold text-[var(--muted-foreground)]">{record.progress}%</span>
         )
       case 'failed':
         return (
@@ -153,8 +153,8 @@ export function UploadPage() {
         onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        className={`bg-card-dark rounded-xl border-2 border-dashed p-12 text-center flex flex-col items-center justify-center transition-all group cursor-pointer ${
-          dragOver ? 'border-primary bg-primary/5' : 'border-[#2A2A3E] hover:border-primary/50'
+        className={`bg-[var(--card)] rounded-xl border-2 border-dashed p-12 text-center flex flex-col items-center justify-center transition-all group cursor-pointer ${
+          dragOver ? 'border-primary bg-primary/5' : 'border-[var(--border)] hover:border-primary/50'
         }`}
         onClick={() => fileRef.current?.click()}
       >
@@ -162,7 +162,7 @@ export function UploadPage() {
           <span className="material-symbols-outlined text-primary text-5xl">cloud_upload</span>
         </div>
         <h3 className="text-2xl font-bold mb-2">Drag & drop files here</h3>
-        <p className="text-[#8E8EA0] text-sm mb-8">PDF, PNG, JPG, HEIC -- Max 10MB per file</p>
+        <p className="text-[var(--muted-foreground)] text-sm mb-8">PDF, PNG, JPG, HEIC -- Max 10MB per file</p>
         <div className="flex items-center gap-4">
           <button
             onClick={(e) => { e.stopPropagation(); fileRef.current?.click() }}
@@ -171,10 +171,10 @@ export function UploadPage() {
             <span className="material-symbols-outlined text-xl">upload_file</span>
             Browse Files
           </button>
-          <span className="text-[#8E8EA0] text-sm font-medium">or</span>
+          <span className="text-[var(--muted-foreground)] text-sm font-medium">or</span>
           <button
             onClick={(e) => { e.stopPropagation(); cameraRef.current?.click() }}
-            className="bg-transparent border border-[#2A2A3E] hover:border-primary text-[#F0F0F5] font-bold py-2.5 px-6 rounded-lg transition-all flex items-center gap-2"
+            className="bg-transparent border border-[var(--border)] hover:border-primary text-[var(--foreground)] font-bold py-2.5 px-6 rounded-lg transition-all flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-xl">photo_camera</span>
             Take Photo
@@ -203,8 +203,8 @@ export function UploadPage() {
 
       {/* Upload Session List */}
       {uploads.length > 0 && (
-        <section className="bg-card-dark rounded-xl border border-[#2A2A3E] overflow-hidden flex flex-col">
-          <div className="px-6 py-4 border-b border-[#2A2A3E] flex items-center justify-between">
+        <section className="bg-[var(--card)] rounded-xl border border-[var(--border)] overflow-hidden flex flex-col">
+          <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h3 className="text-lg font-bold">Upload Session</h3>
               <span className="px-2 py-0.5 bg-primary/20 text-primary text-xs font-bold rounded-full">
@@ -218,14 +218,14 @@ export function UploadPage() {
               Clear completed
             </button>
           </div>
-          <div className="divide-y divide-[#2A2A3E]">
+          <div className="divide-y divide-[var(--border)]">
             {uploads.map((record) => (
               <div key={record.id} className="p-4 flex items-center gap-4 hover:bg-white/5 transition-colors">
                 {/* File icon */}
-                <div className={`size-12 rounded-lg bg-slate-800 flex items-center justify-center relative overflow-hidden shrink-0 ${
+                <div className={`size-12 rounded-lg bg-[var(--card)] flex items-center justify-center relative overflow-hidden shrink-0 ${
                   record.status === 'failed' ? 'grayscale' : ''
                 }`}>
-                  <span className="material-symbols-outlined text-[#8E8EA0]">{fileIcon(record.name)}</span>
+                  <span className="material-symbols-outlined text-[var(--muted-foreground)]">{fileIcon(record.name)}</span>
                   {record.status === 'complete' && (
                     <div className="absolute inset-0 bg-accent-green/10 opacity-50" />
                   )}
@@ -246,7 +246,7 @@ export function UploadPage() {
 
                   {record.status === 'uploading' ? (
                     <>
-                      <div className="w-full h-1.5 bg-[#2A2A3E] rounded-full overflow-hidden">
+                      <div className="w-full h-1.5 bg-[var(--border)] rounded-full overflow-hidden">
                         <div
                           className="bg-primary h-full transition-all duration-300"
                           style={{ width: `${record.progress}%` }}
@@ -256,14 +256,14 @@ export function UploadPage() {
                           aria-valuemax={100}
                         />
                       </div>
-                      <p className="text-[10px] text-[#8E8EA0] mt-1.5 uppercase tracking-wide font-medium">Uploading...</p>
+                      <p className="text-[10px] text-[var(--muted-foreground)] mt-1.5 uppercase tracking-wide font-medium">Uploading...</p>
                     </>
                   ) : (
                     <p className={`text-xs flex items-center gap-2 ${
-                      record.status === 'failed' ? 'text-[#FF6B6B]/80' : 'text-[#8E8EA0]'
+                      record.status === 'failed' ? 'text-[#FF6B6B]/80' : 'text-[var(--muted-foreground)]'
                     }`}>
                       <span>{fmtSize(record.size)}</span>
-                      <span className="size-1 rounded-full bg-[#2A2A3E]" />
+                      <span className="size-1 rounded-full bg-[var(--border)]" />
                       {record.status === 'complete' && record.extractionInfo && (
                         <span className="text-primary">{record.extractionInfo}</span>
                       )}
@@ -283,16 +283,16 @@ export function UploadPage() {
                     >
                       <span className="material-symbols-outlined">refresh</span>
                     </button>
-                    <button className="p-2 text-[#8E8EA0] hover:text-white">
+                    <button className="p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
                       <span className="material-symbols-outlined">more_vert</span>
                     </button>
                   </div>
                 ) : record.status === 'uploading' ? (
-                  <button className="p-2 text-[#8E8EA0] hover:text-white">
+                  <button className="p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
                     <span className="material-symbols-outlined">close</span>
                   </button>
                 ) : (
-                  <button className="p-2 text-[#8E8EA0] hover:text-white">
+                  <button className="p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
                     <span className="material-symbols-outlined">more_vert</span>
                   </button>
                 )}
@@ -304,20 +304,20 @@ export function UploadPage() {
 
       {/* Bottom Action Bar */}
       {uploads.length > 0 && (
-        <div className="mt-4 p-6 bg-card-dark rounded-xl border border-[#2A2A3E] flex items-center justify-between shadow-2xl">
+        <div className="mt-4 p-6 bg-[var(--card)] rounded-xl border border-[var(--border)] flex items-center justify-between shadow-2xl">
           <div className="flex items-center gap-4">
             <div className="size-10 rounded-full bg-accent-green/20 flex items-center justify-center text-accent-green">
               <span className="material-symbols-outlined">done_all</span>
             </div>
             <div>
               <p className="font-bold">{completedCount} of {totalCount} files processed</p>
-              <p className="text-xs text-[#8E8EA0]">Ready to move to review queue</p>
+              <p className="text-xs text-[var(--muted-foreground)]">Ready to move to review queue</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setUploads([])}
-              className="px-6 py-2.5 bg-[#2A2A3E] hover:bg-[#2A2A3E]/70 text-[#F0F0F5] font-bold rounded-lg transition-all"
+              className="px-6 py-2.5 bg-[var(--border)] hover:bg-[var(--border)]/70 text-[var(--foreground)] font-bold rounded-lg transition-all"
             >
               Cancel All
             </button>
