@@ -27,12 +27,12 @@ header()  { echo -e "\n${BOLD}=== $* ===${NC}\n"; }
 # --- Helpers ---------------------------------------------------------------
 generate_password() {
     local length="${1:-32}"
-    tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$length"
+    tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$length" || true
 }
 
 generate_hex() {
     local length="${1:-64}"
-    tr -dc 'a-f0-9' < /dev/urandom | head -c "$length"
+    tr -dc 'a-f0-9' < /dev/urandom | head -c "$length" || true
 }
 
 command_exists() {

@@ -35,8 +35,27 @@ logger = logging.getLogger(__name__)
 access_logger = structlog.get_logger("lab_manager.api.access")
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
-SCANS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "shenlab-docs"
-DEVICES_DIR = Path(__file__).resolve().parent.parent.parent.parent / "shenlab-devices"
+
+
+def _spa_assets_ready(static_dir: Path) -> bool:
+    """Only enable SPA mode when the built asset set is complete."""
+    dist_dir = static_dir / "dist"
+    index_path = dist_dir / "index.html"
+    assets_dir = dist_dir / "assets"
+
+    if not index_path.is_file() or not assets_dir.is_dir():
+        return False
+
+    html = index_path.read_text(encoding="utf-8")
+    asset_refs = re.findall(r'(?:src|href)=["\'](/assets/[^"\']+)["\']', html)
+    if not asset_refs:
+        return False
+
+    js_refs = [ref for ref in asset_refs if ref.endswith(".js")]
+    if not js_refs:
+        return False
+
+    return all((dist_dir / ref.lstrip("/")).is_file() for ref in asset_refs)
 
 # Strip control characters from X-User header to prevent log injection.
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
@@ -116,6 +135,8 @@ def create_app() -> FastAPI:
     settings = get_settings()
     # Ensure upload directory exists at startup (not per-request in health check)
     Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
+    scans_dir = Path(settings.scans_dir).expanduser() if settings.scans_dir else None
+    devices_dir = Path(settings.devices_dir).expanduser() if settings.devices_dir else None
     # Disable interactive docs in production (exposes full API schema)
     docs_kwargs = {}
     if settings.auth_enabled:
@@ -632,8 +653,8 @@ def create_app() -> FastAPI:
                 route.endpoint = limiter.limit("10/minute")(original_endpoint)
 
     # Serve scan images (protected by auth middleware when auth is enabled)
-    if SCANS_DIR.exists():  # pragma: no cover — depends on deployment
-        app.mount("/scans", StaticFiles(directory=str(SCANS_DIR)), name="scans")
+    if scans_dir and scans_dir.exists():  # pragma: no cover — depends on deployment
+        app.mount("/scans", StaticFiles(directory=str(scans_dir)), name="scans")
 
     # Serve uploaded documents at /uploads/
     upload_path = Path(settings.upload_dir)
@@ -645,9 +666,9 @@ def create_app() -> FastAPI:
     )
 
     # Serve device photos
-    if DEVICES_DIR.exists():  # pragma: no cover — depends on deployment
+    if devices_dir and devices_dir.exists():  # pragma: no cover — depends on deployment
         app.mount(
-            "/lab-devices", StaticFiles(directory=str(DEVICES_DIR)), name="devices"
+            "/lab-devices", StaticFiles(directory=str(devices_dir)), name="devices"
         )
 
     # Wire up SQLAdmin UI at /admin/
@@ -659,7 +680,7 @@ def create_app() -> FastAPI:
     # artifacts, so we check for assets/ to decide SPA vs legacy mode.
     DIST_DIR = STATIC_DIR / "dist"
     SPA_ASSETS = DIST_DIR / "assets"
-    if SPA_ASSETS.is_dir():  # pragma: no cover — depends on React build artifacts
+    if _spa_assets_ready(STATIC_DIR):  # pragma: no cover — depends on React build artifacts
         app.mount(
             "/assets",
             StaticFiles(directory=str(SPA_ASSETS)),
