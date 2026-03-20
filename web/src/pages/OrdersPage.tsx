@@ -38,7 +38,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
 
   const { data: res, isLoading, error } = useQuery({
     queryKey: ['orders', page, activeTab],
-    queryFn: () => ordApi.list(page, pageSize),
+    queryFn: () => ordApi.list(page, pageSize, activeTab),
   })
 
   useEffect(() => {
@@ -50,12 +50,8 @@ export function OrdersPage({ onError }: OrdersPageProps) {
   const allOrders = res?.items ?? []
   const total = res?.total ?? 0
 
-  // Filter by tab
-  const orders = allOrders.filter((o) => {
-    if (activeTab === 'active') return o.status !== 'received' && o.status !== 'cancelled'
-    if (activeTab === 'past') return o.status === 'received' || o.status === 'cancelled'
-    return false // drafts: none from API currently
-  })
+  // API now handles tab filtering via status_group parameter
+  const orders = allOrders
 
   const formatCurrency = (amount?: number) => {
     if (amount == null) return '\u2014'

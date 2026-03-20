@@ -236,8 +236,10 @@ export const products = {
 
 // Orders
 export const orders = {
-  list: (page = 1, pageSize = 20) =>
-    apiFetch<ApiResponse<Order>>(`/orders?page=${page}&page_size=${pageSize}`),
+  list: (page = 1, pageSize = 20, statusGroup?: string) =>
+    apiFetch<ApiResponse<Order>>(
+      `/orders?page=${page}&page_size=${pageSize}${statusGroup ? `&status_group=${statusGroup}` : ""}`,
+    ),
   get: (id: number) => apiFetch<Order>(`/orders/${id}`),
 }
 
