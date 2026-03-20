@@ -19,12 +19,14 @@ class TestLogFormatSetting:
 
     def test_default_log_format_is_console(self, monkeypatch):
         monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost/test")
+        monkeypatch.setenv("ADMIN_SECRET_KEY", "test-secret")
         get_settings.cache_clear()
         s = get_settings()
         assert s.log_format == "console"
 
     def test_json_log_format_from_env(self, monkeypatch):
         monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost/test")
+        monkeypatch.setenv("ADMIN_SECRET_KEY", "test-secret")
         monkeypatch.setenv("LOG_FORMAT", "json")
         get_settings.cache_clear()
         s = get_settings()
@@ -32,6 +34,7 @@ class TestLogFormatSetting:
 
     def test_console_log_format_from_env(self, monkeypatch):
         monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost/test")
+        monkeypatch.setenv("ADMIN_SECRET_KEY", "test-secret")
         monkeypatch.setenv("LOG_FORMAT", "console")
         get_settings.cache_clear()
         s = get_settings()
@@ -43,6 +46,7 @@ class TestConfigureLogging:
 
     def test_console_renderer_by_default(self, monkeypatch, capsys):
         monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost/test")
+        monkeypatch.setenv("ADMIN_SECRET_KEY", "test-secret")
         get_settings.cache_clear()
         from lab_manager.logging_config import configure_logging
 
@@ -54,6 +58,7 @@ class TestConfigureLogging:
 
     def test_json_renderer_when_configured(self, monkeypatch, capsys):
         monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost/test")
+        monkeypatch.setenv("ADMIN_SECRET_KEY", "test-secret")
         monkeypatch.setenv("LOG_FORMAT", "json")
         get_settings.cache_clear()
         from lab_manager.logging_config import configure_logging

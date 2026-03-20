@@ -13,12 +13,12 @@ def test_rag_model_default_is_current():
     assert s.rag_model in ("gemini-2.5-flash", "gemini-2.5-pro")
 
 
-def test_secure_cookies_default_false(monkeypatch):
-    """secure_cookies defaults to False for local dev (set True via SECURE_COOKIES=true in production)."""
+def test_secure_cookies_default_true(monkeypatch):
+    """secure_cookies defaults to True for production safety (set False via SECURE_COOKIES=false for local dev)."""
     monkeypatch.delenv("SECURE_COOKIES", raising=False)
     s = Settings(
         database_url="sqlite://",
         admin_secret_key="test",
         _env_file=None,
     )
-    assert s.secure_cookies is False
+    assert s.secure_cookies is True
