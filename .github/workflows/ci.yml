@@ -108,11 +108,11 @@ jobs:
       matrix:
         include:
           - python-version: "3.12"
-            postgres-port: 15433
-            meilisearch-port: 17701
+            postgres-port: 25433
+            meilisearch-port: 27701
           - python-version: "3.13"
-            postgres-port: 15434
-            meilisearch-port: 17702
+            postgres-port: 25434
+            meilisearch-port: 27702
 
     services:
       postgres:
