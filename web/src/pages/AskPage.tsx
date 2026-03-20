@@ -25,23 +25,42 @@ const SUGGESTED_PROMPTS = [
   'Which items are expiring soon?',
 ] as const
 
+const MAX_QUESTION_LENGTH = 2000
+
+function trimForPrompt(text: string, limit: number): string {
+  if (limit <= 0) return ''
+  return text.length <= limit ? text : text.slice(0, Math.max(0, limit - 1)).trimEnd() + '…'
+}
+
 function buildContextualQuestion(turns: AskTurn[], currentQuestion: string): string {
   const trimmed = currentQuestion.trim()
   const priorTurns = turns.filter((turn) => turn.status === 'done' && turn.answer).slice(-3)
   if (priorTurns.length === 0) return trimmed
 
-  const transcript = priorTurns.map((turn) => (
-    `User: ${turn.question}\nAssistant: ${turn.answer ?? ''}`
-  )).join('\n\n')
-
-  const contextualQuestion = [
+  const intro = [
     'Continue this lab operations conversation using the recent context when it is relevant.',
     'Keep the answer grounded in the lab manager data and do not invent facts.',
-    `Recent conversation:\n${transcript}`,
-    `Current question: ${trimmed}`,
-  ].join('\n\n')
+  ].join('\n')
+  const currentBlock = `Current question:\n${trimmed}`
+  const reserved = intro.length + currentBlock.length + 32
+  const transcriptBudget = Math.max(0, MAX_QUESTION_LENGTH - reserved)
+  const transcriptBlocks: string[] = []
+  let used = 0
 
-  return contextualQuestion.slice(0, 2000)
+  for (const turn of priorTurns.reverse()) {
+    const block = `User: ${turn.question}\nAssistant: ${turn.answer ?? ''}`
+    const remaining = transcriptBudget - used
+    if (remaining <= 0) break
+    const fitted = trimForPrompt(block, remaining)
+    transcriptBlocks.unshift(fitted)
+    used += fitted.length + 2
+  }
+
+  return [
+    intro,
+    transcriptBlocks.length > 0 ? `Recent conversation:\n${transcriptBlocks.join('\n\n')}` : '',
+    currentBlock,
+  ].filter(Boolean).join('\n\n')
 }
 
 function formatEvidenceRow(row: AskEvidenceRow): string {
@@ -57,7 +76,7 @@ function EmptyChatState() {
       <div className="space-y-1 max-w-md">
         <h3 className="text-lg font-bold text-slate-100">Ask the lab manager anything</h3>
         <p className="text-sm text-slate-500 leading-6">
-          Questions about inventory, vendors, documents, and orders are grounded in the lab database.
+          Best for inventory, purchasing, and vendor operations questions grounded in live lab records.
         </p>
       </div>
     </div>
@@ -109,7 +128,8 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
   const [localError, setLocalError] = useState<string | null>(null)
   const transcriptRef = useRef<HTMLDivElement | null>(null)
 
-  const canSubmit = question.trim().length > 0 && !submitting
+  const canSubmit = question.trim().length > 0 && question.length <= MAX_QUESTION_LENGTH && !submitting
+  const remainingChars = MAX_QUESTION_LENGTH - question.length
 
   useEffect(() => {
     const transcript = transcriptRef.current
@@ -131,6 +151,12 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
   const submitQuestion = async (nextQuestion: string) => {
     const trimmed = nextQuestion.trim()
     if (!trimmed || submitting) return
+    if (trimmed.length > MAX_QUESTION_LENGTH) {
+      const message = `Question too long. Keep it under ${MAX_QUESTION_LENGTH} characters.`
+      setLocalError(message)
+      onError(message)
+      return
+    }
 
     setSubmitting(true)
     setLocalError(null)
@@ -195,7 +221,7 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
             Ask the lab manager like a scientist
           </h2>
           <p className="max-w-3xl text-sm leading-6 text-slate-500">
-            Suggested prompts, in-page history, and grounded results for inventory, vendors, documents, and orders.
+            Suggested prompts, in-page history, and grounded results for inventory, purchasing, and vendor workflows.
           </p>
         </div>
       </div>
@@ -235,6 +261,7 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
                 }}
                 placeholder="What orders from Sigma-Aldrich arrived this month?"
                 rows={8}
+                maxLength={MAX_QUESTION_LENGTH}
                 className="w-full rounded-2xl border border-outline bg-surface-container-lowest px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-primary focus:ring-1 focus:ring-primary resize-none"
               />
             </label>
@@ -254,7 +281,12 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
               )}
               Ask AI
             </button>
-            <span className="text-xs text-slate-500">{latestHint}</span>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-slate-500">{latestHint}</span>
+              <span className={`text-[11px] ${remainingChars < 200 ? 'text-amber-400' : 'text-slate-600'}`}>
+                {remainingChars} characters remaining
+              </span>
+            </div>
           </div>
 
           <div className="rounded-2xl border border-outline bg-surface-container-lowest/50 p-4 space-y-2">
@@ -262,7 +294,7 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
               Grounding
             </div>
             <p className="text-sm text-slate-400 leading-6">
-              Answers are sourced from the lab database through `/api/v1/ask`. This surface is intentionally read-only, and follow-up questions carry recent conversation context forward.
+              Answers are sourced from the lab database through `/api/v1/ask`. This surface is intentionally read-only, and follow-up questions carry recent conversation context forward. Fallback search is narrower than the main SQL path, so operational questions work best.
             </p>
           </div>
 
@@ -334,7 +366,7 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
                         <div className="grid gap-3 md:grid-cols-[160px_1fr]">
                           <div className="rounded-2xl border border-outline bg-card-dark px-4 py-3">
                             <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                              Rows matched
+                              {turn.source === 'search' ? 'Fallback hits' : 'Rows matched'}
                             </div>
                             <div className="mt-1 text-2xl font-bold text-slate-100">
                               {turn.rowCount ?? (turn.evidence ?? []).length}

@@ -4,11 +4,12 @@ import { search } from '@/lib/api'
 interface HeaderProps {
   readonly title: string
   readonly onSearch?: (query: string) => void
+  readonly showSearch?: boolean
   readonly darkMode: boolean
   readonly onToggleDarkMode: () => void
 }
 
-export function Header({ title, onSearch, darkMode, onToggleDarkMode }: HeaderProps) {
+export function Header({ title, onSearch, showSearch = true, darkMode, onToggleDarkMode }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -48,7 +49,7 @@ export function Header({ title, onSearch, darkMode, onToggleDarkMode }: HeaderPr
           <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">Current View</span>
           <h1 className="text-lg font-bold text-[var(--foreground)] truncate">{title}</h1>
         </div>
-        <label className="hidden md:flex flex-col max-w-xl w-full h-10 relative">
+        <label className={`${showSearch ? 'hidden md:flex' : 'hidden'} flex-col max-w-xl w-full h-10 relative`}>
           <div className="flex w-full flex-1 items-stretch rounded-lg h-full">
             <div className="text-[var(--muted-foreground)] flex border-none bg-[var(--card)] items-center justify-center pl-4 rounded-l-lg">
               <span className="material-symbols-outlined text-xl">search</span>
