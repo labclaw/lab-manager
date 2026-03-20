@@ -1,12 +1,23 @@
 #!/bin/sh
 set -e
 
+# Build a direct database URL for migrations if DO App Platform individual
+# DB env vars are available. The ${db.DATABASE_URL} often routes through
+# PgBouncer whose pool user lacks CREATE permission on the public schema.
+if [ -n "$DB_HOST" ] && [ -n "$DB_PORT" ] && [ -n "$DB_USER" ] && [ -n "$DB_PASSWORD" ] && [ -n "$DB_NAME" ]; then
+    MIGRATION_URL="postgresql+psycopg://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=require"
+    echo "[entrypoint] Using direct DB connection for migrations (bypassing pool)."
+else
+    MIGRATION_URL="$DATABASE_URL"
+    echo "[entrypoint] Using DATABASE_URL for migrations."
+fi
+
 # Wait for PostgreSQL to accept connections before running migrations.
 # Managed databases (e.g. DO App Platform) may need extra time to provision.
 echo "[entrypoint] Waiting for database..."
 MAX_RETRIES=30
 RETRY=0
-until pg_isready -d "$DATABASE_URL" -q 2>/dev/null; do
+until pg_isready -d "$MIGRATION_URL" -q 2>/dev/null; do
     RETRY=$((RETRY + 1))
     if [ "$RETRY" -ge "$MAX_RETRIES" ]; then
         echo "[entrypoint] ERROR: database not ready after ${MAX_RETRIES} attempts"
@@ -18,7 +29,7 @@ done
 echo "[entrypoint] Database is ready."
 
 echo "[entrypoint] Running database migrations..."
-uv run alembic upgrade head
+DATABASE_URL="$MIGRATION_URL" uv run alembic upgrade head
 
 echo "[entrypoint] Starting application..."
 exec uv run uvicorn lab_manager.api.app:create_app --factory --host 0.0.0.0 --port 8000

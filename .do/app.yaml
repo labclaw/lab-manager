@@ -20,6 +20,22 @@ services:
       - key: DATABASE_URL
         scope: RUN_TIME
         value: ${db.DATABASE_URL}
+      # Direct DB connection components for migrations (bypass connection pool)
+      - key: DB_HOST
+        scope: RUN_TIME
+        value: ${db.HOSTNAME}
+      - key: DB_PORT
+        scope: RUN_TIME
+        value: ${db.PORT}
+      - key: DB_USER
+        scope: RUN_TIME
+        value: ${db.USERNAME}
+      - key: DB_PASSWORD
+        scope: RUN_TIME
+        value: ${db.PASSWORD}
+      - key: DB_NAME
+        scope: RUN_TIME
+        value: ${db.DATABASE}
       - key: MEILISEARCH_URL
         scope: RUN_TIME
         value: http://search:7700
@@ -60,7 +76,7 @@ services:
     internal_ports:
       - 7700
     instance_count: 1
-    instance_size_slug: professional-xs
+    instance_size_slug: professional-s
     envs:
       - key: MEILI_ENV
         scope: RUN_TIME
@@ -76,5 +92,5 @@ databases:
   - name: db
     engine: PG
     version: "16"
-    size: db-s-dev-database
+    size: db-s-1vcpu-1gb
     num_nodes: 1
