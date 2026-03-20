@@ -28,8 +28,13 @@ export function Sidebar({
   reviewCount = 0,
 }: SidebarProps) {
   const handleLogout = async () => {
-    await auth.logout()
-    window.location.reload()
+    try {
+      await auth.logout()
+    } catch {
+      // Swallow logout errors — still reload to clear session
+    } finally {
+      window.location.reload()
+    }
   }
 
   return (
