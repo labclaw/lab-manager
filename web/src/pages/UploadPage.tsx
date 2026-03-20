@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
-import { documents } from '@/lib/api'
-import type { Document } from '@/lib/api'
+import { useNavigate } from 'react-router-dom'
+import { documents, type Document as AppDocument } from '@/lib/api'
 
 const ACCEPTED_TYPES = new Set(['image/png', 'image/jpeg', 'image/heic', 'image/tiff', 'application/pdf'])
 const MAX_BYTES = 10 * 1024 * 1024
@@ -14,7 +14,7 @@ interface UploadRecord {
   file: File
   status: UploadStatus
   progress: number
-  doc?: Document
+  doc?: AppDocument
   error?: string
   extractionInfo?: string
 }
@@ -32,6 +32,44 @@ export function UploadPage() {
   const [uploads, setUploads] = useState<UploadRecord[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
+  const navigate = useNavigate()
+
+  const pollDocument = useCallback((uploadId: number, docId: number) => {
+    const interval = setInterval(async () => {
+      try {
+        const doc = await documents.get(docId)
+        const finalStatuses = ['needs_review', 'extracted', 'approved', 'ocr_failed', 'rejected']
+        if (finalStatuses.includes(doc.status ?? '')) {
+          clearInterval(interval)
+          setUploads((prev) => prev.map((u) => u.id === uploadId ? {
+            ...u,
+            status: doc.status === 'ocr_failed' ? 'failed' : 'complete',
+            progress: 100,
+            doc,
+            extractionInfo: [
+              doc.vendor_name ?? 'Unknown vendor',
+              doc.document_type ?? 'document',
+              doc.extraction_confidence != null ? `${Math.round(doc.extraction_confidence * 100)}% conf.` : null,
+            ].filter(Boolean).join(' | '),
+            error: doc.status === 'ocr_failed' ? 'OCR processing failed' : undefined,
+          } : u))
+        } else {
+          setUploads((prev) => prev.map((u) => u.id === uploadId ? {
+            ...u,
+            doc,
+            extractionInfo: [
+              doc.vendor_name || 'Processing...',
+              doc.document_type || '',
+              doc.extraction_confidence != null ? `${Math.round(doc.extraction_confidence * 100)}% conf.` : null,
+            ].filter(Boolean).join(' | '),
+          } : u))
+        }
+      } catch {
+        // Swallow poll errors — the upload itself succeeded
+      }
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [])
 
   const processFile = useCallback(async (file: File) => {
     if (!ACCEPTED_TYPES.has(file.type)) return
@@ -48,27 +86,35 @@ export function UploadPage() {
     }
     setUploads((prev) => [...prev, record])
 
-    // Simulate upload progress
-    setUploads((prev) => prev.map((u) => u.id === id ? { ...u, status: 'uploading', progress: 0 } : u))
+    setUploads((prev) => prev.map((u) => u.id === id ? { ...u, status: 'uploading', progress: -1 } : u))
 
     try {
-      // Progress simulation
-      for (const pct of [20, 45, 65, 85]) {
-        await new Promise((r) => setTimeout(r, 200))
-        setUploads((prev) => prev.map((u) => u.id === id ? { ...u, progress: pct } : u))
-      }
-
-      setUploads((prev) => prev.map((u) => u.id === id ? { ...u, status: 'processing', progress: 100 } : u))
-
       const doc = await documents.upload(file)
 
-      setUploads((prev) => prev.map((u) => u.id === id ? {
-        ...u,
-        status: 'complete',
-        progress: 100,
-        doc,
-        extractionInfo: `${doc.vendor_name ?? 'Unknown'} | ${doc.document_type ?? 'document'} | ${doc.status === 'approved' ? '97%' : '85%'} Conf.`,
-      } : u))
+      const finalStatuses = ['needs_review', 'extracted', 'approved', 'ocr_failed', 'rejected']
+      if (finalStatuses.includes(doc.status ?? '')) {
+        setUploads((prev) => prev.map((u) => u.id === id ? {
+          ...u,
+          status: doc.status === 'ocr_failed' ? 'failed' : 'complete',
+          progress: 100,
+          doc,
+          extractionInfo: [
+            doc.vendor_name ?? 'Unknown vendor',
+            doc.document_type ?? 'document',
+            doc.extraction_confidence != null ? `${Math.round(doc.extraction_confidence * 100)}% conf.` : null,
+          ].filter(Boolean).join(' | '),
+          error: doc.status === 'ocr_failed' ? 'OCR processing failed' : undefined,
+        } : u))
+      } else {
+        setUploads((prev) => prev.map((u) => u.id === id ? {
+          ...u,
+          status: 'processing',
+          progress: -1,
+          doc,
+          extractionInfo: doc.vendor_name ? `${doc.vendor_name} | Processing...` : 'Processing...',
+        } : u))
+        pollDocument(id, doc.id)
+      }
     } catch (err) {
       setUploads((prev) => prev.map((u) => u.id === id ? {
         ...u,
@@ -76,7 +122,7 @@ export function UploadPage() {
         error: err instanceof Error ? err.message : 'Upload failed',
       } : u))
     }
-  }, [])
+  }, [pollDocument])
 
   const handleFiles = useCallback((files: FileList | null) => {
     if (!files) return
@@ -121,8 +167,10 @@ export function UploadPage() {
           </div>
         )
       case 'uploading':
-        return (
+        return record.progress >= 0 ? (
           <span className="text-xs font-bold text-[var(--muted-foreground)]">{record.progress}%</span>
+        ) : (
+          <span className="text-xs font-bold text-[var(--muted-foreground)]">Uploading...</span>
         )
       case 'failed':
         return (
@@ -247,17 +295,25 @@ export function UploadPage() {
                   {record.status === 'uploading' ? (
                     <>
                       <div className="w-full h-1.5 bg-[var(--border)] rounded-full overflow-hidden">
-                        <div
-                          className="bg-primary h-full transition-all duration-300"
-                          style={{ width: `${record.progress}%` }}
-                          role="progressbar"
-                          aria-valuenow={record.progress}
-                          aria-valuemin={0}
-                          aria-valuemax={100}
-                        />
+                        {record.progress < 0 ? (
+                          <div className="bg-primary h-full w-1/3 rounded-full animate-[indeterminate_1.5s_ease-in-out_infinite]" />
+                        ) : (
+                          <div
+                            className="bg-primary h-full transition-all duration-300"
+                            style={{ width: `${record.progress}%` }}
+                            role="progressbar"
+                            aria-valuenow={record.progress}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                          />
+                        )}
                       </div>
                       <p className="text-[10px] text-[var(--muted-foreground)] mt-1.5 uppercase tracking-wide font-medium">Uploading...</p>
                     </>
+                  ) : record.status === 'processing' ? (
+                    <div className="w-full h-1.5 bg-[var(--border)] rounded-full overflow-hidden">
+                      <div className="bg-primary h-full w-1/3 rounded-full animate-[indeterminate_1.5s_ease-in-out_infinite]" />
+                    </div>
                   ) : (
                     <p className={`text-xs flex items-center gap-2 ${
                       record.status === 'failed' ? 'text-[#FF6B6B]/80' : 'text-[var(--muted-foreground)]'
@@ -267,7 +323,6 @@ export function UploadPage() {
                       {record.status === 'complete' && record.extractionInfo && (
                         <span className="text-primary">{record.extractionInfo}</span>
                       )}
-                      {record.status === 'processing' && <span>Detecting fields...</span>}
                       {record.status === 'failed' && <span>{record.error ?? 'Network error'}</span>}
                       {record.status === 'queued' && <span>Waiting for worker...</span>}
                     </p>
@@ -311,7 +366,9 @@ export function UploadPage() {
             </div>
             <div>
               <p className="font-bold">{completedCount} of {totalCount} files processed</p>
-              <p className="text-xs text-[var(--muted-foreground)]">Ready to move to review queue</p>
+              <p className="text-xs text-[var(--muted-foreground)]">
+                {completedCount > 0 ? 'Documents sent to review queue automatically' : 'Processing...'}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -319,15 +376,17 @@ export function UploadPage() {
               onClick={() => setUploads([])}
               className="px-6 py-2.5 bg-[var(--border)] hover:bg-[var(--border)]/70 text-[var(--foreground)] font-bold rounded-lg transition-all"
             >
-              Cancel All
+              Clear All
             </button>
-            <button
-              disabled={completedCount === 0}
-              className="px-8 py-2.5 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg shadow-lg shadow-primary/20 transition-all flex items-center gap-2 disabled:opacity-50"
-            >
-              Send to Review Queue
-              <span className="material-symbols-outlined">arrow_forward</span>
-            </button>
+            {completedCount > 0 && (
+              <button
+                onClick={() => navigate('/review')}
+                className="px-8 py-2.5 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg shadow-lg shadow-primary/20 transition-all flex items-center gap-2"
+              >
+                View in Review Queue
+                <span className="material-symbols-outlined">arrow_forward</span>
+              </button>
+            )}
           </div>
         </div>
       )}

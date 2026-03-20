@@ -57,7 +57,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
 
   const queue = useMemo(() => {
     const items = queueRes?.items ?? []
-    return [...items].sort((a, b) => (a.confidence ?? 1) - (b.confidence ?? 1))
+    return [...items].sort((a, b) => (a.extraction_confidence ?? 1) - (b.extraction_confidence ?? 1))
   }, [queueRes])
 
   // Auto-select first item
@@ -172,7 +172,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
             {queue.map((item) => {
               const isSelected = item.id === doc.id
-              const badgeInfo = confBadgeClasses(item.confidence)
+              const badgeInfo = confBadgeClasses(item.extraction_confidence)
               return (
                 <div
                   key={item.id}
@@ -193,10 +193,10 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                         isSelected ? 'text-[var(--foreground)]' : 'text-[var(--foreground)]'
                       }`}
                     >
-                      {item.filename ?? `Doc #${item.id}`}
+                      {item.file_name ?? `Doc #${item.id}`}
                     </h3>
                     <span className={badgeInfo.wrapperClass}>
-                      {confLabel(item.confidence)}
+                      {confLabel(item.extraction_confidence)}
                     </span>
                   </div>
                   <div className="flex justify-between items-end">
@@ -230,25 +230,33 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                   Document Preview
                 </span>
                 <div className="h-4 w-px bg-[var(--border)]" />
-                {docDetail.confidence != null && (
+                {docDetail.extraction_confidence != null && (
                   <span
                     className={`text-xs flex items-center gap-1 font-semibold ${
-                      (docDetail.confidence ?? 0) >= 0.8
+                      (docDetail.extraction_confidence ?? 0) >= 0.8
                         ? 'text-emerald-400'
-                        : (docDetail.confidence ?? 0) >= 0.6
+                        : (docDetail.extraction_confidence ?? 0) >= 0.6
                           ? 'text-amber-500'
                           : 'text-red-500'
                     }`}
                   >
                     <span className="material-symbols-outlined text-xs">verified</span>
-                    {(docDetail.confidence ?? 0) >= 0.8
+                    {(docDetail.extraction_confidence ?? 0) >= 0.8
                       ? 'High'
-                      : (docDetail.confidence ?? 0) >= 0.6
+                      : (docDetail.extraction_confidence ?? 0) >= 0.6
                         ? 'Medium'
                         : 'Low'}{' '}
                     extraction confidence (
-                    {Math.round((docDetail.confidence ?? 0) * 100)}%)
+                    {Math.round((docDetail.extraction_confidence ?? 0) * 100)}%)
                   </span>
+                )}
+                {docDetail.extraction_model && (
+                  <>
+                    <div className="h-4 w-px bg-[var(--border)]" />
+                    <span className="text-[10px] text-[var(--muted-foreground)] font-mono">
+                      {docDetail.extraction_model}
+                    </span>
+                  </>
                 )}
               </div>
               <div className="flex gap-2">
@@ -264,18 +272,26 @@ export function ReviewPage({ onError }: ReviewPageProps) {
               </div>
             </div>
             <div className="flex-1 rounded-lg border border-slate-800 bg-[var(--card)]/20 flex items-center justify-center overflow-hidden relative group">
-              <div className="text-center transition-transform group-hover:scale-105 duration-500">
-                <div className="mb-4 bg-primary/20 p-8 inline-block rounded-full relative">
-                  <span className="material-symbols-outlined text-primary text-5xl">
-                    picture_as_pdf
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-tr from-primary/30 to-transparent animate-pulse rounded-full" />
+              {docDetail.file_name && /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(docDetail.file_name) ? (
+                <img
+                  src={`/uploads/${docDetail.file_name}`}
+                  alt={docDetail.file_name}
+                  className="max-w-full max-h-full object-contain"
+                />
+              ) : (
+                <div className="text-center transition-transform group-hover:scale-105 duration-500">
+                  <div className="mb-4 bg-primary/20 p-8 inline-block rounded-full relative">
+                    <span className="material-symbols-outlined text-primary text-5xl">
+                      picture_as_pdf
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-tr from-primary/30 to-transparent animate-pulse rounded-full" />
+                  </div>
+                  <p className="text-sm text-[var(--foreground)] font-medium">
+                    {docDetail.file_name ?? `Document #${docDetail.id}`}
+                  </p>
+                  <p className="text-[10px] text-[var(--muted-foreground)]">Page 1 of 1</p>
                 </div>
-                <p className="text-sm text-[var(--foreground)] font-medium">
-                  {docDetail.filename ?? `Document #${docDetail.id}`}
-                </p>
-                <p className="text-[10px] text-[var(--muted-foreground)]">Page 1 of 1 &bull; 1.2 MB</p>
-              </div>
+              )}
               {/* Grid pattern for technical feel */}
               <div
                 className="absolute inset-x-0 inset-y-0 opacity-[0.03] pointer-events-none"
@@ -324,10 +340,11 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                         className="w-full bg-[var(--card)] border-[var(--border)] rounded-lg py-2.5 pl-3 pr-10 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-[var(--card)]/80"
                         type="text"
                         readOnly
-                        value="--"
+                        value={docDetail.extracted_data?.po_number ?? ''}
+                        placeholder="No PO number extracted"
                       />
-                      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-amber-500 text-lg">
-                        warning
+                      <span className={`material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-lg ${docDetail.extracted_data?.po_number ? 'text-emerald-500' : 'text-amber-500'}`}>
+                        {docDetail.extracted_data?.po_number ? 'check_circle' : 'warning'}
                       </span>
                     </div>
                   </div>
@@ -356,7 +373,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                       className="w-full bg-[var(--card)] border-[var(--border)] rounded-lg py-2.5 px-3 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-[var(--card)]/80"
                       type="date"
                       readOnly
-                      value=""
+                      value={docDetail.extracted_data?.ship_date?.split('T')[0] ?? ''}
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -367,7 +384,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                       className="w-full bg-[var(--card)] border-[var(--border)] rounded-lg py-2.5 px-3 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-[var(--card)]/80"
                       type="date"
                       readOnly
-                      value={docDetail.created_at?.split('T')[0] ?? ''}
+                      value={docDetail.extracted_data?.received_date?.split('T')[0] ?? docDetail.created_at?.split('T')[0] ?? ''}
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -377,12 +394,13 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                     <div className="relative">
                       <input
                         className="w-full bg-[var(--card)] border-[var(--border)] rounded-lg py-2.5 pl-3 pr-10 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-[var(--card)]/80"
-                        placeholder="Scanning name..."
+                        placeholder="Not extracted"
                         type="text"
                         readOnly
+                        value={docDetail.extracted_data?.received_by ?? ''}
                       />
-                      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-lg">
-                        edit
+                      <span className={`material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-lg ${docDetail.extracted_data?.received_by ? 'text-emerald-500' : 'text-[var(--muted-foreground)]'}`}>
+                        {docDetail.extracted_data?.received_by ? 'check_circle' : 'edit'}
                       </span>
                     </div>
                   </div>
@@ -414,19 +432,42 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                         <th className="px-4 py-3 text-[10px] uppercase tracking-wider">
                           Lot Number
                         </th>
+                        <th className="px-4 py-3 text-[10px] uppercase tracking-wider w-20 text-right">
+                          Unit Price
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border-dark text-[var(--foreground)]">
-                      <tr className="hover:bg-primary/5 transition-colors">
-                        <td
-                          className="px-4 py-3 font-mono text-xs text-[var(--foreground)]"
-                          colSpan={5}
-                        >
-                          <span className="italic">
-                            Line item data will appear here after extraction
-                          </span>
-                        </td>
-                      </tr>
+                      {docDetail.extracted_data?.items && docDetail.extracted_data.items.length > 0 ? (
+                        docDetail.extracted_data.items.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-primary/5 transition-colors">
+                            <td className="px-4 py-3 font-mono text-xs text-[var(--foreground)]">
+                              {item.catalog_number ?? '--'}
+                            </td>
+                            <td className="px-4 py-3 text-xs text-[var(--foreground)]">
+                              {item.description ?? '--'}
+                            </td>
+                            <td className="px-4 py-3 text-xs text-center">
+                              {item.quantity ?? '--'}
+                            </td>
+                            <td className="px-4 py-3 text-xs">
+                              {item.unit ?? '--'}
+                            </td>
+                            <td className="px-4 py-3 font-mono text-xs text-[var(--foreground)]">
+                              {item.lot_number ?? '--'}
+                            </td>
+                            <td className="px-4 py-3 text-xs text-right">
+                              {item.unit_price != null ? `$${item.unit_price.toFixed(2)}` : '--'}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr className="hover:bg-primary/5 transition-colors">
+                          <td className="px-4 py-3 font-mono text-xs text-[var(--foreground)]" colSpan={6}>
+                            <span className="italic">No line items extracted</span>
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -452,32 +493,44 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
                   <div>
                     <p className="text-[11px] text-[var(--foreground)] leading-tight">
-                      Document ingested via Scanner A
+                      Document uploaded: {docDetail.file_name ?? `#${docDetail.id}`}
                     </p>
                     <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5">
                       {formatDate(docDetail.created_at)}
                     </p>
                   </div>
                 </div>
+                {docDetail.extraction_model && (
+                  <div className="flex gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                    <div>
+                      <p className="text-[11px] text-[var(--foreground)] leading-tight">
+                        AI extraction via {docDetail.extraction_model}
+                        {docDetail.extraction_confidence != null && (
+                          <span className="ml-1 text-[var(--muted-foreground)]">
+                            ({Math.round(docDetail.extraction_confidence * 100)}% confidence)
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5">
+                        {formatDate(docDetail.updated_at ?? docDetail.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                )}
                 <div className="flex gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
                   <div>
                     <p className="text-[11px] text-[var(--foreground)] leading-tight">
-                      AI Extraction completed
+                      Pending review
+                      {docDetail.reviewed_by && (
+                        <span className="ml-1 text-[var(--muted-foreground)]">
+                          — assigned to {docDetail.reviewed_by}
+                        </span>
+                      )}
                     </p>
                     <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5">
-                      {formatDate(docDetail.created_at)}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[var(--muted-foreground)] mt-1.5 shrink-0" />
-                  <div>
-                    <p className="text-[11px] text-[var(--muted-foreground)] leading-tight">
-                      Assigned to reviewer
-                    </p>
-                    <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5">
-                      {formatDate(docDetail.created_at)}
+                      {formatDate(docDetail.updated_at ?? docDetail.created_at)}
                     </p>
                   </div>
                 </div>
@@ -501,7 +554,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                 <h3 className="text-base font-semibold text-[var(--foreground)]">Reject Document</h3>
                 <p className="text-sm text-[var(--muted-foreground)]">
                   Provide a reason for rejecting{' '}
-                  <span className="font-medium text-[var(--foreground)]">{doc.filename}</span>
+                  <span className="font-medium text-[var(--foreground)]">{doc.file_name ?? `Doc #${doc.id}`}</span>
                 </p>
                 <textarea
                   value={rejectReason}

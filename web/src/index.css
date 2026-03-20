@@ -168,6 +168,12 @@
   .badge-info { @apply bg-[var(--info)]/15 text-[var(--info)]; }
 }
 
+/* Indeterminate progress bar */
+@keyframes indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
