@@ -90,6 +90,7 @@ def receive_items(
         order_items_map = {
             oi.id: oi
             for oi in db.query(OrderItem).filter(OrderItem.id.in_(order_item_ids)).all()
+            if oi.id is not None
         }
 
     for ri in items_received:
