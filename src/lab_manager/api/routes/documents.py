@@ -8,7 +8,7 @@ from typing import Literal, Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, field_validator
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db, get_or_404
@@ -133,7 +133,9 @@ def _run_extraction(doc_id: int) -> None:
     factory = get_session_factory()
     db = factory()
     try:
-        doc = db.query(Document).filter(Document.id == doc_id).first()
+        doc = (
+            db.execute(select(Document).where(Document.id == doc_id)).scalars().first()
+        )
         if doc is None:
             logger.error("Document %d not found for extraction", doc_id)
             return
@@ -185,9 +187,7 @@ def _run_extraction(doc_id: int) -> None:
             doc.review_notes = f"Extraction failed: {e}"
 
         db.commit()
-        logger.info(
-            "Extraction complete for doc %d, status=%s", doc_id, doc.status
-        )
+        logger.info("Extraction complete for doc %d, status=%s", doc_id, doc.status)
     except Exception:
         logger.exception("Unexpected error in extraction for doc %d", doc_id)
         db.rollback()
@@ -212,7 +212,9 @@ def _index_approved_doc(doc_id: int) -> None:
     factory = get_session_factory()
     db = factory()
     try:
-        doc = db.query(Document).filter(Document.id == doc_id).first()
+        doc = (
+            db.execute(select(Document).where(Document.id == doc_id)).scalars().first()
+        )
         if doc is None:
             return
         try:
@@ -220,12 +222,20 @@ def _index_approved_doc(doc_id: int) -> None:
         except Exception:
             logger.exception("Failed to index document %d", doc_id)
 
-        order = db.query(Order).filter(Order.document_id == doc.id).first()
+        order = (
+            db.execute(select(Order).where(Order.document_id == doc.id))
+            .scalars()
+            .first()
+        )
         if not order:
             return
 
         if order.vendor_id:
-            vendor = db.query(Vendor).filter(Vendor.id == order.vendor_id).first()
+            vendor = (
+                db.execute(select(Vendor).where(Vendor.id == order.vendor_id))
+                .scalars()
+                .first()
+            )
             if vendor:
                 try:
                     index_vendor_record(vendor)
@@ -237,22 +247,34 @@ def _index_approved_doc(doc_id: int) -> None:
         except Exception:
             logger.exception("Failed to index order %d", order.id)
 
-        items = db.query(OrderItem).filter(OrderItem.order_id == order.id).all()
+        items = (
+            db.execute(select(OrderItem).where(OrderItem.order_id == order.id))
+            .scalars()
+            .all()
+        )
         for oi in items:
             try:
                 index_order_item_record(oi)
             except Exception:
                 logger.exception("Failed to index order_item %d", oi.id)
             if oi.product_id:
-                product = db.query(Product).filter(Product.id == oi.product_id).first()
+                product = (
+                    db.execute(select(Product).where(Product.id == oi.product_id))
+                    .scalars()
+                    .first()
+                )
                 if product:
                     try:
                         index_product_record(product)
                     except Exception:
                         logger.exception("Failed to index product %d", product.id)
                 inv_items = (
-                    db.query(InventoryItem)
-                    .filter(InventoryItem.order_item_id == oi.id)
+                    db.execute(
+                        select(InventoryItem).where(
+                            InventoryItem.order_item_id == oi.id
+                        )
+                    )
+                    .scalars()
                     .all()
                 )
                 for inv in inv_items:
@@ -337,28 +359,29 @@ def upload_document(
 @router.get("/stats")
 def document_stats(db: Session = Depends(get_db)):
     """Dashboard stats."""
-    total = db.query(func.count(Document.id)).scalar()
+    total = db.execute(select(func.count(Document.id))).scalar()
     by_status = dict(
-        db.query(Document.status, func.count(Document.id))
-        .group_by(Document.status)
-        .all()
+        db.execute(
+            select(Document.status, func.count(Document.id)).group_by(Document.status)
+        ).all()
     )
     by_type = dict(
-        db.query(Document.document_type, func.count(Document.id))
-        .group_by(Document.document_type)
-        .all()
+        db.execute(
+            select(Document.document_type, func.count(Document.id)).group_by(
+                Document.document_type
+            )
+        ).all()
     )
-    total_orders = db.query(func.count(Order.id)).scalar()
-    total_items = db.query(func.count(OrderItem.id)).scalar()
-    total_vendors = db.query(func.count(Vendor.id)).scalar()
-    top_vendors = (
-        db.query(Vendor.name, func.count(Order.id))
+    total_orders = db.execute(select(func.count(Order.id))).scalar()
+    total_items = db.execute(select(func.count(OrderItem.id))).scalar()
+    total_vendors = db.execute(select(func.count(Vendor.id))).scalar()
+    top_vendors = db.execute(
+        select(Vendor.name, func.count(Order.id))
         .join(Order, Order.vendor_id == Vendor.id)
         .group_by(Vendor.name)
         .order_by(func.count(Order.id).desc())
         .limit(10)
-        .all()
-    )
+    ).all()
     return {
         "total_documents": total,
         "by_status": by_status,
@@ -383,22 +406,22 @@ def list_documents(
     sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
 ):
-    q = db.query(Document)
+    stmt = select(Document)
     if status:
-        q = q.filter(Document.status == status)
+        stmt = stmt.where(Document.status == status)
     if document_type:
-        q = q.filter(Document.document_type == document_type)
+        stmt = stmt.where(Document.document_type == document_type)
     if vendor_name:
-        q = q.filter(ilike_col(Document.vendor_name, vendor_name))
+        stmt = stmt.where(ilike_col(Document.vendor_name, vendor_name))
     if extraction_model:
-        q = q.filter(Document.extraction_model == extraction_model)
+        stmt = stmt.where(Document.extraction_model == extraction_model)
     if search:
-        q = q.filter(
+        stmt = stmt.where(
             ilike_col(Document.vendor_name, search)
             | ilike_col(Document.file_name, search)
         )
-    q = apply_sort(q, Document, sort_by, sort_dir, _DOC_SORTABLE)
-    return paginate(q, page, page_size)
+    stmt = apply_sort(stmt, Document, sort_by, sort_dir, _DOC_SORTABLE)
+    return paginate(db, stmt, page, page_size)
 
 
 @router.post("/", status_code=201)
@@ -468,7 +491,11 @@ def review_document(
         doc.reviewed_by = body.reviewed_by
         doc.review_notes = body.review_notes
         # Create order if not already linked
-        existing_order = db.query(Order).filter(Order.document_id == doc.id).first()
+        existing_order = (
+            db.execute(select(Order).where(Order.document_id == doc.id))
+            .scalars()
+            .first()
+        )
         if not existing_order and doc.extracted_data:
             _create_order_from_doc(doc, db)
         # Commit so background task can see all records
@@ -518,8 +545,12 @@ def _create_order_from_doc(doc: Document, db: Session):
     vendor = None
     if vendor_name:
         vendor = (
-            db.query(Vendor)
-            .filter(func.lower(Vendor.name) == func.lower(vendor_name.strip()))
+            db.execute(
+                select(Vendor).where(
+                    func.lower(Vendor.name) == func.lower(vendor_name.strip())
+                )
+            )
+            .scalars()
             .first()
         )
         if not vendor:
@@ -555,11 +586,13 @@ def _create_order_from_doc(doc: Document, db: Session):
         product = None
         if catalog_number and vendor:
             product = (
-                db.query(Product)
-                .filter(
-                    Product.catalog_number == catalog_number,
-                    Product.vendor_id == vendor.id,
+                db.execute(
+                    select(Product).where(
+                        Product.catalog_number == catalog_number,
+                        Product.vendor_id == vendor.id,
+                    )
                 )
+                .scalars()
                 .first()
             )
         if not product and catalog_number:
@@ -602,4 +635,4 @@ def _create_order_from_doc(doc: Document, db: Session):
             )
 
     # NOTE: Order has no total_amount column. Line-level pricing is
-    # available via OrderItem.unit_price × quantity.
+    # available via OrderItem.unit_price x quantity.
