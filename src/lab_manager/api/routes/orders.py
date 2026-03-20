@@ -41,6 +41,7 @@ _ORDER_SORTABLE = {
 }
 
 _VALID_ORDER_STATUSES = {s.value for s in OrderStatus}
+_MAX_ORDER_ITEM_QUANTITY = 1_000_000
 
 
 # --- Order schemas ---
@@ -94,7 +95,7 @@ class OrderUpdate(BaseModel):
 class OrderItemCreate(BaseModel):
     catalog_number: Optional[str] = Field(default=None, max_length=100)
     description: Optional[str] = Field(default=None, max_length=1000)
-    quantity: float = Field(default=1, gt=0)
+    quantity: float = Field(default=1, gt=0, le=_MAX_ORDER_ITEM_QUANTITY)
     unit: Optional[str] = Field(default=None, max_length=50)
     lot_number: Optional[str] = Field(default=None, max_length=100)
     batch_number: Optional[str] = Field(default=None, max_length=100)
@@ -106,7 +107,7 @@ class OrderItemCreate(BaseModel):
 class OrderItemUpdate(BaseModel):
     catalog_number: Optional[str] = Field(default=None, max_length=100)
     description: Optional[str] = Field(default=None, max_length=1000)
-    quantity: Optional[float] = Field(default=None, gt=0)
+    quantity: Optional[float] = Field(default=None, gt=0, le=_MAX_ORDER_ITEM_QUANTITY)
     unit: Optional[str] = Field(default=None, max_length=50)
     lot_number: Optional[str] = Field(default=None, max_length=100)
     batch_number: Optional[str] = Field(default=None, max_length=100)
@@ -290,7 +291,7 @@ def delete_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)
 class ReceiveItemEntry(BaseModel):
     order_item_id: Optional[int] = None
     product_id: Optional[int] = None
-    quantity: float = Field(default=1, gt=0)
+    quantity: float = Field(default=1, gt=0, le=_MAX_ORDER_ITEM_QUANTITY)
     lot_number: Optional[str] = Field(default=None, max_length=100)
     unit: Optional[str] = Field(default=None, max_length=50)
     expiry_date: Optional[date] = None

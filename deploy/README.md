@@ -2,6 +2,19 @@
 
 Three practical ways to get Lab Manager in front of a user, from fastest evaluation to a real deployment.
 
+## Validate The Release Candidate First
+
+Before deploying a new release candidate from a checkout, verify the maintained release gate:
+
+```bash
+uv sync --dev --frozen
+docker compose --env-file .env.example config -q
+uv run pytest tests --ignore=tests/bdd -q
+bash scripts/run_release_gate.sh
+```
+
+This is the current release standard for the default shipped product surface.
+
 ## Option 0: Local Trial On Your Laptop
 
 Best for product evaluation, demos, and first-time users who want to try the app before adopting it.
@@ -60,7 +73,7 @@ This creates a $24/mo droplet (4GB RAM, 2 vCPUs) with:
 
 Options:
 ```bash
-bash deploy/digitalocean/create-droplet.sh --region sfo3 --name my-lab --lab-name "Shen Lab"
+bash deploy/digitalocean/create-droplet.sh --region sfo3 --name my-lab --lab-name "My Lab"
 bash deploy/digitalocean/create-droplet.sh --gemini-api-key "$GEMINI_API_KEY"
 ```
 

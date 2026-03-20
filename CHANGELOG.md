@@ -2,6 +2,19 @@
 
 All notable changes to LabClaw Lab Manager will be documented in this file.
 
+## [0.1.6] - 2026-03-20
+
+### Fixed
+- Restored fresh-install reliability for setup, auth, export, migration-aware startup, and review/search indexing flows
+- Fixed pipeline import and startup regressions that broke clean Docker and self-hosted CI runs
+- Added request-size and order-item quantity guards for oversized JSON bodies and unrealistic quantities
+- Aligned frontend tests, upload tests, and API security regression coverage with the current `/api/v1/*` contract
+- Moved GitHub Actions to the available self-hosted runner and fixed the secrets-scan install path for gitleaks
+
+### Changed
+- Defined `v0.1.6` as the minimum stable internal release
+- Release CI now gates on the maintained core suite (`tests --ignore=tests/bdd`) plus frontend lint/build/test, while legacy BDD coverage remains under cleanup
+
 ## [0.1.5] - 2026-03-19
 
 ### Fixed

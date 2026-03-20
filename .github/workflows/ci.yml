@@ -120,7 +120,7 @@ jobs:
           POSTGRES_PASSWORD: labmanager
           POSTGRES_DB: labmanager
         ports:
-          - 5432/tcp
+          - 5432
         options: >-
           --health-cmd="pg_isready -U labmanager"
           --health-interval=10s
@@ -130,7 +130,7 @@ jobs:
       meilisearch:
         image: getmeili/meilisearch:v1.12
         ports:
-          - 7700/tcp
+          - 7700
         env:
           MEILI_ENV: development
 
@@ -154,11 +154,12 @@ jobs:
 
       - name: Run tests with coverage
         env:
-          DATABASE_URL: postgresql+psycopg://labmanager:labmanager@localhost:${{ job.services.postgres.ports[5432] }}/labmanager
-          MEILISEARCH_URL: http://localhost:${{ job.services.meilisearch.ports[7700] }}
+          DATABASE_URL: postgresql+psycopg://labmanager:labmanager@localhost:${{ job.services.postgres.ports['5432'] }}/labmanager
+          MEILISEARCH_URL: http://localhost:${{ job.services.meilisearch.ports['7700'] }}
         run: |
           # The maintained release gate is the core suite. Legacy BDD coverage
-          # remains available for iterative work, but does not block release CI.
+          # is still visible locally and in cleanup work, but is not reliable
+          # enough to block stable internal releases yet.
           uv run pytest tests --ignore=tests/bdd --tb=short -q \
             --cov=lab_manager \
             --cov-report=term-missing \
@@ -172,6 +173,61 @@ jobs:
           name: coverage-report
           path: coverage.xml
 
+  release-gate:
+    name: release-gate
+    runs-on: [self-hosted, Linux, X64, ubuntu]
+    timeout-minutes: 25
+    needs:
+      - frontend
+      - lint
+      - typecheck
+      - test
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: labmanager
+          POSTGRES_PASSWORD: labmanager
+          POSTGRES_DB: labmanager
+        ports:
+          - 5432
+        options: >-
+          --health-cmd="pg_isready -U labmanager"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      meilisearch:
+        image: getmeili/meilisearch:v1.12
+        ports:
+          - 7700
+        env:
+          MEILI_ENV: development
+
+    env:
+      DATABASE_URL: postgresql+psycopg://labmanager:labmanager@localhost:${{ job.services.postgres.ports['5432'] }}/labmanager
+      MEILISEARCH_URL: http://localhost:${{ job.services.meilisearch.ports['7700'] }}
+      AUTH_ENABLED: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@f0ec1fc3b38f5e7cd731bb6ce540c5af426746bb # v5.4.1
+        with:
+          enable-cache: false
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Sync dependencies
+        run: uv sync --dev --frozen
+
+      - name: Run release gate
+        run: bash scripts/run_release_gate.sh
+
   package:
     name: package
     runs-on: [self-hosted, Linux, X64, ubuntu]
@@ -180,6 +236,7 @@ jobs:
       - lint
       - typecheck
       - test
+      - release-gate
 
     steps:
       - name: Checkout
