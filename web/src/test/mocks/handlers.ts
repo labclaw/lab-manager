@@ -46,16 +46,16 @@ const mockInventory = {
 
 const mockDocuments = {
   items: [
-    { id: 1, filename: 'invoice_001.pdf', vendor_name: 'Sigma-Aldrich', document_type: 'invoice', status: 'approved', confidence: 0.95, created_at: '2026-03-15T10:00:00' },
-    { id: 2, filename: 'packing_list_002.pdf', vendor_name: 'Fisher Scientific', document_type: 'packing_list', status: 'needs_review', confidence: 0.72, created_at: '2026-03-18T14:30:00' },
+    { id: 1, file_name: 'invoice_001.pdf', vendor_name: 'Sigma-Aldrich', document_type: 'invoice', status: 'approved', extraction_confidence: 0.95, created_at: '2026-03-15T10:00:00' },
+    { id: 2, file_name: 'packing_list_002.pdf', vendor_name: 'Fisher Scientific', document_type: 'packing_list', status: 'needs_review', extraction_confidence: 0.72, created_at: '2026-03-18T14:30:00' },
   ],
   total: 2, page: 1, page_size: 20, pages: 1,
 }
 
 const mockReviewQueue = {
   items: [
-    { id: 10, filename: 'review_doc_1.pdf', vendor_name: 'Sigma-Aldrich', document_type: 'invoice', status: 'needs_review', confidence: 0.65, created_at: '2026-03-19T09:00:00' },
-    { id: 11, filename: 'review_doc_2.pdf', vendor_name: 'Fisher Scientific', document_type: 'packing_list', status: 'needs_review', confidence: 0.88, created_at: '2026-03-19T10:00:00' },
+    { id: 10, file_name: 'review_doc_1.pdf', vendor_name: 'Sigma-Aldrich', document_type: 'invoice', status: 'needs_review', extraction_confidence: 0.65, created_at: '2026-03-19T09:00:00' },
+    { id: 11, file_name: 'review_doc_2.pdf', vendor_name: 'Fisher Scientific', document_type: 'packing_list', status: 'needs_review', extraction_confidence: 0.88, created_at: '2026-03-19T10:00:00' },
   ],
   total: 2, page: 1, page_size: 20, pages: 1,
 }
@@ -156,7 +156,7 @@ export const handlers = [
     return d ? HttpResponse.json(d) : new HttpResponse(null, { status: 404 })
   }),
   http.post('/api/documents/:id/review', () => HttpResponse.json({ status: 'ok' })),
-  http.post('/api/v1/documents/upload', () => HttpResponse.json({ id: 99, filename: 'uploaded.pdf', status: 'pending' })),
+  http.post('/api/v1/documents/upload', () => HttpResponse.json({ id: 99, file_name: 'uploaded.pdf', status: 'pending' })),
 
   // Search
   http.get('/api/search', () => HttpResponse.json(mockSearchResults)),

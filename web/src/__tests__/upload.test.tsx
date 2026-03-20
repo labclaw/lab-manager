@@ -96,10 +96,11 @@ describe('UploadPage', () => {
         http.post('/api/v1/documents/upload', () => {
           return HttpResponse.json({
             id: 99,
-            filename: 'test_invoice.pdf',
+            file_name: 'test_invoice.pdf',
             vendor_name: 'TestVendor',
             document_type: 'invoice',
-            status: 'pending',
+            status: 'needs_review',
+            extraction_confidence: 0.85,
           })
         }),
       )
@@ -181,16 +182,30 @@ describe('UploadPage', () => {
       // The progress bar should appear while uploading
       await waitFor(() => {
         const progressBar = screen.queryByRole('progressbar')
-        const uploadingText = screen.queryByText('Uploading...')
+        const uploadingTexts = screen.queryAllByText('Uploading...')
         // Either progressbar or uploading text or processing text should be present
         expect(
-          progressBar || uploadingText || screen.queryByText(/Processing AI/i),
+          progressBar || uploadingTexts.length > 0 || screen.queryByText(/Processing AI/i),
         ).toBeTruthy()
       })
     })
 
     it('shows completed files count in the bottom bar', async () => {
       const user = userEvent.setup()
+
+      server.use(
+        http.post('/api/v1/documents/upload', () => {
+          return HttpResponse.json({
+            id: 99,
+            file_name: 'invoice.pdf',
+            vendor_name: 'TestVendor',
+            document_type: 'invoice',
+            status: 'needs_review',
+            extraction_confidence: 0.85,
+          })
+        }),
+      )
+
       renderUpload()
 
       const file = createMockFile('invoice.pdf', 1024, 'application/pdf')
