@@ -104,6 +104,13 @@ class DocumentUpdate(BaseModel):
             _validate_file_path(v)
         return v
 
+    @field_validator("status")
+    @classmethod
+    def valid_status(cls, v: str | None) -> str | None:
+        if v is not None and v not in _VALID_STATUSES:
+            raise ValueError(f"status must be one of {_VALID_STATUSES}")
+        return v
+
 
 class ReviewAction(BaseModel):
     action: Literal["approve", "reject"]
