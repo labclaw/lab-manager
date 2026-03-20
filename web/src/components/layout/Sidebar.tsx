@@ -1,4 +1,18 @@
 import { Link } from 'react-router-dom'
+import {
+  LayoutDashboard,
+  Bot,
+  FileText,
+  ClipboardCheck,
+  Package,
+  ShoppingCart,
+  Upload,
+  Brain,
+  User,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { auth } from '@/lib/api'
 
@@ -11,13 +25,13 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { path: '/', label: 'Dashboard', icon: 'dashboard' },
-  { path: '/ask', label: 'Ask AI', icon: 'smart_toy' },
-  { path: '/documents', label: 'Documents', icon: 'description' },
-  { path: '/review', label: 'Review Queue', icon: 'fact_check' },
-  { path: '/inventory', label: 'Inventory', icon: 'inventory_2' },
-  { path: '/orders', label: 'Orders', icon: 'shopping_cart' },
-  { path: '/upload', label: 'Upload', icon: 'upload_file' },
+  { path: '/', label: 'Dashboard', Icon: LayoutDashboard },
+  { path: '/ask', label: 'Ask AI', Icon: Bot },
+  { path: '/documents', label: 'Documents', Icon: FileText },
+  { path: '/review', label: 'Review Queue', Icon: ClipboardCheck },
+  { path: '/inventory', label: 'Inventory', Icon: Package },
+  { path: '/orders', label: 'Orders', Icon: ShoppingCart },
+  { path: '/upload', label: 'Upload', Icon: Upload },
 ]
 
 export function Sidebar({
@@ -40,14 +54,14 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        'hidden md:flex flex-col bg-[var(--sidebar)] border-r border-primary/10 transition-all duration-300',
-        collapsed ? 'w-16' : 'w-64',
+        'relative hidden md:flex flex-col bg-[var(--sidebar)] border-r border-primary/10 transition-all duration-300 shrink-0',
+        collapsed ? 'w-16' : 'w-[240px]',
       )}
     >
       {/* Logo */}
       <div className="flex items-center gap-3 text-primary px-6 py-8">
         <div className="size-8 flex items-center justify-center bg-primary/10 rounded-lg shrink-0">
-          <span className="material-symbols-outlined text-primary text-2xl">psychology</span>
+          <Brain className="size-5" />
         </div>
         {!collapsed && (
           <div>
@@ -79,9 +93,7 @@ export function Sidebar({
               )}
               title={collapsed ? item.label : undefined}
             >
-              <span className="material-symbols-outlined text-xl">
-                {item.icon}
-              </span>
+              <item.Icon className="size-5 shrink-0" />
               {!collapsed && <span className="text-sm">{item.label}</span>}
               {!collapsed && badge > 0 && (
                 <span className="ml-auto bg-red-500/15 text-red-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
@@ -97,7 +109,7 @@ export function Sidebar({
       <div className="p-4 mt-auto border-t border-primary/10">
         <div className="flex items-center gap-3 px-4 py-3">
           <div className="h-9 w-9 rounded-full border border-primary/30 overflow-hidden shrink-0 bg-primary/10 flex items-center justify-center">
-            <span className="material-symbols-outlined text-primary text-lg">person</span>
+            <User className="size-4 text-primary" />
           </div>
           {!collapsed && (
             <div className="overflow-hidden">
@@ -110,7 +122,7 @@ export function Sidebar({
           className="flex items-center gap-3 w-full px-4 py-2 text-[var(--muted-foreground)] hover:text-red-400 transition-colors text-sm font-medium"
           title={collapsed ? 'Sign Out' : undefined}
         >
-          <span className="material-symbols-outlined text-lg">logout</span>
+          <LogOut className="size-4 shrink-0" />
           {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
@@ -121,9 +133,7 @@ export function Sidebar({
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         className="hidden lg:flex absolute -right-3 top-20 items-center justify-center w-6 h-6 rounded-full bg-[var(--card)] border border-primary/10 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
       >
-        <span className="material-symbols-outlined text-sm">
-          {collapsed ? 'chevron_right' : 'chevron_left'}
-        </span>
+        {collapsed ? <ChevronRight className="size-3" /> : <ChevronLeft className="size-3" />}
       </button>
     </aside>
   )

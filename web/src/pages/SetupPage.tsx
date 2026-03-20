@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FlaskConical, User, Mail, Lock, ArrowRight, Info } from 'lucide-react'
 import { setup } from '@/lib/api'
 
 interface Readonly_SetupPageProps {
@@ -33,7 +34,7 @@ export function SetupPage({ onComplete }: Readonly_SetupPageProps) {
         {/* Icon Header */}
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mb-6">
-            <span className="material-symbols-outlined text-primary text-4xl">science</span>
+            <FlaskConical className="text-primary size-10" />
           </div>
           <h1 className="text-slate-900 dark:text-slate-100 text-3xl font-bold tracking-tight text-center mb-2">
             Welcome to LabClaw
@@ -56,7 +57,7 @@ export function SetupPage({ onComplete }: Readonly_SetupPageProps) {
           <div className="space-y-2">
             <label htmlFor="setup-name" className="text-slate-700 dark:text-slate-300 text-sm font-semibold ml-1">Your Name</label>
             <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">person</span>
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 size-5" />
               <input
                 id="setup-name"
                 type="text"
@@ -74,7 +75,7 @@ export function SetupPage({ onComplete }: Readonly_SetupPageProps) {
           <div className="space-y-2">
             <label htmlFor="setup-email" className="text-slate-700 dark:text-slate-300 text-sm font-semibold ml-1">Email</label>
             <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">mail</span>
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 size-5" />
               <input
                 id="setup-email"
                 type="email"
@@ -91,7 +92,7 @@ export function SetupPage({ onComplete }: Readonly_SetupPageProps) {
           <div className="space-y-2">
             <label htmlFor="setup-password" className="text-slate-700 dark:text-slate-300 text-sm font-semibold ml-1">Password</label>
             <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">lock</span>
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 size-5" />
               <input
                 id="setup-password"
                 type="password"
@@ -119,7 +120,7 @@ export function SetupPage({ onComplete }: Readonly_SetupPageProps) {
               ) : (
                 <>
                   <span>Create Admin Account</span>
-                  <span className="material-symbols-outlined text-xl">arrow_forward</span>
+                  <ArrowRight className="size-5" />
                 </>
               )}
             </button>
@@ -128,7 +129,7 @@ export function SetupPage({ onComplete }: Readonly_SetupPageProps) {
 
         {/* Footer Info */}
         <div className="mt-8 pt-6 border-t border-slate-200 dark:border-[#2d2d44] flex items-center justify-center gap-2">
-          <span className="material-symbols-outlined text-slate-400 text-lg">info</span>
+          <Info className="text-slate-400 size-5" />
           <p className="text-slate-500 dark:text-slate-400 text-[11px] uppercase tracking-wider font-semibold">
             You can add more team members after setup
           </p>

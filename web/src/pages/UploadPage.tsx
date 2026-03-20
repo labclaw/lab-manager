@@ -1,6 +1,21 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { documents, type Document as AppDocument } from '@/lib/api'
+import {
+  CheckCircle,
+  BrainCog,
+  XCircle,
+  RefreshCw,
+  CloudUpload,
+  Upload,
+  Camera,
+  FileImage,
+  FileText,
+  MoreVertical,
+  X,
+  CheckCheck,
+  ArrowRight,
+} from 'lucide-react'
 
 const ACCEPTED_TYPES = new Set(['image/png', 'image/jpeg', 'image/heic', 'image/tiff', 'application/pdf'])
 const MAX_BYTES = 10 * 1024 * 1024
@@ -166,14 +181,14 @@ export function UploadPage() {
       case 'complete':
         return (
           <div className="flex items-center gap-1.5 text-accent-green">
-            <span className="material-symbols-outlined text-lg">check_circle</span>
+            <CheckCircle className="size-5" />
             <span className="text-xs font-bold">Complete</span>
           </div>
         )
       case 'processing':
         return (
           <div className="flex items-center gap-1.5 text-primary">
-            <span className="material-symbols-outlined text-lg animate-spin" style={{ animationDuration: '3s' }}>cognition</span>
+            <BrainCog className="size-5 animate-spin" style={{ animationDuration: '3s' }} />
             <span className="text-xs font-bold">Processing AI...</span>
           </div>
         )
@@ -186,14 +201,14 @@ export function UploadPage() {
       case 'failed':
         return (
           <div className="flex items-center gap-1.5 text-[#FF6B6B]">
-            <span className="material-symbols-outlined text-lg">error</span>
+            <XCircle className="size-5" />
             <span className="text-xs font-bold">Failed</span>
           </div>
         )
       case 'queued':
         return (
           <div className="flex items-center gap-1.5 text-primary">
-            <span className="material-symbols-outlined text-lg animate-spin" style={{ animationDuration: '4s' }}>sync</span>
+            <RefreshCw className="size-5 animate-spin" style={{ animationDuration: '4s' }} />
             <span className="text-xs font-bold">Queued</span>
           </div>
         )
@@ -201,8 +216,8 @@ export function UploadPage() {
   }
 
   const fileIcon = (name: string) => {
-    if (name.toLowerCase().endsWith('.pdf')) return 'picture_as_pdf'
-    return 'image'
+    if (name.toLowerCase().endsWith('.pdf')) return <FileText className="text-[var(--muted-foreground)]" />
+    return <FileImage className="text-[var(--muted-foreground)]" />
   }
 
   return (
@@ -218,7 +233,7 @@ export function UploadPage() {
         onClick={() => fileRef.current?.click()}
       >
         <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-          <span className="material-symbols-outlined text-primary text-5xl">cloud_upload</span>
+          <CloudUpload className="text-primary size-12" />
         </div>
         <h3 className="text-2xl font-bold mb-2">Drag & drop files here</h3>
         <p className="text-[var(--muted-foreground)] text-sm mb-8">PDF, PNG, JPG, HEIC -- Max 10MB per file</p>
@@ -227,7 +242,7 @@ export function UploadPage() {
             onClick={(e) => { e.stopPropagation(); fileRef.current?.click() }}
             className="bg-primary hover:bg-primary/90 text-white font-bold py-2.5 px-6 rounded-lg transition-colors flex items-center gap-2"
           >
-            <span className="material-symbols-outlined text-xl">upload_file</span>
+            <Upload className="size-5" />
             Browse Files
           </button>
           <span className="text-[var(--muted-foreground)] text-sm font-medium">or</span>
@@ -235,7 +250,7 @@ export function UploadPage() {
             onClick={(e) => { e.stopPropagation(); cameraRef.current?.click() }}
             className="bg-transparent border border-[var(--border)] hover:border-primary text-[var(--foreground)] font-bold py-2.5 px-6 rounded-lg transition-all flex items-center gap-2"
           >
-            <span className="material-symbols-outlined text-xl">photo_camera</span>
+            <Camera className="size-5" />
             Take Photo
           </button>
         </div>
@@ -284,7 +299,7 @@ export function UploadPage() {
                 <div className={`size-12 rounded-lg bg-[var(--card)] flex items-center justify-center relative overflow-hidden shrink-0 ${
                   record.status === 'failed' ? 'grayscale' : ''
                 }`}>
-                  <span className="material-symbols-outlined text-[var(--muted-foreground)]">{fileIcon(record.name)}</span>
+                  {fileIcon(record.name)}
                   {record.status === 'complete' && (
                     <div className="absolute inset-0 bg-accent-green/10 opacity-50" />
                   )}
@@ -347,19 +362,19 @@ export function UploadPage() {
                       onClick={() => retryUpload(record)}
                       className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
                     >
-                      <span className="material-symbols-outlined">refresh</span>
+                      <RefreshCw />
                     </button>
                     <button className="p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
-                      <span className="material-symbols-outlined">more_vert</span>
+                      <MoreVertical />
                     </button>
                   </div>
                 ) : record.status === 'uploading' ? (
                   <button className="p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
-                    <span className="material-symbols-outlined">close</span>
+                    <X />
                   </button>
                 ) : (
                   <button className="p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
-                    <span className="material-symbols-outlined">more_vert</span>
+                    <MoreVertical />
                   </button>
                 )}
               </div>
@@ -373,7 +388,7 @@ export function UploadPage() {
         <div className="mt-4 p-6 bg-[var(--card)] rounded-xl border border-[var(--border)] flex items-center justify-between shadow-2xl">
           <div className="flex items-center gap-4">
             <div className="size-10 rounded-full bg-accent-green/20 flex items-center justify-center text-accent-green">
-              <span className="material-symbols-outlined">done_all</span>
+              <CheckCheck />
             </div>
             <div>
               <p className="font-bold">{completedCount} of {totalCount} files processed</p>
@@ -395,7 +410,7 @@ export function UploadPage() {
                 className="px-8 py-2.5 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg shadow-lg shadow-primary/20 transition-all flex items-center gap-2"
               >
                 View in Review Queue
-                <span className="material-symbols-outlined">arrow_forward</span>
+                <ArrowRight />
               </button>
             )}
           </div>

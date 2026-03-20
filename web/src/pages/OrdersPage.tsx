@@ -1,8 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { orders as ordApi } from '@/lib/api'
-import { SkeletonTable } from '@/components/ui/SkeletonTable'
-import { EmptyState } from '@/components/ui/EmptyState'
+import {
+  Check,
+  Truck,
+  Building2,
+  PackageCheck,
+  ChevronRight,
+  CartPlus,
+  ShoppingCart,
+  FlaskConical,
+  ClipboardCheck,
+  ConveyorBelt,
+} from 'lucide-react'
 
 interface OrdersPageProps {
   readonly onError: (msg: string) => void
@@ -25,10 +35,10 @@ const STATUS_PROGRESS: Record<string, number> = {
 }
 
 const PROGRESS_STEPS = [
-  { key: 'ordered', label: 'Ordered', icon: 'check' },
-  { key: 'shipped', label: 'Shipped', icon: 'local_shipping' },
-  { key: 'out_for_delivery', label: 'Out for Delivery', icon: 'home_work' },
-  { key: 'received', label: 'Received', icon: 'inventory' },
+  { key: 'ordered', label: 'Ordered', icon: Check },
+  { key: 'shipped', label: 'Shipped', icon: Truck },
+  { key: 'out_for_delivery', label: 'Out for Delivery', icon: Building2 },
+  { key: 'received', label: 'Received', icon: PackageCheck },
 ] as const
 
 export function OrdersPage({ onError }: OrdersPageProps) {
@@ -38,7 +48,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
 
   const { data: res, isLoading, error } = useQuery({
     queryKey: ['orders', page, activeTab],
-    queryFn: () => ordApi.list(page, pageSize, activeTab),
+    queryFn: () => ordApi.list(page, pageSize),
   })
 
   useEffect(() => {
@@ -50,8 +60,12 @@ export function OrdersPage({ onError }: OrdersPageProps) {
   const allOrders = res?.items ?? []
   const total = res?.total ?? 0
 
-  // API now handles tab filtering via status_group parameter
-  const orders = allOrders
+  // Filter by tab
+  const orders = allOrders.filter((o) => {
+    if (activeTab === 'active') return o.status !== 'received' && o.status !== 'cancelled'
+    if (activeTab === 'past') return o.status === 'received' || o.status === 'cancelled'
+    return false // drafts: none from API currently
+  })
 
   const formatCurrency = (amount?: number) => {
     if (amount == null) return '\u2014'
@@ -71,8 +85,8 @@ export function OrdersPage({ onError }: OrdersPageProps) {
 
   if (isLoading) {
     return (
-      <div className="max-w-6xl mx-auto space-y-8">
-        <SkeletonTable rows={5} columns={6} />
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
       </div>
     )
   }
@@ -83,7 +97,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
       <div>
         <div className="flex items-center text-xs text-on-surface-variant font-medium uppercase tracking-wider mb-2">
           <span>Procurement</span>
-          <span className="material-symbols-outlined text-[10px] mx-2">chevron_right</span>
+          <ChevronRight className="size-2.5 mx-2" />
           <span className="text-primary font-bold">Supply Chains</span>
         </div>
         <div className="flex justify-between items-end">
@@ -94,7 +108,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
             </p>
           </div>
           <button disabled className="bg-gradient-to-br from-primary to-primary-container text-white px-6 py-3 rounded-xl font-bold flex items-center shadow-lg opacity-50 cursor-not-allowed" title="Coming soon">
-            <span className="material-symbols-outlined mr-2">add_shopping_cart</span>
+            <CartPlus className="mr-2" />
             New Requisition
           </button>
         </div>
@@ -119,17 +133,17 @@ export function OrdersPage({ onError }: OrdersPageProps) {
 
       {/* Bento Grid */}
       {orders.length === 0 ? (
-        <EmptyState
-          icon="shopping_cart"
-          title="No orders found"
-          description={
-            activeTab === 'active'
-              ? 'No active orders right now.'
-              : activeTab === 'past'
-                ? 'No past orders yet.'
-                : 'No drafts saved.'
-          }
-        />
+        <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-surface-container-high flex items-center justify-center">
+            <ShoppingCart className="text-on-surface-variant" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold text-on-surface">No orders found</h3>
+            <p className="text-sm text-on-surface-variant max-w-xs mx-auto">
+              {activeTab === 'active' ? 'No active orders right now.' : activeTab === 'past' ? 'No past orders yet.' : 'No drafts saved.'}
+            </p>
+          </div>
+        </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Featured Card (full width) */}
@@ -147,7 +161,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
                     </span>
                   </div>
                   <p className="text-sm font-medium text-on-surface-variant flex items-center">
-                    <span className="material-symbols-outlined text-sm mr-1">science</span>
+                    <FlaskConical className="size-4 mr-1" />
                     {featured.vendor_name ?? 'Unknown'} {featured.order_date ? `\u00B7 ${formatDate(featured.order_date)}` : ''}
                   </p>
                 </div>
@@ -171,6 +185,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
                   {PROGRESS_STEPS.map((step, i) => {
                     const active = i < getProgressIndex(featured.status)
                     const current = i === getProgressIndex(featured.status)
+                    const StepIcon = active ? Check : step.icon
                     return (
                       <div key={step.key} className="flex flex-col items-center">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 shadow-md ${
@@ -178,11 +193,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
                             ? 'bg-primary text-white'
                             : 'bg-surface-container text-[var(--muted-foreground)]/40 border border-outline'
                         }`}>
-                          <span className="material-symbols-outlined text-sm"
-                            style={active ? { fontVariationSettings: "'FILL' 1" } : undefined}
-                          >
-                            {active ? 'check' : step.icon}
-                          </span>
+                          <StepIcon className="size-4" />
                         </div>
                         <span className={`text-[10px] font-bold mt-3 uppercase tracking-tighter ${
                           active || current ? 'text-on-surface' : 'text-on-surface-variant opacity-50'
@@ -224,9 +235,11 @@ export function OrdersPage({ onError }: OrdersPageProps) {
                     </p>
                   </div>
                   <div className="h-12 w-12 rounded-xl bg-surface-container flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <span className={`material-symbols-outlined ${isPending ? 'text-on-surface-variant' : 'text-primary'}`}>
-                      {isPending ? 'pending_actions' : 'conveyor_belt'}
-                    </span>
+                    {isPending ? (
+                      <ClipboardCheck className={`size-6 ${isPending ? 'text-on-surface-variant' : 'text-primary'}`} />
+                    ) : (
+                      <ConveyorBelt className={`size-6 ${isPending ? 'text-on-surface-variant' : 'text-primary'}`} />
+                    )}
                   </div>
                 </div>
                 <div className="space-y-4">

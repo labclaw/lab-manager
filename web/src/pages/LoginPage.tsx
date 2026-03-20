@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FlaskConical, Mail, Lock, LogIn, ShieldCheck } from 'lucide-react'
 import { auth } from '@/lib/api'
 
 export function LoginPage() {
@@ -29,7 +30,7 @@ export function LoginPage() {
         <div className="flex flex-col items-center gap-2 mb-8">
           <div className="flex items-center gap-2">
             <div className="bg-primary/20 p-2 rounded-lg flex items-center justify-center">
-              <span className="material-symbols-outlined text-primary text-3xl">science</span>
+              <FlaskConical className="text-primary size-8" />
             </div>
             <h1 className="text-[var(--foreground)] text-2xl font-bold tracking-tight">LabClaw</h1>
           </div>
@@ -49,7 +50,7 @@ export function LoginPage() {
           <div className="flex flex-col gap-2">
             <label htmlFor="email" className="text-[var(--foreground)] text-sm font-medium ml-1">Email</label>
             <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-xl">mail</span>
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] size-5" />
               <input
                 id="email"
                 type="email"
@@ -67,7 +68,7 @@ export function LoginPage() {
           <div className="flex flex-col gap-2">
             <label htmlFor="password" className="text-[var(--foreground)] text-sm font-medium ml-1">Password</label>
             <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-xl">lock</span>
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] size-5" />
               <input
                 id="password"
                 type="password"
@@ -94,7 +95,7 @@ export function LoginPage() {
             ) : (
               <>
                 <span>Sign In</span>
-                <span className="material-symbols-outlined text-xl">login</span>
+                <LogIn className="size-5" />
               </>
             )}
           </button>
@@ -103,7 +104,7 @@ export function LoginPage() {
 
       {/* Security Badge */}
       <div className="fixed bottom-6 flex items-center gap-2 text-[var(--muted-foreground)]/50">
-        <span className="material-symbols-outlined text-sm">verified_user</span>
+        <ShieldCheck className="size-4" />
         <span className="text-[10px] uppercase tracking-widest font-bold">Secure Environment</span>
       </div>
     </div>
