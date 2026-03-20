@@ -94,7 +94,7 @@ describe('DashboardPage', () => {
 
     it('pluralizes when multiple items are low stock', async () => {
       server.use(
-        http.get('/api/inventory/low-stock/', () =>
+        http.get('/api/v1/inventory/low-stock', () =>
           HttpResponse.json({
             items: [
               { id: 3, product_name: 'A', quantity: 1 },
@@ -132,7 +132,7 @@ describe('DashboardPage', () => {
 
     it('pluralizes when multiple items are expiring', async () => {
       server.use(
-        http.get('/api/inventory/expiring/', () =>
+        http.get('/api/v1/inventory/expiring', () =>
           HttpResponse.json({
             items: [
               { id: 2, product_name: 'A', expiry_date: '2026-03-22' },
@@ -177,7 +177,7 @@ describe('DashboardPage', () => {
 
     it('shows "No vendor data yet" when vendor list is empty', async () => {
       server.use(
-        http.get('/api/vendors', () =>
+        http.get('/api/v1/vendors', () =>
           HttpResponse.json({
             items: [],
             total: 0,
@@ -207,7 +207,7 @@ describe('DashboardPage', () => {
     it('shows zero counts before data loads', () => {
       // Override to delay response
       server.use(
-        http.get('/api/analytics/dashboard/', async () => {
+        http.get('/api/v1/analytics/dashboard', async () => {
           await new Promise(() => {
             /* never resolves */
           })

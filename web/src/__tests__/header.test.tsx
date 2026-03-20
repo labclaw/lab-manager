@@ -73,7 +73,7 @@ describe('Header', () => {
   describe('AC3: Typing shows suggestions from search.suggest() (debounced)', () => {
     it('shows suggestions after debounce delay', async () => {
       server.use(
-        http.get('/api/search/suggest', () =>
+        http.get('/api/v1/search/suggest', () =>
           HttpResponse.json({
             suggestions: ['Sodium Chloride', 'Sodium Hydroxide'],
           }),
@@ -128,7 +128,7 @@ describe('Header', () => {
   describe('AC5: Search suggestions dropdown appears', () => {
     it('renders suggestions as a listbox with option roles', async () => {
       server.use(
-        http.get('/api/search/suggest', () =>
+        http.get('/api/v1/search/suggest', () =>
           HttpResponse.json({
             suggestions: ['Ethanol 95%', 'Ethanol Absolute'],
           }),
@@ -153,7 +153,7 @@ describe('Header', () => {
 
     it('sets aria-expanded to true when suggestions are visible', async () => {
       server.use(
-        http.get('/api/search/suggest', () =>
+        http.get('/api/v1/search/suggest', () =>
           HttpResponse.json({
             suggestions: ['Test suggestion'],
           }),

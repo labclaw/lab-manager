@@ -186,7 +186,7 @@ describe('DocumentsPage', () => {
   describe('AC4: Empty state shown when no documents', () => {
     it('shows empty state when API returns no documents', async () => {
       server.use(
-        http.get('/api/documents', () =>
+        http.get('/api/v1/documents', () =>
           HttpResponse.json({
             items: [],
             total: 0,
@@ -204,7 +204,7 @@ describe('DocumentsPage', () => {
 
     it('shows upload button in empty state', async () => {
       server.use(
-        http.get('/api/documents', () =>
+        http.get('/api/v1/documents', () =>
           HttpResponse.json({
             items: [],
             total: 0,
@@ -262,7 +262,7 @@ describe('DocumentsPage', () => {
   describe('AC6: Loading state', () => {
     it('shows loading spinner while fetching documents', async () => {
       server.use(
-        http.get('/api/documents', async () => {
+        http.get('/api/v1/documents', async () => {
           await new Promise(() => {
             /* never resolves */
           })
@@ -277,7 +277,7 @@ describe('DocumentsPage', () => {
 
     it('shows spinner element during loading', async () => {
       server.use(
-        http.get('/api/documents', async () => {
+        http.get('/api/v1/documents', async () => {
           await new Promise(() => {
             /* never resolves */
           })
