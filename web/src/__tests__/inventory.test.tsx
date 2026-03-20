@@ -102,7 +102,7 @@ describe('InventoryPage', () => {
     it('shows spinner while loading', () => {
       // Delay the response to keep loading state visible
       server.use(
-        http.get('/api/inventory', async () => {
+        http.get('/api/v1/inventory', async () => {
           await new Promise((resolve) => setTimeout(resolve, 500))
           return HttpResponse.json({
             items: [], total: 0, page: 1, page_size: 15, pages: 0,
@@ -121,7 +121,7 @@ describe('InventoryPage', () => {
   describe('AC5: Empty state when no items', () => {
     it('shows empty state message when inventory is empty', async () => {
       server.use(
-        http.get('/api/inventory', () => {
+        http.get('/api/v1/inventory', () => {
           return HttpResponse.json({
             items: [], total: 0, page: 1, page_size: 15, pages: 0,
           })
@@ -140,7 +140,7 @@ describe('InventoryPage', () => {
 
     it('does not show pagination when inventory is empty', async () => {
       server.use(
-        http.get('/api/inventory', () => {
+        http.get('/api/v1/inventory', () => {
           return HttpResponse.json({
             items: [], total: 0, page: 1, page_size: 15, pages: 0,
           })

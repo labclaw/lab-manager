@@ -114,8 +114,8 @@ describe('ReviewPage', () => {
       let capturedUrl = ''
 
       server.use(
-        http.post('/api/documents/:id/review', async ({ request, params }) => {
-          capturedUrl = `/api/documents/${params.id}/review`
+        http.post('/api/v1/documents/:id/review', async ({ request, params }) => {
+          capturedUrl = `/api/v1/documents/${params.id}/review`
           capturedBody = (await request.json()) as Record<string, unknown>
           return HttpResponse.json({ status: 'ok' })
         }),
@@ -138,7 +138,7 @@ describe('ReviewPage', () => {
       })
 
       // Sorted by confidence ascending: id=10 is first (auto-selected)
-      expect(capturedUrl).toBe('/api/documents/10/review')
+      expect(capturedUrl).toBe('/api/v1/documents/10/review')
       expect(capturedBody).toEqual(
         expect.objectContaining({
           action: 'approve',
@@ -173,7 +173,7 @@ describe('ReviewPage', () => {
       let capturedBody: Record<string, unknown> | null = null
 
       server.use(
-        http.post('/api/documents/:id/review', async ({ request }) => {
+        http.post('/api/v1/documents/:id/review', async ({ request }) => {
           capturedBody = (await request.json()) as Record<string, unknown>
           return HttpResponse.json({ status: 'ok' })
         }),
@@ -219,7 +219,7 @@ describe('ReviewPage', () => {
       let capturedBody: Record<string, unknown> | null = null
 
       server.use(
-        http.post('/api/documents/:id/review', async ({ request }) => {
+        http.post('/api/v1/documents/:id/review', async ({ request }) => {
           capturedBody = (await request.json()) as Record<string, unknown>
           return HttpResponse.json({ status: 'ok' })
         }),
@@ -279,7 +279,7 @@ describe('ReviewPage', () => {
   describe('AC9: Empty queue shows "No documents waiting" state', () => {
     it('shows empty state when no documents need review', async () => {
       server.use(
-        http.get('/api/documents', () =>
+        http.get('/api/v1/documents', () =>
           HttpResponse.json({
             items: [],
             total: 0,
@@ -301,7 +301,7 @@ describe('ReviewPage', () => {
 
     it('shows upload button in empty state', async () => {
       server.use(
-        http.get('/api/documents', () =>
+        http.get('/api/v1/documents', () =>
           HttpResponse.json({
             items: [],
             total: 0,

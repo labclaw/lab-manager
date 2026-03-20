@@ -69,10 +69,10 @@ describe('UploadPage', () => {
           uploadCalled = true
           return HttpResponse.json({
             id: 99,
-            filename: 'test_invoice.pdf',
+            file_name: 'test_invoice.pdf',
             vendor_name: 'TestVendor',
             document_type: 'invoice',
-            status: 'pending',
+            status: 'needs_review',
           })
         }),
       )
@@ -174,7 +174,7 @@ describe('UploadPage', () => {
           })
         }),
         // Poll endpoint returns the same non-final status
-        http.get('/api/documents/:id', () => {
+        http.get('/api/v1/documents/:id', () => {
           return HttpResponse.json({
             id: 99,
             file_name: 'test.pdf',

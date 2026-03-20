@@ -92,7 +92,7 @@ describe('OrdersPage', () => {
       // Need multiple active orders so pending one appears as secondary card
       // Featured picks shipped/ordered first; pending falls to secondary
       server.use(
-        http.get('/api/orders', () => {
+        http.get('/api/v1/orders', () => {
           return HttpResponse.json({
             items: [
               { id: 10, vendor_name: 'VWR', po_number: 'PO-SHIP-001', status: 'shipped', total_amount: 200.00, item_count: 2 },
@@ -127,7 +127,7 @@ describe('OrdersPage', () => {
 
     it('shows shipped status badge with progress tracker for shipped orders', async () => {
       server.use(
-        http.get('/api/orders', () => {
+        http.get('/api/v1/orders', () => {
           return HttpResponse.json({
             items: [
               { id: 10, vendor_name: 'VWR', po_number: 'PO-SHIP-001', status: 'shipped', total_amount: 100.00, item_count: 1 },
@@ -153,7 +153,7 @@ describe('OrdersPage', () => {
   describe('AC4: Loading state', () => {
     it('shows spinner while loading', () => {
       server.use(
-        http.get('/api/orders', async () => {
+        http.get('/api/v1/orders', async () => {
           await new Promise((resolve) => setTimeout(resolve, 500))
           return HttpResponse.json({
             items: [], total: 0, page: 1, page_size: 20, pages: 0,
@@ -171,7 +171,7 @@ describe('OrdersPage', () => {
   describe('AC5: Empty state when no orders', () => {
     it('shows empty state message when no active orders', async () => {
       server.use(
-        http.get('/api/orders', () => {
+        http.get('/api/v1/orders', () => {
           return HttpResponse.json({
             items: [], total: 0, page: 1, page_size: 20, pages: 0,
           })
@@ -190,7 +190,7 @@ describe('OrdersPage', () => {
       const user = userEvent.setup()
 
       server.use(
-        http.get('/api/orders', () => {
+        http.get('/api/v1/orders', () => {
           return HttpResponse.json({
             items: [], total: 0, page: 1, page_size: 20, pages: 0,
           })
@@ -214,7 +214,7 @@ describe('OrdersPage', () => {
       const user = userEvent.setup()
 
       server.use(
-        http.get('/api/orders', () => {
+        http.get('/api/v1/orders', () => {
           return HttpResponse.json({
             items: [], total: 0, page: 1, page_size: 20, pages: 0,
           })
