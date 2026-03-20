@@ -12,7 +12,7 @@ All notable changes to LabClaw Lab Manager will be documented in this file.
 - Moved GitHub Actions to the available self-hosted runner and fixed the secrets-scan install path for gitleaks
 
 ### Changed
-- Defined `v0.1.6` as the minimum stable internal release for Shen Lab Manager
+- Defined `v0.1.6` as the minimum stable internal release
 - Release CI now gates on the maintained core suite (`tests --ignore=tests/bdd`) plus frontend lint/build/test, while legacy BDD coverage remains under cleanup
 
 ## [0.1.5] - 2026-03-19
