@@ -127,6 +127,8 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
   const [submitting, setSubmitting] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   const transcriptRef = useRef<HTMLDivElement | null>(null)
+  const turnsRef = useRef(turns)
+  turnsRef.current = turns
 
   const canSubmit = question.trim().length > 0 && question.length <= MAX_QUESTION_LENGTH && !submitting
   const remainingChars = MAX_QUESTION_LENGTH - question.length
@@ -169,7 +171,7 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
     setQuestion('')
 
     try {
-      const response = (await ask.query(buildContextualQuestion(turns, trimmed))) as AskResponse
+      const response = (await ask.query(buildContextualQuestion(turnsRef.current, trimmed))) as AskResponse
       setTurns((current) =>
         current.map((turn) =>
           turn.id === turnId

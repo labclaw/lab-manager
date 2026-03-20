@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { documents, type Document as AppDocument } from '@/lib/api'
 
@@ -33,6 +33,16 @@ export function UploadPage() {
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
+  const intervalsRef = useRef<Set<ReturnType<typeof setInterval>>>(new Set())
+
+  useEffect(() => {
+    return () => {
+      for (const interval of intervalsRef.current) {
+        clearInterval(interval)
+      }
+      intervalsRef.current.clear()
+    }
+  }, [])
 
   const pollDocument = useCallback((uploadId: number, docId: number) => {
     const interval = setInterval(async () => {
@@ -41,6 +51,7 @@ export function UploadPage() {
         const finalStatuses = ['needs_review', 'extracted', 'approved', 'ocr_failed', 'rejected']
         if (finalStatuses.includes(doc.status ?? '')) {
           clearInterval(interval)
+          intervalsRef.current.delete(interval)
           setUploads((prev) => prev.map((u) => u.id === uploadId ? {
             ...u,
             status: doc.status === 'ocr_failed' ? 'failed' : 'complete',
@@ -68,7 +79,7 @@ export function UploadPage() {
         // Swallow poll errors — the upload itself succeeded
       }
     }, 3000)
-    return () => clearInterval(interval)
+    intervalsRef.current.add(interval)
   }, [])
 
   const processFile = useCallback(async (file: File) => {

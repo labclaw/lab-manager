@@ -144,12 +144,16 @@ export interface AskResponse {
 async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
   // Ensure trailing slash for FastAPI compatibility
   const cleanUrl = url.endsWith('/') || opts?.method === 'POST' || url.includes('?') ? url : url + '/'
+  const headers: Record<string, string> = {
+    ...opts?.headers,
+  }
+  // Only set Content-Type for non-FormData bodies
+  if (!(opts?.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json'
+  }
   const res = await fetch(`${BASE}${cleanUrl}`, {
     ...opts,
-    headers: {
-      'Content-Type': 'application/json',
-      ...opts?.headers,
-    },
+    headers,
   })
   if (res.status === 401) {
     throw new Error('Unauthorized')
