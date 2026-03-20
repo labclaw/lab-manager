@@ -197,17 +197,19 @@ def test_admin_auth_requires_admin_password(monkeypatch, auth_engine):
 
 
 def test_admin_auth_requires_admin_secret_key(monkeypatch, auth_engine):
-    """SQLAdmin must not fall back to API_KEY for its session secret."""
+    """Settings validation rejects empty ADMIN_SECRET_KEY when auth is enabled."""
     monkeypatch.setenv("AUTH_ENABLED", "true")
     monkeypatch.setenv("ADMIN_PASSWORD", "test-admin-password-12345")
     monkeypatch.setenv("API_KEY", "test-api-key-12345")
     monkeypatch.setenv("ADMIN_SECRET_KEY", "")
     get_settings.cache_clear()
 
-    from lab_manager.api.admin import _make_auth_backend
+    from pydantic import ValidationError as PydanticValidationError
 
-    with pytest.raises(RuntimeError, match="ADMIN_SECRET_KEY"):
-        _make_auth_backend()
+    from lab_manager.config import Settings
+
+    with pytest.raises((PydanticValidationError, ValueError), match="ADMIN_SECRET_KEY"):
+        Settings()
 
 
 def test_admin_auth_requires_distinct_admin_password(monkeypatch, auth_engine):

@@ -126,8 +126,8 @@ def create_app() -> FastAPI:
         **docs_kwargs,
     )
 
-    # Trust X-Forwarded-* headers from proxies (fixes SQLAdmin mixed content behind HTTPS)
-    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
+    # Trust X-Forwarded-* headers only from loopback (reverse proxy on same host)
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["127.0.0.1", "::1"])
 
     # --- Rate limiting (slowapi) ---
     limiter = Limiter(key_func=get_remote_address)
