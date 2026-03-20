@@ -138,7 +138,7 @@ class TestE2EDeployment:
     # ------------------------------------------------------------------
 
     def test_config(self, e2e_client):
-        """GET /api/config returns lab_name."""
+        """GET /api/v1/config returns lab_name."""
         resp = e2e_client.get("/api/v1/config")
         assert resp.status_code == 200
         data = resp.json()

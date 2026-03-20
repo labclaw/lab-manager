@@ -78,7 +78,7 @@ class TestAuthAllowlist:
         assert resp.status_code != 401
 
     def test_config_public(self):
-        """GET /api/config returns 200 without auth."""
+        """GET /api/v1/config returns 200 without auth."""
         resp = self.client.get("/api/v1/config")
         assert resp.status_code != 401
 
