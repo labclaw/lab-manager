@@ -29,6 +29,7 @@ def get_spending_by_vendor(
     return svc.spending_by_vendor(db, date_from=date_from, date_to=date_to)
 
 
+@router.get("/spending")
 @router.get("/spending/by-month")
 def get_spending_by_month(
     months: int = Query(12, ge=1, le=120),
