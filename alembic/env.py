@@ -1,5 +1,7 @@
 """Alembic migration environment."""
 
+import re
+
 from alembic import context
 from sqlalchemy import create_engine, text
 from sqlmodel import SQLModel
@@ -14,6 +16,12 @@ target_metadata = SQLModel.metadata
 # the default user may lack CREATE privilege on the 'public' schema.
 # Using a custom schema the app user owns avoids this PG 15+ restriction.
 APP_SCHEMA = "labmanager"
+
+# Validate schema name to prevent SQL injection via f-strings
+if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", APP_SCHEMA):
+    raise ValueError(
+        f"Invalid APP_SCHEMA '{APP_SCHEMA}': must match ^[a-zA-Z_][a-zA-Z0-9_]*$"
+    )
 
 
 def run_migrations_online():

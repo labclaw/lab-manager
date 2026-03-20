@@ -27,6 +27,16 @@ class Settings(BaseSettings):
                 )
         return self
 
+    @model_validator(mode="after")
+    def _validate_auth_config(self):
+        """Ensure ADMIN_SECRET_KEY is set when auth is enabled."""
+        if self.auth_enabled and not self.admin_secret_key:
+            raise ValueError(
+                "ADMIN_SECRET_KEY must be set when AUTH_ENABLED=true. "
+                'Generate one with: python -c "import secrets; print(secrets.token_hex(32))"'
+            )
+        return self
+
     meilisearch_url: str = "http://localhost:7700"
     meilisearch_api_key: str = ""
 
@@ -42,7 +52,7 @@ class Settings(BaseSettings):
     admin_secret_key: str = ""
     admin_password: str = ""
     auth_enabled: bool = True
-    secure_cookies: bool = False
+    secure_cookies: bool = True
 
     # Document intake
     ocr_model: str = "Qwen/Qwen3-VL-4B-Instruct"
