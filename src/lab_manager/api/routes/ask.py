@@ -23,6 +23,7 @@ class AskResponse(BaseModel):
     answer: str
     sql: Optional[str] = None
     raw_results: list = []
+    row_count: Optional[int] = None
     source: str = "sql"
 
 

@@ -515,27 +515,44 @@ class TestSearchRoutes:
 
 
 class TestAskRoutes:
-    @patch("lab_manager.services.rag.ask")
+    @patch("lab_manager.api.routes.ask.ask")
     def test_ask_post(self, mock_ask, client):
         mock_ask.return_value = {
             "question": "q",
             "answer": "a",
             "raw_results": [],
+            "row_count": 3,
             "source": "sql",
         }
         resp = client.post("/api/v1/ask", json={"question": "How many?"})
         assert resp.status_code == 200
+        assert resp.json()["row_count"] == 3
 
-    @patch("lab_manager.services.rag.ask")
+    @patch("lab_manager.api.routes.ask.ask")
     def test_ask_get(self, mock_ask, client):
         mock_ask.return_value = {
             "question": "q",
             "answer": "a",
             "raw_results": [],
+            "row_count": 7,
             "source": "sql",
         }
         resp = client.get("/api/v1/ask?q=How+many")
         assert resp.status_code == 200
+        assert resp.json()["row_count"] == 7
+
+
+class TestAskRouteRegistration:
+    def test_ask_routes_are_versioned(self):
+        from lab_manager.api.app import create_app
+
+        app = create_app()
+        paths = {route.path for route in app.routes if hasattr(route, "path")}
+
+        assert "/api/v1/ask" in paths
+        assert "/api/v1/ask/" in paths
+        assert "/api/ask" not in paths
+        assert "/api/ask/" not in paths
 
 
 # ---------------------------------------------------------------------------

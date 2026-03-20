@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/Header'
 import { ErrorBanner } from '@/components/ui/ErrorBanner'
 import { LoginPage } from '@/pages/LoginPage'
 import { SetupPage } from '@/pages/SetupPage'
+import { AskPage } from '@/pages/AskPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { InventoryPage } from '@/pages/InventoryPage'
 import { OrdersPage } from '@/pages/OrdersPage'
@@ -15,6 +16,7 @@ import { UploadPage } from '@/pages/UploadPage'
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
+  '/ask': 'Ask AI',
   '/inventory': 'Inventory',
   '/orders': 'Orders',
   '/documents': 'Documents',
@@ -157,6 +159,7 @@ export default function App() {
           <main className="flex-1 overflow-y-auto p-6">
             <Routes>
               <Route path="/" element={<DashboardPage onError={setError} />} />
+              <Route path="/ask" element={<AskPage onError={setError} />} />
               <Route path="/inventory" element={<InventoryPage onError={setError} />} />
               <Route path="/orders" element={<OrdersPage onError={setError} />} />
               <Route path="/documents" element={<DocumentsPage onError={setError} />} />

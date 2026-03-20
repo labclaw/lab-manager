@@ -92,6 +92,19 @@ export interface Alert {
   created_at: string
 }
 
+export interface AskEvidenceRow {
+  [key: string]: unknown
+}
+
+export interface AskResponse {
+  question: string
+  answer: string
+  sql?: string | null
+  raw_results: AskEvidenceRow[]
+  row_count?: number
+  source: 'sql' | 'search' | string
+}
+
 async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
   // Ensure trailing slash for FastAPI compatibility
   const cleanUrl = url.endsWith('/') || opts?.method === 'POST' || url.includes('?') ? url : url + '/'
@@ -247,4 +260,12 @@ export const alerts = {
     apiFetch<Alert>(`/alerts/${id}/acknowledge`, { method: 'POST' }),
   resolve: (id: number) =>
     apiFetch<Alert>(`/alerts/${id}/resolve`, { method: 'POST' }),
+}
+
+export const ask = {
+  query: (question: string) =>
+    apiFetch<AskResponse>('/v1/ask', {
+      method: 'POST',
+      body: JSON.stringify({ question }),
+    }),
 }
