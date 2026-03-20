@@ -18,6 +18,7 @@ from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 from sqlalchemy import text
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 # Import to register SQLAlchemy event listeners on module load.
 import lab_manager.services.audit as _audit_svc  # noqa: F401
@@ -124,6 +125,9 @@ def create_app() -> FastAPI:
         version="0.1.5",
         **docs_kwargs,
     )
+
+    # Trust X-Forwarded-* headers from proxies (fixes SQLAdmin mixed content behind HTTPS)
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
 
     # --- Rate limiting (slowapi) ---
     limiter = Limiter(key_func=get_remote_address)
