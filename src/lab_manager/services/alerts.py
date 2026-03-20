@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from lab_manager.models.alert import Alert
 from lab_manager.models.document import Document, DocumentStatus
-from lab_manager.models.inventory import ACTIVE_STATUSES, InventoryItem, InventoryStatus
+from lab_manager.models.inventory import ACTIVE_STATUSES, InventoryItem
 from lab_manager.models.order import Order, OrderStatus
 from lab_manager.models.product import Product
 
@@ -58,9 +58,7 @@ def _check_expired(db: Session) -> list[dict]:
         .filter(
             InventoryItem.expiry_date.isnot(None),
             InventoryItem.expiry_date < today,
-            InventoryItem.status.in_(
-                ACTIVE_STATUSES
-            ),
+            InventoryItem.status.in_(ACTIVE_STATUSES),
         )
         .limit(500)
         .all()
@@ -92,9 +90,7 @@ def _check_expiring_soon(db: Session, days: int = 30) -> list[dict]:
             InventoryItem.expiry_date.isnot(None),
             InventoryItem.expiry_date >= today,
             InventoryItem.expiry_date <= cutoff,
-            InventoryItem.status.in_(
-                ACTIVE_STATUSES
-            ),
+            InventoryItem.status.in_(ACTIVE_STATUSES),
         )
         .limit(500)
         .all()
@@ -127,11 +123,7 @@ def _check_out_of_stock(db: Session) -> list[dict]:
             InventoryItem.product_id,
             func.coalesce(func.sum(InventoryItem.quantity_on_hand), 0).label("total"),
         )
-        .filter(
-            InventoryItem.status.in_(
-                ACTIVE_STATUSES
-            )
-        )
+        .filter(InventoryItem.status.in_(ACTIVE_STATUSES))
         .group_by(InventoryItem.product_id)
         .subquery()
     )
@@ -170,11 +162,7 @@ def _check_low_stock(db: Session) -> list[dict]:
             InventoryItem.product_id,
             func.sum(InventoryItem.quantity_on_hand).label("total"),
         )
-        .filter(
-            InventoryItem.status.in_(
-                ACTIVE_STATUSES
-            )
-        )
+        .filter(InventoryItem.status.in_(ACTIVE_STATUSES))
         .group_by(InventoryItem.product_id)
         .subquery()
     )
