@@ -120,7 +120,7 @@ jobs:
           POSTGRES_PASSWORD: labmanager
           POSTGRES_DB: labmanager
         ports:
-          - 5432/tcp
+          - 5432
         options: >-
           --health-cmd="pg_isready -U labmanager"
           --health-interval=10s
@@ -130,7 +130,7 @@ jobs:
       meilisearch:
         image: getmeili/meilisearch:v1.12
         ports:
-          - 7700/tcp
+          - 7700
         env:
           MEILI_ENV: development
 
