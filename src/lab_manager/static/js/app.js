@@ -12,7 +12,7 @@ async function handleSetup(e) {
   btn.textContent = "Creating account...";
   errDiv.style.display = "none";
   try {
-    const r = await fetch("/api/setup/complete", {
+    const r = await fetch("/api/v1/setup/complete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -44,7 +44,7 @@ async function handleSetup(e) {
 // --- Load lab config (name, subtitle) ---
 async function loadLabConfig() {
   try {
-    const r = await fetch("/api/config");
+    const r = await fetch("/api/v1/config");
     if (r.ok) {
       const cfg = await r.json();
       const nameEl = document.getElementById("sidebar-lab-name");
@@ -64,7 +64,7 @@ async function handleLogin(e) {
   btn.textContent = "Signing in...";
   errDiv.style.display = "none";
   try {
-    const r = await fetch("/api/auth/login", {
+    const r = await fetch("/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -90,7 +90,7 @@ async function handleLogin(e) {
 }
 
 async function handleLogout() {
-  await fetch("/api/auth/logout", { method: "POST" });
+  await fetch("/api/v1/auth/logout", { method: "POST" });
   currentUser = null;
   document.getElementById("main-app").classList.add("hidden");
   document.getElementById("login-screen").classList.remove("hidden");
@@ -149,7 +149,7 @@ async function init() {
   try {
     const [, setupR] = await Promise.all([
       loadLabConfig(),
-      fetch("/api/setup/status"),
+      fetch("/api/v1/setup/status"),
     ]);
     if (setupR.ok) {
       const setupData = await setupR.json();
@@ -164,7 +164,7 @@ async function init() {
 
   // Check if already authenticated via session cookie
   try {
-    const r = await fetch("/api/auth/me");
+    const r = await fetch("/api/v1/auth/me");
     if (r.ok) {
       const data = await r.json();
       currentUser = data.user;

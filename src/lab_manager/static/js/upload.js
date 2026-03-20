@@ -1,5 +1,5 @@
 // upload.js — Mobile camera / file upload UI for lab documents
-// API: POST /api/documents/upload  multipart "file" field
+// API: POST /api/v1/documents/upload  multipart "file" field
 // Accepted: image/png, image/jpeg, image/tiff, application/pdf  max 50 MB
 
 const ACCEPTED_TYPES = new Set(['image/png', 'image/jpeg', 'image/tiff', 'application/pdf']);
@@ -122,7 +122,7 @@ async function _doUpload(file) {
   form.append('file', file);
 
   try {
-    const doc = await apiFetch('/api/documents/upload', { method: 'POST', body: form });
+    const doc = await apiFetch('/api/v1/documents/upload', { method: 'POST', body: form });
 
     _uploadSessionHistory.unshift({ name: file.name, size: file.size, doc });
     _renderHistory();
