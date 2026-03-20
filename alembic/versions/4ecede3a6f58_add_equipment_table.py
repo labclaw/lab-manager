@@ -1,7 +1,7 @@
 """add equipment table
 
 Revision ID: 4ecede3a6f58
-Revises: a1b2c3d4e5f6
+Revises: b2c3d4e5f6a7
 Create Date: 2026-03-17 09:16:55.165098
 
 """
@@ -14,7 +14,7 @@ import sqlmodel
 
 # revision identifiers, used by Alembic.
 revision: str = "4ecede3a6f58"
-down_revision: Union[str, None] = "a1b2c3d4e5f6"
+down_revision: Union[str, None] = "b2c3d4e5f6a7"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
