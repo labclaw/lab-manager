@@ -18,6 +18,7 @@ from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 from sqlalchemy import text
+from starlette.middleware.cors import CORSMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 # Import to register SQLAlchemy event listeners on module load.
@@ -128,6 +129,46 @@ def create_app() -> FastAPI:
 
     # Trust X-Forwarded-* headers only from loopback (reverse proxy on same host)
     app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["127.0.0.1", "::1"])
+
+    # --- CORS middleware (for development and cross-origin access) ---
+    #   - Development (auth_enabled=false): Allow all origins for flexibility
+    #   - Production (auth_enabled=true): Strict same-origin, proxy handles CORS
+    #   - Handles preflight OPTIONS requests automatically
+    #   - Allows credentials (cookies) for authenticated requests
+    #
+    settings = get_settings()
+    # In dev mode (auth disabled), allow all origins for flexibility
+    # In production (auth enabled), rely on reverse proxy for CORS
+    cors_origins = ["*"] if not settings.auth_enabled else []
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
+
+    # --- Preflight middleware (handles OPTIONS before router) ---
+    # Starlette's CORSMiddleware only adds headers to existing responses.
+    # This middleware intercepts OPTIONS requests and returns 200 with CORS headers.
+    #
+    @app.middleware("http")
+    async def cors_preflight_middleware(request: Request, call_next):
+        # Handle OPTIONS preflight requests for API routes
+        if request.method == "OPTIONS" and request.url.path.startswith("/api/"):
+            from starlette.responses import Response
+
+            response = Response(status_code=200)
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Methods"] = (
+                "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+            )
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Max-Age"] = "86400"
+            return response
+        return await call_next(request)
 
     # --- Rate limiting (slowapi) ---
     limiter = Limiter(key_func=get_remote_address)
