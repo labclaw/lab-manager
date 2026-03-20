@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Bot, Search } from 'lucide-react'
 import { ask } from '@/lib/api'
 import type { AskEvidenceRow, AskResponse } from '@/lib/api'
 
@@ -71,7 +72,7 @@ function EmptyChatState() {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
       <div className="size-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-        <span className="material-symbols-outlined text-primary text-2xl">smart_toy</span>
+        <Bot className="size-7 text-primary" />
       </div>
       <div className="space-y-1 max-w-md">
         <h3 className="text-lg font-bold text-slate-100">Ask the lab manager anything</h3>
@@ -279,7 +280,7 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
               {submitting ? (
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                <span className="material-symbols-outlined text-base">search</span>
+                <Search className="size-4" />
               )}
               Ask AI
             </button>
