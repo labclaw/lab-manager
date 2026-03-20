@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { documents as docApi } from '@/lib/api'
+import { SkeletonTable } from '@/components/ui/SkeletonTable'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 interface DocumentsPageProps {
   readonly onError: (msg: string) => void
@@ -151,30 +153,26 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
       <div className="px-8 pb-8 flex-1 min-h-0 flex flex-col">
         <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm flex-1 min-h-0">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center h-64 space-y-3">
-              <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-              <span className="text-sm text-slate-500 font-medium">
-                Fetching documents...
-              </span>
+            <div className="p-4">
+              <SkeletonTable rows={10} columns={6} />
             </div>
           ) : filteredDocs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 space-y-3">
-              <span className="material-symbols-outlined text-4xl text-slate-500">
-                description
-              </span>
-              <p className="text-sm text-slate-500">
-                {search ? `No documents matching "${search}"` : 'No documents found'}
-              </p>
-              {!search && (
-                <button
-                  onClick={() => navigate('/upload')}
-                  className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium mt-2"
-                >
-                  <span className="material-symbols-outlined text-lg">upload_file</span>
-                  Upload Document
-                </button>
-              )}
-            </div>
+            <EmptyState
+              icon="description"
+              title={search ? `No documents matching "${search}"` : 'No documents found'}
+              description={search ? 'Try a different search term' : 'Upload a document to get started'}
+              action={
+                !search && (
+                  <button
+                    onClick={() => navigate('/upload')}
+                    className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium"
+                  >
+                    <span className="material-symbols-outlined text-lg">upload_file</span>
+                    Upload Document
+                  </button>
+                )
+              }
+            />
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>

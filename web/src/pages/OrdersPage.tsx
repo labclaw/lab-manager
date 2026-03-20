@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { orders as ordApi } from '@/lib/api'
+import { SkeletonTable } from '@/components/ui/SkeletonTable'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 interface OrdersPageProps {
   readonly onError: (msg: string) => void
@@ -73,8 +75,8 @@ export function OrdersPage({ onError }: OrdersPageProps) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      <div className="max-w-6xl mx-auto space-y-8">
+        <SkeletonTable rows={5} columns={6} />
       </div>
     )
   }
@@ -121,17 +123,17 @@ export function OrdersPage({ onError }: OrdersPageProps) {
 
       {/* Bento Grid */}
       {orders.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
-          <div className="w-12 h-12 rounded-2xl bg-surface-container-high flex items-center justify-center">
-            <span className="material-symbols-outlined text-on-surface-variant">shopping_cart</span>
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-base font-semibold text-on-surface">No orders found</h3>
-            <p className="text-sm text-on-surface-variant max-w-xs mx-auto">
-              {activeTab === 'active' ? 'No active orders right now.' : activeTab === 'past' ? 'No past orders yet.' : 'No drafts saved.'}
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          icon="shopping_cart"
+          title="No orders found"
+          description={
+            activeTab === 'active'
+              ? 'No active orders right now.'
+              : activeTab === 'past'
+                ? 'No past orders yet.'
+                : 'No drafts saved.'
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Featured Card (full width) */}
