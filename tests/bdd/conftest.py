@@ -140,6 +140,25 @@ def app_url():
     return os.environ.get("APP_BASE_URL", "http://localhost:8000")
 
 
+@pytest.fixture
+def api_unauthenticated(db):
+    """TestClient without auth for public endpoints."""
+    os.environ["AUTH_ENABLED"] = "false"
+    get_settings.cache_clear()
+
+    from lab_manager.api.app import create_app
+    from lab_manager.database import get_db
+
+    app = create_app()
+
+    def override():
+        yield db
+
+    app.dependency_overrides[get_db] = override
+    with TestClient(app) as c:
+        yield c
+
+
 def table_to_dicts(datatable: list[list]) -> list[dict]:
     """Convert a pytest-bdd datatable to a list of dicts (shared helper)."""
     headers = [str(h).strip() for h in datatable[0]]
