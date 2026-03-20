@@ -295,24 +295,29 @@ def sync_inventory(db: Session) -> int:
     return count
 
 
-def sync_all(db: Session) -> dict[str, int]:
+def sync_all(db: Session) -> dict[str, int | dict[str, int]]:
     """Full reindex of all tables into Meilisearch. Returns counts per index.
 
     Deletes stale records by clearing each index before re-adding.
+    Returns error count under "errors" key if any index operations failed.
     """
     client = get_search_client()
+    errors = 0
     for index_name in INDEX_CONFIG:
         try:
             client.index(index_name).delete_all_documents()
-        except Exception:
-            pass  # index may not exist yet
-    counts: dict[str, int] = {}
+        except Exception as e:
+            logger.warning("Failed to clear index %s: %s", index_name, e)
+            errors += 1
+    counts: dict[str, int | dict[str, int]] = {}
     counts["products"] = sync_products(db)
     counts["vendors"] = sync_vendors(db)
     counts["orders"] = sync_orders(db)
     counts["order_items"] = sync_order_items(db)
     counts["documents"] = sync_documents(db)
     counts["inventory"] = sync_inventory(db)
+    if errors > 0:
+        counts["errors"] = {"clear_index_failures": errors}
     logger.info("sync_all complete: %s", counts)
     return counts
 
@@ -460,8 +465,8 @@ def suggest(query: str, limit: int = 10) -> list[dict]:
                     "catalog_number": hit.get("catalog_number"),
                 }
             )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Failed to search products index: %s", e)
 
     # Vendors: name
     try:
@@ -472,8 +477,8 @@ def suggest(query: str, limit: int = 10) -> list[dict]:
             suggestions.append(
                 {"type": "vendor", "text": hit.get("name", ""), "id": hit["id"]}
             )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Failed to search vendors index: %s", e)
 
     # Order items: catalog_number
     try:
@@ -487,7 +492,7 @@ def suggest(query: str, limit: int = 10) -> list[dict]:
         for hit in resp.get("hits", []):
             text = hit.get("catalog_number") or hit.get("description", "")
             suggestions.append({"type": "order_item", "text": text, "id": hit["id"]})
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Failed to search order_items index: %s", e)
 
     return suggestions[:limit]
