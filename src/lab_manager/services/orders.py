@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from sqlmodel import Session
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from lab_manager.models.order import Order
 
@@ -27,18 +28,18 @@ def find_duplicate_po(
     if not po_number or not po_number.strip():
         return []
 
-    q = db.query(Order).filter(
+    q = select(Order).where(
         Order.po_number == po_number.strip(),
         Order.status.notin_(["cancelled", "deleted"]),
     )
 
     if vendor_id is not None:
-        q = q.filter(Order.vendor_id == vendor_id)
+        q = q.where(Order.vendor_id == vendor_id)
 
     if exclude_order_id is not None:
-        q = q.filter(Order.id != exclude_order_id)
+        q = q.where(Order.id != exclude_order_id)
 
-    return q.all()
+    return db.scalars(q).all()
 
 
 def build_duplicate_warning(duplicates: list[Order]) -> dict:

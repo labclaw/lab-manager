@@ -7,7 +7,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field, field_validator
-from sqlmodel import Session, selectinload
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
 
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
@@ -121,22 +122,22 @@ def list_inventory(
     sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
 ):
-    q = db.query(InventoryItem).options(selectinload(InventoryItem.product))
+    q = select(InventoryItem).options(selectinload(InventoryItem.product))
     if product_id is not None:
-        q = q.filter(InventoryItem.product_id == product_id)
+        q = q.where(InventoryItem.product_id == product_id)
     if location_id is not None:
-        q = q.filter(InventoryItem.location_id == location_id)
+        q = q.where(InventoryItem.location_id == location_id)
     if status:
-        q = q.filter(InventoryItem.status == status)
+        q = q.where(InventoryItem.status == status)
     if expiring_before:
-        q = q.filter(InventoryItem.expiry_date <= expiring_before)
+        q = q.where(InventoryItem.expiry_date <= expiring_before)
     if search:
-        q = q.filter(
+        q = q.where(
             ilike_col(InventoryItem.lot_number, search)
             | ilike_col(InventoryItem.notes, search)
         )
     q = apply_sort(q, InventoryItem, sort_by, sort_dir, _INV_SORTABLE)
-    return paginate(q, page, page_size)
+    return paginate(q, db, page, page_size)
 
 
 @router.post("/", status_code=201)

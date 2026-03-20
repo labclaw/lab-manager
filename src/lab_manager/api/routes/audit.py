@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db
 from lab_manager.api.pagination import paginate
@@ -25,17 +26,17 @@ def list_audit_logs(
     db: Session = Depends(get_db),
 ):
     """Query the audit log with optional filters."""
-    q = db.query(AuditLog)
+    q = select(AuditLog)
     if table:
-        q = q.filter(AuditLog.table_name == table)
+        q = q.where(AuditLog.table_name == table)
     if record_id is not None:
-        q = q.filter(AuditLog.record_id == record_id)
+        q = q.where(AuditLog.record_id == record_id)
     if action:
-        q = q.filter(AuditLog.action == action)
+        q = q.where(AuditLog.action == action)
     if changed_by:
-        q = q.filter(AuditLog.changed_by == changed_by)
+        q = q.where(AuditLog.changed_by == changed_by)
     q = q.order_by(AuditLog.timestamp.desc())
-    return paginate(q, page, page_size)
+    return paginate(q, db, page, page_size)
 
 
 @router.get("/{table}/{record_id}")
@@ -48,8 +49,8 @@ def get_record_history(
 ):
     """Full change history for a specific record."""
     q = (
-        db.query(AuditLog)
-        .filter(AuditLog.table_name == table, AuditLog.record_id == record_id)
+        select(AuditLog)
+        .where(AuditLog.table_name == table, AuditLog.record_id == record_id)
         .order_by(AuditLog.timestamp.asc())
     )
-    return paginate(q, page, page_size)
+    return paginate(q, db, page, page_size)

@@ -7,8 +7,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
-from sqlalchemy import func, text
-from sqlmodel import Session
+from sqlalchemy import func, select, text
+from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db
 from lab_manager.models.usage_event import UsageEvent
@@ -68,16 +68,15 @@ def daily_active_users(
     days: int = Query(30, ge=1, le=90), db: Session = Depends(get_db)
 ):
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-    rows = (
-        db.query(
+    rows = db.execute(
+        select(
             func.date(UsageEvent.timestamp).label("day"),
             func.count(func.distinct(UsageEvent.user_email)).label("users"),
         )
-        .filter(UsageEvent.timestamp >= cutoff)
+        .where(UsageEvent.timestamp >= cutoff)
         .group_by(func.date(UsageEvent.timestamp))
         .order_by(text("day"))
-        .all()
-    )
+    ).all()
     return [{"date": str(r.day), "dau": r.users} for r in rows]
 
 
@@ -87,10 +86,10 @@ def list_events(
     limit: int = Query(50, ge=1, le=500),
     db: Session = Depends(get_db),
 ):
-    q = db.query(UsageEvent).order_by(UsageEvent.timestamp.desc())
+    q = select(UsageEvent).order_by(UsageEvent.timestamp.desc())
     if event_type:
-        q = q.filter(UsageEvent.event_type == event_type)
-    events = q.limit(limit).all()
+        q = q.where(UsageEvent.event_type == event_type)
+    events = db.scalars(q.limit(limit)).all()
     return [
         {
             "id": e.id,

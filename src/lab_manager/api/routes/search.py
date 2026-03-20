@@ -23,7 +23,7 @@ def search_endpoint(
     if index:
         hits = search(q, index=index, limit=limit)
         return {"query": q, "index": index, "hits": hits, "count": len(hits)}
-    
+
     # search_all returns a dict of index -> list of hits
     results_raw = search_all(q, limit=limit)
     # Ensure all hits are dicts, not raw Meilisearch Hit objects
