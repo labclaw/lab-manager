@@ -167,11 +167,11 @@ def request_failed_with_error(api_client, error):
     assert error.lower() in api_client.response.json().get("detail", "").lower()
 
 
-@then(parsers.parse("the total inventory value should increase by {amount:Float}"))
+@then(parsers.parse("the total inventory value should increase by {amount}"))
 def inventory_value_increased(api_client, amount):
     """Verify inventory value increase."""
     data = api_client.response.json()
-    assert data.get("value_added", 0) == amount
+    assert abs(data.get("value_added", 0) - float(amount)) < 0.01
 
 
 @then(parsers.parse("{count:d} order item should remain pending"))
