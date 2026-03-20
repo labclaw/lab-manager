@@ -19,7 +19,7 @@ concurrency:
 jobs:
   dependency-audit:
     name: dependency-audit
-    runs-on: [self-hosted, Linux, X64, ubuntu]
+    runs-on: self-hosted
     timeout-minutes: 20
 
     steps:
@@ -29,7 +29,7 @@ jobs:
       - name: Setup uv
         uses: astral-sh/setup-uv@f0ec1fc3b38f5e7cd731bb6ce540c5af426746bb # v5.4.1
         with:
-          enable-cache: false
+          enable-cache: true
 
       - name: Set up Python
         run: uv python install 3.12
@@ -43,7 +43,7 @@ jobs:
 
   bandit:
     name: bandit-sast
-    runs-on: [self-hosted, Linux, X64, ubuntu]
+    runs-on: self-hosted
     timeout-minutes: 15
 
     steps:
@@ -53,7 +53,7 @@ jobs:
       - name: Setup uv
         uses: astral-sh/setup-uv@f0ec1fc3b38f5e7cd731bb6ce540c5af426746bb # v5.4.1
         with:
-          enable-cache: false
+          enable-cache: true
 
       - name: Set up Python
         run: uv python install 3.12
@@ -80,9 +80,9 @@ jobs:
 
   codeql:
     name: codeql
-    runs-on: [self-hosted, Linux, X64, ubuntu]
+    runs-on: self-hosted
     timeout-minutes: 30
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request'
     continue-on-error: true  # GHAS required; free once repo is public
     permissions:
       actions: read
@@ -103,7 +103,7 @@ jobs:
 
   secrets-scan:
     name: secrets-scan
-    runs-on: [self-hosted, Linux, X64, ubuntu]
+    runs-on: self-hosted
     timeout-minutes: 10
 
     steps:
@@ -115,8 +115,6 @@ jobs:
       - name: Install gitleaks
         run: |
           set -euo pipefail
-          mkdir -p "$PWD/.github/bin"
-          export PATH="$PWD/.github/bin:$PATH"
           GITLEAKS_VERSION="8.30.0"
           ARCHIVE="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           BASE_URL="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
@@ -124,7 +122,7 @@ jobs:
           curl -sSfLO "${BASE_URL}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
           grep " ${ARCHIVE}\$" "gitleaks_${GITLEAKS_VERSION}_checksums.txt" | sha256sum -c -
           tar xzf "${ARCHIVE}"
-          install -m 0755 gitleaks "$PWD/.github/bin/gitleaks"
+          install -m 0755 gitleaks /usr/local/bin/gitleaks
 
       - name: Run gitleaks
-        run: PATH="$PWD/.github/bin:$PATH" gitleaks detect --source . --verbose
+        run: gitleaks detect --source . --verbose
