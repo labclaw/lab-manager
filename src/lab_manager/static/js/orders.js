@@ -13,7 +13,7 @@ async function loadOrders() {
       page_size: ORD_PAGE_SIZE,
     });
     if (ordStatus) params.set("status", ordStatus);
-    const r = await apiFetch("/api/orders?" + params);
+    const r = await apiFetch("/api/v1/orders?" + params);
     const data = await r.json();
     const orders = data.items || [];
     renderOrdRows(orders);

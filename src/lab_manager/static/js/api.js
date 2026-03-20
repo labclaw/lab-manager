@@ -1,7 +1,7 @@
 // api.js — API helpers, escapeHtml, toast notifications
 "use strict";
 
-const API = "/api/documents";
+const API = "/api/v1/documents";
 let currentUser = null;
 
 /**
