@@ -384,25 +384,24 @@ def create_app() -> FastAPI:
         request: Request,
         email: str = Body(...),
         password: str = Body(...),
+        db=Depends(get_db),
     ):
         import bcrypt as _bcrypt
 
-        from lab_manager.database import get_db_session
         from lab_manager.models.staff import Staff
 
         try:
-            with get_db_session() as db:
-                staff = db.scalars(select(Staff).where(Staff.email == email)).first()
-                # Eagerly load attributes before session closes
-                if staff:
-                    staff_id = staff.id
-                    staff_name = staff.name
-                    staff_email = staff.email
-                    staff_active = staff.is_active
-                    staff_pw_hash = staff.password_hash
-                else:
-                    staff_id = staff_name = staff_email = staff_pw_hash = None
-                    staff_active = False
+            staff = db.scalars(select(Staff).where(Staff.email == email)).first()
+            # Eagerly load attributes before session closes
+            if staff:
+                staff_id = staff.id
+                staff_name = staff.name
+                staff_email = staff.email
+                staff_active = staff.is_active
+                staff_pw_hash = staff.password_hash
+            else:
+                staff_id = staff_name = staff_email = staff_pw_hash = None
+                staff_active = False
         except Exception:
             logger.error("Login: database unavailable")
             return JSONResponse(
