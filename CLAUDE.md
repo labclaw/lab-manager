@@ -47,7 +47,7 @@ src/lab_manager/
   services/      — Search (Meilisearch), RAG (LiteLLM NL→SQL), alerts, analytics, audit, inventory lifecycle
   config.py      — Settings from env/.env
 scripts/         — CLI tools: pipeline_v2.py, run_ocr_benchmark.py, populate_db.py, index_meilisearch.py
-tests/           — pytest suite (87 tests)
+tests/           — pytest suite (1010 tests)
 benchmarks/      — OCR benchmark outputs
 docs/            — Audit logs, analysis reports
 ```
@@ -103,7 +103,7 @@ providers/more_ocr.py  — DeepSeek, GLM, PaddleOCR, Mistral, registries
 - **Full audit trail**: Every document is traced from raw scan → OCR → extraction → review → fix.
 - **Validation rules**: Catch known error patterns (VCAT codes as lot numbers, addresses as vendor names, etc.)
 
-## API Endpoints (71 method+path combos, 52 unique paths)
+## API Endpoints (82 endpoints across 14 route modules)
 
 | Category | Key Endpoints |
 |----------|--------------|
