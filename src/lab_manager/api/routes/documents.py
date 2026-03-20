@@ -176,6 +176,61 @@ def _run_extraction(doc_id: int) -> None:
         db.close()
 
 
+def _index_approved_doc(doc_id: int) -> None:
+    """Background task: index an approved document and all related records in Meilisearch."""
+    from lab_manager.database import get_session_factory
+    from lab_manager.models.inventory import InventoryItem
+    from lab_manager.models.product import Product
+    from lab_manager.services.search import (
+        index_document_record,
+        index_inventory_record,
+        index_order_item_record,
+        index_order_record,
+        index_product_record,
+        index_vendor_record,
+    )
+
+    factory = get_session_factory()
+    db = factory()
+    try:
+        doc = db.query(Document).filter(Document.id == doc_id).first()
+        if doc is None:
+            return
+        index_document_record(doc)
+
+        order = db.query(Order).filter(Order.document_id == doc.id).first()
+        if not order:
+            return
+
+        if order.vendor_id:
+            vendor = db.query(Vendor).filter(Vendor.id == order.vendor_id).first()
+            if vendor:
+                index_vendor_record(vendor)
+
+        index_order_record(order)
+
+        items = db.query(OrderItem).filter(OrderItem.order_id == order.id).all()
+        for oi in items:
+            index_order_item_record(oi)
+            if oi.product_id:
+                product = db.query(Product).filter(Product.id == oi.product_id).first()
+                if product:
+                    index_product_record(product)
+                inv_items = (
+                    db.query(InventoryItem)
+                    .filter(InventoryItem.order_item_id == oi.id)
+                    .all()
+                )
+                for inv in inv_items:
+                    index_inventory_record(inv)
+
+        logger.info("Indexed approved doc %d and related records", doc_id)
+    except Exception:
+        logger.exception("Failed to index approved doc %d", doc_id)
+    finally:
+        db.close()
+
+
 @router.post("/upload", status_code=201)
 def upload_document(
     file: UploadFile,
@@ -349,7 +404,10 @@ def delete_document(document_id: int, db: Session = Depends(get_db)):
 
 @router.post("/{document_id}/review")
 def review_document(
-    document_id: int, body: ReviewAction, db: Session = Depends(get_db)
+    document_id: int,
+    body: ReviewAction,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
 ):
     """Approve or reject a document extraction."""
     doc = get_or_404(db, Document, document_id, "Document")
@@ -362,6 +420,9 @@ def review_document(
         existing_order = db.query(Order).filter(Order.document_id == doc.id).first()
         if not existing_order and doc.extracted_data:
             _create_order_from_doc(doc, db)
+        # Index all created records in Meilisearch (background)
+        db.flush()
+        background_tasks.add_task(_index_approved_doc, doc.id)
     elif body.action == "reject":
         doc.status = DocumentStatus.rejected
         doc.reviewed_by = body.reviewed_by

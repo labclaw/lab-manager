@@ -515,7 +515,8 @@ def ask(question: str, db: Session) -> dict:
     return {
         "question": question,
         "answer": answer,
-        "raw_results": [],
+        "sql": sql,
+        "raw_results": results[:50],
         "row_count": len(results),
         "source": "sql",
     }
