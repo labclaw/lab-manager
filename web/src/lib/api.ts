@@ -200,7 +200,7 @@ export const documents = {
   upload: (file: File) => {
     const form = new FormData()
     form.append('file', file)
-    return fetch('/api/documents/upload', { method: 'POST', body: form })
+    return fetch('/api/v1/documents/upload', { method: 'POST', body: form })
       .then(async (res) => {
         if (res.status === 401) throw new Error('Unauthorized')
         if (!res.ok) {
@@ -212,10 +212,18 @@ export const documents = {
   },
 }
 
+export interface SearchResult {
+  id: number
+  type: string
+  name: string
+  description?: string
+  url?: string
+}
+
 // Search
 export const search = {
   query: (q: string) =>
-    apiFetch<ApiResponse<unknown>>(`/search?q=${encodeURIComponent(q)}`),
+    apiFetch<ApiResponse<SearchResult>>(`/search?q=${encodeURIComponent(q)}`),
   suggest: (q: string) =>
     apiFetch<{ suggestions: string[] }>(
       `/search/suggest?q=${encodeURIComponent(q)}`,

@@ -65,7 +65,7 @@ describe('UploadPage', () => {
       let uploadCalled = false
 
       server.use(
-        http.post('/api/documents/upload', () => {
+        http.post('/api/v1/documents/upload', () => {
           uploadCalled = true
           return HttpResponse.json({
             id: 99,
@@ -93,7 +93,7 @@ describe('UploadPage', () => {
       const user = userEvent.setup()
 
       server.use(
-        http.post('/api/documents/upload', () => {
+        http.post('/api/v1/documents/upload', () => {
           return HttpResponse.json({
             id: 99,
             filename: 'test_invoice.pdf',
@@ -165,7 +165,7 @@ describe('UploadPage', () => {
 
       // Delay the response to keep the upload in progress state
       server.use(
-        http.post('/api/documents/upload', async () => {
+        http.post('/api/v1/documents/upload', async () => {
           await new Promise((r) => setTimeout(r, 5000))
           return HttpResponse.json({ id: 99, filename: 'test.pdf', status: 'pending' })
         }),
@@ -209,7 +209,7 @@ describe('UploadPage', () => {
       const user = userEvent.setup()
 
       server.use(
-        http.post('/api/documents/upload', () => {
+        http.post('/api/v1/documents/upload', () => {
           return HttpResponse.json(
             { detail: 'Server error' },
             { status: 500 },
@@ -233,7 +233,7 @@ describe('UploadPage', () => {
       const user = userEvent.setup()
 
       server.use(
-        http.post('/api/documents/upload', () => {
+        http.post('/api/v1/documents/upload', () => {
           return HttpResponse.json(
             { detail: 'Unsupported file format' },
             { status: 400 },

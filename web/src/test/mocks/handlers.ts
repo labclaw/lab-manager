@@ -156,7 +156,7 @@ export const handlers = [
     return d ? HttpResponse.json(d) : new HttpResponse(null, { status: 404 })
   }),
   http.post('/api/documents/:id/review', () => HttpResponse.json({ status: 'ok' })),
-  http.post('/api/documents/upload', () => HttpResponse.json({ id: 99, filename: 'uploaded.pdf', status: 'pending' })),
+  http.post('/api/v1/documents/upload', () => HttpResponse.json({ id: 99, filename: 'uploaded.pdf', status: 'pending' })),
 
   // Search
   http.get('/api/search', () => HttpResponse.json(mockSearchResults)),
