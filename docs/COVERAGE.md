@@ -15,14 +15,15 @@ Last updated: 2026-03-19
 | `GET /api/health` | — | no UI |
 | `GET /api/config` | — | no UI |
 
-### Documents (6 endpoints)
+### Documents (8 endpoints)
 | Endpoint | UI | Status |
 |----------|-----|--------|
-| `POST /api/v1/documents/upload` | UploadPage | **not wired** — form exists but doesn't call API |
+| `POST /api/v1/documents/upload` | UploadPage | wired |
 | `GET /api/v1/documents/` | DocumentsPage | wired |
 | `POST /api/v1/documents/` | — | no UI (manual create) |
 | `GET /api/v1/documents/{id}` | ReviewPage | wired |
 | `PATCH /api/v1/documents/{id}` | ReviewPage | **not wired** — form exists but doesn't save |
+| `DELETE /api/v1/documents/{id}` | — | **no UI** |
 | `POST /api/v1/documents/{id}/review` | ReviewPage | **partially wired** |
 | `GET /api/v1/documents/stats` | DashboardPage | wired |
 
@@ -129,6 +130,15 @@ Last updated: 2026-03-19
 | `GET /api/v1/audit/` | — | **no UI** |
 | `GET /api/v1/audit/{table}/{record_id}` | — | **no UI** |
 
+### Equipment (5 endpoints)
+| Endpoint | UI | Status |
+|----------|-----|--------|
+| `GET /api/v1/equipment/` | — | **no UI** |
+| `POST /api/v1/equipment/` | — | **no UI** |
+| `GET /api/v1/equipment/{id}` | — | **no UI** |
+| `PATCH /api/v1/equipment/{id}` | — | **no UI** |
+| `DELETE /api/v1/equipment/{id}` | — | **no UI** |
+
 ### Telemetry (3 endpoints)
 | Endpoint | UI | Status |
 |----------|-----|--------|
@@ -143,7 +153,7 @@ Last updated: 2026-03-19
 | Category | Total Endpoints | Wired | Partial | Not Wired |
 |----------|----------------|-------|---------|-----------|
 | Auth/Setup | 7 | 5 | 0 | 2 |
-| Documents | 7 | 3 | 1 | 3 |
+| Documents | 8 | 4 | 1 | 3 |
 | Vendors | 7 | 0 | 1 | 6 |
 | Products | 7 | 0 | 0 | 7 |
 | Orders | 11 | 1 | 0 | 10 |
@@ -154,10 +164,11 @@ Last updated: 2026-03-19
 | Export | 4 | 0 | 0 | 4 |
 | Alerts | 5 | 0 | 2 | 3 |
 | Audit | 2 | 0 | 0 | 2 |
+| Equipment | 5 | 0 | 0 | 5 |
 | Telemetry | 3 | 0 | 0 | 3 |
-| **TOTAL** | **80** | **14** | **4** | **62** |
+| **TOTAL** | **86** | **15** | **4** | **67** |
 
-**UI coverage: 17.5% wired, 5% partial, 77.5% no UI**
+**UI coverage: 17.4% wired, 4.7% partial, 77.9% no UI**
 
 ---
 
@@ -167,7 +178,7 @@ Last updated: 2026-03-19
 |------|--------|------|-----------|-------------|-------|
 | Dashboard | done | done | partial | read-only | none |
 | Documents | done | done | wired | read-only | none |
-| Upload | done | done | **not wired** | **broken** | none |
+| Upload | done | done | wired | working | none |
 | Review | done | done | **partial** | **partial** | none |
 | Inventory | done | done | list only | **read-only** | none |
 | Orders | done | done | list only | **read-only** | none |
@@ -182,9 +193,8 @@ Last updated: 2026-03-19
 ## Priority Queue
 
 ### P0 — Broken (must fix)
-1. UploadPage: wire file upload to `POST /api/v1/documents/upload`
-2. ReviewPage: wire approve/reject to `POST /api/v1/documents/{id}/review`
-3. Header: wire search bar to `GET /api/v1/search/`
+1. ReviewPage: wire approve/reject to `POST /api/v1/documents/{id}/review`
+2. Header: wire search bar to `GET /api/v1/search/`
 
 ### P1 — Core actions (existing pages, unwired)
 4. InventoryPage: wire consume/transfer/adjust/dispose actions

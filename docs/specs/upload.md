@@ -3,19 +3,18 @@
 | | |
 |---|---|
 | **Route** | `/upload` |
-| **Status** | Built — **upload action NOT wired to API** |
-| **Priority** | **P0 — must fix** |
+| **Status** | Built — upload wired to API (`documents.upload(file)`) |
+| **Priority** | Done (basic), enhancements below |
 | **Stitch Screen** | `Document Upload — Lab Manager` |
 
 ---
 
 ## What Needs to Be Done
 
-**Critical**: The upload form UI exists but does NOT call the API. Wire it:
-1. Connect drag-and-drop / file picker to `POST /api/v1/documents/upload`
-2. Show real upload progress (multipart upload)
-3. Show processing status after upload completes
-4. Redirect to `/review` after all files processed
+Upload is wired. Remaining enhancements:
+1. Improve upload progress feedback (currently basic)
+2. Show processing status after upload completes (extraction status)
+3. Add "Go to Review Queue" CTA after all files processed
 
 ---
 

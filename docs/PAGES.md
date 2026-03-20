@@ -6,6 +6,25 @@ Last updated: 2026-03-19
 
 ## Navigation Structure
 
+### Current Sidebar (implemented)
+```
+───────────────────────
+  Lab Manager
+  Laboratory
+───────────────────────
+  Dashboard          /
+  Documents          /documents
+  Review Queue       /review
+  Inventory          /inventory
+  Orders             /orders
+  Upload             /upload
+───────────────────────
+  Admin
+  Sign Out
+───────────────────────
+```
+
+### Target Sidebar (planned)
 ```
 ───────────────────────
   Lab Manager
@@ -20,15 +39,19 @@ Last updated: 2026-03-19
   Inventory          /inventory
   Orders             /orders
   ─────────────────────
-  Products           /products
-  Vendors            /vendors
+  Products           /products        ← not built
+  Vendors            /vendors         ← not built
   ─────────────────────
-  Settings           /settings
+  Settings           /settings        ← placeholder
 ───────────────────────
   [User Name]
   Sign Out
 ───────────────────────
 ```
+
+### Auth Guards (not in sidebar — conditional renders before router)
+- `/login` — shown when not authenticated
+- `/setup` — shown when `needs_setup=true`
 
 ---
 
@@ -49,11 +72,15 @@ Last updated: 2026-03-19
 - As a PI, I see monthly spending trends and low-stock alerts
 - As anyone, I see recent activity and can navigate to key actions
 
-**API Endpoints:**
+**API Endpoints (currently wired):**
 - `GET /api/v1/analytics/dashboard` — summary KPIs
-- `GET /api/v1/analytics/spending/by-month` — spending chart
 - `GET /api/v1/inventory/low-stock` — low stock alerts
 - `GET /api/v1/inventory/expiring` — expiring items
+- `GET /api/v1/vendors/` — vendor data for charts
+- `GET /api/v1/documents/` — document type distribution
+
+**API Endpoints (planned, not yet wired):**
+- `GET /api/v1/analytics/spending/by-month` — spending chart
 - `GET /api/v1/alerts/summary` — alert badge counts
 - `GET /api/v1/analytics/products/top` — top products
 
@@ -106,7 +133,7 @@ Last updated: 2026-03-19
 | **Purpose** | Drag-and-drop document intake for invoices, COAs, packing lists |
 | **Stitch Screen** | `Document Upload — Lab Manager` |
 | **Spec** | `docs/specs/upload.md` |
-| **Status** | Built — upload action not wired to API |
+| **Status** | Built — upload wired to API |
 
 **User Stories:**
 - As a lab manager, I drag-and-drop or click to upload document images/PDFs
@@ -351,11 +378,41 @@ Last updated: 2026-03-19
 
 ---
 
-### 10. Login
+### 10. Alerts
 
 | | |
 |---|---|
-| **Route** | `/login` |
+| **Route** | `/alerts` |
+| **Purpose** | View and manage system alerts (low stock, expiring, stale orders) |
+| **Stitch Screen** | *Not yet created* |
+| **Spec** | — (needs spec) |
+| **Status** | Built — basic placeholder in App.tsx |
+
+**User Stories:**
+- As a lab manager, I see all active alerts (low stock, expiring items, stale orders)
+- As a lab manager, I acknowledge or resolve alerts
+
+**API Endpoints:**
+- `GET /api/v1/alerts/` — list alerts with filters
+- `GET /api/v1/alerts/summary` — alert counts by type/severity
+- `POST /api/v1/alerts/check` — trigger alert generation
+- `POST /api/v1/alerts/{id}/acknowledge` — mark acknowledged
+- `POST /api/v1/alerts/{id}/resolve` — mark resolved
+
+**Key Components:**
+- Alert list (type, severity, message, entity link, timestamp)
+- Filter by type/severity/status
+- Acknowledge/resolve buttons
+
+**States:** Loading, Populated, Empty
+
+---
+
+### 11. Login
+
+| | |
+|---|---|
+| **Route** | `/login` (conditional guard — renders before router when not authenticated) |
 | **Purpose** | Authentication gate |
 | **Stitch Screen** | `Login — Lab Manager` |
 | **Spec** | `docs/specs/login.md` |
@@ -377,11 +434,11 @@ Last updated: 2026-03-19
 
 ---
 
-### 11. Setup Wizard
+### 12. Setup Wizard
 
 | | |
 |---|---|
-| **Route** | `/setup` (auto-shown when `needs_setup=true`) |
+| **Route** | `/setup` (conditional guard — renders before router when `needs_setup=true`) |
 | **Purpose** | First-run configuration — create admin account |
 | **Stitch Screen** | `One-Click Setup Wizard` |
 | **Spec** | `docs/specs/setup.md` |
@@ -418,20 +475,22 @@ Last updated: 2026-03-19
 
 | # | Page | Route | Backend | Frontend | Stitch | Priority |
 |---|------|-------|---------|----------|--------|----------|
-| 1 | Dashboard | `/` | done | done | done | - |
+| 1 | Dashboard | `/` | done | done | done | wire spending chart |
 | 2 | Documents | `/documents` | done | done | done | - |
-| 3 | Upload | `/upload` | done | done | done | wire upload action |
+| 3 | Upload | `/upload` | done | done | done | - |
 | 4 | Review Queue | `/review` | done | done | done | wire approve/reject |
 | 5 | Inventory | `/inventory` | done | done | done | wire CRUD actions |
 | 6 | Orders | `/orders` | done | done | done | wire CRUD actions |
 | 7 | Products | `/products` | done | **not built** | **not designed** | **HIGH** |
 | 8 | Vendors | `/vendors` | done | **not built** | **not designed** | **HIGH** |
 | 9 | Settings | `/settings` | partial | **placeholder** | **not designed** | MEDIUM |
-| 10 | Login | `/login` | done | done | done | - |
-| 11 | Setup | `/setup` | done | done | done | - |
+| 10 | Alerts | `/alerts` | done | **placeholder** | **not designed** | MEDIUM |
+| 11 | Login | `/login` (guard) | done | done | done | - |
+| 12 | Setup | `/setup` (guard) | done | done | done | - |
 
 **Immediate priorities:**
-1. Wire existing pages to their API actions (Upload, Review, Inventory, Orders)
+1. Wire existing pages to their API actions (Review, Inventory, Orders)
 2. Build Products page (API ready, no UI)
 3. Build Vendors page (API ready, no UI)
 4. Build Settings page (partial API, needs Location/Staff CRUD endpoints)
+5. Build Alerts page (API ready, placeholder UI)

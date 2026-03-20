@@ -55,9 +55,9 @@ Upload document (photo/PDF)
 
 ## Backend API Surface
 
-- 80 endpoints across 13 route modules
-- 14 database models with full audit trail
-- 9 service modules (alerts, analytics, audit, inventory, orders, rag, search, serialization)
+- 86 API endpoints (79 across 13 route modules + 7 auth/setup/health/config)
+- 13 database models with full audit trail
+- 8 service modules (alerts, analytics, audit, inventory, orders, rag, search, serialization)
 - All list endpoints: paginated with `{items, total, page, page_size, pages}`
 
 ## Versioning

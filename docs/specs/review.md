@@ -57,6 +57,7 @@ Full document details including extracted data.
   },
   "extraction_confidence": 0.91,
   "status": "needs_review"
+  // Document statuses: pending | extracted | needs_review | approved | rejected | ocr_failed | deleted
 }
 ```
 

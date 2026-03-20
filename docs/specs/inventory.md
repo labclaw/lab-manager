@@ -28,7 +28,7 @@ Query params:
   page, page_size (pagination)
   product_id (int)
   location_id (int)
-  status: available | opened | depleted | disposed | expired
+  status: available | opened | depleted | disposed | expired | deleted
   expiring_before (date)
   search (str)
   sort_by: created_at | quantity_on_hand | expiry_date | status

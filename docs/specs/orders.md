@@ -27,7 +27,7 @@ List orders with filters.
 Query params:
   page, page_size
   vendor_id (int)
-  status: pending | shipped | received | cancelled
+  status: pending | shipped | received | cancelled | deleted
   po_number (str)
   date_from, date_to (date)
   received_by (str)

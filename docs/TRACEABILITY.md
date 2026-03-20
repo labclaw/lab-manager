@@ -13,9 +13,9 @@ Last updated: 2026-03-19
 ```
 docs/PRODUCT.md          WHY    — Vision, users, principles, non-goals
     ↓
-docs/PAGES.md            WHAT   — 11 pages, user stories, API consumed per page
+docs/PAGES.md            WHAT   — 12 pages, user stories, API consumed per page
     ↓
-docs/COVERAGE.md         WHERE  — 80 endpoints, wired status, priority queue (P0-P3)
+docs/COVERAGE.md         WHERE  — 86 endpoints, wired status, priority queue (P0-P3)
     ↓
 docs/specs/*.md          HOW    — Per-page: API contract, components, data flow, acceptance criteria
     ↓
@@ -34,9 +34,8 @@ web/src/pages/*.tsx      CODE   — Implementation that satisfies the spec
 
 | ID | Feature | Spec | Acceptance Criteria | Test File | Status |
 |----|---------|------|--------------------:|-----------|--------|
-| P0-1 | Upload wiring | [upload.md](specs/upload.md) | 10 criteria | `upload.test.tsx` | **not started** |
-| P0-2 | Review approve/reject | [review.md](specs/review.md) | 10 criteria | `review.test.tsx` | **not started** |
-| P0-3 | Search wiring | [search.md](specs/search.md) | 6 criteria | `search.test.tsx` | **not started** |
+| P0-1 | Review approve/reject | [review.md](specs/review.md) | 10 criteria | `review.test.tsx` | **not started** |
+| P0-2 | Search wiring | [search.md](specs/search.md) | 6 criteria | `search.test.tsx` | **not started** |
 
 ### P1 — Core actions (existing pages, unwired)
 
@@ -72,6 +71,7 @@ web/src/pages/*.tsx      CODE   — Implementation that satisfies the spec
 | ✓ | Login | [login.md](specs/login.md) | working |
 | ✓ | Setup wizard | [setup.md](specs/setup.md) | working |
 | ✓ | Documents list | [documents.md](specs/documents.md) | read-only working |
+| ✓ | Upload | [upload.md](specs/upload.md) | wired, needs polish |
 
 ---
 
@@ -98,10 +98,10 @@ This is BDD: spec defines behavior → test verifies behavior → code implement
 
 | Feature | Why no spec | Blocked by |
 |---------|-------------|------------|
-| Alerts page/widget | No design yet | Design decision: page vs dashboard widget |
+| Alerts page | Route exists (`/alerts`), placeholder in App.tsx | Needs full spec: page vs dashboard widget |
 | RAG/Ask interface | No design yet | Design + UX decision |
 | Audit log viewer | Low priority | Not in current roadmap |
-| Equipment page | Not in nav structure | Product decision needed |
+| Equipment page | 5 API endpoints exist, no UI | Product decision: add to nav or not |
 
 ---
 
