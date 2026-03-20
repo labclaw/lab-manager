@@ -11,6 +11,7 @@ from pathlib import Path
 
 import structlog
 from fastapi import APIRouter, FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from itsdangerous import BadSignature, URLSafeTimedSerializer
@@ -128,6 +129,19 @@ def create_app() -> FastAPI:
 
     # Trust X-Forwarded-* headers only from loopback (reverse proxy on same host)
     app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["127.0.0.1", "::1"])
+
+    # --- CORS for frontend dev server ---
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:5173",  # Vite dev server
+            "http://127.0.0.1:5173",
+            "http://localhost:3000",  # Alternative dev port
+        ],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     # --- Rate limiting (slowapi) ---
     limiter = Limiter(key_func=get_remote_address)
