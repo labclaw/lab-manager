@@ -1,4 +1,4 @@
-const BASE = '/api'
+const BASE = '/api/v1'
 
 interface ApiResponse<T> {
   items?: T[]
@@ -142,8 +142,6 @@ export interface AskResponse {
 }
 
 async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
-  // Ensure trailing slash for FastAPI compatibility
-  const cleanUrl = url.endsWith('/') || opts?.method === 'POST' || url.includes('?') ? url : url + '/'
   const headers: Record<string, string> = {
     ...opts?.headers,
   }
@@ -151,7 +149,7 @@ async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
   if (!(opts?.body instanceof FormData)) {
     headers['Content-Type'] = 'application/json'
   }
-  const res = await fetch(`${BASE}${cleanUrl}`, {
+  const res = await fetch(`${BASE}${url}`, {
     ...opts,
     headers,
   })
@@ -165,25 +163,52 @@ async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
   return res.json()
 }
 
-// Auth
+// Auth (not under /v1)
 export const auth = {
   login: (email: string, password: string) =>
-    apiFetch<{ status: string; user: User }>('/auth/login', {
+    fetch('/api/auth/login', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
+    }).then(async (res) => {
+      if (res.status === 401) throw new Error('Unauthorized')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }))
+        throw new Error(err.detail || `HTTP ${res.status}`)
+      }
+      return res.json() as Promise<{ status: string; user: User }>
     }),
-  me: () => apiFetch<{ user: User }>('/auth/me'),
+  me: () =>
+    fetch('/api/auth/me').then(async (res) => {
+      if (res.status === 401) throw new Error('Unauthorized')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }))
+        throw new Error(err.detail || `HTTP ${res.status}`)
+      }
+      return res.json() as Promise<{ user: User }>
+    }),
   logout: () =>
-    fetch(`${BASE}/auth/logout`, { method: 'POST' }).then(() => {}),
+    fetch('/api/auth/logout', { method: 'POST' }).then(() => {}),
 }
 
-// Setup
+// Setup (not under /v1)
 export const setup = {
-  status: () => apiFetch<{ needs_setup: boolean }>('/setup/status'),
+  status: () =>
+    fetch('/api/setup/status').then(async (res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      return res.json() as Promise<{ needs_setup: boolean }>
+    }),
   complete: (data: { admin_name: string; admin_email: string; admin_password: string }) =>
-    apiFetch<{ status: string }>('/setup/complete', {
+    fetch('/api/setup/complete', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
+    }).then(async (res) => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }))
+        throw new Error(err.detail || `HTTP ${res.status}`)
+      }
+      return res.json() as Promise<{ status: string }>
     }),
 }
 
@@ -253,7 +278,7 @@ export const documents = {
   upload: (file: File) => {
     const form = new FormData()
     form.append('file', file)
-    return fetch('/api/v1/documents/upload', { method: 'POST', body: form })
+    return fetch(`${BASE}/documents/upload`, { method: 'POST', body: form })
       .then(async (res) => {
         if (res.status === 401) throw new Error('Unauthorized')
         if (!res.ok) {
@@ -304,7 +329,7 @@ export const alerts = {
 
 export const ask = {
   query: (question: string) =>
-    apiFetch<AskResponse>('/v1/ask', {
+    apiFetch<AskResponse>('/ask', {
       method: 'POST',
       body: JSON.stringify({ question }),
     }),
