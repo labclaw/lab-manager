@@ -9,7 +9,7 @@ from typing import Any
 
 from litellm import completion
 from sqlalchemy import text
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 
 from lab_manager.config import get_settings
 from lab_manager.services.serialization import serialize_value as _serialize_value

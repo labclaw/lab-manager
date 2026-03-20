@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 from sqlmodel import Field, SQLModel, Column
 from sqlalchemy import JSON
 from sqlalchemy.dialects.postgresql import JSONB as _JSONB

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 
 from lab_manager.models.order import Order
 

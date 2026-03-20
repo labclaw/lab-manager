@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 
 from lab_manager.models.alert import Alert
 from lab_manager.models.document import Document, DocumentStatus

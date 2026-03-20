@@ -6,7 +6,7 @@ import hmac
 from typing import TypeVar
 
 from fastapi import Header, HTTPException
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 
 from lab_manager.config import get_settings
 from lab_manager.database import get_db  # noqa: F401 — re-export for route imports
