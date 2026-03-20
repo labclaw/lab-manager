@@ -81,14 +81,9 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    const stored = localStorage.getItem('darkMode')
-    const isDark = stored === 'true'
-    setDarkMode(isDark)
-    if (isDark) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
+    // Stitch designs are dark-only — always enable dark mode
+    setDarkMode(true)
+    document.documentElement.classList.add('dark')
   }, [])
 
   const toggleDarkMode = () => {

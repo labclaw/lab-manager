@@ -9,12 +9,30 @@
   --color-background-dark: #0f0f23;
   --color-card-dark: #1a1a2e;
   --color-sidebar-dark: #12121E;
-  --color-accent-green: #06d6a0;
+  --color-accent-green: #00d4aa;
   --color-surface-dark: #1a1a2e;
   --color-border-dark: #2d2d44;
-  --color-success: #10b981;
+  --color-success: #00d4aa;
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
+
+  /* Stitch Material-3 semantic tokens */
+  --color-on-surface: #f0f1f2;
+  --color-on-surface-variant: #a1a1b5;
+  --color-on-background: #f0f1f2;
+  --color-outline: #2d2d44;
+  --color-surface-container: #24243e;
+  --color-surface-container-high: #2a2a44;
+  --color-surface-container-low: #1e1e36;
+  --color-surface-container-lowest: #16162a;
+  --color-surface-container-highest: #33334d;
+  --color-secondary-container: #4e3b7f;
+  --color-on-secondary-container: #e9ddff;
+  --color-primary-container: #6d28d9;
+  --color-tertiary-fixed: #ffdcbe;
+  --color-on-tertiary-fixed-variant: #693c00;
+  --color-error-container: #441a1a;
+  --color-error: #ff5555;
 }
 
 :root {

@@ -83,19 +83,19 @@ export function OrdersPage({ onError }: OrdersPageProps) {
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Breadcrumbs & Header */}
       <div>
-        <div className="flex items-center text-xs text-slate-400 font-medium uppercase tracking-wider mb-2">
+        <div className="flex items-center text-xs text-on-surface-variant font-medium uppercase tracking-wider mb-2">
           <span>Procurement</span>
           <span className="material-symbols-outlined text-[10px] mx-2">chevron_right</span>
           <span className="text-primary font-bold">Supply Chains</span>
         </div>
         <div className="flex justify-between items-end">
           <div>
-            <h2 className="text-4xl font-extrabold text-[#e2e2e9] tracking-tight">Orders</h2>
-            <p className="text-slate-400 mt-2 text-sm">
+            <h2 className="text-4xl font-extrabold text-on-surface tracking-tight">Orders</h2>
+            <p className="text-on-surface-variant mt-2 text-sm">
               Tracking {total} active shipments and pending procurement requisitions.
             </p>
           </div>
-          <button className="bg-gradient-to-br from-primary to-[#6d28d9] text-white px-6 py-3 rounded-xl font-bold flex items-center shadow-lg hover:scale-105 transition-transform duration-200">
+          <button className="bg-gradient-to-br from-primary to-primary-container text-white px-6 py-3 rounded-xl font-bold flex items-center shadow-lg hover:scale-105 transition-transform duration-200">
             <span className="material-symbols-outlined mr-2">add_shopping_cart</span>
             New Requisition
           </button>
@@ -103,7 +103,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center space-x-8 border-b border-[#2d2d44]">
+      <div className="flex items-center space-x-8 border-b border-outline">
         {TABS.map((tab) => (
           <button
             key={tab.value}
@@ -111,7 +111,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
             className={`pb-4 border-b-2 text-sm tracking-wide transition-all ${
               activeTab === tab.value
                 ? 'text-primary font-bold border-primary'
-                : 'text-slate-400 font-medium border-transparent hover:text-[#e2e2e9]'
+                : 'text-on-surface-variant font-medium border-transparent hover:text-on-surface'
             }`}
           >
             {tab.label}
@@ -122,12 +122,12 @@ export function OrdersPage({ onError }: OrdersPageProps) {
       {/* Bento Grid */}
       {orders.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#23233e] flex items-center justify-center">
-            <span className="material-symbols-outlined text-slate-400">shopping_cart</span>
+          <div className="w-12 h-12 rounded-2xl bg-surface-container-high flex items-center justify-center">
+            <span className="material-symbols-outlined text-on-surface-variant">shopping_cart</span>
           </div>
           <div className="space-y-1">
-            <h3 className="text-base font-semibold text-[#e2e2e9]">No orders found</h3>
-            <p className="text-sm text-slate-400 max-w-xs mx-auto">
+            <h3 className="text-base font-semibold text-on-surface">No orders found</h3>
+            <p className="text-sm text-on-surface-variant max-w-xs mx-auto">
               {activeTab === 'active' ? 'No active orders right now.' : activeTab === 'past' ? 'No past orders yet.' : 'No drafts saved.'}
             </p>
           </div>
@@ -136,26 +136,26 @@ export function OrdersPage({ onError }: OrdersPageProps) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Featured Card (full width) */}
           {featured && (
-            <div className="lg:col-span-12 bg-[#16162a] border border-[#2d2d44] rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+            <div className="lg:col-span-12 bg-surface-container-lowest border border-outline rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1.5 h-full bg-primary" />
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                 <div>
                   <div className="flex items-center gap-3 mb-1">
-                    <h3 className="text-lg font-bold text-[#e2e2e9]">
+                    <h3 className="text-lg font-bold text-on-surface">
                       Order #{featured.po_number ?? featured.id}
                     </h3>
-                    <span className="bg-[#4e3b7f] text-[#e9ddff] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                    <span className="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">
                       {featured.status ?? 'unknown'}
                     </span>
                   </div>
-                  <p className="text-sm font-medium text-slate-400 flex items-center">
+                  <p className="text-sm font-medium text-on-surface-variant flex items-center">
                     <span className="material-symbols-outlined text-sm mr-1">science</span>
                     {featured.vendor_name ?? 'Unknown'} {featured.order_date ? `\u00B7 ${formatDate(featured.order_date)}` : ''}
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="text-primary text-sm font-semibold hover:underline cursor-pointer">View Invoice</span>
-                  <button className="bg-[#2a2a44] text-primary px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-[#33334d] transition-colors">
+                  <button className="bg-surface-container-high text-primary px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-surface-container-highest transition-colors">
                     Track Package
                   </button>
                 </div>
@@ -163,7 +163,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
 
               {/* Progress Tracker */}
               <div className="relative pt-4 pb-2 px-2">
-                <div className="absolute top-8 left-0 w-full h-1 bg-[#24243e] rounded-full overflow-hidden">
+                <div className="absolute top-8 left-0 w-full h-1 bg-surface-container rounded-full overflow-hidden">
                   <div
                     className="h-full bg-primary"
                     style={{ width: `${(getProgressIndex(featured.status) / (PROGRESS_STEPS.length - 1)) * 100}%` }}
@@ -178,7 +178,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 shadow-md ${
                           active || current
                             ? 'bg-primary text-white'
-                            : 'bg-[#24243e] text-slate-500/40 border border-[#2d2d44]'
+                            : 'bg-surface-container text-slate-500/40 border border-outline'
                         }`}>
                           <span className="material-symbols-outlined text-sm"
                             style={active ? { fontVariationSettings: "'FILL' 1" } : undefined}
@@ -187,7 +187,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
                           </span>
                         </div>
                         <span className={`text-[10px] font-bold mt-3 uppercase tracking-tighter ${
-                          active || current ? 'text-[#e2e2e9]' : 'text-slate-400 opacity-50'
+                          active || current ? 'text-on-surface' : 'text-on-surface-variant opacity-50'
                         }`}>
                           {step.label}
                         </span>
@@ -205,54 +205,54 @@ export function OrdersPage({ onError }: OrdersPageProps) {
             return (
               <div
                 key={order.id}
-                className={`lg:col-span-6 bg-[#16162a] border rounded-xl p-6 shadow-sm flex flex-col justify-between group hover:shadow-md transition-all ${
-                  isPending ? 'border-dashed border-2 border-[#2d2d44]' : 'border-[#2d2d44]'
+                className={`lg:col-span-6 bg-surface-container-lowest border rounded-xl p-6 shadow-sm flex flex-col justify-between group hover:shadow-md transition-all ${
+                  isPending ? 'border-dashed border-2 border-outline' : 'border-outline'
                 }`}
               >
                 <div className="flex justify-between items-start mb-6">
                   <div>
                     <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded mb-2 inline-block ${
                       isPending
-                        ? 'text-slate-400 bg-[#2a2a44]'
+                        ? 'text-on-surface-variant bg-surface-container-high'
                         : 'text-primary bg-primary/10'
                     }`}>
                       {isPending ? 'Pending Approval' : 'Processing'}
                     </span>
-                    <h3 className="text-lg font-bold text-[#e2e2e9]">
+                    <h3 className="text-lg font-bold text-on-surface">
                       Order #{order.po_number ?? order.id}
                     </h3>
-                    <p className="text-sm font-medium text-slate-400">
+                    <p className="text-sm font-medium text-on-surface-variant">
                       {order.vendor_name ?? 'Unknown'} {order.order_date ? `\u00B7 ${formatDate(order.order_date)}` : ''}
                     </p>
                   </div>
-                  <div className="h-12 w-12 rounded-xl bg-[#24243e] flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <span className={`material-symbols-outlined ${isPending ? 'text-slate-400' : 'text-primary'}`}>
+                  <div className="h-12 w-12 rounded-xl bg-surface-container flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className={`material-symbols-outlined ${isPending ? 'text-on-surface-variant' : 'text-primary'}`}>
                       {isPending ? 'pending_actions' : 'conveyor_belt'}
                     </span>
                   </div>
                 </div>
                 <div className="space-y-4">
                   {isPending ? (
-                    <div className="p-3 bg-[#1e1e36] rounded-lg text-[11px] text-slate-400 italic">
+                    <div className="p-3 bg-surface-container-low rounded-lg text-[11px] text-on-surface-variant italic">
                       Awaiting sign-off from Lab Manager head (Principal Investigator)
                     </div>
                   ) : (
                     <div className="flex justify-between items-end">
-                      <div className="w-2/3 h-1.5 bg-[#24243e] rounded-full overflow-hidden">
+                      <div className="w-2/3 h-1.5 bg-surface-container rounded-full overflow-hidden">
                         <div className="h-full bg-primary w-[25%]" />
                       </div>
-                      <span className="text-[10px] font-bold text-slate-400">25% Progress</span>
+                      <span className="text-[10px] font-bold text-on-surface-variant">25% Progress</span>
                     </div>
                   )}
-                  <div className="flex gap-4 pt-2 border-t border-[#2d2d44]">
+                  <div className="flex gap-4 pt-2 border-t border-outline">
                     <button className={`flex-1 py-2 rounded-lg font-bold text-xs ${
                       isPending
                         ? 'bg-primary text-white shadow-sm'
-                        : 'bg-[#2a2a44] text-primary'
+                        : 'bg-surface-container-high text-primary'
                     }`}>
                       {isPending ? 'View Details' : 'Track'}
                     </button>
-                    <button className="flex-1 text-slate-400 py-2 font-bold text-xs hover:text-[#e2e2e9] transition-colors">
+                    <button className="flex-1 text-on-surface-variant py-2 font-bold text-xs hover:text-on-surface transition-colors">
                       Invoice
                     </button>
                   </div>
@@ -275,19 +275,19 @@ export function OrdersPage({ onError }: OrdersPageProps) {
                 <span className="text-[10px] font-bold">+12% from last month</span>
               </div>
             </div>
-            <div className="bg-[#24243e] border border-[#2d2d44] p-6 rounded-xl flex flex-col justify-between">
+            <div className="bg-surface-container border border-outline p-6 rounded-xl flex flex-col justify-between">
               <div>
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Delivery Success</h4>
-                <p className="text-2xl font-extrabold text-[#e2e2e9]">98.4%</p>
+                <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">Delivery Success</h4>
+                <p className="text-2xl font-extrabold text-on-surface">98.4%</p>
               </div>
-              <div className="h-1 w-full bg-[#2d2d44] mt-4 rounded-full overflow-hidden">
+              <div className="h-1 w-full bg-outline mt-4 rounded-full overflow-hidden">
                 <div className="h-full bg-primary w-[98%]" />
               </div>
             </div>
-            <div className="bg-[#2a2a44] border border-[#2d2d44] p-6 rounded-xl flex flex-col justify-between">
+            <div className="bg-surface-container-high border border-outline p-6 rounded-xl flex flex-col justify-between">
               <div>
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Items in Transit</h4>
-                <p className="text-2xl font-extrabold text-[#e2e2e9]">
+                <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">Items in Transit</h4>
+                <p className="text-2xl font-extrabold text-on-surface">
                   {allOrders.filter((o) => o.status === 'shipped').reduce((sum, o) => sum + (o.item_count ?? 0), 0)}
                 </p>
               </div>
