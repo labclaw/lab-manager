@@ -603,11 +603,13 @@ def create_app() -> FastAPI:
     DIST_DIR = STATIC_DIR / "dist"
     if DIST_DIR.is_dir():  # pragma: no cover — depends on React build artifacts
         # Serve bundled JS/CSS assets from dist/assets/
-        app.mount(
-            "/assets",
-            StaticFiles(directory=str(DIST_DIR / "assets")),
-            name="dist-assets",
-        )
+        assets_dir = DIST_DIR / "assets"
+        if assets_dir.is_dir():
+            app.mount(
+                "/assets",
+                StaticFiles(directory=str(assets_dir)),
+                name="dist-assets",
+            )
 
         # Serve icons from static/icons/
         icons_dir = STATIC_DIR / "icons"
