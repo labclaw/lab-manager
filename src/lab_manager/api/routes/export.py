@@ -59,7 +59,7 @@ def _csv_response(rows: list[dict], filename: str) -> StreamingResponse:
     )
 
 
-@router.get("/inventory")
+@router.get("/inventory.csv")
 def export_inventory(
     location_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
@@ -68,7 +68,7 @@ def export_inventory(
     return _csv_response(rows, "inventory.csv")
 
 
-@router.get("/orders")
+@router.get("/orders.csv")
 def export_orders(
     vendor_id: Optional[int] = Query(None),
     date_from: Optional[date] = Query(None),
@@ -81,7 +81,7 @@ def export_orders(
     return _csv_response(rows, "orders.csv")
 
 
-@router.get("/products")
+@router.get("/products.csv")
 def export_products(db: Session = Depends(get_db)):
     fieldnames = [
         "id",
@@ -121,7 +121,7 @@ def export_products(db: Session = Depends(get_db)):
     )
 
 
-@router.get("/vendors")
+@router.get("/vendors.csv")
 def export_vendors(db: Session = Depends(get_db)):
     fieldnames = ["id", "name", "website", "phone", "email", "notes"]
     query = db.query(Vendor).order_by(Vendor.id).yield_per(100)
