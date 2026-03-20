@@ -85,7 +85,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
   const filteredDocs = search
     ? docs.filter(
         (d) =>
-          (d.filename ?? '').toLowerCase().includes(search.toLowerCase()) ||
+          (d.file_name ?? '').toLowerCase().includes(search.toLowerCase()) ||
           (d.vendor_name ?? '').toLowerCase().includes(search.toLowerCase()),
       )
     : docs
@@ -202,7 +202,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredDocs.map((doc, idx) => {
                   const badge = statusBadgeClasses(doc.status)
-                  const conf = doc.confidence ?? 0
+                  const conf = doc.extraction_confidence ?? 0
                   const confPct = Math.round(conf * 100)
                   return (
                     <tr
@@ -218,7 +218,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
                             picture_as_pdf
                           </span>
                           <span className="text-sm font-medium">
-                            {doc.filename ?? `Doc #${doc.id}`}
+                            {doc.file_name ?? `Doc #${doc.id}`}
                           </span>
                         </div>
                       </td>
@@ -232,7 +232,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
                         <span className={badge.wrapperClass}>{badge.label}</span>
                       </td>
                       <td className="px-4 py-4">
-                        {doc.confidence != null ? (
+                        {doc.extraction_confidence != null ? (
                           <div className="flex items-center gap-2">
                             <div className="w-12 bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
                               <div

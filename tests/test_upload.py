@@ -82,7 +82,7 @@ class TestUploadEndpoint:
         )
         assert resp.status_code == 201
         data = resp.json()
-        assert data["status"] == "pending"
+        assert data["status"] == "processing"
         assert "test_sample.png" in data["file_name"]
         assert data["id"] is not None
 
@@ -99,7 +99,7 @@ class TestUploadEndpoint:
         doc_id = resp.json()["id"]
         doc = db_session.get(Document, doc_id)
         assert doc is not None
-        assert doc.status == "pending"
+        assert doc.status == "processing"
         assert "record_test.png" in doc.file_name
 
     def test_upload_rejected_file_type(self, client, upload_dir):

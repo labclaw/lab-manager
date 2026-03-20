@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, Query, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, UploadFile
 from pydantic import BaseModel, field_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -110,12 +110,79 @@ class ReviewAction(BaseModel):
     review_notes: Optional[str] = None
 
 
+def _run_extraction(doc_id: int) -> None:
+    """Background task: OCR + extract structured data from an uploaded document.
+
+    Opens its own DB session (the request session is already closed).
+    Failures set status to needs_review with review_notes.
+    """
+    from pathlib import Path
+
+    from lab_manager.database import get_session_factory
+    from lab_manager.intake.extractor import extract_from_text
+    from lab_manager.intake.ocr import extract_text_from_image
+
+    factory = get_session_factory()
+    db = factory()
+    try:
+        doc = db.query(Document).filter(Document.id == doc_id).first()
+        if doc is None:
+            logger.error("Document %d not found for extraction", doc_id)
+            return
+
+        image_path = Path(doc.file_path)
+
+        # OCR
+        try:
+            ocr_text = extract_text_from_image(image_path)
+            doc.ocr_text = ocr_text
+        except Exception as e:
+            logger.error("OCR failed for doc %d: %s", doc_id, e)
+            doc.status = DocumentStatus.needs_review
+            doc.review_notes = f"OCR failed: {e}"
+            db.commit()
+            return
+
+        if not ocr_text or not ocr_text.strip():
+            logger.warning("Empty OCR text for doc %d, marking as ocr_failed", doc_id)
+            doc.status = DocumentStatus.ocr_failed
+            doc.review_notes = "OCR returned empty text"
+            db.commit()
+            return
+
+        # Extract structured data
+        try:
+            from lab_manager.config import get_settings
+
+            settings = get_settings()
+            extracted = extract_from_text(ocr_text)
+            doc.document_type = extracted.document_type
+            doc.vendor_name = extracted.vendor_name
+            doc.extracted_data = extracted.model_dump()
+            doc.extraction_model = settings.extraction_model
+            doc.extraction_confidence = extracted.confidence
+            doc.status = DocumentStatus.needs_review
+        except Exception as e:
+            logger.error("Extraction failed for doc %d: %s", doc_id, e)
+            doc.status = DocumentStatus.needs_review
+            doc.review_notes = f"Extraction failed: {e}"
+
+        db.commit()
+        logger.info("Extraction complete for doc %d, status=%s", doc_id, doc.status)
+    except Exception:
+        logger.exception("Unexpected error in extraction for doc %d", doc_id)
+        db.rollback()
+    finally:
+        db.close()
+
+
 @router.post("/upload", status_code=201)
 def upload_document(
     file: UploadFile,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    """Upload a document photo/PDF and create a pending Document record."""
+    """Upload a document photo/PDF and trigger background extraction."""
     from datetime import datetime
     from pathlib import Path
 
@@ -162,15 +229,18 @@ def upload_document(
 
     logger.info("Uploaded file %s (%d bytes)", saved_name, len(content))
 
-    # Create Document record
+    # Create Document record in processing state
     doc = Document(
         file_path=str(dest),
         file_name=saved_name,
-        status=DocumentStatus.pending,
+        status=DocumentStatus.processing,
     )
     db.add(doc)
     db.flush()
     db.refresh(doc)
+
+    # Trigger background OCR + extraction
+    background_tasks.add_task(_run_extraction, doc.id)
     return doc
 
 
@@ -303,8 +373,15 @@ def review_document(
 
 
 def _create_order_from_doc(doc: Document, db: Session):
-    """Create order from document's extracted_data."""
+    """Create order from document's extracted_data.
+
+    Also upserts Product records and creates InventoryItem entries for each
+    order line item.
+    """
     from datetime import date as date_type
+
+    from lab_manager.models.inventory import InventoryItem
+    from lab_manager.models.product import Product
 
     data = doc.extracted_data
     if not data:  # pragma: no cover — caller checks extracted_data first
@@ -346,15 +423,56 @@ def _create_order_from_doc(doc: Document, db: Session):
     db.flush()
 
     for item in data.get("items", []):
-        db.add(
-            OrderItem(
-                order_id=order.id,
-                catalog_number=item.get("catalog_number"),
-                description=item.get("description"),
-                quantity=item.get("quantity") or 1,
-                unit=item.get("unit"),
-                lot_number=item.get("lot_number"),
-                batch_number=item.get("batch_number"),
-                unit_price=item.get("unit_price"),
+        # --- upsert Product ---
+        catalog_number = item.get("catalog_number")
+        product = None
+        if catalog_number and vendor:
+            product = (
+                db.query(Product)
+                .filter(
+                    Product.catalog_number == catalog_number,
+                    Product.vendor_id == vendor.id,
+                )
+                .first()
             )
+        if not product and catalog_number:
+            product = Product(
+                catalog_number=catalog_number,
+                name=item.get("description") or catalog_number,
+                vendor_id=vendor.id if vendor else None,
+                category="Uncategorized",
+                storage_temp=item.get("storage_temp"),
+            )
+            db.add(product)
+            db.flush()
+
+        # --- create OrderItem ---
+        oi = OrderItem(
+            order_id=order.id,
+            catalog_number=catalog_number,
+            description=item.get("description"),
+            quantity=item.get("quantity") or 1,
+            unit=item.get("unit"),
+            lot_number=item.get("lot_number"),
+            batch_number=item.get("batch_number"),
+            unit_price=item.get("unit_price"),
+            product_id=product.id if product else None,
         )
+        db.add(oi)
+        db.flush()
+
+        # --- create InventoryItem ---
+        if product:
+            db.add(
+                InventoryItem(
+                    product_id=product.id,
+                    order_item_id=oi.id,
+                    lot_number=item.get("lot_number"),
+                    quantity_on_hand=item.get("quantity") or 1,
+                    unit=item.get("unit"),
+                    status="available",
+                )
+            )
+
+    # NOTE: Order has no total_amount column. Line-level pricing is
+    # available via OrderItem.unit_price × quantity.
