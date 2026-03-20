@@ -367,6 +367,23 @@ class TestDocumentValidPathInValidator:
         )
         assert resp.status_code == 200
 
+    def test_update_document_invalid_status_returns_422(self, client, db_session):
+        from lab_manager.models.document import Document
+
+        doc = Document(
+            file_path="/tmp/original.pdf",
+            file_name="original.pdf",
+            status="pending",
+        )
+        db_session.add(doc)
+        db_session.flush()
+
+        resp = client.patch(
+            f"/api/v1/documents/{doc.id}",
+            json={"status": "bogus_status"},
+        )
+        assert resp.status_code == 422
+
     def test_approve_doc_empty_data(self, client, db_session):
         """Approve doc with empty dict as extracted_data."""
         from lab_manager.models.document import Document
