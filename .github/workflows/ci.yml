@@ -132,7 +132,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql+psycopg://labmanager:labmanager@localhost:15433/labmanager
-      MEILISEARCH_URL: http://localhost:7700
+      MEILISEARCH_URL: http://localhost:17701
       AUTH_ENABLED: "false"
 
     steps:
