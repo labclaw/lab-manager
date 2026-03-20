@@ -6,6 +6,7 @@ import logging
 from typing import Literal, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, UploadFile
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, field_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -196,7 +197,10 @@ def _index_approved_doc(doc_id: int) -> None:
         doc = db.query(Document).filter(Document.id == doc_id).first()
         if doc is None:
             return
-        index_document_record(doc)
+        try:
+            index_document_record(doc)
+        except Exception:
+            logger.exception("Failed to index document %d", doc_id)
 
         order = db.query(Order).filter(Order.document_id == doc.id).first()
         if not order:
@@ -205,24 +209,39 @@ def _index_approved_doc(doc_id: int) -> None:
         if order.vendor_id:
             vendor = db.query(Vendor).filter(Vendor.id == order.vendor_id).first()
             if vendor:
-                index_vendor_record(vendor)
+                try:
+                    index_vendor_record(vendor)
+                except Exception:
+                    logger.exception("Failed to index vendor %d", vendor.id)
 
-        index_order_record(order)
+        try:
+            index_order_record(order)
+        except Exception:
+            logger.exception("Failed to index order %d", order.id)
 
         items = db.query(OrderItem).filter(OrderItem.order_id == order.id).all()
         for oi in items:
-            index_order_item_record(oi)
+            try:
+                index_order_item_record(oi)
+            except Exception:
+                logger.exception("Failed to index order_item %d", oi.id)
             if oi.product_id:
                 product = db.query(Product).filter(Product.id == oi.product_id).first()
                 if product:
-                    index_product_record(product)
+                    try:
+                        index_product_record(product)
+                    except Exception:
+                        logger.exception("Failed to index product %d", product.id)
                 inv_items = (
                     db.query(InventoryItem)
                     .filter(InventoryItem.order_item_id == oi.id)
                     .all()
                 )
                 for inv in inv_items:
-                    index_inventory_record(inv)
+                    try:
+                        index_inventory_record(inv)
+                    except Exception:
+                        logger.exception("Failed to index inventory %d", inv.id)
 
         logger.info("Indexed approved doc %d and related records", doc_id)
     except Exception:
@@ -240,8 +259,6 @@ def upload_document(
     """Upload a document photo/PDF and trigger background extraction."""
     from datetime import datetime
     from pathlib import Path
-
-    from fastapi.responses import JSONResponse
 
     from lab_manager.config import get_settings
 
@@ -412,6 +429,22 @@ def review_document(
     """Approve or reject a document extraction."""
     doc = get_or_404(db, Document, document_id, "Document")
 
+    # BUG 1 FIX: status guard — only allow review on needs_review
+    if doc.status == DocumentStatus.processing:
+        return JSONResponse(
+            status_code=409,
+            content={"detail": "Document is still being processed"},
+        )
+    if doc.status in (
+        DocumentStatus.approved,
+        DocumentStatus.rejected,
+        DocumentStatus.deleted,
+    ):
+        return JSONResponse(
+            status_code=409,
+            content={"detail": f"Document already {doc.status}"},
+        )
+
     if body.action == "approve":
         doc.status = DocumentStatus.approved
         doc.reviewed_by = body.reviewed_by
@@ -448,8 +481,23 @@ def _create_order_from_doc(doc: Document, db: Session):
     if not data:  # pragma: no cover — caller checks extracted_data first
         return
 
-    vendor = None
+    # BUG 2 FIX: validate before creating order
     vendor_name = data.get("vendor_name") or doc.vendor_name
+    items = data.get("items", [])
+    if (not vendor_name or not vendor_name.strip()) and not items:
+        logger.warning(
+            "Skipping order creation for doc %d: no vendor_name and no items",
+            doc.id,
+        )
+        return
+    if not items:
+        logger.warning(
+            "Creating order for doc %d without items (vendor=%s)",
+            doc.id,
+            vendor_name,
+        )
+
+    vendor = None
     if vendor_name:
         vendor = (
             db.query(Vendor)

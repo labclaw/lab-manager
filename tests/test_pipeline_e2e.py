@@ -424,3 +424,416 @@ class TestAskAIReturnsSQLResults:
         assert len(data["raw_results"]) == 2
         assert data["raw_results"][0]["name"] == "Acetone"
         assert data["row_count"] == 2
+
+
+class TestExtractionFailurePaths:
+    """Test all extraction failure modes."""
+
+    def test_extraction_handles_extractor_failure(self, db_session, upload_dir):
+        """extract_from_text raises → doc.status=needs_review, review_notes='Extraction failed'"""
+        from lab_manager.api.routes.documents import _run_extraction
+
+        png = _make_png()
+        dest = upload_dir / "extract_fail.png"
+        dest.write_bytes(png)
+
+        doc = Document(
+            file_path=str(dest),
+            file_name="extract_fail.png",
+            status=DocumentStatus.processing,
+        )
+        db_session.add(doc)
+        db_session.flush()
+        db_session.refresh(doc)
+        doc_id = doc.id
+
+        with (
+            patch(
+                "lab_manager.intake.ocr.extract_text_from_image",
+                return_value="SIGMA-ALDRICH PACKING LIST PO-12345",
+            ),
+            patch(
+                "lab_manager.intake.extractor.extract_from_text",
+                side_effect=RuntimeError("model timeout"),
+            ),
+            patch(
+                "lab_manager.database.get_session_factory",
+                return_value=lambda: db_session,
+            ),
+        ):
+            _run_extraction(doc_id)
+
+        db_session.expire_all()
+        doc = db_session.get(Document, doc_id)
+        assert doc.status == DocumentStatus.needs_review
+        assert "Extraction failed" in doc.review_notes
+
+    def test_extraction_nonexistent_doc(self, db_session, upload_dir):
+        """_run_extraction with invalid doc_id does nothing (no crash)."""
+        from lab_manager.api.routes.documents import _run_extraction
+
+        with patch(
+            "lab_manager.database.get_session_factory",
+            return_value=lambda: db_session,
+        ):
+            _run_extraction(999999)
+
+        # No exception, no documents created
+        assert db_session.query(Document).count() == 0
+
+
+class TestApproveEdgeCases:
+    """Test approve flow edge cases."""
+
+    def _create_extracted_doc(self, db_session, upload_dir, **overrides):
+        """Helper: create a document with custom extracted data ready for review."""
+        png = _make_png()
+        dest = upload_dir / "approve_edge.png"
+        dest.write_bytes(png)
+
+        extracted_data = SAMPLE_EXTRACTED.model_dump()
+        extracted_data.update(overrides.pop("extracted_overrides", {}))
+
+        doc = Document(
+            file_path=str(dest),
+            file_name="approve_edge.png",
+            status=DocumentStatus.needs_review,
+            vendor_name=extracted_data.get("vendor_name"),
+            document_type=extracted_data.get("document_type", "packing_list"),
+            extracted_data=extracted_data,
+            extraction_confidence=extracted_data.get("confidence", 0.9),
+        )
+        db_session.add(doc)
+        db_session.commit()
+        db_session.refresh(doc)
+        return doc
+
+    @patch("lab_manager.api.routes.documents._index_approved_doc")
+    def test_approve_processing_doc_rejected(
+        self, mock_index, client, db_session, upload_dir
+    ):
+        """Approving a doc still in 'processing' returns 409."""
+        png = _make_png()
+        dest = upload_dir / "processing_doc.png"
+        dest.write_bytes(png)
+
+        doc = Document(
+            file_path=str(dest),
+            file_name="processing_doc.png",
+            status=DocumentStatus.processing,
+        )
+        db_session.add(doc)
+        db_session.commit()
+        db_session.refresh(doc)
+
+        resp = client.post(
+            f"/api/v1/documents/{doc.id}/review",
+            json={"action": "approve", "reviewed_by": "admin"},
+        )
+        assert resp.status_code == 409
+        assert "still being processed" in resp.json()["detail"]
+
+    @patch("lab_manager.api.routes.documents._index_approved_doc")
+    def test_approve_already_approved_returns_409(
+        self, mock_index, client, db_session, upload_dir
+    ):
+        """Re-approving an already approved doc returns 409."""
+        # Create a doc already in approved state (bypasses the approve endpoint
+        # to avoid background task side-effects in TestClient)
+        png = _make_png()
+        dest = upload_dir / "already_approved.png"
+        dest.write_bytes(png)
+
+        doc = Document(
+            file_path=str(dest),
+            file_name="already_approved.png",
+            status=DocumentStatus.approved,
+            vendor_name="Sigma-Aldrich",
+            document_type="packing_list",
+            extracted_data=SAMPLE_EXTRACTED.model_dump(),
+            reviewed_by="admin",
+        )
+        db_session.add(doc)
+        db_session.commit()
+        db_session.refresh(doc)
+
+        resp = client.post(
+            f"/api/v1/documents/{doc.id}/review",
+            json={"action": "approve", "reviewed_by": "admin"},
+        )
+        assert resp.status_code == 409
+        assert "already approved" in resp.json()["detail"]
+
+    @patch("lab_manager.api.routes.documents._index_approved_doc")
+    def test_approve_no_vendor_name(self, mock_index, client, db_session, upload_dir):
+        """Approve with extracted_data but no vendor_name — order created with no vendor."""
+        from lab_manager.models.order import Order
+        from lab_manager.models.vendor import Vendor
+
+        doc = self._create_extracted_doc(
+            db_session,
+            upload_dir,
+            extracted_overrides={"vendor_name": None},
+        )
+
+        resp = client.post(
+            f"/api/v1/documents/{doc.id}/review",
+            json={"action": "approve", "reviewed_by": "admin"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "approved"
+
+        order = db_session.query(Order).filter(Order.document_id == doc.id).first()
+        assert order is not None
+        assert order.vendor_id is None
+
+        # No vendor created
+        assert db_session.query(Vendor).count() == 0
+
+    @patch("lab_manager.api.routes.documents._index_approved_doc")
+    def test_approve_empty_items(self, mock_index, client, db_session, upload_dir):
+        """Approve with vendor_name but empty items list — order created, no inventory."""
+        from lab_manager.models.inventory import InventoryItem
+        from lab_manager.models.order import Order
+        from lab_manager.models.product import Product
+
+        doc = self._create_extracted_doc(
+            db_session,
+            upload_dir,
+            extracted_overrides={"items": []},
+        )
+
+        resp = client.post(
+            f"/api/v1/documents/{doc.id}/review",
+            json={"action": "approve", "reviewed_by": "admin"},
+        )
+        assert resp.status_code == 200
+
+        order = db_session.query(Order).filter(Order.document_id == doc.id).first()
+        assert order is not None
+        assert order.vendor_id is not None
+
+        # No products or inventory created since no items
+        assert db_session.query(Product).count() == 0
+        assert db_session.query(InventoryItem).count() == 0
+
+    @patch("lab_manager.api.routes.documents._index_approved_doc")
+    def test_approve_no_catalog_numbers(
+        self, mock_index, client, db_session, upload_dir
+    ):
+        """Approve where all items have catalog_number=None — no products/inventory created."""
+        from lab_manager.models.inventory import InventoryItem
+        from lab_manager.models.order import OrderItem
+        from lab_manager.models.product import Product
+
+        extracted_no_cat = ExtractedDocument(
+            vendor_name="Sigma-Aldrich",
+            document_type="packing_list",
+            po_number="PO-NO-CAT",
+            items=[
+                ExtractedItem(
+                    catalog_number=None,
+                    description="Mystery Chemical",
+                    quantity=1,
+                    unit="L",
+                    lot_number="LOT001",
+                    unit_price=10.00,
+                ),
+                ExtractedItem(
+                    catalog_number=None,
+                    description="Another Mystery",
+                    quantity=2,
+                    unit="G",
+                    lot_number="LOT002",
+                    unit_price=5.00,
+                ),
+            ],
+            confidence=0.85,
+        )
+
+        doc = self._create_extracted_doc(
+            db_session,
+            upload_dir,
+        )
+        # Override extracted_data with no catalog numbers
+        doc.extracted_data = extracted_no_cat.model_dump()
+        doc.vendor_name = "Sigma-Aldrich"
+        db_session.commit()
+        db_session.refresh(doc)
+
+        resp = client.post(
+            f"/api/v1/documents/{doc.id}/review",
+            json={"action": "approve", "reviewed_by": "admin"},
+        )
+        assert resp.status_code == 200
+
+        # OrderItems are created but without products
+        order_items = db_session.query(OrderItem).all()
+        assert len(order_items) == 2
+
+        # No products or inventory since catalog_number is None
+        assert db_session.query(Product).count() == 0
+        assert db_session.query(InventoryItem).count() == 0
+
+        # OrderItems have no product_id
+        assert all(oi.product_id is None for oi in order_items)
+
+
+class TestUploadSecurity:
+    """Test upload filename sanitization."""
+
+    @patch("lab_manager.api.routes.documents._run_extraction")
+    def test_upload_filename_slashes_stripped(self, _mock, client, upload_dir):
+        """Filename with slashes sanitized: ../../etc/passwd.png → no path separators."""
+        png = _make_png()
+
+        resp = client.post(
+            "/api/v1/documents/upload",
+            files={"file": ("../../etc/passwd.png", png, "image/png")},
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        # Forward slashes replaced with underscores — no path traversal possible
+        assert "/" not in data["file_name"]
+
+    @patch("lab_manager.api.routes.documents._run_extraction")
+    def test_upload_filename_null_bytes_stripped(self, _mock, client, upload_dir):
+        """Filename with null bytes sanitized."""
+        png = _make_png()
+
+        resp = client.post(
+            "/api/v1/documents/upload",
+            files={"file": ("evil\x00file.png", png, "image/png")},
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert "\x00" not in data["file_name"]
+
+    @patch("lab_manager.api.routes.documents._run_extraction")
+    def test_upload_filename_backslash_stripped(self, _mock, client, upload_dir):
+        """Windows path separators stripped."""
+        png = _make_png()
+
+        resp = client.post(
+            "/api/v1/documents/upload",
+            files={"file": ("..\\..\\windows\\system32.png", png, "image/png")},
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert "\\" not in data["file_name"]
+
+
+class TestSearchIndexingResilience:
+    """Test search indexing failure handling."""
+
+    @patch("lab_manager.api.routes.documents._index_approved_doc")
+    def test_approve_succeeds_and_triggers_indexing(
+        self, mock_index, client, db_session, upload_dir
+    ):
+        """Approve returns 200 and triggers indexing background task."""
+        from lab_manager.models.order import Order
+        from lab_manager.models.vendor import Vendor
+
+        png = _make_png()
+        dest = upload_dir / "index_test.png"
+        dest.write_bytes(png)
+
+        doc = Document(
+            file_path=str(dest),
+            file_name="index_test.png",
+            status=DocumentStatus.needs_review,
+            vendor_name="Sigma-Aldrich",
+            document_type="packing_list",
+            extracted_data=SAMPLE_EXTRACTED.model_dump(),
+            extraction_confidence=0.92,
+        )
+        db_session.add(doc)
+        db_session.commit()
+        db_session.refresh(doc)
+
+        resp = client.post(
+            f"/api/v1/documents/{doc.id}/review",
+            json={"action": "approve", "reviewed_by": "admin"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "approved"
+
+        # Background indexing was triggered
+        mock_index.assert_called_once_with(doc.id)
+
+        # Business records were created
+        assert (
+            db_session.query(Vendor).filter(Vendor.name == "Sigma-Aldrich").first()
+            is not None
+        )
+        assert (
+            db_session.query(Order).filter(Order.document_id == doc.id).first()
+            is not None
+        )
+
+
+class TestAskAIEdgeCases:
+    """Test Ask AI edge cases."""
+
+    def test_ask_sql_failure_falls_back_to_search(self, client, db_session):
+        """When SQL generation fails, Ask AI falls back to Meilisearch search."""
+        with (
+            patch(
+                "lab_manager.services.rag._get_client",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "lab_manager.services.rag._generate_sql",
+                side_effect=RuntimeError("model overloaded"),
+            ),
+            patch(
+                "lab_manager.services.search.search",
+                return_value=[{"id": 1, "name": "Test Product"}],
+            ),
+        ):
+            resp = client.post(
+                "/api/v1/ask",
+                json={"question": "What chemicals do we have?"},
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["source"] == "search"
+
+    def test_ask_empty_question(self, client, db_session):
+        """Empty question returns a helpful prompt message."""
+        resp = client.post(
+            "/api/v1/ask",
+            json={"question": ""},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "provide a question" in data["answer"].lower()
+        assert data["raw_results"] == []
+
+    def test_ask_returns_search_source_on_fallback(self, client, db_session):
+        """Fallback response has source='search' and sql=None."""
+        with (
+            patch(
+                "lab_manager.services.rag._get_client",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "lab_manager.services.rag._generate_sql",
+                side_effect=RuntimeError("timeout"),
+            ),
+            patch(
+                "lab_manager.services.search.search",
+                return_value=[{"id": 42, "name": "Fallback result"}],
+            ),
+        ):
+            resp = client.post(
+                "/api/v1/ask",
+                json={"question": "List all solvents"},
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["source"] == "search"
+        assert data.get("sql") is None
+        assert len(data["raw_results"]) == 1
