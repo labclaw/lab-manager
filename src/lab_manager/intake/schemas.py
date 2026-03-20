@@ -41,7 +41,9 @@ class ExtractedItem(BaseModel):
 class ExtractedDocument(BaseModel):
     """Structured data extracted from a scanned lab document."""
 
-    vendor_name: str = Field(min_length=1, description="Supplier / vendor company name")
+    vendor_name: Optional[str] = Field(
+        default=None, description="Supplier / vendor company name"
+    )
     document_type: str = Field(
         description="Type: packing_list, invoice, certificate_of_analysis, shipping_label, quote, receipt, mta, other"
     )

@@ -1,7 +1,6 @@
 """perf: add missing composite indexes for audit, inventory, orders, alerts
 
-Merge heads b7c9d0e1f2a3 and f1a2b3c4d5e6, then add performance indexes
-identified in review:
+Continue from b7c9d0e1f2a3 and add performance indexes identified in review:
 
 - audit_log(timestamp) — ORDER BY in audit queries
 - audit_log(table_name, record_id) — composite for record history lookups
@@ -11,7 +10,7 @@ identified in review:
 - alerts(entity_type, entity_id) — model __table_args__ declares it but no migration
 
 Revision ID: c1d2e3f4a5b6
-Revises: b7c9d0e1f2a3, f1a2b3c4d5e6
+Revises: b7c9d0e1f2a3
 Create Date: 2026-03-20 12:00:00.000000
 
 """
@@ -22,7 +21,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "c1d2e3f4a5b6"
-down_revision: Union[str, Sequence[str]] = ("b7c9d0e1f2a3", "f1a2b3c4d5e6")
+down_revision: Union[str, Sequence[str]] = "b7c9d0e1f2a3"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

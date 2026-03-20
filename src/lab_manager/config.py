@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     secure_cookies: bool = True
 
     # Document intake
-    ocr_model: str = "Qwen/Qwen3-VL-4B-Instruct"
+    ocr_model: str = "gemini-2.5-flash"
     extraction_model: str = "gemini-2.5-flash"
     extraction_api_key: str = ""
     openai_api_key: str = ""

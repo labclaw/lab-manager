@@ -314,11 +314,8 @@ def _resolved_rag_model() -> str:
         return model
 
     settings = get_settings()
-    if _has_value(settings.nvidia_build_api_key) or _has_value(
-        os.environ.get("NVIDIA_BUILD_API_KEY", "")
-    ):
-        return f"nvidia_nim/{model}"
-
+    if model.startswith("gemini-"):
+        return f"gemini/{model}"
     if any(
         _has_value(value)
         for value in (
@@ -332,6 +329,11 @@ def _resolved_rag_model() -> str:
     ):
         return f"openai/{model}"
 
+    if _has_value(settings.nvidia_build_api_key) or _has_value(
+        os.environ.get("NVIDIA_BUILD_API_KEY", "")
+    ):
+        return f"nvidia_nim/{model}"
+
     return f"gemini/{model}"
 
 
@@ -341,13 +343,17 @@ def _get_client() -> dict[str, Any]:
     settings = get_settings()
     import os
 
-    nvidia_api_key = _first_value(
-        settings.nvidia_build_api_key,
-        os.environ.get("NVIDIA_BUILD_API_KEY", ""),
-    )
-    if nvidia_api_key:
+    resolved_model = _resolved_rag_model()
+
+    if resolved_model.startswith("nvidia_nim/"):
+        nvidia_api_key = _first_value(
+            settings.nvidia_build_api_key,
+            os.environ.get("NVIDIA_BUILD_API_KEY", ""),
+        )
+        if not nvidia_api_key:
+            raise RuntimeError("No NVIDIA Build API key found. Set NVIDIA_BUILD_API_KEY.")
         return {
-            "model": _resolved_rag_model(),
+            "model": resolved_model,
             "api_key": nvidia_api_key,
             "api_base": _first_value(
                 settings.rag_base_url,
@@ -356,17 +362,7 @@ def _get_client() -> dict[str, Any]:
             ),
         }
 
-    if any(
-        _has_value(value)
-        for value in (
-            settings.rag_base_url,
-            settings.rag_api_key,
-            settings.openai_api_key,
-            os.environ.get("RAG_BASE_URL", ""),
-            os.environ.get("RAG_API_KEY", ""),
-            os.environ.get("OPENAI_API_KEY", ""),
-        )
-    ):
+    if resolved_model.startswith("openai/"):
         api_key = _first_value(
             settings.rag_api_key,
             settings.openai_api_key,
@@ -377,7 +373,7 @@ def _get_client() -> dict[str, Any]:
             raise RuntimeError(
                 "No RAG API key found. Set RAG_API_KEY, NVIDIA_BUILD_API_KEY, or OPENAI_API_KEY."
             )
-        params: dict[str, Any] = {"model": _resolved_rag_model(), "api_key": api_key}
+        params: dict[str, Any] = {"model": resolved_model, "api_key": api_key}
         base_url = _first_value(
             settings.rag_base_url, os.environ.get("RAG_BASE_URL", "")
         )
@@ -390,7 +386,7 @@ def _get_client() -> dict[str, Any]:
         raise RuntimeError(
             "No Gemini API key found. Set GEMINI_API_KEY or EXTRACTION_API_KEY."
         )
-    return {"model": _resolved_rag_model(), "api_key": api_key}
+    return {"model": resolved_model, "api_key": api_key}
 
 
 def _response_text(response: Any) -> str:
@@ -498,11 +494,7 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
         # Defense-in-depth: also set READ ONLY at transaction level
         with readonly_engine.connect() as conn, conn.begin():
             conn.execute(text("SET TRANSACTION READ ONLY"))
-            conn.execute(
-                text("SET LOCAL statement_timeout = :timeout").bindparams(
-                    timeout=f"{int(SQL_TIMEOUT_S)}s"
-                )
-            )
+            conn.execute(text(f"SET LOCAL statement_timeout = '{int(SQL_TIMEOUT_S)}s'"))
             result = conn.execute(text(sql))
             columns = list(result.keys())
             rows = [
@@ -512,11 +504,7 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
     else:
         # Fallback: main engine with application-level READ ONLY
         db.execute(text("SET TRANSACTION READ ONLY"))
-        db.execute(
-            text("SET LOCAL statement_timeout = :timeout").bindparams(
-                timeout=f"{int(SQL_TIMEOUT_S)}s"
-            )
-        )
+        db.execute(text(f"SET LOCAL statement_timeout = '{int(SQL_TIMEOUT_S)}s'"))
         nested = db.begin_nested()
         try:
             result = db.execute(text(sql))
@@ -548,9 +536,11 @@ def _fallback_search(question: str) -> dict:
     try:
         from lab_manager.services.search import search
 
-        hits = search(question, index="products", limit=20)
-        if not hits:
-            hits = search(question, index="order_items", limit=20)
+        hits = []
+        for index_name in ("documents", "vendors", "orders", "products", "order_items"):
+            hits = search(question, index=index_name, limit=20)
+            if hits:
+                break
 
         answer = (
             f"Found {len(hits)} results via text search."
@@ -600,7 +590,7 @@ def ask(question: str, db: Session) -> dict:
     try:
         client = _get_client()
     except RuntimeError as e:
-        logger.error("Gemini client init failed: %s", e)
+        logger.error("RAG client init failed: %s", e)
         return _fallback_search(question)
 
     # Step 1: NL -> SQL
