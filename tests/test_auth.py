@@ -141,7 +141,7 @@ def test_health_reports_service_status(auth_client):
 def test_login_success(auth_client, staff_user):
     """Valid credentials should return 200 and set session cookie."""
     resp = auth_client.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={"email": "test@example.com", "password": "correctpassword"},
     )
     assert resp.status_code == 200
@@ -153,7 +153,7 @@ def test_login_success(auth_client, staff_user):
 
 def test_login_wrong_password(auth_client, staff_user):
     resp = auth_client.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={"email": "test@example.com", "password": "wrongpassword"},
     )
     assert resp.status_code == 401
@@ -162,7 +162,7 @@ def test_login_wrong_password(auth_client, staff_user):
 
 def test_login_nonexistent_email(auth_client):
     resp = auth_client.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={"email": "nobody@example.com", "password": "anything"},
     )
     assert resp.status_code == 401
@@ -171,7 +171,7 @@ def test_login_nonexistent_email(auth_client):
 def test_login_inactive_user(auth_client, inactive_staff):
     """Inactive users should not be able to log in."""
     resp = auth_client.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={"email": "inactive@example.com", "password": "somepassword"},
     )
     assert resp.status_code == 401
@@ -248,7 +248,7 @@ def test_admin_auth_requires_distinct_admin_password(monkeypatch, auth_engine):
 def test_authenticated_request_with_session(auth_client, staff_user):
     """After login, session cookie should grant access to protected routes."""
     login_resp = auth_client.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={"email": "test@example.com", "password": "correctpassword"},
     )
     assert login_resp.status_code == 200
@@ -287,10 +287,10 @@ def test_invalid_api_key_rejected(auth_client):
 def test_logout_then_access_rejected(auth_client, staff_user):
     """After logout, session should be invalidated (cookie deleted)."""
     auth_client.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={"email": "test@example.com", "password": "correctpassword"},
     )
-    auth_client.post("/api/auth/logout")
+    auth_client.post("/api/v1/auth/logout")
     # Clear cookies from TestClient to simulate fresh browser after cookie deletion
     auth_client.cookies.clear()
     resp = auth_client.get("/api/v1/vendors/")
@@ -313,7 +313,7 @@ def test_tampered_cookie_rejected(auth_client):
 def test_deactivated_user_session_rejected(auth_client, staff_user, auth_db_session):
     """If staff is deactivated, existing session should be rejected."""
     auth_client.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={"email": "test@example.com", "password": "correctpassword"},
     )
     # Deactivate the user
@@ -325,26 +325,26 @@ def test_deactivated_user_session_rejected(auth_client, staff_user, auth_db_sess
 
 
 def test_auth_me_rejects_deactivated_user(auth_client, staff_user, auth_db_session):
-    """/api/auth/me should revalidate the staff row, not trust cookie payload alone."""
+    """/api/v1/auth/me should revalidate the staff row, not trust cookie payload alone."""
     auth_client.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={"email": "test@shenlab.org", "password": "correctpassword"},
     )
     staff_user.is_active = False
     auth_db_session.commit()
-    resp = auth_client.get("/api/auth/me")
+    resp = auth_client.get("/api/v1/auth/me")
     assert resp.status_code == 401
 
 
 def test_auth_me_rejects_missing_user(auth_client, staff_user, auth_db_session):
-    """/api/auth/me should reject sessions for deleted staff rows."""
+    """/api/v1/auth/me should reject sessions for deleted staff rows."""
     auth_client.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={"email": "test@shenlab.org", "password": "correctpassword"},
     )
     auth_db_session.delete(staff_user)
     auth_db_session.commit()
-    resp = auth_client.get("/api/auth/me")
+    resp = auth_client.get("/api/v1/auth/me")
     assert resp.status_code == 401
 
 
@@ -366,7 +366,7 @@ def test_login_no_password_hash(auth_client, auth_db_session):
     auth_db_session.commit()
 
     resp = auth_client.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={"email": "nopwd@example.com", "password": "anything"},
     )
     assert resp.status_code == 401

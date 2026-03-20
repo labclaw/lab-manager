@@ -125,17 +125,17 @@ class TestAccessLogMiddleware:
 
     def test_non_health_endpoint_logged(self, logging_client, caplog):
         with caplog.at_level(logging.INFO, logger="lab_manager.api.access"):
-            logging_client.get("/api/setup/status")
+            logging_client.get("/api/v1/setup/status")
         assert any("http_request" in record.message for record in caplog.records)
 
     def test_access_log_includes_method(self, logging_client, caplog):
         with caplog.at_level(logging.INFO, logger="lab_manager.api.access"):
-            logging_client.get("/api/setup/status")
+            logging_client.get("/api/v1/setup/status")
         assert any("GET" in record.message for record in caplog.records)
 
     def test_access_log_includes_status_and_duration(self, logging_client, caplog):
         with caplog.at_level(logging.INFO, logger="lab_manager.api.access"):
-            logging_client.get("/api/setup/status")
+            logging_client.get("/api/v1/setup/status")
         text = caplog.text
         assert "http_request" in text
         assert "200" in text
