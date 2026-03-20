@@ -719,15 +719,15 @@ class TestDocumentRoutes:
 
 class TestExportRoutes:
     def test_export_empty_inventory(self, client):
-        resp = client.get("/api/v1/export/inventory.csv")
+        resp = client.get("/api/v1/export/inventory")
         assert resp.status_code == 200
 
     def test_export_products_csv(self, client):
-        resp = client.get("/api/v1/export/products.csv")
+        resp = client.get("/api/v1/export/products")
         assert resp.status_code == 200
 
     def test_export_vendors_csv(self, client):
-        resp = client.get("/api/v1/export/vendors.csv")
+        resp = client.get("/api/v1/export/vendors")
         assert resp.status_code == 200
 
 
