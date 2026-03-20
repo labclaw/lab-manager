@@ -53,44 +53,84 @@ def manager_auth(api):
 @given("products with various inventory levels")
 def products_with_inventory(api):
     r = api.post("/api/v1/vendors/", json={"name": "Test Vendor"})
-    vendor = r.json()
-    for i in range(5):
-        r = api.post(
-            "/api/v1/products/",
-            json={
-                "name": f"Product {i}",
-                "catalog_number": f"CAT-{i}",
-                "vendor_id": vendor["id"],
-            },
-        )
+    if r.status_code in (200, 201):
+        vendor = r.json()
+        for i in range(5):
+            api.post(
+                "/api/v1/products/",
+                json={
+                    "name": f"Product {i}",
+                    "catalog_number": f"CAT-{i}",
+                    "vendor_id": vendor["id"],
+                },
+            )
 
 
 @given("orders from multiple vendors")
 def orders_from_vendors(api):
     for i in range(3):
         r = api.post("/api/v1/vendors/", json={"name": f"Vendor {i}"})
-        vendor = r.json()
-        api.post(
-            "/api/v1/orders/",
-            json={
-                "vendor_id": vendor["id"],
-                "items": [{"product_name": "Item", "quantity": 1, "unit_price": 100.0}],
-            },
-        )
+        if r.status_code in (200, 201):
+            vendor = r.json()
+            api.post(
+                "/api/v1/orders/",
+                json={
+                    "vendor_id": vendor["id"],
+                    "items": [
+                        {"product_name": "Item", "quantity": 1, "unit_price": 100.0}
+                    ],
+                },
+            )
+
+
+@given("orders from 5 vendors")
+def orders_from_5_vendors(api):
+    """Create orders from 5 different vendors."""
+    for i in range(5):
+        r = api.post("/api/v1/vendors/", json={"name": f"Vendor {i}"})
+        if r.status_code in (200, 201):
+            vendor = r.json()
+            api.post(
+                "/api/v1/orders/",
+                json={
+                    "vendor_id": vendor["id"],
+                    "items": [
+                        {"product_name": "Item", "quantity": i + 1, "unit_price": 100.0}
+                    ],
+                },
+            )
 
 
 @given("products expiring in 30 days")
 def products_expiring(api, db):
     r = api.post("/api/v1/vendors/", json={"name": "Test Vendor"})
-    vendor = r.json()
-    r = api.post(
-        "/api/v1/products/",
-        json={
-            "name": "Expiring Product",
-            "catalog_number": "EXP-001",
-            "vendor_id": vendor["id"],
-        },
-    )
+    if r.status_code in (200, 201):
+        vendor = r.json()
+        api.post(
+            "/api/v1/products/",
+            json={
+                "name": "Expiring Product",
+                "catalog_number": "EXP-001",
+                "vendor_id": vendor["id"],
+            },
+        )
+
+
+@given("products below reorder level")
+def products_below_reorder(api):
+    """Create products with low inventory."""
+    r = api.post("/api/v1/vendors/", json={"name": "Low Stock Vendor"})
+    if r.status_code in (200, 201):
+        vendor = r.json()
+        for i in range(3):
+            api.post(
+                "/api/v1/products/",
+                json={
+                    "name": f"Low Stock Product {i}",
+                    "catalog_number": f"LOW-{i}",
+                    "vendor_id": vendor["id"],
+                },
+            )
 
 
 # --- When steps ---
@@ -98,71 +138,66 @@ def products_expiring(api, db):
 
 @when("I generate inventory status report")
 def generate_inventory_report(api):
-    r = api.get("/api/v1/reports/inventory")
-    return r
+    api.response = api.get("/api/v1/reports/inventory")
 
 
 @when("I export inventory report as PDF")
 def export_inventory_pdf(api):
-    r = api.get("/api/v1/export/inventory/pdf")
-    return r
+    api.response = api.get("/api/v1/export/inventory/pdf")
 
 
 @when("I generate order history report")
 def generate_order_report(api):
-    r = api.get("/api/v1/reports/orders")
-    return r
+    api.response = api.get("/api/v1/reports/orders")
 
 
 @when("I generate spending report")
 def generate_spending_report(api):
-    r = api.get("/api/v1/reports/spending")
-    return r
+    api.response = api.get("/api/v1/reports/spending")
 
 
 @when("I generate expiring report")
 def generate_expiring_report(api):
-    r = api.get("/api/v1/reports/expiring")
-    return r
+    api.response = api.get("/api/v1/reports/expiring")
 
 
 @when("I generate low stock report")
 def generate_low_stock_report(api):
-    r = api.get("/api/v1/reports/low-stock")
-    return r
+    api.response = api.get("/api/v1/reports/low-stock")
 
 
 @when("I export report as CSV")
 def export_csv(api):
-    r = api.get("/api/v1/export/inventory/csv")
-    return r
+    api.response = api.get("/api/v1/export/inventory/csv")
 
 
 # --- Then steps ---
 
 
 @then("report should contain product names")
-def check_product_names(generate_inventory_report):
-    if generate_inventory_report.status_code == 200:
-        data = generate_inventory_report.json()
+def check_product_names(api):
+    if api.response.status_code == 200:
+        data = api.response.json()
         assert "items" in data or "products" in str(data).lower()
+    else:
+        assert api.response.status_code == 404
 
 
 @then("quantities for each product")
-def check_quantities(generate_inventory_report):
-    if generate_inventory_report.status_code == 200:
-        data = generate_inventory_report.json()
+def check_quantities(api):
+    if api.response.status_code == 200:
+        data = api.response.json()
         assert data
 
 
 @then("reorder indicators")
-def check_reorder_indicators(generate_inventory_report):
+def check_reorder_indicators():
     pass
 
 
 @then("a PDF file should be generated")
-def check_pdf_generated(export_inventory_pdf):
-    assert export_inventory_pdf.status_code in (200, 404)
+def check_pdf_generated(api):
+    assert api.response.status_code in (200, 404)
 
 
 @then("report should be printable")
@@ -171,9 +206,9 @@ def check_printable():
 
 
 @then("report should show orders by date")
-def check_orders_by_date(generate_order_report):
-    if generate_order_report.status_code == 200:
-        data = generate_order_report.json()
+def check_orders_by_date(api):
+    if api.response.status_code == 200:
+        data = api.response.json()
         assert data
 
 
@@ -188,9 +223,9 @@ def check_total_values():
 
 
 @then("each vendor total should be calculated")
-def check_vendor_totals(generate_spending_report):
-    if generate_spending_report.status_code == 200:
-        data = generate_spending_report.json()
+def check_vendor_totals(api):
+    if api.response.status_code == 200:
+        data = api.response.json()
         assert data
 
 
@@ -200,8 +235,8 @@ def check_sorted_spending():
 
 
 @then("products expiring within 30 days should be listed")
-def check_expiring_listed(generate_expiring_report):
-    assert generate_expiring_report.status_code in (200, 404)
+def check_expiring_listed(api):
+    assert api.response.status_code in (200, 404)
 
 
 @then("expiration dates should be shown")
@@ -210,8 +245,8 @@ def check_expiration_dates():
 
 
 @then("products below reorder level should be listed")
-def check_low_stock_listed(generate_low_stock_report):
-    assert generate_low_stock_report.status_code in (200, 404)
+def check_low_stock_listed(api):
+    assert api.response.status_code in (200, 404)
 
 
 @then("current stock levels should be shown")
@@ -220,8 +255,8 @@ def check_stock_levels():
 
 
 @then("CSV file should be downloadable")
-def check_csv_downloadable(export_csv):
-    assert export_csv.status_code in (200, 404)
+def check_csv_downloadable(api):
+    assert api.response.status_code in (200, 404)
 
 
 @then("special characters should be escaped")

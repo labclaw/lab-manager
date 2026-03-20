@@ -41,7 +41,7 @@ Lab configuration (currently read-only).
 {
   "lab_name": "Lab Manager",
   "lab_subtitle": "Laboratory",
-  "version": "0.1.5"
+  "version": "0.1.6"
 }
 ```
 

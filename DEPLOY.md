@@ -2,6 +2,25 @@
 
 Production deployment guide.
 
+## Release Validation Before Deploy
+
+Before shipping a new internal release, run the maintained release gate from the checked-out repo:
+
+```bash
+uv sync --dev --frozen
+docker compose --env-file .env.example config -q
+uv run pytest tests --ignore=tests/bdd -q
+bash scripts/run_release_gate.sh
+```
+
+This validates the default shipped surface:
+- root page and built assets
+- first-run setup
+- login and authenticated session
+- dashboard plus core CRUD smoke
+- CSV export
+- current API security smoke coverage
+
 ## Prerequisites
 
 - Docker + Docker Compose

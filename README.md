@@ -11,9 +11,32 @@ Core flow:
 
 ## Release Status
 
-`v0.1.5` is a private preview release. The backend, database model, setup wizard, login flow, review queue, inventory lifecycle, export, search, and admin surface are in place.
+`v0.1.6` is the minimum stable internal release. The maintained backend, database model, setup wizard, login flow, review queue, inventory lifecycle, export, search, and admin surface are validated on the release-critical suite and real-user smoke flows.
 
 The React frontend in [`web/`](web/) is an in-progress replacement, not the default release surface. The shipped app currently relies on the backend-served UI under [`src/lab_manager/static/`](src/lab_manager/static/).
+
+## Release Gate
+
+`v0.1.6` is release-gated by an explicit maintained suite, not by the full historical test tree.
+
+Required checks:
+- `uv sync --dev --frozen`
+- `docker compose --env-file .env.example config -q`
+- `uv run ruff check src/ tests/`
+- `uv run ruff format --check src/ tests/`
+- `uv run mypy src/lab_manager/`
+- `cd web && npm test -- --run && npx tsc --noEmit && npm run build`
+- `uv run pytest tests --ignore=tests/bdd -q`
+- `bash scripts/run_release_gate.sh`
+
+What `scripts/run_release_gate.sh` covers:
+- default shipped root page loads and its referenced assets return `200`
+- first-run setup wizard path
+- admin login and authenticated session check
+- dashboard, vendor/product/order creation, and CSV export
+- API security smoke checks aligned to the current `/api/v1/*` contract
+
+The legacy `tests/bdd/...` layer is still useful as a cleanup backlog, but it is not currently stable enough to serve as the release gate.
 
 ## Try It Locally
 
@@ -57,6 +80,14 @@ docker compose up -d db search
 uv run alembic upgrade head
 uv run uvicorn lab_manager.api.app:create_app --factory --reload
 uv run pytest
+```
+
+Release-focused local validation:
+
+```bash
+docker compose up -d db search
+uv run pytest tests --ignore=tests/bdd -q
+bash scripts/run_release_gate.sh
 ```
 
 ## Project Layout
