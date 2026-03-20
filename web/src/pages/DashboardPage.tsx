@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
-  Upload, ShoppingCartPlus, Boxes, Users, FileText, CheckCircle,
+  Upload, ShoppingCart, Boxes, Users, FileText, CheckCircle,
   Clock, ShoppingBag, Store, AlertTriangle, Calendar, BarChart3, FolderOpen,
 } from 'lucide-react'
 import { analytics, inventory, vendors, documents } from '@/lib/api'
@@ -126,7 +126,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
             onClick={() => navigate('/orders')}
             className="flex items-center justify-center gap-3 p-4 bg-[var(--card)] border border-primary/20 hover:border-primary/50 text-[var(--foreground)] rounded-xl font-bold text-sm transition-all group"
           >
-            <ShoppingCartPlus className="size-5 text-primary group-hover:scale-110 transition-transform" />
+            <ShoppingCart className="size-5 text-primary group-hover:scale-110 transition-transform" />
             <span>New Order</span>
           </button>
           <button

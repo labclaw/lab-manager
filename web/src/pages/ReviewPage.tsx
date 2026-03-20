@@ -21,7 +21,6 @@ import {
   AlertTriangle,
   Upload,
   Pencil,
-  Check,
 } from 'lucide-react'
 
 interface ReviewPageProps {
