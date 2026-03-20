@@ -41,7 +41,7 @@ class ExtractedItem(BaseModel):
 class ExtractedDocument(BaseModel):
     """Structured data extracted from a scanned lab document."""
 
-    vendor_name: str = Field(description="Supplier / vendor company name")
+    vendor_name: str = Field(min_length=1, description="Supplier / vendor company name")
     document_type: str = Field(
         description="Type: packing_list, invoice, certificate_of_analysis, shipping_label, quote, receipt, mta, other"
     )
@@ -62,7 +62,9 @@ class ExtractedDocument(BaseModel):
     )
     bill_to_address: Optional[str] = Field(None, description="Billing address")
     items: list[ExtractedItem] = Field(default_factory=list, description="Line items")
-    confidence: Optional[float] = Field(None, description="Extraction confidence 0-1")
+    confidence: Optional[float] = Field(
+        None, ge=0.0, le=1.0, description="Extraction confidence 0-1"
+    )
 
     @field_validator("document_type")
     @classmethod
