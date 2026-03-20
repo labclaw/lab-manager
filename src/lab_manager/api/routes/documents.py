@@ -320,6 +320,8 @@ def upload_document(
     )
     db.add(doc)
     db.flush()
+    # Commit before the background task runs so a fresh session can see the row.
+    db.commit()
     db.refresh(doc)
 
     # Trigger background OCR + extraction
@@ -467,16 +469,17 @@ def review_document(
         ).first()
         if not existing_order and doc.extracted_data:
             _create_order_from_doc(doc, db)
-        # Index all created records in Meilisearch (background)
-        db.flush()
-        background_tasks.add_task(_index_approved_doc, doc.id)
     elif body.action == "reject":
         doc.status = DocumentStatus.rejected
         doc.reviewed_by = body.reviewed_by
         doc.review_notes = body.review_notes
 
     db.flush()
+    # Commit before background indexing so the indexer sees approved state and related records.
+    db.commit()
     db.refresh(doc)
+    if body.action == "approve":
+        background_tasks.add_task(_index_approved_doc, doc.id)
     return doc
 
 
