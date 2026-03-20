@@ -1,5 +1,4 @@
 """BDD step definitions for pagination edge cases."""
-
 import pytest
 from pytest_bdd import given, when, then, scenarios, parsers
 
@@ -15,50 +14,38 @@ def ctx():
 
 # --- Background steps ---
 
-
 @given("the system is set up")
 def system_setup(api):
-    """Ensure API is reachable without forcing setup flow."""
-    r = api.get("/api/v1/setup/status")
+    """Ensure system is set up."""
+    r = api.get("/api/setup/status")
     if r.status_code == 200 and r.json().get("needs_setup"):
         api.post(
-            "/api/v1/setup/complete",
+            "/api/setup/complete",
             json={
                 "admin_name": "Test Admin",
                 "admin_email": "admin@test.com",
                 "admin_password": "TestPassword123!",
             },
         )
-    else:
-        # Fallback endpoint is lightweight and always public.
-        api.get("/api/config")
 
 
 @given('I am logged in as "admin@test.com"')
 def logged_in(api):
-    """Auth is usually disabled in BDD fixtures; attempt login only if available."""
-    response = api.post(
+    """Log in as admin user."""
+    api.post(
         "/api/v1/auth/login",
         json={"email": "admin@test.com", "password": "TestPassword123!"},
     )
-    if response.status_code == 404:
-        return None
 
 
 # --- Given steps ---
-
 
 @given("300 documents exist")
 def three_hundred_documents(db):
     """Create 300 test documents."""
     from lab_manager.models.document import Document
-
     for i in range(300):
-        doc = Document(
-            file_path=f"/tmp/test_{i}.pdf",
-            file_name=f"test_{i}.pdf",
-            status="approved",
-        )
+        doc = Document(file_name=f"test_{i}.pdf", status="approved")
         db.add(doc)
     db.commit()
 
@@ -67,13 +54,8 @@ def three_hundred_documents(db):
 def fifty_documents(db):
     """Create 50 test documents."""
     from lab_manager.models.document import Document
-
     for i in range(50):
-        doc = Document(
-            file_path=f"/tmp/test_{i}.pdf",
-            file_name=f"test_{i}.pdf",
-            status="approved",
-        )
+        doc = Document(file_name=f"test_{i}.pdf", status="approved")
         db.add(doc)
     db.commit()
 
@@ -82,13 +64,8 @@ def fifty_documents(db):
 def ten_documents(db):
     """Create 10 test documents."""
     from lab_manager.models.document import Document
-
     for i in range(10):
-        doc = Document(
-            file_path=f"/tmp/test_{i}.pdf",
-            file_name=f"test_{i}.pdf",
-            status="approved",
-        )
+        doc = Document(file_name=f"test_{i}.pdf", status="approved")
         db.add(doc)
     db.commit()
 
@@ -97,13 +74,11 @@ def ten_documents(db):
 def documents_various_statuses(db):
     """Create documents with different statuses."""
     from lab_manager.models.document import Document
-
     statuses = ["approved", "needs_review", "rejected", "approved", "needs_review"]
     for i in range(100):
         doc = Document(
-            file_path=f"/tmp/test_{i}.pdf",
             file_name=f"test_{i}.pdf",
-            status=statuses[i % len(statuses)],
+            status=statuses[i % len(statuses)]
         )
         db.add(doc)
     db.commit()
@@ -111,35 +86,25 @@ def documents_various_statuses(db):
 
 # --- When steps ---
 
-
 @when("I request the documents list without parameters", target_fixture="response")
 def request_documents_default(api):
     """Request documents with default pagination."""
-    return api.get("/api/v1/documents/?page_size=20")
+    return api.get("/api/v1/documents/")
 
 
-@when(
-    parsers.parse("I request the documents list with page_size {size:d}"),
-    target_fixture="response",
-)
+@when(parsers.parse('I request the documents list with page_size {size:d}'), target_fixture="response")
 def request_documents_page_size(api, size):
     """Request documents with specific page size."""
     return api.get(f"/api/v1/documents/?page_size={size}")
 
 
-@when(
-    parsers.parse("I request the documents list with page {page:d}"),
-    target_fixture="response",
-)
+@when(parsers.parse('I request the documents list with page {page:d}'), target_fixture="response")
 def request_documents_page(api, page):
     """Request documents at specific page."""
     return api.get(f"/api/v1/documents/?page={page}")
 
 
-@when(
-    'I request documents with status "needs_review" and page 2',
-    target_fixture="response",
-)
+@when('I request documents with status "needs_review" and page 2', target_fixture="response")
 def request_documents_filtered(api):
     """Request filtered documents."""
     return api.get("/api/v1/documents/?status=needs_review&page=2&page_size=20")
@@ -162,7 +127,6 @@ def request_all_list_endpoints(api, ctx):
 
 
 # --- Then steps ---
-
 
 @then(parsers.parse("the response should contain {count:d} items"))
 def response_contains_items(response, count):
@@ -222,7 +186,7 @@ def total_still_fifty(response):
     assert response.json().get("total") == 50
 
 
-@then('only documents with status "needs_review" should be returned')
+@then("only documents with status \"needs_review\" should be returned")
 def only_needs_review(response):
     """Verify filtered results."""
     data = response.json()
@@ -264,24 +228,14 @@ def create_resource(db, count, resource):
     from lab_manager.models.document import Document
     from lab_manager.models.vendor import Vendor
     from lab_manager.models.alert import Alert
-
+    
     for i in range(count):
         if resource == "vendors":
             obj = Vendor(name=f"Vendor {i}")
         elif resource == "documents":
-            obj = Document(
-                file_path=f"/tmp/doc_{i}.pdf",
-                file_name=f"doc_{i}.pdf",
-                status="approved",
-            )
+            obj = Document(file_name=f"doc_{i}.pdf", status="approved")
         elif resource == "alerts":
-            obj = Alert(
-                alert_type="low_stock",
-                severity="info",
-                message=f"Alert {i}",
-                entity_type="inventory",
-                entity_id=i + 1,
-            )
+            obj = Alert(type="test", message=f"Alert {i}", severity="info")
         else:
             continue  # Skip unsupported resources
         db.add(obj)
@@ -300,30 +254,3 @@ def request_resource_list(api, resource):
         "alerts": "/api/v1/alerts/",
     }
     return api.get(endpoints.get(resource, "/api/v1/documents/"))
-
-
-@then("all should include total, page, page_size, pages")
-def all_include_pagination_fields(ctx):
-    """Verify all responses include pagination fields."""
-    responses = ctx.get("responses", {})
-    for endpoint, resp in responses.items():
-        data = resp.json()
-        assert "total" in data, f"{endpoint} missing total"
-        assert "page" in data, f"{endpoint} missing page"
-        assert "page_size" in data, f"{endpoint} missing page_size"
-        assert "pages" in data, f"{endpoint} missing pages"
-
-
-@then("page_size should be at most 200")
-def page_size_at_most_200(response):
-    """Verify page_size is at most 200."""
-    data = response.json()
-    assert data.get("page_size", 0) <= 200
-
-
-@then(parsers.parse("the response should contain {count:d} item"))
-def response_contains_one_item(response, count):
-    """Verify response item count (singular)."""
-    data = response.json()
-    actual = len(data.get("items", []))
-    assert actual == count, f"Expected {count} item, got {actual}"

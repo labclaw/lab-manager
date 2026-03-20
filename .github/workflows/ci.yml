@@ -126,7 +126,7 @@ jobs:
       meilisearch:
         image: getmeili/meilisearch:v1.12
         ports:
-          - 7700:7700
+          - 17701:7700
         env:
           MEILI_ENV: development
 
