@@ -96,6 +96,7 @@ _AUTH_ALLOWLIST_PREFIXES = (
 # Session cookie config
 _SESSION_COOKIE = "lab_session"
 _SESSION_MAX_AGE = 86400  # 24 hours
+_MAX_JSON_BODY_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
 def _get_serializer() -> URLSafeTimedSerializer:
@@ -153,7 +154,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="LabClaw Lab Manager",
         description="Lab inventory management with OCR document intake",
-        version="0.1.5",
+        version="0.1.6",
         **docs_kwargs,
     )
 
@@ -179,25 +180,26 @@ def create_app() -> FastAPI:
         expose_headers=["*"],
     )
 
-    # --- Preflight middleware (handles OPTIONS before router) ---
-    # Starlette's CORSMiddleware only adds headers to existing responses.
-    # This middleware intercepts OPTIONS requests and returns 200 with CORS headers.
-    #
     @app.middleware("http")
-    async def cors_preflight_middleware(request: Request, call_next):
-        # Handle OPTIONS preflight requests for API routes
-        if request.method == "OPTIONS" and request.url.path.startswith("/api/"):
-            from starlette.responses import Response
-
-            response = Response(status_code=200)
-            response.headers["Access-Control-Allow-Origin"] = "*"
-            response.headers["Access-Control-Allow-Methods"] = (
-                "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    async def request_size_guard(request: Request, call_next):
+        content_type = request.headers.get("content-type", "").split(";", 1)[0].strip()
+        content_length = request.headers.get("content-length")
+        if (
+            request.method in {"POST", "PUT", "PATCH"}
+            and content_type == "application/json"
+            and content_length
+            and content_length.isdigit()
+            and int(content_length) > _MAX_JSON_BODY_BYTES
+        ):
+            return JSONResponse(
+                status_code=413,
+                content={
+                    "detail": (
+                        f"JSON request body too large ({content_length} bytes). "
+                        f"Maximum: {_MAX_JSON_BODY_BYTES} bytes (10 MB)."
+                    )
+                },
             )
-            response.headers["Access-Control-Allow-Headers"] = "*"
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Max-Age"] = "86400"
-            return response
         return await call_next(request)
 
     # --- Rate limiting (slowapi) ---
@@ -209,6 +211,7 @@ def create_app() -> FastAPI:
         return JSONResponse(
             status_code=429,
             content={"detail": "Rate limit exceeded"},
+            headers={"Retry-After": "60"},
         )
 
     # --- Domain exception → HTTP response handler ---

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pytest_bdd import given, parsers, scenario, then, when
+from pytest_bdd import given, scenario, then, when
 
 FEATURE = "../features/reports.feature"
 
@@ -57,7 +57,11 @@ def products_with_inventory(api):
     for i in range(5):
         r = api.post(
             "/api/v1/products/",
-            json={"name": f"Product {i}", "catalog_number": f"CAT-{i}", "vendor_id": vendor["id"]},
+            json={
+                "name": f"Product {i}",
+                "catalog_number": f"CAT-{i}",
+                "vendor_id": vendor["id"],
+            },
         )
 
 
@@ -79,14 +83,16 @@ def orders_from_vendors(api):
 def products_expiring(api, db):
     from datetime import datetime, timedelta
 
-    from lab_manager.models.product import Product
-
     r = api.post("/api/v1/vendors/", json={"name": "Test Vendor"})
     vendor = r.json()
-    exp_date = (datetime.now() + timedelta(days=15)).date()
+    (datetime.now() + timedelta(days=15)).date()
     r = api.post(
         "/api/v1/products/",
-        json={"name": "Expiring Product", "catalog_number": "EXP-001", "vendor_id": vendor["id"]},
+        json={
+            "name": "Expiring Product",
+            "catalog_number": "EXP-001",
+            "vendor_id": vendor["id"],
+        },
     )
 
 

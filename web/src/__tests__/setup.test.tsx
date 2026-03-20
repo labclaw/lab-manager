@@ -44,7 +44,7 @@ describe('SetupPage', () => {
       let capturedBody: Record<string, string> | null = null
 
       server.use(
-        http.post('/api/setup/complete', async ({ request }) => {
+        http.post('/api/v1/setup/complete', async ({ request }) => {
           capturedBody = (await request.json()) as Record<string, string>
           return HttpResponse.json({ status: 'ok' })
         }),
@@ -80,7 +80,7 @@ describe('SetupPage', () => {
       const user = userEvent.setup()
 
       server.use(
-        http.post('/api/setup/complete', () =>
+        http.post('/api/v1/setup/complete', () =>
           HttpResponse.json({ status: 'ok' }),
         ),
       )
@@ -100,7 +100,7 @@ describe('SetupPage', () => {
       const user = userEvent.setup()
 
       server.use(
-        http.post('/api/setup/complete', () =>
+        http.post('/api/v1/setup/complete', () =>
           HttpResponse.json({ detail: 'Email already registered' }, { status: 400 }),
         ),
       )
