@@ -153,6 +153,7 @@ export default function App() {
         <div className="flex-1 flex flex-col min-w-0">
           <Header
             title={PAGE_TITLES[location.pathname] ?? 'Lab Manager'}
+            showSearch={location.pathname !== '/ask'}
             darkMode={darkMode}
             onToggleDarkMode={toggleDarkMode}
           />
