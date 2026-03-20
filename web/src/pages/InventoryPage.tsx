@@ -28,13 +28,13 @@ export function InventoryPage({ onError }: InventoryPageProps) {
   const stockBadge = (status?: string, quantity?: number) => {
     if (status === 'low_stock' || (quantity != null && quantity <= 3)) {
       return (
-        <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded-full bg-[#ffdcbe]/20 text-[#ffdcbe] text-[10px] font-bold w-fit uppercase">
+        <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant text-[10px] font-bold w-fit uppercase">
           Low Stock
         </span>
       )
     }
     return (
-      <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded-full bg-[#2d2d44] text-[#e2e2e9] text-[10px] font-bold w-fit uppercase">
+      <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded-full bg-secondary-container text-on-surface text-[10px] font-bold w-fit uppercase">
         In Stock
       </span>
     )
@@ -43,8 +43,8 @@ export function InventoryPage({ onError }: InventoryPageProps) {
   const itemIcon = (status?: string) => {
     if (status === 'low_stock' || status === 'expired') {
       return (
-        <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
-          <span className="material-symbols-outlined text-red-500" style={{ fontVariationSettings: "'FILL' 1" }}>biotech</span>
+        <div className="w-10 h-10 rounded-lg bg-error-container flex items-center justify-center">
+          <span className="material-symbols-outlined text-error" style={{ fontVariationSettings: "'FILL' 1" }}>biotech</span>
         </div>
       )
     }
@@ -85,11 +85,11 @@ export function InventoryPage({ onError }: InventoryPageProps) {
       {/* Filters & Actions Bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-card-dark rounded-xl shadow-sm hover:bg-[#23233e] transition-colors text-sm font-medium border border-[#2d2d44]">
+          <button className="flex items-center gap-2 px-4 py-2 bg-card-dark rounded-xl shadow-sm hover:bg-surface-container-high transition-colors text-sm font-medium border border-outline">
             <span className="material-symbols-outlined text-lg">filter_list</span>
             <span>Filters</span>
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-card-dark rounded-xl shadow-sm hover:bg-[#23233e] transition-colors text-sm font-medium border border-[#2d2d44]">
+          <button className="flex items-center gap-2 px-4 py-2 bg-card-dark rounded-xl shadow-sm hover:bg-surface-container-high transition-colors text-sm font-medium border border-outline">
             <span className="material-symbols-outlined text-lg">category</span>
             <span>Category</span>
           </button>
@@ -99,7 +99,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <button className="bg-[#23233e] text-primary font-semibold px-6 py-2.5 rounded-xl text-sm flex items-center gap-2 hover:bg-[#2d2d44] transition-colors">
+          <button className="bg-surface-container-high text-primary font-semibold px-6 py-2.5 rounded-xl text-sm flex items-center gap-2 hover:bg-surface-container-highest transition-colors">
             <span className="material-symbols-outlined text-lg">add_circle</span>
             <span>New Item</span>
           </button>
@@ -111,11 +111,11 @@ export function InventoryPage({ onError }: InventoryPageProps) {
       </div>
 
       {/* Inventory Data Table */}
-      <section className="bg-card-dark rounded-[2rem] shadow-sm overflow-hidden flex flex-col flex-1 border border-[#2d2d44]">
+      <section className="bg-card-dark rounded-[2rem] shadow-sm overflow-hidden flex flex-col flex-1 border border-outline">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[#23233e]/50">
+              <tr className="bg-surface-container-high/50">
                 <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Item Name</th>
                 <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Lot #</th>
                 <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Vendor</th>
@@ -124,14 +124,14 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                 <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#2d2d44]">
+            <tbody className="divide-y divide-outline">
               {items.map((item) => (
-                <tr key={item.id} className="hover:bg-[#23233e]/30 transition-colors group">
+                <tr key={item.id} className="hover:bg-surface-container-high/30 transition-colors group">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
                       {itemIcon(item.status)}
                       <div>
-                        <p className="font-bold text-[#e2e2e9]">
+                        <p className="font-bold text-on-surface">
                           {item.product_name ?? `Product #${item.product_id}`}
                         </p>
                         <p className="text-[11px] text-slate-400">
@@ -148,7 +148,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                   </td>
                   <td className="px-6 py-6">
                     {item.location_name ? (
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-[#23233e] text-slate-400 text-xs font-medium border border-[#2d2d44]">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-surface-container-high text-slate-400 text-xs font-medium border border-outline">
                         <span className="material-symbols-outlined text-[14px] mr-1">meeting_room</span>
                         {item.location_name}
                       </span>
@@ -158,7 +158,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                   </td>
                   <td className="px-6 py-6">
                     <div className="flex flex-col">
-                      <span className="text-sm font-bold text-[#e2e2e9]">
+                      <span className="text-sm font-bold text-on-surface">
                         {item.quantity ?? 0} {item.unit ?? ''}
                       </span>
                       {stockBadge(item.status, item.quantity)}
@@ -169,7 +169,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                       <button className="p-2 hover:bg-primary/20 text-primary rounded-lg transition-colors" title="Order More">
                         <span className="material-symbols-outlined">shopping_cart_checkout</span>
                       </button>
-                      <button className="p-2 hover:bg-[#2d2d44] text-slate-400 rounded-lg transition-colors" title="Edit Item">
+                      <button className="p-2 hover:bg-surface-container-highest text-slate-400 rounded-lg transition-colors" title="Edit Item">
                         <span className="material-symbols-outlined">edit</span>
                       </button>
                     </div>
@@ -181,11 +181,11 @@ export function InventoryPage({ onError }: InventoryPageProps) {
 
           {items.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-[#23233e] flex items-center justify-center">
+              <div className="w-12 h-12 rounded-2xl bg-surface-container-high flex items-center justify-center">
                 <span className="material-symbols-outlined text-slate-400">inventory_2</span>
               </div>
               <div className="space-y-1">
-                <h3 className="text-base font-semibold text-[#e2e2e9]">Inventory is empty</h3>
+                <h3 className="text-base font-semibold text-on-surface">Inventory is empty</h3>
                 <p className="text-sm text-slate-400 max-w-xs mx-auto">
                   Process documents through the review queue to populate inventory.
                 </p>
@@ -196,7 +196,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
 
         {/* Pagination Footer */}
         {total > 0 && (
-          <div className="mt-auto px-8 py-4 bg-[#16162a]/30 border-t border-[#2d2d44] flex items-center justify-between">
+          <div className="mt-auto px-8 py-4 bg-surface-container-lowest/30 border-t border-outline flex items-center justify-between">
             <span className="text-xs text-slate-400 font-medium">
               Showing {startItem}-{endItem} of {total.toLocaleString()} items
             </span>
@@ -204,7 +204,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#2d2d44] transition-colors disabled:opacity-30"
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container-highest transition-colors disabled:opacity-30"
               >
                 <span className="material-symbols-outlined text-sm">chevron_left</span>
               </button>
@@ -218,7 +218,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                     className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-colors ${
                       pn === page
                         ? 'bg-primary text-white'
-                        : 'hover:bg-[#2d2d44] font-medium'
+                        : 'hover:bg-surface-container-highest font-medium'
                     }`}
                   >
                     {pn}
@@ -228,7 +228,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#2d2d44] transition-colors disabled:opacity-30"
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container-highest transition-colors disabled:opacity-30"
               >
                 <span className="material-symbols-outlined text-sm">chevron_right</span>
               </button>
@@ -239,22 +239,22 @@ export function InventoryPage({ onError }: InventoryPageProps) {
 
       {/* Bottom Stats Bento Cards — matches Stitch design */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="p-6 bg-card-dark rounded-3xl border border-[#2d2d44] shadow-sm flex flex-col justify-between">
+        <div className="p-6 bg-card-dark rounded-3xl border border-outline shadow-sm flex flex-col justify-between">
           <div>
-            <span className="text-[10px] font-bold text-[#a0a0b8] uppercase tracking-widest">Storage Status</span>
+            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Storage Status</span>
             <h3 className="text-2xl font-bold mt-1">{total > 0 ? '94%' : '0%'}</h3>
           </div>
-          <div className="mt-4 w-full bg-[#16162a] h-1.5 rounded-full overflow-hidden">
+          <div className="mt-4 w-full bg-surface-container-lowest h-1.5 rounded-full overflow-hidden">
             <div className="bg-primary h-full" style={{ width: total > 0 ? '94%' : '0%' }} />
           </div>
-          <p className="text-[11px] text-[#a0a0b8] mt-3 flex items-center gap-1">
+          <p className="text-[11px] text-on-surface-variant mt-3 flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px] text-primary">warning</span>
             {total > 0 ? 'Freezer #4 nearing capacity' : 'No items stored'}
           </p>
         </div>
-        <div className="p-6 bg-card-dark rounded-3xl border border-[#2d2d44] shadow-sm">
-          <span className="text-[10px] font-bold text-[#a0a0b8] uppercase tracking-widest">Monthly Spend</span>
-          <h3 className="text-2xl font-bold mt-1 text-[#e2e2e9]">
+        <div className="p-6 bg-card-dark rounded-3xl border border-outline shadow-sm">
+          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Monthly Spend</span>
+          <h3 className="text-2xl font-bold mt-1 text-on-surface">
             ${total > 0 ? '4,120' : '0'}
           </h3>
           <div className="mt-4 flex items-center text-primary gap-1">
@@ -262,17 +262,17 @@ export function InventoryPage({ onError }: InventoryPageProps) {
             <span className="text-xs font-bold">{total > 0 ? '+12% vs last month' : 'No spending data'}</span>
           </div>
         </div>
-        <div className="p-6 bg-card-dark rounded-3xl border border-[#2d2d44] shadow-sm">
-          <span className="text-[10px] font-bold text-[#a0a0b8] uppercase tracking-widest">Active Orders</span>
-          <h3 className="text-2xl font-bold mt-1 text-[#e2e2e9]">0</h3>
+        <div className="p-6 bg-card-dark rounded-3xl border border-outline shadow-sm">
+          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Active Orders</span>
+          <h3 className="text-2xl font-bold mt-1 text-on-surface">0</h3>
           <div className="mt-4 flex -space-x-2">
             <div className="w-7 h-7 rounded-full bg-primary border-2 border-card-dark flex items-center justify-center text-[10px] text-white font-bold">V</div>
             <div className="w-7 h-7 rounded-full bg-[#2d2d44] border-2 border-card-dark flex items-center justify-center text-[10px] text-slate-400 font-bold">S</div>
           </div>
         </div>
-        <div className="p-6 bg-card-dark rounded-3xl border border-[#2d2d44] shadow-sm">
-          <span className="text-[10px] font-bold text-[#a0a0b8] uppercase tracking-widest">Audit Due</span>
-          <h3 className="text-2xl font-bold mt-1 text-[#e2e2e9]">14 Days</h3>
+        <div className="p-6 bg-card-dark rounded-3xl border border-outline shadow-sm">
+          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Audit Due</span>
+          <h3 className="text-2xl font-bold mt-1 text-on-surface">14 Days</h3>
           <button className="mt-4 text-xs font-bold text-primary flex items-center gap-1 hover:underline">
             Schedule Review <span className="material-symbols-outlined text-sm">arrow_forward</span>
           </button>
