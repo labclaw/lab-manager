@@ -45,7 +45,9 @@ def subscribed_low_stock(db):
     pass
 
 
-@given(parsers.parse('product "{name}" has quantity {qty:d} with reorder level {level:d}'))
+@given(
+    parsers.parse('product "{name}" has quantity {qty:d} with reorder level {level:d}')
+)
 def product_with_reorder(api, name, qty, level):
     r = api.post("/api/v1/vendors/", json={"name": "Test Vendor"})
     vendor = r.json()
@@ -59,7 +61,9 @@ def product_with_reorder(api, name, qty, level):
         },
     )
     product = r.json()
-    api.post("/api/v1/inventory/", json={"product_id": product["id"], "quantity": float(qty)})
+    api.post(
+        "/api/v1/inventory/", json={"product_id": product["id"], "quantity": float(qty)}
+    )
 
 
 @given("I am subscribed to expiration alerts")
@@ -104,7 +108,7 @@ def subscribed_orders():
     pass
 
 
-@given(parsers.parse('I received {count:d} notifications'))
+@given(parsers.parse("I received {count:d} notifications"))
 def received_notifications(db, count):
     pass
 
@@ -133,7 +137,9 @@ def change_order_status(api, placed_order, status):
 
 @when(parsers.parse('I set delivery method to "{method}"'))
 def set_delivery_method(api, method):
-    r = api.patch("/api/v1/users/me/preferences", json={"notification_delivery": method})
+    r = api.patch(
+        "/api/v1/users/me/preferences", json={"notification_delivery": method}
+    )
     return r
 
 
@@ -166,7 +172,7 @@ def check_tracking_info():
     pass
 
 
-@then(parsers.parse('notifications should be sent via {method}'))
+@then(parsers.parse("notifications should be sent via {method}"))
 def check_delivery_method(method):
     pass
 

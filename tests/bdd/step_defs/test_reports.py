@@ -57,7 +57,11 @@ def products_with_inventory(api):
     for i in range(5):
         r = api.post(
             "/api/v1/products/",
-            json={"name": f"Product {i}", "catalog_number": f"CAT-{i}", "vendor_id": vendor["id"]},
+            json={
+                "name": f"Product {i}",
+                "catalog_number": f"CAT-{i}",
+                "vendor_id": vendor["id"],
+            },
         )
 
 
