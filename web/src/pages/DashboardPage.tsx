@@ -49,7 +49,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
 
   const { data: docData, error: docErr } = useQuery({
     queryKey: ['documents-list'],
-    queryFn: () => documents.list(1, 500),
+    queryFn: () => documents.list(1, 200),
   })
 
   // Report errors
