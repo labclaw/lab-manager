@@ -19,7 +19,7 @@ services:
     envs:
       - key: DATABASE_URL
         scope: RUN_TIME
-        value: ${db.DATABASE_URL}
+        type: SECRET
       - key: MEILISEARCH_URL
         scope: RUN_TIME
         value: http://search:7700
@@ -27,6 +27,9 @@ services:
         scope: RUN_TIME
         value: ${MEILI_MASTER_KEY}
       - key: ADMIN_SECRET_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: ADMIN_PASSWORD
         scope: RUN_TIME
         type: SECRET
       - key: MEILI_MASTER_KEY
@@ -72,9 +75,13 @@ services:
         scope: RUN_TIME
         value: "true"
 
-databases:
-  - name: db
-    engine: PG
-    version: "16"
-    size: db-s-1vcpu-1gb
-    num_nodes: 1
+# NOTE: Production uses a standalone managed database (not embedded).
+# The DATABASE_URL env var is set directly to the standalone DB URI.
+# The embedded database section below is kept as a reference for new deployments.
+# To use embedded DB, uncomment and set DATABASE_URL to ${db.DATABASE_URL}.
+# databases:
+#   - name: db
+#     engine: PG
+#     version: "16"
+#     size: db-s-1vcpu-1gb
+#     num_nodes: 1
