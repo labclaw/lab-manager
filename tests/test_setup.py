@@ -75,7 +75,7 @@ def setup_client(setup_engine, setup_db_session):
 
 def test_config_returns_lab_identity(setup_client):
     """Config endpoint returns lab name and subtitle."""
-    resp = setup_client.get("/api/config")
+    resp = setup_client.get("/api/v1/config")
     assert resp.status_code == 200
     data = resp.json()
     assert data["lab_name"] == "Test Lab"
@@ -84,7 +84,7 @@ def test_config_returns_lab_identity(setup_client):
 
 def test_config_no_auth_required(setup_client):
     """Config endpoint should be accessible without authentication."""
-    resp = setup_client.get("/api/config")
+    resp = setup_client.get("/api/v1/config")
     assert resp.status_code != 401
 
 
@@ -93,14 +93,14 @@ def test_config_no_auth_required(setup_client):
 
 def test_setup_status_needs_setup_when_empty(setup_client):
     """Empty DB should indicate setup is needed."""
-    resp = setup_client.get("/api/setup/status")
+    resp = setup_client.get("/api/v1/setup/status")
     assert resp.status_code == 200
     assert resp.json()["needs_setup"] is True
 
 
 def test_setup_status_no_auth_required(setup_client):
     """Setup status should be accessible without authentication."""
-    resp = setup_client.get("/api/setup/status")
+    resp = setup_client.get("/api/v1/setup/status")
     assert resp.status_code != 401
 
 
@@ -110,7 +110,7 @@ def test_setup_status_no_auth_required(setup_client):
 def test_setup_complete_creates_admin(setup_client):
     """First-run setup should create an admin user."""
     resp = setup_client.post(
-        "/api/setup/complete",
+        "/api/v1/setup/complete",
         json={
             "admin_name": "Dr. Smith",
             "admin_email": "smith@mit.edu",
@@ -122,14 +122,14 @@ def test_setup_complete_creates_admin(setup_client):
     assert data["status"] == "ok"
 
     # Setup no longer needed
-    status_resp = setup_client.get("/api/setup/status")
+    status_resp = setup_client.get("/api/v1/setup/status")
     assert status_resp.json()["needs_setup"] is False
 
 
 def test_setup_complete_can_login_after(setup_client):
     """After setup, the admin should be able to log in."""
     setup_client.post(
-        "/api/setup/complete",
+        "/api/v1/setup/complete",
         json={
             "admin_name": "Dr. Smith",
             "admin_email": "smith@mit.edu",
@@ -137,7 +137,7 @@ def test_setup_complete_can_login_after(setup_client):
         },
     )
     login_resp = setup_client.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={"email": "smith@mit.edu", "password": "securepass123"},
     )
     assert login_resp.status_code == 200
@@ -147,7 +147,7 @@ def test_setup_complete_can_login_after(setup_client):
 def test_setup_complete_blocked_after_first_run(setup_client):
     """Setup should only work once — blocked when admin already exists."""
     setup_client.post(
-        "/api/setup/complete",
+        "/api/v1/setup/complete",
         json={
             "admin_name": "Dr. Smith",
             "admin_email": "smith@mit.edu",
@@ -156,7 +156,7 @@ def test_setup_complete_blocked_after_first_run(setup_client):
     )
     # Second attempt should fail
     resp = setup_client.post(
-        "/api/setup/complete",
+        "/api/v1/setup/complete",
         json={
             "admin_name": "Hacker",
             "admin_email": "hack@evil.com",
@@ -170,7 +170,7 @@ def test_setup_complete_blocked_after_first_run(setup_client):
 def test_setup_complete_short_password_rejected(setup_client):
     """Password shorter than 8 characters should be rejected."""
     resp = setup_client.post(
-        "/api/setup/complete",
+        "/api/v1/setup/complete",
         json={
             "admin_name": "Dr. Smith",
             "admin_email": "smith@mit.edu",
@@ -184,7 +184,7 @@ def test_setup_complete_short_password_rejected(setup_client):
 def test_setup_complete_invalid_email_rejected(setup_client, bad_email):
     """Invalid email format should be rejected."""
     resp = setup_client.post(
-        "/api/setup/complete",
+        "/api/v1/setup/complete",
         json={
             "admin_name": "Dr. Smith",
             "admin_email": bad_email,
@@ -199,7 +199,7 @@ def test_setup_complete_invalid_email_rejected(setup_client, bad_email):
 def test_setup_complete_empty_name_rejected(setup_client):
     """Empty name should be rejected."""
     resp = setup_client.post(
-        "/api/setup/complete",
+        "/api/v1/setup/complete",
         json={
             "admin_name": "   ",
             "admin_email": "smith@mit.edu",
@@ -212,7 +212,7 @@ def test_setup_complete_empty_name_rejected(setup_client):
 def test_setup_complete_long_name_rejected(setup_client):
     """Name exceeding 200 characters should be rejected."""
     resp = setup_client.post(
-        "/api/setup/complete",
+        "/api/v1/setup/complete",
         json={
             "admin_name": "A" * 201,
             "admin_email": "smith@mit.edu",
@@ -225,7 +225,7 @@ def test_setup_complete_long_name_rejected(setup_client):
 def test_setup_no_auth_required(setup_client):
     """Setup complete should be accessible without authentication."""
     resp = setup_client.post(
-        "/api/setup/complete",
+        "/api/v1/setup/complete",
         json={
             "admin_name": "Dr. Smith",
             "admin_email": "smith@mit.edu",

@@ -214,7 +214,7 @@ def instance_with_defaults():
 def instance_setup_done():
     with _setup_client() as client:
         client.post(
-            "/api/setup/complete",
+            "/api/v1/setup/complete",
             json={
                 "admin_name": "Dr. Admin",
                 "admin_email": "admin@lab.org",
@@ -233,7 +233,7 @@ def instance_setup_done():
 def instance_setup_done_by(name, email, password):
     with _setup_client() as client:
         client.post(
-            "/api/setup/complete",
+            "/api/v1/setup/complete",
             json={
                 "admin_name": name,
                 "admin_email": email,
@@ -246,7 +246,7 @@ def instance_setup_done_by(name, email, password):
 @given(parsers.parse('I am logged in as "{email}" with password "{password}"'))
 def logged_in(api, ctx, email, password):
     resp = api.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={"email": email, "password": password},
     )
     assert resp.status_code == 200, f"Login failed during setup: {resp.text}"
@@ -257,22 +257,22 @@ def logged_in(api, ctx, email, password):
 
 @when("I check the setup status")
 def check_setup_status(api, ctx):
-    ctx["response"] = api.get("/api/setup/status")
+    ctx["response"] = api.get("/api/v1/setup/status")
 
 
 @when("I check the setup status without any credentials")
 def check_setup_status_no_creds(api, ctx):
-    ctx["response"] = api.get("/api/setup/status")
+    ctx["response"] = api.get("/api/v1/setup/status")
 
 
 @when("I request the lab configuration without any credentials")
 def request_config_no_creds(api, ctx):
-    ctx["response"] = api.get("/api/config")
+    ctx["response"] = api.get("/api/v1/config")
 
 
 @when("I request the lab configuration")
 def request_config(api, ctx):
-    ctx["response"] = api.get("/api/config")
+    ctx["response"] = api.get("/api/v1/config")
 
 
 @when(
@@ -282,7 +282,7 @@ def request_config(api, ctx):
 )
 def complete_setup(api, ctx, name, email, password):
     ctx["response"] = api.post(
-        "/api/setup/complete",
+        "/api/v1/setup/complete",
         json={
             "admin_name": name,
             "admin_email": email,
@@ -295,7 +295,7 @@ def complete_setup(api, ctx, name, email, password):
 def complete_setup_long_password(api, ctx):
     long_password = "A" * 73
     ctx["response"] = api.post(
-        "/api/setup/complete",
+        "/api/v1/setup/complete",
         json={
             "admin_name": "Dr. Chen",
             "admin_email": "chen@mgh.harvard.edu",
@@ -311,7 +311,7 @@ def complete_setup_long_password(api, ctx):
 )
 def try_setup_again(api, ctx, name, email, password):
     ctx["response"] = api.post(
-        "/api/setup/complete",
+        "/api/v1/setup/complete",
         json={
             "admin_name": name,
             "admin_email": email,
@@ -323,19 +323,19 @@ def try_setup_again(api, ctx, name, email, password):
 @when(parsers.parse('I log in with email "{email}" and password "{password}"'))
 def do_login(api, ctx, email, password):
     ctx["response"] = api.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={"email": email, "password": password},
     )
 
 
 @when("I check my auth status")
 def check_auth_me(api, ctx):
-    ctx["response"] = api.get("/api/auth/me")
+    ctx["response"] = api.get("/api/v1/auth/me")
 
 
 @when("I log out")
 def do_logout(api, ctx):
-    ctx["response"] = api.post("/api/auth/logout")
+    ctx["response"] = api.post("/api/v1/auth/logout")
 
 
 # --- Then steps ---
@@ -384,7 +384,7 @@ def setup_succeeded(ctx):
 
 @then("the setup status should no longer indicate setup is needed")
 def setup_no_longer_needed(api, ctx):
-    resp = api.get("/api/setup/status")
+    resp = api.get("/api/v1/setup/status")
     assert resp.json()["needs_setup"] is False
 
 
@@ -440,5 +440,5 @@ def logout_succeeded(ctx):
 @then("checking my auth status should return 401")
 def auth_me_returns_401(api, ctx):
     api.cookies.clear()
-    resp = api.get("/api/auth/me")
+    resp = api.get("/api/v1/auth/me")
     assert resp.status_code == 401
