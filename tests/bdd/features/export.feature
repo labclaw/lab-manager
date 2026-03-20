@@ -39,3 +39,37 @@ Feature: CSV Export
     When I download the vendors CSV
     Then the response should be a CSV file named vendors.csv
     And the CSV should have a header row
+
+  # --- Security ---
+
+  Scenario: CSV export prevents formula injection
+    Given a product exists with name "=SUM(A1:A10)"
+    When I download the products CSV
+    Then the CSV should escape dangerous characters
+    And formula injection should be prevented
+
+  Scenario: CSV handles special characters
+    Given a product exists with name "Buffer (10x) - pH 7.4"
+    When I download the products CSV
+    Then the CSV should properly quote the name
+    And special characters should be preserved
+
+  Scenario: CSV handles unicode characters
+    Given a vendor exists with name "Bio-Rad™ Laboratories"
+    When I download the vendors CSV
+    Then unicode characters should be preserved
+
+  # --- Performance ---
+
+  Scenario: Large export performance
+    Given 1000 inventory items exist
+    When I download the inventory CSV
+    Then the response should complete within 10 seconds
+    And the CSV should contain 1000 data rows
+
+  # --- Error handling ---
+
+  Scenario: Export without authentication
+    Given I am not authenticated
+    When I try to download the inventory CSV
+    Then the response should be 401 Unauthorized
