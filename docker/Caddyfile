@@ -1,4 +1,8 @@
-{$DOMAIN:localhost} {
+{
+    auto_https off
+}
+
+:80 {
     reverse_proxy app:8000
     encode gzip
 
