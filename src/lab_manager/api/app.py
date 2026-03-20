@@ -42,6 +42,7 @@ _MAX_USER_LEN = 100
 
 # Paths that never require authentication.
 _AUTH_ALLOWLIST = {
+    "/",
     "/api/health",
     "/api/auth/login",
     "/api/auth/logout",
@@ -54,10 +55,14 @@ _AUTH_ALLOWLIST = {
     "/redoc",
     "/sw.js",
     "/manifest.json",
+    "/favicon.svg",
+    "/icons.svg",
 }
 _AUTH_ALLOWLIST_PREFIXES = (
     "/admin/",  # SQLAdmin has its own authentication backend
     "/static/",  # Frontend assets (login page needs CSS/JS before auth)
+    "/assets/",  # SPA build assets (JS/CSS bundles)
+    "/icons/",  # Icon assets
 )
 
 # Session cookie config
@@ -599,17 +604,17 @@ def create_app() -> FastAPI:
     setup_admin(app, get_engine())
 
     # Serve frontend static assets and root
-    # React SPA build output lives in static/dist/
+    # React SPA build output lives in static/dist/assets/ (JS/CSS bundles).
+    # dist/ itself may exist (index.html tracked in git) without the build
+    # artifacts, so we check for assets/ to decide SPA vs legacy mode.
     DIST_DIR = STATIC_DIR / "dist"
-    if DIST_DIR.is_dir():  # pragma: no cover — depends on React build artifacts
-        # Serve bundled JS/CSS assets from dist/assets/
-        assets_dir = DIST_DIR / "assets"
-        if assets_dir.is_dir():
-            app.mount(
-                "/assets",
-                StaticFiles(directory=str(assets_dir)),
-                name="dist-assets",
-            )
+    SPA_ASSETS = DIST_DIR / "assets"
+    if SPA_ASSETS.is_dir():  # pragma: no cover — depends on React build artifacts
+        app.mount(
+            "/assets",
+            StaticFiles(directory=str(SPA_ASSETS)),
+            name="dist-assets",
+        )
 
         # Serve icons from static/icons/
         icons_dir = STATIC_DIR / "icons"
@@ -640,12 +645,9 @@ def create_app() -> FastAPI:
             return FileResponse(DIST_DIR / "index.html")
 
         # SPA catch-all using middleware so it only fires for unmatched paths.
-        # This must be registered FIRST (so it's innermost) — it checks the
-        # response status and, if 404 from an earlier route, serves index.html.
         @app.middleware("http")
         async def spa_middleware(request: Request, call_next):
             response = await call_next(request)
-            # Only intercept GET requests for non-API paths that return 404
             if (
                 response.status_code == 404
                 and request.method == "GET"
@@ -682,6 +684,21 @@ def create_app() -> FastAPI:
                 STATIC_DIR / "manifest.json",
                 media_type="application/manifest+json",
             )
+
+    # Serve favicon and icons SVGs from dist/ (tracked in git, available in both modes)
+    favicon_path = DIST_DIR / "favicon.svg"
+    if favicon_path.is_file():
+
+        @app.get("/favicon.svg")
+        def favicon():
+            return FileResponse(favicon_path, media_type="image/svg+xml")
+
+    icons_svg_path = DIST_DIR / "icons.svg"
+    if icons_svg_path.is_file():
+
+        @app.get("/icons.svg")
+        def icons_svg():
+            return FileResponse(icons_svg_path, media_type="image/svg+xml")
 
     return app
 
