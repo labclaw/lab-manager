@@ -299,7 +299,7 @@ class ReceiveItemEntry(BaseModel):
 
 class ReceiveBody(BaseModel):
     items: list[ReceiveItemEntry]
-    location_id: int
+    location_id: Optional[int] = None
     received_by: str = Field(max_length=200)
 
 

@@ -65,7 +65,7 @@ def _get_inventory_or_404(db: Session, inventory_id: int) -> InventoryItem:
 def receive_items(
     order_id: int,
     items_received: list[dict],
-    location_id: int,
+    location_id: int | None,
     received_by: str,
     db: Session,
 ) -> list[InventoryItem]:
@@ -100,9 +100,8 @@ def receive_items(
                 f"Order item {order_item_id} belongs to order {order_item.order_id}, not {order_id}"
             )
 
-        inv = InventoryItem(
+        inv_kwargs = dict(
             product_id=order_item.product_id if order_item else ri.get("product_id"),
-            location_id=location_id,
             lot_number=ri.get("lot_number")
             or (order_item.lot_number if order_item else None),
             quantity_on_hand=ri.get("quantity", 1),
@@ -112,6 +111,9 @@ def receive_items(
             received_by=received_by,
             order_item_id=order_item_id,
         )
+        if location_id is not None:
+            inv_kwargs["location_id"] = location_id
+        inv = InventoryItem(**inv_kwargs)
         db.add(inv)
         db.flush()  # get inv.id
 
