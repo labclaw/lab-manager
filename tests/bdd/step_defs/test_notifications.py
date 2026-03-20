@@ -78,7 +78,7 @@ def product_expiring(api, db, name, days):
         "/api/v1/products/",
         json={
             "name": name,
-            "catalog_number": f"CAT-EXP",
+            "catalog_number": "CAT-EXP",
             "vendor_id": vendor["id"],
             "expiration_date": exp_date,
         },

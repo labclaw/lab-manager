@@ -206,7 +206,7 @@ def open_item(api_client, item):
 def item_is_opened(api_client):
     """Verify item is opened."""
     data = api_client.response.json()
-    assert data["is_opened"] == True
+    assert data["is_opened"]
 
 
 @then("the opened_at timestamp should be set")
@@ -277,7 +277,7 @@ def low_stock_alert_created(api_client):
     """Verify low stock alert."""
     alerts = api_client.get("/api/v1/alerts")
     # Check for low stock alert
-    pass
+    assert alerts.status_code == 200
 
 
 @then(parsers.parse('the alert should reference inventory item "{item}"'))
