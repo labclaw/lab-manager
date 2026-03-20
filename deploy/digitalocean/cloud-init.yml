@@ -59,8 +59,8 @@ write_files:
       cd /opt/labclaw/lab-manager
 
       # Generate secrets
-      gen_pw() { tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$1"; }
-      gen_hex() { tr -dc 'a-f0-9' < /dev/urandom | head -c "$1"; }
+      gen_pw() { tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$1" || true; }
+      gen_hex() { tr -dc 'a-f0-9' < /dev/urandom | head -c "$1" || true; }
       escape_env() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 
       POSTGRES_PASSWORD=$(gen_pw 32)

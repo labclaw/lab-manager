@@ -19,7 +19,7 @@ done
 echo "[entrypoint] Database is ready."
 
 echo "[entrypoint] Running database migrations..."
-uv run alembic upgrade head
+/app/.venv/bin/alembic upgrade head
 
 echo "[entrypoint] Starting application..."
-exec uv run uvicorn lab_manager.api.app:create_app --factory --host 0.0.0.0 --port 8000
+exec /app/.venv/bin/uvicorn lab_manager.api.app:create_app --factory --host 0.0.0.0 --port 8000

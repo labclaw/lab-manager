@@ -80,6 +80,8 @@ services:
       RAG_BASE_URL: ${RAG_BASE_URL:-}
       NVIDIA_BUILD_API_KEY: ${NVIDIA_BUILD_API_KEY:-}
       UPLOAD_DIR: /app/uploads
+      SCANS_DIR: ${SCANS_DIR:+/app/scans}
+      DEVICES_DIR: ${DEVICES_DIR:+/app/lab-devices}
     depends_on:
       db:
         condition: service_healthy
@@ -88,8 +90,8 @@ services:
     volumes:
       - uploads:/app/uploads
       - backups:/backups/labmanager
-      - ${SCANS_DIR:-./shenlab-docs}:/app/shenlab-docs:ro
-      - ${DEVICES_DIR:-./shenlab-devices}:/app/shenlab-devices:ro
+      - ${SCANS_DIR:-./docker/empty/scans}:/app/scans:ro
+      - ${DEVICES_DIR:-./docker/empty/devices}:/app/lab-devices:ro
     restart: unless-stopped
 
   # Cloudflare Tunnel — exposes the service to the internet
