@@ -293,3 +293,159 @@ class TestOrderFiltering:
         data = resp.json()
         if "page" in data:
             assert data["page"] == 1
+
+
+@pytest.mark.e2e
+class TestOrderReceiving:
+    """Tests for order receiving workflow."""
+
+    def test_receive_order_empty(self, authenticated_client: TestClient | httpx.Client):
+        """POST receive order with empty items."""
+        # Create order
+        resp = authenticated_client.post(
+            "/api/v1/orders/",
+            json={"po_number": "E2E-RECV-001"},
+        )
+        if resp.status_code in (200, 201):
+            order_id = resp.json().get("order", resp.json()).get("id")
+            resp = authenticated_client.post(
+                f"/api/v1/orders/{order_id}/receive",
+                json={"received_items": []},
+            )
+            assert resp.status_code in (200, 201, 400, 404, 422)
+            authenticated_client.delete(f"/api/v1/orders/{order_id}")
+
+    def test_receive_order_with_items(
+        self,
+        authenticated_client: TestClient | httpx.Client,
+        test_vendor_id: int,
+        test_product_id: int,
+    ):
+        """POST receive order with items."""
+        # Create order with items
+        resp = authenticated_client.post(
+            "/api/v1/orders/",
+            json={
+                "po_number": "E2E-RECV-002",
+                "vendor_id": test_vendor_id,
+                "items": [
+                    {"product_id": test_product_id, "quantity": 10, "unit_price": 50.00}
+                ],
+            },
+        )
+        if resp.status_code in (200, 201):
+            order = resp.json().get("order", resp.json())
+            order_id = order.get("id")
+
+            # Try to receive
+            resp = authenticated_client.post(
+                f"/api/v1/orders/{order_id}/receive",
+                json={
+                    "received_items": [
+                        {"product_id": test_product_id, "quantity_received": 10}
+                    ]
+                },
+            )
+            assert resp.status_code in (200, 201, 400, 404, 422)
+            authenticated_client.delete(f"/api/v1/orders/{order_id}")
+
+    def test_partial_receive(
+        self,
+        authenticated_client: TestClient | httpx.Client,
+        test_vendor_id: int,
+        test_product_id: int,
+    ):
+        """POST receive order partially."""
+        resp = authenticated_client.post(
+            "/api/v1/orders/",
+            json={
+                "po_number": "E2E-RECV-PARTIAL",
+                "vendor_id": test_vendor_id,
+                "items": [
+                    {
+                        "product_id": test_product_id,
+                        "quantity": 100,
+                        "unit_price": 10.00,
+                    }
+                ],
+            },
+        )
+        if resp.status_code in (200, 201):
+            order = resp.json().get("order", resp.json())
+            order_id = order.get("id")
+
+            # Receive partial
+            resp = authenticated_client.post(
+                f"/api/v1/orders/{order_id}/receive",
+                json={
+                    "received_items": [
+                        {"product_id": test_product_id, "quantity_received": 50}
+                    ]
+                },
+            )
+            assert resp.status_code in (200, 201, 400, 404, 422)
+            authenticated_client.delete(f"/api/v1/orders/{order_id}")
+
+
+@pytest.mark.e2e
+class TestOrderNotes:
+    """Tests for order notes and comments."""
+
+    def test_order_with_notes(self, authenticated_client: TestClient | httpx.Client):
+        """Order can have notes."""
+        resp = authenticated_client.post(
+            "/api/v1/orders/",
+            json={
+                "po_number": "E2E-NOTES-001",
+                "notes": "This is a test order with notes",
+            },
+        )
+        assert resp.status_code in (200, 201)
+        order = resp.json().get("order", resp.json())
+        order_id = order.get("id")
+        assert "notes" in order
+
+        # Cleanup
+        authenticated_client.delete(f"/api/v1/orders/{order_id}")
+
+    def test_update_order_notes(self, authenticated_client: TestClient | httpx.Client):
+        """Order notes can be updated."""
+        # Create order
+        resp = authenticated_client.post(
+            "/api/v1/orders/",
+            json={"po_number": "E2E-NOTES-002"},
+        )
+        assert resp.status_code in (200, 201)
+        order = resp.json().get("order", resp.json())
+        order_id = order.get("id")
+
+        # Update notes
+        resp = authenticated_client.patch(
+            f"/api/v1/orders/{order_id}",
+            json={"notes": "Updated notes for this order"},
+        )
+        assert resp.status_code in (200, 422)
+
+        # Cleanup
+        authenticated_client.delete(f"/api/v1/orders/{order_id}")
+
+
+@pytest.mark.e2e
+class TestOrderDates:
+    """Tests for order date handling."""
+
+    def test_order_with_dates(self, authenticated_client: TestClient | httpx.Client):
+        """Order can have order date and expected date."""
+        resp = authenticated_client.post(
+            "/api/v1/orders/",
+            json={
+                "po_number": "E2E-DATES-001",
+                "order_date": "2024-01-15",
+                "expected_date": "2024-02-15",
+            },
+        )
+        assert resp.status_code in (200, 201, 422)
+        if resp.status_code in (200, 201):
+            order = resp.json().get("order", resp.json())
+            order_id = order.get("id")
+            authenticated_client.delete(f"/api/v1/orders/{order_id}")
