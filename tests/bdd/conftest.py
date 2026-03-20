@@ -122,16 +122,29 @@ def api(db, db_connection):
     get_settings.cache_clear()
 
     from lab_manager.api.app import create_app
+    import lab_manager.database as db_module
     from lab_manager.database import get_db
+    from sqlmodel import Session as SQLModelSession
 
     app = create_app()
 
     def override():
         yield db
 
+    def session_factory_override():
+        return SQLModelSession(db_connection, join_transaction_mode="create_savepoint")
+
+    original_engine = db_module._engine
+    original_factory = db_module._session_factory
+    db_module._engine = db_connection.engine
+    db_module._session_factory = session_factory_override
     app.dependency_overrides[get_db] = override
-    with TestClient(app) as c:
-        yield c
+    try:
+        with TestClient(app) as c:
+            yield c
+    finally:
+        db_module._engine = original_engine
+        db_module._session_factory = original_factory
 
 
 @pytest.fixture
@@ -141,22 +154,35 @@ def app_url():
 
 
 @pytest.fixture
-def api_unauthenticated(db):
+def api_unauthenticated(db, db_connection):
     """TestClient without auth for public endpoints."""
     os.environ["AUTH_ENABLED"] = "false"
     get_settings.cache_clear()
 
     from lab_manager.api.app import create_app
+    import lab_manager.database as db_module
     from lab_manager.database import get_db
+    from sqlmodel import Session as SQLModelSession
 
     app = create_app()
 
     def override():
         yield db
 
+    def session_factory_override():
+        return SQLModelSession(db_connection, join_transaction_mode="create_savepoint")
+
+    original_engine = db_module._engine
+    original_factory = db_module._session_factory
+    db_module._engine = db_connection.engine
+    db_module._session_factory = session_factory_override
     app.dependency_overrides[get_db] = override
-    with TestClient(app) as c:
-        yield c
+    try:
+        with TestClient(app) as c:
+            yield c
+    finally:
+        db_module._engine = original_engine
+        db_module._session_factory = original_factory
 
 
 def table_to_dicts(datatable: list[list]) -> list[dict]:
