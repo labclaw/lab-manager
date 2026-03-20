@@ -11,7 +11,7 @@ Core flow:
 
 ## Release Status
 
-`v0.1.6` is the minimum stable internal release for Shen Lab Manager. The maintained backend, database model, setup wizard, login flow, review queue, inventory lifecycle, export, search, and admin surface are validated on the release-critical suite and real-user smoke flows.
+`v0.1.6` is the minimum stable internal release. The maintained backend, database model, setup wizard, login flow, review queue, inventory lifecycle, export, search, and admin surface are validated on the release-critical suite and real-user smoke flows.
 
 The React frontend in [`web/`](web/) is an in-progress replacement, not the default release surface. The shipped app currently relies on the backend-served UI under [`src/lab_manager/static/`](src/lab_manager/static/).
 
