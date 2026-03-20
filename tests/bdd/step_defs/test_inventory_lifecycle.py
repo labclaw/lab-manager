@@ -275,9 +275,9 @@ def consume_for_alert(api_client, qty, item):
 @then("a low stock alert should be created")
 def low_stock_alert_created(api_client):
     """Verify low stock alert."""
-    api_client.get("/api/v1/alerts")
+    alerts = api_client.get("/api/v1/alerts")
     # Check for low stock alert
-    pass
+    assert alerts.status_code == 200
 
 
 @then(parsers.parse('the alert should reference inventory item "{item}"'))

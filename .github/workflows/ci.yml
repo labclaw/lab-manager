@@ -104,7 +104,13 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        python-version: ["3.12", "3.13"]
+        include:
+          - python-version: "3.12"
+            postgres-port: 25433
+            meilisearch-port: 27701
+          - python-version: "3.13"
+            postgres-port: 25434
+            meilisearch-port: 27702
 
     services:
       postgres:
