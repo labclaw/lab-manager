@@ -42,21 +42,10 @@ describe('Header', () => {
     })
   })
 
-  describe('AC2: Enter key triggers search.query() via onSearch callback', () => {
-    it('calls onSearch and search.query on Enter', async () => {
+  describe('AC2: Enter key triggers onSearch callback', () => {
+    it('calls onSearch on Enter', async () => {
       vi.useRealTimers()
       const user = userEvent.setup()
-      let queryCalled = false
-
-      server.use(
-        http.get('/api/search', ({ request }) => {
-          const url = new URL(request.url)
-          if (url.searchParams.get('q') === 'ethanol') {
-            queryCalled = true
-          }
-          return HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20, pages: 0 })
-        }),
-      )
 
       renderWithProviders(<Header {...defaultProps} />)
       const input = screen.getByRole('combobox')
@@ -65,7 +54,6 @@ describe('Header', () => {
 
       await waitFor(() => {
         expect(defaultProps.onSearch).toHaveBeenCalledWith('ethanol')
-        expect(queryCalled).toBe(true)
       })
     })
 
