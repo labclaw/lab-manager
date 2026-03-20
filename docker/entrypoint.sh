@@ -16,22 +16,6 @@ until pg_isready -d "$DATABASE_URL" -q 2>/dev/null; do
 done
 echo "[entrypoint] Database is ready."
 
-# Debug: show connected user and schema permissions
-echo "[entrypoint] Checking database permissions..."
-psql "$DATABASE_URL" -c "SELECT current_user, session_user, current_database(), current_schema();" 2>&1 || true
-psql "$DATABASE_URL" -c "SELECT nspname, nspowner, pg_catalog.pg_get_userbyid(nspowner) AS owner FROM pg_namespace WHERE nspname = 'public';" 2>&1 || true
-psql "$DATABASE_URL" -c "SELECT has_schema_privilege(current_user, 'public', 'CREATE') AS can_create;" 2>&1 || true
-
-# On managed PG (e.g. DO App Platform), the connection pool user may lack
-# CREATE permission on the public schema (PG 15+ default). Try multiple
-# approaches to fix this.
-echo "[entrypoint] Ensuring schema permissions..."
-psql "$DATABASE_URL" -c "GRANT ALL ON SCHEMA public TO CURRENT_USER;" 2>&1 || true
-psql "$DATABASE_URL" -c "ALTER SCHEMA public OWNER TO CURRENT_USER;" 2>&1 || true
-
-# Verify the fix worked
-psql "$DATABASE_URL" -c "SELECT has_schema_privilege(current_user, 'public', 'CREATE') AS can_create_after_fix;" 2>&1 || true
-
 echo "[entrypoint] Running database migrations..."
 uv run alembic upgrade head
 

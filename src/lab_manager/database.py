@@ -28,7 +28,16 @@ def get_engine():
                     pass
                 else:
                     kwargs.update(pool_size=10, max_overflow=20, pool_pre_ping=True)
+                # On managed PG (e.g. DO App Platform) the app user may lack
+                # CREATE on the 'public' schema. Use a custom schema to avoid
+                # this PG 15+ restriction. Set search_path via connect_args.
+                if not settings.database_url.startswith("sqlite"):
+                    kwargs.setdefault("connect_args", {})
+                    kwargs["connect_args"]["options"] = (
+                        "-c search_path=labmanager,public"
+                    )
                 _engine = create_engine(settings.database_url, **kwargs)
+
     return _engine
 
 
