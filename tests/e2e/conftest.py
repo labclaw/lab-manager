@@ -114,13 +114,13 @@ def authenticated_client(
     Performs setup if needed and logs in once per session.
     """
     # Check setup status
-    status_resp = e2e_client.get("/api/setup/status")
+    status_resp = e2e_client.get("/api/v1/setup/status")
     needs_setup = status_resp.json().get("needs_setup", False)
 
     if needs_setup:
         # Complete setup
         setup_resp = e2e_client.post(
-            "/api/setup/complete",
+            "/api/v1/setup/complete",
             json={
                 "admin_name": ADMIN_NAME,
                 "admin_email": ADMIN_EMAIL,
@@ -131,7 +131,7 @@ def authenticated_client(
 
     # Login
     login_resp = e2e_client.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD},
     )
     assert login_resp.status_code == 200, f"Login failed: {login_resp.text}"

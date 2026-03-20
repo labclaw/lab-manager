@@ -24,10 +24,10 @@ class TestAuthEndpoints:
     def test_login_success(self, e2e_client: TestClient | httpx.Client):
         """POST /api/auth/login authenticates user."""
         # First ensure setup is complete
-        status = e2e_client.get("/api/setup/status")
+        status = e2e_client.get("/api/v1/setup/status")
         if status.json().get("needs_setup"):
             e2e_client.post(
-                "/api/setup/complete",
+                "/api/v1/setup/complete",
                 json={
                     "admin_name": "Test Admin",
                     "admin_email": _ADMIN_EMAIL,
@@ -36,7 +36,7 @@ class TestAuthEndpoints:
             )
 
         resp = e2e_client.post(
-            "/api/auth/login",
+            "/api/v1/auth/login",
             json={"email": _ADMIN_EMAIL, "password": _ADMIN_PASSWORD},
         )
         assert resp.status_code == 200
@@ -47,7 +47,7 @@ class TestAuthEndpoints:
     def test_login_invalid_password(self, e2e_client: TestClient | httpx.Client):
         """POST /api/auth/login rejects invalid password."""
         resp = e2e_client.post(
-            "/api/auth/login",
+            "/api/v1/auth/login",
             json={"email": _ADMIN_EMAIL, "password": "wrong-password"},
         )
         assert resp.status_code == 401
@@ -55,25 +55,25 @@ class TestAuthEndpoints:
     def test_login_invalid_email(self, e2e_client: TestClient | httpx.Client):
         """POST /api/auth/login rejects invalid email."""
         resp = e2e_client.post(
-            "/api/auth/login",
+            "/api/v1/auth/login",
             json={"email": "nonexistent@test.local", "password": "any-password"},
         )
         assert resp.status_code == 401
 
     def test_auth_me(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/auth/me returns current user."""
-        resp = authenticated_client.get("/api/auth/me")
+        resp = authenticated_client.get("/api/v1/auth/me")
         assert resp.status_code == 200
         data = resp.json()
         assert "user" in data
 
     def test_logout(self, authenticated_client: TestClient | httpx.Client):
         """POST /api/auth/logout clears session."""
-        resp = authenticated_client.post("/api/auth/logout")
+        resp = authenticated_client.post("/api/v1/auth/logout")
         assert resp.status_code == 200
         # Re-login to restore session for subsequent tests
         login_resp = authenticated_client.post(
-            "/api/auth/login",
+            "/api/v1/auth/login",
             json={"email": _ADMIN_EMAIL, "password": _ADMIN_PASSWORD},
         )
         assert login_resp.status_code == 200
@@ -230,14 +230,14 @@ class TestPublicEndpoints:
 
     def test_setup_status(self, e2e_client: TestClient | httpx.Client):
         """GET /api/setup/status returns setup status."""
-        resp = e2e_client.get("/api/setup/status")
+        resp = e2e_client.get("/api/v1/setup/status")
         assert resp.status_code == 200
         data = resp.json()
         assert "needs_setup" in data
 
     def test_config(self, e2e_client: TestClient | httpx.Client):
-        """GET /api/config returns config."""
-        resp = e2e_client.get("/api/config")
+        """GET /api/v1/config returns config."""
+        resp = e2e_client.get("/api/v1/config")
         assert resp.status_code == 200
         data = resp.json()
         assert "lab_name" in data
@@ -465,12 +465,12 @@ class TestMalformedRequests:
 
     def test_login_missing_email(self, e2e_client: TestClient | httpx.Client):
         """POST /api/auth/login rejects missing email."""
-        resp = e2e_client.post("/api/auth/login", json={"password": "test"})
+        resp = e2e_client.post("/api/v1/auth/login", json={"password": "test"})
         assert resp.status_code in (400, 422)
 
     def test_login_missing_password(self, e2e_client: TestClient | httpx.Client):
         """POST /api/auth/login rejects missing password."""
-        resp = e2e_client.post("/api/auth/login", json={"email": "test@test.local"})
+        resp = e2e_client.post("/api/v1/auth/login", json={"email": "test@test.local"})
         assert resp.status_code in (400, 422)
 
     def test_create_vendor_missing_name(
@@ -611,7 +611,7 @@ class TestSetupFlow:
     def test_setup_complete_flow(self, e2e_client: TestClient | httpx.Client):
         """Complete setup flow works end-to-end."""
         # Check setup status
-        status_resp = e2e_client.get("/api/setup/status")
+        status_resp = e2e_client.get("/api/v1/setup/status")
         assert status_resp.status_code == 200
         status = status_resp.json()
         assert "needs_setup" in status
@@ -619,7 +619,7 @@ class TestSetupFlow:
         # If setup is needed, complete it
         if status.get("needs_setup"):
             setup_resp = e2e_client.post(
-                "/api/setup/complete",
+                "/api/v1/setup/complete",
                 json={
                     "admin_name": "Setup Test Admin",
                     "admin_email": "setup-test@test.local",
@@ -629,7 +629,7 @@ class TestSetupFlow:
             assert setup_resp.status_code in (200, 400)  # 400 if already done
 
             # Verify setup is now complete
-            verify_resp = e2e_client.get("/api/setup/status")
+            verify_resp = e2e_client.get("/api/v1/setup/status")
             assert verify_resp.json().get("needs_setup") == False
 
 
