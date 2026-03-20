@@ -6,6 +6,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db, get_or_404
@@ -77,22 +78,22 @@ def list_equipment(
     sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
 ):
-    q = db.query(Equipment).filter(Equipment.status != EquipmentStatus.deleted)
+    stmt = select(Equipment).where(Equipment.status != EquipmentStatus.deleted)
     if category:
-        q = q.filter(Equipment.category == category)
+        stmt = stmt.where(Equipment.category == category)
     if status:
-        q = q.filter(Equipment.status == status)
+        stmt = stmt.where(Equipment.status == status)
     if manufacturer:
-        q = q.filter(ilike_col(Equipment.manufacturer, manufacturer))
+        stmt = stmt.where(ilike_col(Equipment.manufacturer, manufacturer))
     if search:
-        q = q.filter(
+        stmt = stmt.where(
             ilike_col(Equipment.name, search)
             | ilike_col(Equipment.manufacturer, search)
             | ilike_col(Equipment.serial_number, search)
             | ilike_col(Equipment.system_id, search)
         )
-    q = apply_sort(q, Equipment, sort_by, sort_dir, _SORTABLE)
-    return paginate(q, page, page_size)
+    stmt = apply_sort(stmt, Equipment, sort_by, sort_dir, _SORTABLE)
+    return paginate(db, stmt, page, page_size)
 
 
 @router.post("/", status_code=201)

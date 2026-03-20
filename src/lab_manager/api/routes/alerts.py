@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db, get_or_404
@@ -27,20 +28,19 @@ def list_alerts(
     db: Session = Depends(get_db),
 ):
     """List alerts with optional filters. Defaults to unresolved."""
-    q = db.query(Alert)
+    stmt = select(Alert)
     if alert_type:
-        q = q.filter(Alert.alert_type == alert_type)
+        stmt = stmt.where(Alert.alert_type == alert_type)
     if severity:
-        q = q.filter(Alert.severity == severity)
+        stmt = stmt.where(Alert.severity == severity)
     if acknowledged is not None:
-        q = q.filter(Alert.is_acknowledged == acknowledged)
+        stmt = stmt.where(Alert.is_acknowledged == acknowledged)
     if resolved is not None:
-        q = q.filter(Alert.is_resolved == resolved)
+        stmt = stmt.where(Alert.is_resolved == resolved)
     else:
-        # Default: only show unresolved alerts
-        q = q.filter(Alert.is_resolved.is_(False))
-    q = q.order_by(Alert.created_at.desc())
-    return paginate(q, page, page_size)
+        stmt = stmt.where(Alert.is_resolved.is_(False))
+    stmt = stmt.order_by(Alert.created_at.desc())
+    return paginate(db, stmt, page, page_size)
 
 
 @router.get("/summary")

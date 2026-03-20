@@ -8,6 +8,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field as PydanticField, field_validator
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -110,23 +111,23 @@ def list_products(
     sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
 ):
-    q = db.query(Product).options(selectinload(Product.vendor))
+    stmt = select(Product).options(selectinload(Product.vendor))
     if not include_inactive:
-        q = q.filter(Product.is_active == True)  # noqa: E712
+        stmt = stmt.where(Product.is_active == True)  # noqa: E712
     if vendor_id is not None:
-        q = q.filter(Product.vendor_id == vendor_id)
+        stmt = stmt.where(Product.vendor_id == vendor_id)
     if category:
-        q = q.filter(ilike_col(Product.category, category))
+        stmt = stmt.where(ilike_col(Product.category, category))
     if catalog_number:
-        q = q.filter(ilike_col(Product.catalog_number, catalog_number))
+        stmt = stmt.where(ilike_col(Product.catalog_number, catalog_number))
     if search:
-        q = q.filter(
+        stmt = stmt.where(
             ilike_col(Product.name, search)
             | ilike_col(Product.catalog_number, search)
             | ilike_col(Product.cas_number, search)
         )
-    q = apply_sort(q, Product, sort_by, sort_dir, _PRODUCT_SORTABLE)
-    return paginate(q, page, page_size)
+    stmt = apply_sort(stmt, Product, sort_by, sort_dir, _PRODUCT_SORTABLE)
+    return paginate(db, stmt, page, page_size)
 
 
 @router.post("/", status_code=201)
@@ -193,12 +194,12 @@ def list_product_inventory(
     db: Session = Depends(get_db),
 ):
     get_or_404(db, Product, product_id, "Product")
-    q = (
-        db.query(InventoryItem)
-        .filter(InventoryItem.product_id == product_id)
+    stmt = (
+        select(InventoryItem)
+        .where(InventoryItem.product_id == product_id)
         .order_by(InventoryItem.id)
     )
-    return paginate(q, page, page_size)
+    return paginate(db, stmt, page, page_size)
 
 
 @router.get("/{product_id}/orders")
@@ -209,9 +210,9 @@ def list_product_orders(
     db: Session = Depends(get_db),
 ):
     get_or_404(db, Product, product_id, "Product")
-    q = (
-        db.query(OrderItem)
-        .filter(OrderItem.product_id == product_id)
+    stmt = (
+        select(OrderItem)
+        .where(OrderItem.product_id == product_id)
         .order_by(OrderItem.id)
     )
-    return paginate(q, page, page_size)
+    return paginate(db, stmt, page, page_size)

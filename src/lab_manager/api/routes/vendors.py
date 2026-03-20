@@ -7,6 +7,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -65,17 +66,17 @@ def list_vendors(
     sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
 ):
-    q = db.query(Vendor)
+    stmt = select(Vendor)
     if name:
-        q = q.filter(ilike_col(Vendor.name, name))
+        stmt = stmt.where(ilike_col(Vendor.name, name))
     if search:
-        q = q.filter(
+        stmt = stmt.where(
             ilike_col(Vendor.name, search)
             | ilike_col(Vendor.email, search)
             | ilike_col(Vendor.notes, search)
         )
-    q = apply_sort(q, Vendor, sort_by, sort_dir, _VENDOR_SORTABLE)
-    return paginate(q, page, page_size)
+    stmt = apply_sort(stmt, Vendor, sort_by, sort_dir, _VENDOR_SORTABLE)
+    return paginate(db, stmt, page, page_size)
 
 
 @router.post("/", status_code=201)
@@ -124,8 +125,8 @@ def list_vendor_products(
     db: Session = Depends(get_db),
 ):
     get_or_404(db, Vendor, vendor_id, "Vendor")
-    q = db.query(Product).filter(Product.vendor_id == vendor_id).order_by(Product.id)
-    return paginate(q, page, page_size)
+    stmt = select(Product).where(Product.vendor_id == vendor_id).order_by(Product.id)
+    return paginate(db, stmt, page, page_size)
 
 
 @router.get("/{vendor_id}/orders")
@@ -136,5 +137,5 @@ def list_vendor_orders(
     db: Session = Depends(get_db),
 ):
     get_or_404(db, Vendor, vendor_id, "Vendor")
-    q = db.query(Order).filter(Order.vendor_id == vendor_id).order_by(Order.id)
-    return paginate(q, page, page_size)
+    stmt = select(Order).where(Order.vendor_id == vendor_id).order_by(Order.id)
+    return paginate(db, stmt, page, page_size)

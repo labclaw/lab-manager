@@ -7,6 +7,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field, field_validator
+from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from lab_manager.api.deps import get_db, get_or_404
@@ -19,11 +20,10 @@ router = APIRouter()
 
 
 def _get_order_item_or_raise(db: Session, order_id: int, item_id: int) -> OrderItem:
-    item = (
-        db.query(OrderItem)
-        .filter(OrderItem.id == item_id, OrderItem.order_id == order_id)
-        .first()
+    stmt = select(OrderItem).where(
+        OrderItem.id == item_id, OrderItem.order_id == order_id
     )
+    item = db.execute(stmt).scalars().first()
     if not item:
         raise NotFoundError("Order item", item_id)
     return item
@@ -154,21 +154,21 @@ def list_orders(
     sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
 ):
-    q = db.query(Order).options(selectinload(Order.vendor))
+    stmt = select(Order).options(selectinload(Order.vendor))
     if vendor_id is not None:
-        q = q.filter(Order.vendor_id == vendor_id)
+        stmt = stmt.where(Order.vendor_id == vendor_id)
     if status:
-        q = q.filter(Order.status == status)
+        stmt = stmt.where(Order.status == status)
     if po_number:
-        q = q.filter(ilike_col(Order.po_number, po_number))
+        stmt = stmt.where(ilike_col(Order.po_number, po_number))
     if date_from:
-        q = q.filter(Order.order_date >= date_from)
+        stmt = stmt.where(Order.order_date >= date_from)
     if date_to:
-        q = q.filter(Order.order_date <= date_to)
+        stmt = stmt.where(Order.order_date <= date_to)
     if received_by:
-        q = q.filter(ilike_col(Order.received_by, received_by))
-    q = apply_sort(q, Order, sort_by, sort_dir, _ORDER_SORTABLE)
-    return paginate(q, page, page_size)
+        stmt = stmt.where(ilike_col(Order.received_by, received_by))
+    stmt = apply_sort(stmt, Order, sort_by, sort_dir, _ORDER_SORTABLE)
+    return paginate(db, stmt, page, page_size)
 
 
 @router.post("/", status_code=201)
@@ -236,13 +236,13 @@ def list_order_items(
     db: Session = Depends(get_db),
 ):
     get_or_404(db, Order, order_id, "Order")
-    q = db.query(OrderItem).filter(OrderItem.order_id == order_id)
+    stmt = select(OrderItem).where(OrderItem.order_id == order_id)
     if catalog_number:
-        q = q.filter(ilike_col(OrderItem.catalog_number, catalog_number))
+        stmt = stmt.where(ilike_col(OrderItem.catalog_number, catalog_number))
     if lot_number:
-        q = q.filter(ilike_col(OrderItem.lot_number, lot_number))
-    q = q.order_by(OrderItem.id)
-    return paginate(q, page, page_size)
+        stmt = stmt.where(ilike_col(OrderItem.lot_number, lot_number))
+    stmt = stmt.order_by(OrderItem.id)
+    return paginate(db, stmt, page, page_size)
 
 
 @router.post("/{order_id}/items", status_code=201)

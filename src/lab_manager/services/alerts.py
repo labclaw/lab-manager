@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from lab_manager.models.alert import Alert
@@ -22,27 +22,23 @@ from lab_manager.models.product import Product
 def get_expiring_items(db: Session, days_ahead: int = 30) -> list[InventoryItem]:
     """Find inventory items expiring within the given number of days."""
     cutoff = date.today() + timedelta(days=days_ahead)
-    return (
-        db.query(InventoryItem)
-        .filter(
+    return db.exec(
+        select(InventoryItem).where(
             InventoryItem.expiry_date.isnot(None),
             InventoryItem.expiry_date <= cutoff,
             InventoryItem.status.in_(ACTIVE_STATUSES),
         )
-        .all()
-    )
+    ).all()
 
 
 def get_low_stock_items(db: Session, threshold: float = 1) -> list[InventoryItem]:
     """Find items at or below minimum stock level."""
-    return (
-        db.query(InventoryItem)
-        .filter(
+    return db.exec(
+        select(InventoryItem).where(
             InventoryItem.quantity_on_hand <= threshold,
             InventoryItem.status.in_(ACTIVE_STATUSES),
         )
-        .all()
-    )
+    ).all()
 
 
 # ---------------------------------------------------------------------------
@@ -53,16 +49,15 @@ def get_low_stock_items(db: Session, threshold: float = 1) -> list[InventoryItem
 def _check_expired(db: Session) -> list[dict]:
     """Items past their expiry_date (critical)."""
     today = date.today()
-    items = (
-        db.query(InventoryItem)
-        .filter(
+    items = db.exec(
+        select(InventoryItem)
+        .where(
             InventoryItem.expiry_date.isnot(None),
             InventoryItem.expiry_date < today,
             InventoryItem.status.in_(ACTIVE_STATUSES),
         )
         .limit(500)
-        .all()
-    )
+    ).all()
     return [
         {
             "type": "expired",
@@ -84,17 +79,16 @@ def _check_expiring_soon(db: Session, days: int = 30) -> list[dict]:
     """Items expiring within *days* but NOT yet expired (warning)."""
     today = date.today()
     cutoff = today + timedelta(days=days)
-    items = (
-        db.query(InventoryItem)
-        .filter(
+    items = db.exec(
+        select(InventoryItem)
+        .where(
             InventoryItem.expiry_date.isnot(None),
             InventoryItem.expiry_date >= today,
             InventoryItem.expiry_date <= cutoff,
             InventoryItem.status.in_(ACTIVE_STATUSES),
         )
         .limit(500)
-        .all()
-    )
+    ).all()
     return [
         {
             "type": "expiring_soon",
@@ -118,24 +112,20 @@ def _check_expiring_soon(db: Session, days: int = 30) -> list[dict]:
 def _check_out_of_stock(db: Session) -> list[dict]:
     """Products with zero total inventory that have min_stock_level set (critical)."""
     # Sub-query: sum of quantity_on_hand per product for available items.
-    stock = (
-        db.query(
+    stock = db.exec(
+        select(
             InventoryItem.product_id,
             func.coalesce(func.sum(InventoryItem.quantity_on_hand), 0).label("total"),
         )
-        .filter(InventoryItem.status.in_(ACTIVE_STATUSES))
+        .where(InventoryItem.status.in_(ACTIVE_STATUSES))
         .group_by(InventoryItem.product_id)
-        .subquery()
-    )
-    # Products that either have zero stock or no inventory rows at all.
-    # Only alert for products with min_stock_level set (tracked products).
-    products_with_stock = (
-        db.query(Product, stock.c.total)
+    ).subquery()
+    products_with_stock = db.exec(
+        select(Product, stock.c.total)
         .outerjoin(stock, Product.id == stock.c.product_id)
-        .filter(Product.min_stock_level.isnot(None))
-        .filter((stock.c.total == 0) | (stock.c.total.is_(None)))
-        .all()
-    )
+        .where(Product.min_stock_level.isnot(None))
+        .where((stock.c.total == 0) | (stock.c.total.is_(None)))
+    ).all()
     return [
         {
             "type": "out_of_stock",
@@ -157,25 +147,23 @@ def _check_low_stock(db: Session) -> list[dict]:
 
     Only checks products that have min_stock_level explicitly set.
     """
-    stock = (
-        db.query(
+    stock = db.exec(
+        select(
             InventoryItem.product_id,
             func.sum(InventoryItem.quantity_on_hand).label("total"),
         )
-        .filter(InventoryItem.status.in_(ACTIVE_STATUSES))
+        .where(InventoryItem.status.in_(ACTIVE_STATUSES))
         .group_by(InventoryItem.product_id)
-        .subquery()
-    )
-    rows = (
-        db.query(Product, stock.c.total)
+    ).subquery()
+    rows = db.exec(
+        select(Product, stock.c.total)
         .join(stock, Product.id == stock.c.product_id)
-        .filter(
+        .where(
             Product.min_stock_level.isnot(None),
             stock.c.total > 0,
             stock.c.total <= Product.min_stock_level,
         )
-        .all()
-    )
+    ).all()
     return [
         {
             "type": "low_stock",
@@ -197,9 +185,9 @@ def _check_low_stock(db: Session) -> list[dict]:
 
 def _check_pending_review(db: Session) -> list[dict]:
     """Documents not yet approved awaiting human review (info)."""
-    docs = (
-        db.query(Document)
-        .filter(
+    docs = db.exec(
+        select(Document)
+        .where(
             Document.status.in_(
                 [
                     DocumentStatus.pending,
@@ -209,8 +197,7 @@ def _check_pending_review(db: Session) -> list[dict]:
             )
         )
         .limit(200)
-        .all()
-    )
+    ).all()
     return [
         {
             "type": "pending_review",
@@ -231,16 +218,15 @@ def _check_pending_review(db: Session) -> list[dict]:
 def _check_stale_orders(db: Session, stale_days: int = 30) -> list[dict]:
     """Orders stuck in 'pending' for more than *stale_days* (warning)."""
     cutoff = date.today() - timedelta(days=stale_days)
-    orders = (
-        db.query(Order)
-        .filter(
+    orders = db.exec(
+        select(Order)
+        .where(
             Order.status == OrderStatus.pending,
             Order.created_at
             <= datetime(cutoff.year, cutoff.month, cutoff.day, tzinfo=timezone.utc),
         )
         .limit(500)
-        .all()
-    )
+    ).all()
     return [
         {
             "type": "stale_orders",
@@ -299,11 +285,11 @@ def persist_alerts(db: Session) -> tuple[list[Alert], list[dict]]:
     """
     current = check_all_alerts(db)
     # Build a set of (entity_type, entity_id, alert_type) for existing unresolved alerts.
-    existing = (
-        db.query(Alert.entity_type, Alert.entity_id, Alert.alert_type)
-        .filter(Alert.is_resolved.is_(False))
-        .all()
-    )
+    existing = db.exec(
+        select(Alert.entity_type, Alert.entity_id, Alert.alert_type).where(
+            Alert.is_resolved.is_(False)
+        )
+    ).all()
     existing_keys = {(e[0], e[1], e[2]) for e in existing}
 
     created: list[Alert] = []
