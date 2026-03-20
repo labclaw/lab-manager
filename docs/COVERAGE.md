@@ -1,6 +1,18 @@
 # Lab Manager — Feature Coverage Matrix
 
-Last updated: 2026-03-19
+Last updated: 2026-03-20
+
+## Release Gate Note
+
+This document tracks UI/API wiring coverage and backlog priority. It is not the release gate.
+
+The maintained release gate for `v0.1.6` is:
+- frontend lint/build/test
+- Python static checks
+- `tests --ignore=tests/bdd`
+- `scripts/run_release_gate.sh`
+
+The historical `tests/bdd/...` tree remains useful for cleanup work, but it is not currently the authoritative release decision.
 
 ## API-to-UI Coverage
 

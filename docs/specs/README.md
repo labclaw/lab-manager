@@ -52,3 +52,11 @@ Current count: **82 endpoints** across 14 route modules
 - [README.md](../../README.md) - Project overview
 - [CHANGELOG.md](../../CHANGELOG.md) - Version history
 - [DEPLOY.md](../../DEPLOY.md) - Deployment guide
+
+## Release Gate
+
+Page specs describe intended behavior, but the maintained `v0.1.6` release gate is:
+- `uv run pytest tests --ignore=tests/bdd -q`
+- `bash scripts/run_release_gate.sh`
+
+That gate validates the currently shipped product surface more directly than the older BDD backlog.

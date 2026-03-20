@@ -5,7 +5,7 @@
 | **Route** | `/documents` |
 | **Status** | Built — wired (read-only) |
 | **Priority** | — (functional for browsing) |
-| **Stitch Screen** | `Shen Lab Documents Management` |
+| **Stitch Screen** | `Documents Management` |
 
 ---
 
