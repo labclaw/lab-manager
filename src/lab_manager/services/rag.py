@@ -87,7 +87,6 @@ CREATE TABLE staff (
     email VARCHAR(255) UNIQUE,
     role VARCHAR(50) DEFAULT 'member',
     is_active BOOLEAN DEFAULT TRUE,
-    password_hash VARCHAR(255),
     created_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ,
     created_by VARCHAR(100)
@@ -276,6 +275,12 @@ _FORBIDDEN_PATTERN = re.compile(
 # Columns that must never appear in RAG queries (PII, credentials)
 _FORBIDDEN_COLUMNS = re.compile(r"\bpassword_hash\b", re.IGNORECASE)
 
+# Defense-in-depth: block data-modifying keywords anywhere in SQL (catches CTE bypasses)
+_DANGEROUS_KEYWORDS = re.compile(
+    r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|EXECUTE)\b",
+    re.IGNORECASE,
+)
+
 # Allowed table names for FROM/JOIN clauses
 _ALLOWED_TABLES = {
     "vendors",
@@ -373,7 +378,9 @@ def _get_client() -> dict[str, Any]:
                 "No RAG API key found. Set RAG_API_KEY, NVIDIA_BUILD_API_KEY, or OPENAI_API_KEY."
             )
         params: dict[str, Any] = {"model": _resolved_rag_model(), "api_key": api_key}
-        base_url = _first_value(settings.rag_base_url, os.environ.get("RAG_BASE_URL", ""))
+        base_url = _first_value(
+            settings.rag_base_url, os.environ.get("RAG_BASE_URL", "")
+        )
         if base_url:
             params["api_base"] = base_url
         return params
@@ -434,6 +441,10 @@ def _validate_sql(sql: str) -> str:
     if _FORBIDDEN_PATTERN.search(sql):
         raise ValueError(f"Query contains forbidden keywords: {sql[:120]}...")
 
+    # Defense-in-depth: block dangerous keywords anywhere (catches CTE bypasses)
+    if _DANGEROUS_KEYWORDS.search(sql):
+        raise ValueError("Query contains forbidden keyword")
+
     if _FORBIDDEN_COLUMNS.search(sql):
         raise ValueError("Query references forbidden columns")
 
@@ -484,7 +495,9 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
 
     if use_dedicated_readonly:
         # Dedicated readonly PG user — DB enforces SELECT-only
+        # Defense-in-depth: also set READ ONLY at transaction level
         with readonly_engine.connect() as conn, conn.begin():
+            conn.execute(text("SET TRANSACTION READ ONLY"))
             conn.execute(
                 text("SET LOCAL statement_timeout = :timeout").bindparams(
                     timeout=f"{int(SQL_TIMEOUT_S)}s"
@@ -518,9 +531,7 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
             raise
 
 
-def _format_answer(
-    client: Any, question: str, sql: str, results: list[dict]
-) -> str:
+def _format_answer(client: Any, question: str, sql: str, results: list[dict]) -> str:
     """Ask the configured RAG model to format query results into a human-readable answer."""
     # Truncate results for the prompt if too many rows
     display_results = results[:50]
