@@ -109,9 +109,9 @@ def e2e_client() -> Generator[TestClient | httpx.Client, None, None]:
 def authenticated_client(
     e2e_client: TestClient | httpx.Client,
 ) -> TestClient | httpx.Client:
-    """Client that is already logged in as admin.
+    """Session-scoped client that is logged in as admin.
 
-    Performs setup if needed and logs in.
+    Performs setup if needed and logs in once per session.
     """
     # Check setup status
     status_resp = e2e_client.get("/api/setup/status")
@@ -119,7 +119,7 @@ def authenticated_client(
 
     if needs_setup:
         # Complete setup
-        e2e_client.post(
+        setup_resp = e2e_client.post(
             "/api/setup/complete",
             json={
                 "admin_name": ADMIN_NAME,
@@ -127,6 +127,7 @@ def authenticated_client(
                 "admin_password": ADMIN_PASSWORD,
             },
         )
+        assert setup_resp.status_code in (200, 201), f"Setup failed: {setup_resp.text}"
 
     # Login
     login_resp = e2e_client.post(

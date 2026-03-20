@@ -23,8 +23,8 @@ class TestDocumentsE2E:
         resp = authenticated_client.get("/api/v1/documents/stats")
         assert resp.status_code == 200
         data = resp.json()
-        # Stats should include counts
-        assert "total" in data or "pending" in data
+        # API returns total_documents instead of total
+        assert "total_documents" in data or "total" in data or "by_status" in data
 
     def test_list_documents(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/documents/ returns paginated list."""
