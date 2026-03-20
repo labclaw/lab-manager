@@ -565,12 +565,10 @@ class TestRagExecuteSql:
             mock_settings.return_value.rag_base_url = ""
             mock_settings.return_value.nvidia_build_api_key = "nv-key"
             mock_settings.return_value.openai_api_key = ""
-            with patch("openai.OpenAI") as mock_openai:
-                _get_client()
-                mock_openai.assert_called_once_with(
-                    base_url="https://integrate.api.nvidia.com/v1",
-                    api_key="nv-key",
-                )
+            params = _get_client()
+            assert params["api_key"] == "nv-key"
+            assert params["api_base"] == "https://integrate.api.nvidia.com/v1"
+            assert params["model"].startswith("nvidia_nim/")
         _get_client.cache_clear()
 
     @patch("lab_manager.database.get_readonly_engine")

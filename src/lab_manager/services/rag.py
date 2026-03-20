@@ -1,4 +1,4 @@
-"""RAG service: natural language Q&A over lab inventory via Gemini + SQL."""
+"""RAG service: natural language Q&A over lab inventory via LiteLLM + SQL."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import logging
 import re
 from typing import Any
 
-from google import genai
+from litellm import completion
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -300,61 +300,94 @@ _TABLE_REF_PATTERN = re.compile(
 )
 
 
-def _use_openai_compatible_rag() -> bool:
-    """Whether RAG should use an OpenAI-compatible backend instead of Google GenAI."""
+def _resolved_rag_model() -> str:
+    """Resolve the configured model to a LiteLLM model name."""
+    import os
+
+    model = _get_model()
+    if "/" in model:
+        return model
+
     settings = get_settings()
-    return any(
+    if _has_value(settings.nvidia_build_api_key) or _has_value(
+        os.environ.get("NVIDIA_BUILD_API_KEY", "")
+    ):
+        return f"nvidia_nim/{model}"
+
+    if any(
         _has_value(value)
         for value in (
             settings.rag_base_url,
             settings.rag_api_key,
-            settings.nvidia_build_api_key,
+            settings.openai_api_key,
+            os.environ.get("RAG_BASE_URL", ""),
+            os.environ.get("RAG_API_KEY", ""),
+            os.environ.get("OPENAI_API_KEY", ""),
         )
-    )
+    ):
+        return f"openai/{model}"
+
+    return f"gemini/{model}"
 
 
 @functools.lru_cache(maxsize=1)
-def _get_client() -> Any:
-    """Create (and cache) a RAG client."""
+def _get_client() -> dict[str, Any]:
+    """Create (and cache) LiteLLM completion parameters for RAG."""
     settings = get_settings()
     import os
 
-    if _use_openai_compatible_rag():
-        from openai import OpenAI
+    nvidia_api_key = _first_value(
+        settings.nvidia_build_api_key,
+        os.environ.get("NVIDIA_BUILD_API_KEY", ""),
+    )
+    if nvidia_api_key:
+        return {
+            "model": _resolved_rag_model(),
+            "api_key": nvidia_api_key,
+            "api_base": _first_value(
+                settings.rag_base_url,
+                os.environ.get("RAG_BASE_URL", ""),
+                "https://integrate.api.nvidia.com/v1",
+            ),
+        }
 
+    if any(
+        _has_value(value)
+        for value in (
+            settings.rag_base_url,
+            settings.rag_api_key,
+            settings.openai_api_key,
+            os.environ.get("RAG_BASE_URL", ""),
+            os.environ.get("RAG_API_KEY", ""),
+            os.environ.get("OPENAI_API_KEY", ""),
+        )
+    ):
         api_key = _first_value(
-            settings.rag_api_key
-            , settings.nvidia_build_api_key
-            , settings.openai_api_key
-            , os.environ.get("RAG_API_KEY", "")
-            , os.environ.get("NVIDIA_BUILD_API_KEY", "")
-            , os.environ.get("OPENAI_API_KEY", "")
+            settings.rag_api_key,
+            settings.openai_api_key,
+            os.environ.get("RAG_API_KEY", ""),
+            os.environ.get("OPENAI_API_KEY", ""),
         )
         if not api_key:
             raise RuntimeError(
                 "No RAG API key found. Set RAG_API_KEY, NVIDIA_BUILD_API_KEY, or OPENAI_API_KEY."
             )
-        base_url = _first_value(
-            settings.rag_base_url,
-            os.environ.get("RAG_BASE_URL", ""),
-            "https://integrate.api.nvidia.com/v1",
-        )
-        return OpenAI(base_url=base_url, api_key=api_key)
+        params: dict[str, Any] = {"model": _resolved_rag_model(), "api_key": api_key}
+        base_url = _first_value(settings.rag_base_url, os.environ.get("RAG_BASE_URL", ""))
+        if base_url:
+            params["api_base"] = base_url
+        return params
 
     api_key = settings.extraction_api_key or os.environ.get("GEMINI_API_KEY", "")
     if not api_key:
         raise RuntimeError(
             "No Gemini API key found. Set GEMINI_API_KEY or EXTRACTION_API_KEY."
         )
-    return genai.Client(api_key=api_key)  # pragma: no cover — requires real API key
+    return {"model": _resolved_rag_model(), "api_key": api_key}
 
 
 def _response_text(response: Any) -> str:
-    """Normalize text output across Google GenAI and OpenAI-compatible clients."""
-    text = getattr(response, "text", None)
-    if isinstance(text, str) and text.strip():
-        return text.strip()
-
+    """Normalize text output from LiteLLM completion responses."""
     choice = response.choices[0]
     content = choice.message.content
     if isinstance(content, str):
@@ -371,17 +404,11 @@ def _response_text(response: Any) -> str:
 
 
 def _generate_completion(client: Any, prompt: str) -> str:
-    """Generate text with the configured RAG backend."""
-    if _use_openai_compatible_rag():
-        response = client.chat.completions.create(
-            model=_get_model(),
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return _response_text(response)
-
-    response = client.models.generate_content(
-        model=_get_model(),
-        contents=prompt,
+    """Generate text with LiteLLM using the cached RAG client parameters."""
+    response = completion(
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0,
+        **client,
     )
     return _response_text(response)
 
@@ -426,11 +453,11 @@ def _serialize_rows(rows: list[dict]) -> list[dict]:
 
 
 def _generate_sql(client: Any, question: str) -> str:
-    """Ask Gemini to translate a natural language question to SQL."""
+    """Ask the configured RAG model to translate a natural language question to SQL."""
     prompt = NL_TO_SQL_PROMPT.format(schema=DB_SCHEMA, question=question)
     raw = _generate_completion(client, prompt)
 
-    # Gemini sometimes wraps in ```sql ... ```
+    # Some models wrap SQL in fenced markdown
     if raw.startswith("```"):
         lines = raw.split("\n")
         # Remove first and last fence lines
@@ -494,7 +521,7 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
 def _format_answer(
     client: Any, question: str, sql: str, results: list[dict]
 ) -> str:
-    """Ask Gemini to format query results into a human-readable answer."""
+    """Ask the configured RAG model to format query results into a human-readable answer."""
     # Truncate results for the prompt if too many rows
     display_results = results[:50]
     prompt = FORMAT_ANSWER_PROMPT.format(

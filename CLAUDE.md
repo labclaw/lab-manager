@@ -44,7 +44,7 @@ src/lab_manager/
     validator.py — Rule-based validation
     extractor.py — Legacy single-model extractor (v1)
     pipeline.py  — Legacy pipeline (v1)
-  services/      — Search (Meilisearch), RAG (Gemini NL→SQL), alerts, analytics, audit, inventory lifecycle
+  services/      — Search (Meilisearch), RAG (LiteLLM NL→SQL), alerts, analytics, audit, inventory lifecycle
   config.py      — Settings from env/.env
 scripts/         — CLI tools: pipeline_v2.py, run_ocr_benchmark.py, populate_db.py, index_meilisearch.py
 tests/           — pytest suite (87 tests)
@@ -113,7 +113,7 @@ providers/more_ocr.py  — DeepSeek, GLM, PaddleOCR, Mistral, registries
 | Inventory (9) | CRUD + consume/transfer/adjust/dispose/open + low-stock/expiring/history |
 | Documents (5) | CRUD + review workflow + stats |
 | Search (2) | `GET /api/search?q=...` + `/suggest` (Meilisearch) |
-| RAG (2) | `GET/POST /api/v1/ask` — NL→SQL via Gemini |
+| RAG (2) | `GET/POST /api/v1/ask` — NL→SQL via LiteLLM |
 | Analytics (10) | Dashboard, spending, inventory value, top products, staff, vendor summary |
 | Export (4) | CSV downloads: inventory, orders, products, vendors |
 | Alerts (5) | Check/list/acknowledge/resolve + summary |
