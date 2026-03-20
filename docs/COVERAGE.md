@@ -1,6 +1,6 @@
 # Lab Manager — Feature Coverage Matrix
 
-Last updated: 2026-03-20
+Last updated: 2026-03-19
 
 ## API-to-UI Coverage
 

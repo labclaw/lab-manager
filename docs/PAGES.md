@@ -2,7 +2,7 @@
 
 Master registry of all pages. **If a page isn't here, it doesn't exist.**
 
-Last updated: 2026-03-20
+Last updated: 2026-03-19
 
 ## Navigation Structure
 
