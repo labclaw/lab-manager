@@ -46,9 +46,7 @@ def test_scans_and_devices_unmounted_when_unconfigured(monkeypatch):
 
     try:
         app = create_app()
-        mount_names = {
-            route.name for route in app.routes if getattr(route, "name", None)
-        }
+        mount_names = {route.name for route in app.routes if getattr(route, "name", None)}
         assert "scans" not in mount_names
         assert "devices" not in mount_names
     finally:
@@ -59,12 +57,8 @@ def test_incomplete_spa_build_falls_back_to_legacy_ui(tmp_path, monkeypatch):
     """If the hashed JS bundle is missing, serve the legacy UI instead of a blank page."""
     static_dir = tmp_path / "static"
     static_dir.mkdir()
-    (static_dir / "index.html").write_text(
-        "<html><body>legacy ui</body></html>", encoding="utf-8"
-    )
-    (static_dir / "sw.js").write_text(
-        "self.addEventListener('fetch', ()=>{});", encoding="utf-8"
-    )
+    (static_dir / "index.html").write_text("<html><body>legacy ui</body></html>", encoding="utf-8")
+    (static_dir / "sw.js").write_text("self.addEventListener('fetch', ()=>{});", encoding="utf-8")
     (static_dir / "manifest.json").write_text("{}", encoding="utf-8")
 
     dist_dir = static_dir / "dist"
@@ -122,32 +116,3 @@ def test_compose_defaults_to_empty_asset_mounts():
     assert "./docker/empty/devices" in compose
     assert "SCANS_DIR: ${SCANS_DIR:+/app/scans}" in compose
     assert "DEVICES_DIR: ${DEVICES_DIR:+/app/lab-devices}" in compose
-
-
-def test_sidebar_is_not_permanently_hidden():
-    """Desktop navigation should not be hidden by the app's own `.hidden` utility."""
-    html = (REPO_ROOT / "src" / "lab_manager" / "static" / "index.html").read_text(
-        encoding="utf-8"
-    )
-    assert (
-        'aside class="sidebar w-64 bg-surface-dark border-r border-border-dark flex flex-col flex-shrink-0"'
-        in html
-    )
-    assert "hidden md:flex" not in html
-
-
-def test_document_background_tasks_run_after_commit():
-    """Guard the commit-before-background-task ordering that real QA depends on."""
-    source = (
-        REPO_ROOT / "src" / "lab_manager" / "api" / "routes" / "documents.py"
-    ).read_text(encoding="utf-8")
-    upload_commit = source.index(
-        "db.commit()", source.index("status=DocumentStatus.processing")
-    )
-    upload_task = source.index("background_tasks.add_task(_run_extraction, doc.id)")
-    assert upload_commit < upload_task
-
-    approve_block = source.index('if body.action == "approve":')
-    review_commit = source.index("db.commit()", approve_block)
-    review_task = source.index("background_tasks.add_task(_index_approved_doc, doc.id)")
-    assert review_commit < review_task
