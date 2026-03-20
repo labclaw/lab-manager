@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from lab_manager.models.alert import Alert
 from lab_manager.models.document import Document, DocumentStatus
-from lab_manager.models.inventory import InventoryItem, InventoryStatus
+from lab_manager.models.inventory import ACTIVE_STATUSES, InventoryItem, InventoryStatus
 from lab_manager.models.order import Order, OrderStatus
 from lab_manager.models.product import Product
 
@@ -27,7 +27,7 @@ def get_expiring_items(db: Session, days_ahead: int = 30) -> list[InventoryItem]
         .filter(
             InventoryItem.expiry_date.isnot(None),
             InventoryItem.expiry_date <= cutoff,
-            InventoryItem.status == InventoryStatus.available,
+            InventoryItem.status.in_(ACTIVE_STATUSES),
         )
         .all()
     )
@@ -39,7 +39,7 @@ def get_low_stock_items(db: Session, threshold: float = 1) -> list[InventoryItem
         db.query(InventoryItem)
         .filter(
             InventoryItem.quantity_on_hand <= threshold,
-            InventoryItem.status == InventoryStatus.available,
+            InventoryItem.status.in_(ACTIVE_STATUSES),
         )
         .all()
     )
@@ -59,7 +59,7 @@ def _check_expired(db: Session) -> list[dict]:
             InventoryItem.expiry_date.isnot(None),
             InventoryItem.expiry_date < today,
             InventoryItem.status.in_(
-                [InventoryStatus.available, InventoryStatus.opened]
+                ACTIVE_STATUSES
             ),
         )
         .limit(500)
@@ -93,7 +93,7 @@ def _check_expiring_soon(db: Session, days: int = 30) -> list[dict]:
             InventoryItem.expiry_date >= today,
             InventoryItem.expiry_date <= cutoff,
             InventoryItem.status.in_(
-                [InventoryStatus.available, InventoryStatus.opened]
+                ACTIVE_STATUSES
             ),
         )
         .limit(500)
@@ -129,7 +129,7 @@ def _check_out_of_stock(db: Session) -> list[dict]:
         )
         .filter(
             InventoryItem.status.in_(
-                [InventoryStatus.available, InventoryStatus.opened]
+                ACTIVE_STATUSES
             )
         )
         .group_by(InventoryItem.product_id)
@@ -172,7 +172,7 @@ def _check_low_stock(db: Session) -> list[dict]:
         )
         .filter(
             InventoryItem.status.in_(
-                [InventoryStatus.available, InventoryStatus.opened]
+                ACTIVE_STATUSES
             )
         )
         .group_by(InventoryItem.product_id)

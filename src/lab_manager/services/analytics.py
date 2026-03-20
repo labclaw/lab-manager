@@ -9,7 +9,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from lab_manager.models.document import Document, DocumentStatus
-from lab_manager.models.inventory import InventoryItem, InventoryStatus
+from lab_manager.models.inventory import ACTIVE_STATUSES, InventoryItem, InventoryStatus
 from lab_manager.models.location import StorageLocation
 from lab_manager.models.order import Order, OrderItem
 from lab_manager.models.product import Product
@@ -17,8 +17,6 @@ from lab_manager.models.staff import Staff
 from lab_manager.models.vendor import Vendor
 from lab_manager.services.serialization import serialize_value as _iso
 
-# Statuses considered "active" for stock and expiry calculations.
-_ACTIVE_STATUSES = [InventoryStatus.available, InventoryStatus.opened]
 
 
 def _money(val) -> float:
@@ -111,7 +109,7 @@ def dashboard_summary(db: Session) -> dict:
         .filter(
             InventoryItem.expiry_date.isnot(None),
             InventoryItem.expiry_date <= cutoff,
-            InventoryItem.status.in_(_ACTIVE_STATUSES),
+            InventoryItem.status.in_(ACTIVE_STATUSES),
         )
         .order_by(InventoryItem.expiry_date)
         .limit(100)
@@ -136,7 +134,7 @@ def dashboard_summary(db: Session) -> dict:
             InventoryItem.product_id,
             func.sum(InventoryItem.quantity_on_hand).label("total"),
         )
-        .filter(InventoryItem.status.in_(_ACTIVE_STATUSES))
+        .filter(InventoryItem.status.in_(ACTIVE_STATUSES))
         .group_by(InventoryItem.product_id)
         .subquery()
     )
