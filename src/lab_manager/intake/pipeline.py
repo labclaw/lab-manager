@@ -114,14 +114,32 @@ def process_document(image_path: Path, db: Session) -> Document:
         return doc
 
     # Extract structured data
+    from lab_manager.intake.validator import validate
+
     try:
         extracted = extract_from_text(ocr_text)
-        doc.document_type = extracted.document_type
-        doc.vendor_name = extracted.vendor_name
-        doc.extracted_data = extracted.model_dump()
-        doc.extraction_model = settings.extraction_model
-        doc.extraction_confidence = extracted.confidence
-        doc.status = DocumentStatus.needs_review
+        if extracted is None:
+            logger.error("Extraction returned None for %s", image_path.name)
+            doc.status = DocumentStatus.needs_review
+            doc.review_notes = "Extraction failed: no result returned"
+        else:
+            doc.document_type = extracted.document_type
+            doc.vendor_name = extracted.vendor_name
+            doc.extracted_data = extracted.model_dump()
+            doc.extraction_model = settings.extraction_model
+            doc.extraction_confidence = extracted.confidence
+            doc.status = DocumentStatus.needs_review
+
+            # Run validation on extracted data
+            validation_issues = validate(extracted.model_dump())
+            if validation_issues:
+                logger.warning(
+                    "Validation issues for %s: %s", image_path.name, validation_issues
+                )
+                issues_str = "; ".join(
+                    f"{i['field']}: {i['issue']}" for i in validation_issues
+                )
+                doc.review_notes = f"Validation issues: {issues_str}"
     except Exception as e:
         logger.error("Extraction failed for %s: %s", image_path.name, e)
         doc.status = DocumentStatus.needs_review

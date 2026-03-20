@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 
 MAX_REASONABLE_QTY = 10000
+# Dynamic year range: current year +/- 2 years for reasonable date validation
+_year = datetime.now().year
+MIN_REASONABLE_YEAR = _year - 6
+MAX_REASONABLE_YEAR = _year + 2
 
 
 def validate(data: dict) -> list[dict]:
@@ -102,7 +106,7 @@ def validate(data: dict) -> list[dict]:
             continue
         try:
             d = date.fromisoformat(val)
-            if d.year < 2020 or d.year > 2027:
+            if d.year < MIN_REASONABLE_YEAR or d.year > MAX_REASONABLE_YEAR:
                 issues.append(
                     {
                         "field": field,
