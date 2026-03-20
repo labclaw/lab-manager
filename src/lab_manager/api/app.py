@@ -173,26 +173,27 @@ def create_app() -> FastAPI:
         expose_headers=["*"],
     )
 
-    # --- Preflight middleware (handles OPTIONS before router) ---
-    # Starlette's CORSMiddleware only adds headers to existing responses.
-    # This middleware intercepts OPTIONS requests and returns 200 with CORS headers.
+    # --- Preflight middleware (handles OPTIONS before router, dev mode only) ---
+    # In dev mode (auth disabled), handle OPTIONS preflight for cross-origin
+    # frontend development. In production, Caddy handles CORS.
     #
-    @app.middleware("http")
-    async def cors_preflight_middleware(request: Request, call_next):
-        # Handle OPTIONS preflight requests for API routes
-        if request.method == "OPTIONS" and request.url.path.startswith("/api/"):
-            from starlette.responses import Response
+    if not settings.auth_enabled:
 
-            response = Response(status_code=200)
-            response.headers["Access-Control-Allow-Origin"] = "*"
-            response.headers["Access-Control-Allow-Methods"] = (
-                "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-            )
-            response.headers["Access-Control-Allow-Headers"] = "*"
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Max-Age"] = "86400"
-            return response
-        return await call_next(request)
+        @app.middleware("http")
+        async def cors_preflight_middleware(request: Request, call_next):
+            if request.method == "OPTIONS" and request.url.path.startswith("/api/"):
+                from starlette.responses import Response
+
+                response = Response(status_code=200)
+                response.headers["Access-Control-Allow-Origin"] = "*"
+                response.headers["Access-Control-Allow-Methods"] = (
+                    "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+                )
+                response.headers["Access-Control-Allow-Headers"] = "*"
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+                response.headers["Access-Control-Max-Age"] = "86400"
+                return response
+            return await call_next(request)
 
     # --- Rate limiting (slowapi) ---
     limiter = Limiter(key_func=get_remote_address)
