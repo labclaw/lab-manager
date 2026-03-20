@@ -34,7 +34,7 @@ Feature: Deployment Readiness
       | /                |
       | /api/health      |
       | /api/v1/setup/status|
-      | /api/config      |
+      | /api/v1/config   |
       | /favicon.svg     |
       | /icons.svg       |
       | /sw.js           |
