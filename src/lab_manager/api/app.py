@@ -66,6 +66,12 @@ _MAX_USER_LEN = 100
 _AUTH_ALLOWLIST = {
     "/",
     "/api/health",
+    "/api/auth/login",
+    "/api/auth/logout",
+    "/api/auth/me",
+    "/api/setup/status",
+    "/api/setup/complete",
+    "/api/config",
     "/api/v1/auth/login",
     "/api/v1/auth/logout",
     "/api/v1/auth/me",
@@ -370,6 +376,7 @@ def create_app() -> FastAPI:
 
     from fastapi import Body
 
+    @app.post("/api/auth/login", include_in_schema=False)
     @app.post("/api/v1/auth/login")
     @limiter.limit("5/minute")
     def login(
@@ -451,6 +458,7 @@ def create_app() -> FastAPI:
             logger.warning("Failed to record login usage event")
         return response
 
+    @app.get("/api/auth/me", include_in_schema=False)
     @app.get("/api/v1/auth/me")
     def auth_me(request: Request):
         """Return current user info from session cookie. Used by frontend to check auth state."""
@@ -472,6 +480,7 @@ def create_app() -> FastAPI:
             )
         return {"user": {"id": staff["id"], "name": staff["name"]}}
 
+    @app.post("/api/auth/logout", include_in_schema=False)
     @app.post("/api/v1/auth/logout")
     def logout():
         response = JSONResponse({"status": "ok"})
@@ -480,6 +489,7 @@ def create_app() -> FastAPI:
 
     # --- Lab config endpoint (public — frontend reads lab name) ---
 
+    @app.get("/api/config", include_in_schema=False)
     @app.get("/api/v1/config")
     def lab_config():
         cfg = get_settings()
@@ -503,6 +513,7 @@ def create_app() -> FastAPI:
             is not None
         )
 
+    @app.get("/api/setup/status", include_in_schema=False)
     @app.get("/api/v1/setup/status")
     def setup_status():
         """Check if initial setup is needed (no admin user with password exists)."""
@@ -511,6 +522,7 @@ def create_app() -> FastAPI:
         with get_db_session() as db:
             return {"needs_setup": not _admin_exists(db)}
 
+    @app.post("/api/setup/complete", include_in_schema=False)
     @app.post("/api/v1/setup/complete")
     @limiter.limit("3/minute")
     def setup_complete(
