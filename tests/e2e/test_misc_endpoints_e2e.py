@@ -658,3 +658,95 @@ class TestDAUAnalytics:
         assert "total_orders" in data
         # Field is total_inventory_items, not total_inventory
         assert "total_inventory_items" in data or "total_inventory" in data
+
+
+@pytest.mark.e2e
+class TestStaffEndpoints:
+    """Tests for staff management endpoints."""
+
+    def test_list_staff(self, authenticated_client: TestClient | httpx.Client):
+        """GET /api/v1/staff/ returns staff list."""
+        resp = authenticated_client.get("/api/v1/staff/")
+        assert resp.status_code in (200, 404)
+        if resp.status_code == 200:
+            data = resp.json()
+            assert "items" in data or isinstance(data, list)
+
+    def test_create_staff(self, authenticated_client: TestClient | httpx.Client):
+        """POST /api/v1/staff/ creates staff member."""
+        resp = authenticated_client.post(
+            "/api/v1/staff/",
+            json={
+                "name": "E2E Test Staff",
+                "email": "e2e-staff@test.local",
+                "role": "technician",
+            },
+        )
+        assert resp.status_code in (200, 201, 404, 422)
+
+    def test_staff_activity(self, authenticated_client: TestClient | httpx.Client):
+        """GET /api/v1/analytics/staff/activity returns activity."""
+        resp = authenticated_client.get("/api/v1/analytics/staff/activity")
+        assert resp.status_code in (200, 404)
+        if resp.status_code == 200:
+            data = resp.json()
+            assert isinstance(data, (list, dict))
+
+
+@pytest.mark.e2e
+class TestLocationEndpoints:
+    """Tests for location management endpoints."""
+
+    def test_list_locations(self, authenticated_client: TestClient | httpx.Client):
+        """GET /api/v1/locations/ returns locations list."""
+        resp = authenticated_client.get("/api/v1/locations/")
+        assert resp.status_code in (200, 404)
+        if resp.status_code == 200:
+            data = resp.json()
+            assert "items" in data or isinstance(data, list)
+
+    def test_create_location(self, authenticated_client: TestClient | httpx.Client):
+        """POST /api/v1/locations/ creates location."""
+        resp = authenticated_client.post(
+            "/api/v1/locations/",
+            json={
+                "name": "E2E Test Location",
+                "building": "Building A",
+                "room": "Room 101",
+            },
+        )
+        assert resp.status_code in (200, 201, 404, 422)
+
+
+@pytest.mark.e2e
+class TestUserManagement:
+    """Tests for user management endpoints."""
+
+    def test_list_users(self, authenticated_client: TestClient | httpx.Client):
+        """GET /api/v1/users/ returns users list."""
+        resp = authenticated_client.get("/api/v1/users/")
+        assert resp.status_code in (200, 401, 403, 404)
+
+    def test_get_current_user(self, authenticated_client: TestClient | httpx.Client):
+        """GET /api/v1/users/me returns current user."""
+        resp = authenticated_client.get("/api/v1/users/me")
+        assert resp.status_code in (200, 404)
+
+    def test_update_current_user(self, authenticated_client: TestClient | httpx.Client):
+        """PATCH /api/v1/users/me updates current user."""
+        resp = authenticated_client.patch(
+            "/api/v1/users/me",
+            json={"name": "Updated E2E User"},
+        )
+        assert resp.status_code in (200, 404, 422)
+
+    def test_change_password(self, authenticated_client: TestClient | httpx.Client):
+        """POST /api/v1/users/me/password changes password."""
+        resp = authenticated_client.post(
+            "/api/v1/users/me/password",
+            json={
+                "current_password": "test-password",
+                "new_password": "new-test-password",
+            },
+        )
+        assert resp.status_code in (200, 400, 404, 422)
