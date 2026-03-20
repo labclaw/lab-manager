@@ -8,7 +8,7 @@ from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 
 from lab_manager.exceptions import NotFoundError, ValidationError
 from lab_manager.models.consumption import ConsumptionAction, ConsumptionLog
@@ -89,11 +89,9 @@ def receive_items(
     if order_item_ids:
         order_items_map = {
             oi.id: oi
-            for oi in db.execute(
+            for oi in db.exec(
                 select(OrderItem).where(OrderItem.id.in_(order_item_ids))
-            )
-            .scalars()
-            .all()
+            ).all()
             if oi.id is not None
         }
 
@@ -335,7 +333,7 @@ def open_item(
 
 def get_stock_level(product_id: int, db: Session) -> dict:
     """Total quantity on hand for a product across all locations."""
-    result = db.execute(
+    result = db.exec(
         select(func.sum(InventoryItem.quantity_on_hand)).where(
             InventoryItem.product_id == product_id,
             InventoryItem.status.in_(ACTIVE_STATUSES),
@@ -346,7 +344,7 @@ def get_stock_level(product_id: int, db: Session) -> dict:
 
 def get_low_stock(db: Session) -> list[dict]:
     """Products where total stock is below min_stock_level."""
-    rows = db.execute(
+    rows = db.exec(
         select(
             Product.id,
             Product.name,
@@ -382,17 +380,13 @@ def get_low_stock(db: Session) -> list[dict]:
 def get_expiring(db: Session, days: int = 30) -> list[InventoryItem]:
     """Items expiring within N days."""
     cutoff = date.today() + timedelta(days=days)
-    return list(
-        db.execute(
-            select(InventoryItem).where(
-                InventoryItem.expiry_date.isnot(None),
-                InventoryItem.expiry_date <= cutoff,
-                InventoryItem.status.in_(ACTIVE_STATUSES),
-            )
+    return db.exec(
+        select(InventoryItem).where(
+            InventoryItem.expiry_date.isnot(None),
+            InventoryItem.expiry_date <= cutoff,
+            InventoryItem.status.in_(ACTIVE_STATUSES),
         )
-        .scalars()
-        .all()
-    )
+    ).all()
 
 
 def get_consumption_history(
@@ -404,18 +398,14 @@ def get_consumption_history(
     from lab_manager.models.base import utcnow
 
     cutoff = utcnow() - timedelta(days=days)
-    return list(
-        db.execute(
-            select(ConsumptionLog)
-            .where(
-                ConsumptionLog.product_id == product_id,
-                ConsumptionLog.created_at >= cutoff,
-            )
-            .order_by(ConsumptionLog.created_at.desc())
+    return db.exec(
+        select(ConsumptionLog)
+        .where(
+            ConsumptionLog.product_id == product_id,
+            ConsumptionLog.created_at >= cutoff,
         )
-        .scalars()
-        .all()
-    )
+        .order_by(ConsumptionLog.created_at.desc())
+    ).all()
 
 
 def get_item_history(
@@ -423,12 +413,8 @@ def get_item_history(
     db: Session,
 ) -> list[ConsumptionLog]:
     """All consumption log entries for a specific inventory item."""
-    return list(
-        db.execute(
-            select(ConsumptionLog)
-            .where(ConsumptionLog.inventory_id == inventory_id)
-            .order_by(ConsumptionLog.created_at.desc())
-        )
-        .scalars()
-        .all()
-    )
+    return db.exec(
+        select(ConsumptionLog)
+        .where(ConsumptionLog.inventory_id == inventory_id)
+        .order_by(ConsumptionLog.created_at.desc())
+    ).all()
