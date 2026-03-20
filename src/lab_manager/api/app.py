@@ -180,27 +180,6 @@ def create_app() -> FastAPI:
         expose_headers=["*"],
     )
 
-    # --- Preflight middleware (handles OPTIONS before router) ---
-    # Starlette's CORSMiddleware only adds headers to existing responses.
-    # This middleware intercepts OPTIONS requests and returns 200 with CORS headers.
-    #
-    @app.middleware("http")
-    async def cors_preflight_middleware(request: Request, call_next):
-        # Handle OPTIONS preflight requests for API routes
-        if request.method == "OPTIONS" and request.url.path.startswith("/api/"):
-            from starlette.responses import Response
-
-            response = Response(status_code=200)
-            response.headers["Access-Control-Allow-Origin"] = "*"
-            response.headers["Access-Control-Allow-Methods"] = (
-                "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-            )
-            response.headers["Access-Control-Allow-Headers"] = "*"
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Max-Age"] = "86400"
-            return response
-        return await call_next(request)
-
     # --- Rate limiting (slowapi) ---
     limiter = Limiter(key_func=get_remote_address)
     app.state.limiter = limiter

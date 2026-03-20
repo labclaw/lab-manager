@@ -32,7 +32,7 @@ class TestAuthAllowlist:
         get_settings.cache_clear()
 
         # Create an in-memory SQLite engine with tables so endpoints
-        # that touch the DB (e.g. /api/setup/status) don't crash.
+        # that touch the DB (e.g. /api/v1/setup/status) don't crash.
         engine = create_engine(
             "sqlite://",
             poolclass=StaticPool,
@@ -73,13 +73,13 @@ class TestAuthAllowlist:
         assert resp.status_code != 401
 
     def test_setup_status_public(self):
-        """GET /api/setup/status returns 200 without auth."""
-        resp = self.client.get("/api/setup/status")
+        """GET /api/v1/setup/status returns 200 without auth."""
+        resp = self.client.get("/api/v1/setup/status")
         assert resp.status_code != 401
 
     def test_config_public(self):
-        """GET /api/config returns 200 without auth."""
-        resp = self.client.get("/api/config")
+        """GET /api/v1/config returns 200 without auth."""
+        resp = self.client.get("/api/v1/config")
         assert resp.status_code != 401
 
     def test_root_public(self):

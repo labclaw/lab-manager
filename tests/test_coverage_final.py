@@ -152,7 +152,7 @@ class TestAppSessionCookie:
 
             app = create_app()
             with TestClient(app) as client:
-                resp = client.get("/api/auth/me")
+                resp = client.get("/api/v1/auth/me")
                 assert resp.status_code == 401
         finally:
             os.environ["AUTH_ENABLED"] = "false"
@@ -273,7 +273,7 @@ class TestAppLoginEndpoint:
             app = create_app()
             with TestClient(app) as client:
                 resp = client.post(
-                    "/api/auth/login",
+                    "/api/v1/auth/login",
                     json={"email": "nobody@test.com", "password": "wrong"},
                 )
                 # 401 = wrong creds, 503 = db unavailable (both are valid test outcomes)
@@ -438,7 +438,7 @@ class TestAppAuthMeWithSession:
             ):
                 with TestClient(app) as client:
                     client.cookies.set("lab_session", session_data)
-                    resp = client.get("/api/auth/me")
+                    resp = client.get("/api/v1/auth/me")
                     assert resp.status_code == 200
                     data = resp.json()
                     assert data["user"]["name"] == "TestUser"
@@ -466,7 +466,7 @@ class TestAppAuthMeWithSession:
             app = create_app()
             with TestClient(app) as client:
                 client.cookies.set("lab_session", "totally-invalid-token")
-                resp = client.get("/api/auth/me")
+                resp = client.get("/api/v1/auth/me")
                 assert resp.status_code == 401
                 assert resp.json()["detail"] == "Invalid session"
         finally:

@@ -33,8 +33,8 @@ Feature: Deployment Readiness
       | path             |
       | /                |
       | /api/health      |
-      | /api/setup/status|
-      | /api/config      |
+      | /api/v1/setup/status|
+      | /api/v1/config   |
       | /favicon.svg     |
       | /icons.svg       |
       | /sw.js           |
@@ -81,7 +81,7 @@ Feature: Deployment Readiness
 
   Scenario: Fresh deployment returns needs_setup true
     Given no admin user exists
-    When I request "/api/setup/status" without authentication
+    When I request "/api/v1/setup/status" without authentication
     Then the response status should be 200
     And the response JSON "needs_setup" should be true
 
