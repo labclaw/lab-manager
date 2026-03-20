@@ -105,6 +105,7 @@ jobs:
     timeout-minutes: 25
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         python-version: ["3.12", "3.13"]
 
@@ -116,7 +117,7 @@ jobs:
           POSTGRES_PASSWORD: labmanager
           POSTGRES_DB: labmanager
         ports:
-          - 15433:5432
+          - 5432/tcp
         options: >-
           --health-cmd="pg_isready -U labmanager"
           --health-interval=10s
@@ -126,13 +127,13 @@ jobs:
       meilisearch:
         image: getmeili/meilisearch:v1.12
         ports:
-          - 17701:7700
+          - 7700/tcp
         env:
           MEILI_ENV: development
 
     env:
-      DATABASE_URL: postgresql+psycopg://labmanager:labmanager@localhost:15433/labmanager
-      MEILISEARCH_URL: http://localhost:17701
+      DATABASE_URL: postgresql+psycopg://labmanager:labmanager@localhost:${{ job.services.postgres.ports[5432] }}/labmanager
+      MEILISEARCH_URL: http://localhost:${{ job.services.meilisearch.ports[7700] }}
       AUTH_ENABLED: "false"
 
     steps:
