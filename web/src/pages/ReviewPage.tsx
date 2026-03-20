@@ -79,7 +79,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
 
   // Mutations
   const approveMutation = useMutation({
-    mutationFn: (id: number) => docApi.approve(id),
+    mutationFn: (id: number) => docApi.review(id, { action: 'approve', reviewed_by: 'admin' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reviewQueue'] })
       setSelectedId(null)
@@ -89,7 +89,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
 
   const rejectMutation = useMutation({
     mutationFn: ({ id, reason }: { id: number; reason: string }) =>
-      docApi.reject(id, reason),
+      docApi.review(id, { action: 'reject', reviewed_by: 'admin', review_notes: reason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reviewQueue'] })
       setSelectedId(null)
