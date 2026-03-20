@@ -10,6 +10,11 @@ from lab_manager.services.search import (
     _configure_index,
     _make_doc,
     get_search_client,
+    index_inventory_record,
+    index_order_item_record,
+    index_order_record,
+    index_product_record,
+    index_vendor_record,
     search,
     search_all,
     suggest,
@@ -231,3 +236,118 @@ class TestSearchFunctions:
         mock_client.index.return_value.search.side_effect = Exception("fail")
         result = suggest("test", limit=5)
         assert result == []
+
+
+class TestIndexRecordFunctions:
+    """Tests for individual record indexing functions."""
+
+    @patch("lab_manager.services.search.get_search_client")
+    def test_index_vendor_record_full(self, mock_get_client):
+        from lab_manager.models.vendor import Vendor
+
+        v = Vendor(
+            id=1,
+            name="Test",
+            aliases=["a1", "a2"],
+            website="https://t.com",
+            email="a@b.com",
+        )
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        index_vendor_record(v)
+        mock_client.index.assert_called_with("vendors")
+
+    @patch("lab_manager.services.search.get_search_client")
+    def test_index_vendor_record_minimal(self, mock_get_client):
+        from lab_manager.models.vendor import Vendor
+
+        v = Vendor(id=2, name="Min")
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        index_vendor_record(v)
+        mock_client.index.assert_called_with("vendors")
+
+    @patch("lab_manager.services.search.get_search_client")
+    def test_index_vendor_record_aliases_string(self, mock_get_client):
+        from lab_manager.models.vendor import Vendor
+
+        v = Vendor(id=3, name="V", aliases="single-alias")
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        index_vendor_record(v)
+        mock_client.index.assert_called_with("vendors")
+
+    @patch("lab_manager.services.search.get_search_client")
+    def test_index_order_record(self, mock_get_client):
+        from datetime import date
+
+        from lab_manager.models.order import Order
+
+        o = Order(
+            id=1,
+            po_number="PO123",
+            order_date=date(2026, 1, 1),
+            status="pending",
+            vendor_id=1,
+        )
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        index_order_record(o)
+        mock_client.index.assert_called_with("orders")
+
+    @patch("lab_manager.services.search.get_search_client")
+    def test_index_order_item_record(self, mock_get_client):
+        from lab_manager.models.order import OrderItem
+
+        item = OrderItem(
+            id=1,
+            catalog_number="CAT1",
+            description="Test item",
+            quantity=10,
+            unit="EA",
+            order_id=1,
+        )
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        index_order_item_record(item)
+        mock_client.index.assert_called_with("order_items")
+
+    @patch("lab_manager.services.search.get_search_client")
+    def test_index_product_record(self, mock_get_client):
+        from lab_manager.models.product import Product
+
+        p = Product(id=1, catalog_number="CAT1", name="Test Product", vendor_id=1)
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        index_product_record(p)
+        mock_client.index.assert_called_with("products")
+
+    @patch("lab_manager.services.search.get_search_client")
+    def test_index_inventory_record_full(self, mock_get_client):
+        from datetime import date
+
+        from lab_manager.models.inventory import InventoryItem
+
+        item = InventoryItem(
+            id=1,
+            lot_number="LOT1",
+            quantity_on_hand=10.5,
+            unit="EA",
+            expiry_date=date(2027, 1, 1),
+            status="available",
+            notes="test notes",
+        )
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        index_inventory_record(item)
+        mock_client.index.assert_called_with("inventory")
+
+    @patch("lab_manager.services.search.get_search_client")
+    def test_index_inventory_record_minimal(self, mock_get_client):
+        from lab_manager.models.inventory import InventoryItem
+
+        item = InventoryItem(id=2, quantity_on_hand=None)
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        index_inventory_record(item)
+        mock_client.index.assert_called_with("inventory")
