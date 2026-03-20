@@ -7,8 +7,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy.orm import selectinload  # noqa: TC002, TC003
-from sqlmodel import Session
+from sqlalchemy.orm import selectinload
+from sqlmodel import Session  # isort: split
 
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
