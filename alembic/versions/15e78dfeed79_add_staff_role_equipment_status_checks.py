@@ -22,6 +22,8 @@ VALID_STAFF_ROLES = (
     "lab_manager",
     "technician",
     "viewer",
+    "member",
+    "PI",
 )
 
 VALID_EQUIPMENT_STATUSES = (
