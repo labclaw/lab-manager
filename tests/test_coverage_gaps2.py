@@ -445,13 +445,13 @@ class TestAppEndpoints:
         assert resp.status_code in (200, 503)
 
     def test_auth_me_no_auth(self, client):
-        resp = client.get("/api/auth/me")
+        resp = client.get("/api/v1/auth/me")
         assert resp.status_code == 200
         data = resp.json()
         assert data["user"]["name"] == "Lab User"
 
     def test_logout(self, client):
-        resp = client.post("/api/auth/logout")
+        resp = client.post("/api/v1/auth/logout")
         assert resp.status_code == 200
 
     def test_root_returns_html(self, client):

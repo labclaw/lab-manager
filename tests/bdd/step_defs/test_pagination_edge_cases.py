@@ -17,10 +17,10 @@ def ctx():
 @given("the system is set up")
 def system_setup(api):
     """Ensure system is set up."""
-    r = api.get("/api/setup/status")
+    r = api.get("/api/v1/setup/status")
     if r.status_code == 200 and r.json().get("needs_setup"):
         api.post(
-            "/api/setup/complete",
+            "/api/v1/setup/complete",
             json={
                 "admin_name": "Test Admin",
                 "admin_email": "admin@test.com",
@@ -33,7 +33,7 @@ def system_setup(api):
 def logged_in(api):
     """Log in as admin user."""
     api.post(
-        "/api/auth/login",
+        "/api/v1/auth/login",
         json={"email": "admin@test.com", "password": "TestPassword123!"},
     )
 

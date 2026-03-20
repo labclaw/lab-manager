@@ -126,8 +126,8 @@ class TestE2EDeployment:
     # ------------------------------------------------------------------
 
     def test_setup_status(self, e2e_client):
-        """GET /api/setup/status returns needs_setup boolean."""
-        resp = e2e_client.get("/api/setup/status")
+        """GET /api/v1/setup/status returns needs_setup boolean."""
+        resp = e2e_client.get("/api/v1/setup/status")
         assert resp.status_code == 200
         data = resp.json()
         assert "needs_setup" in data
@@ -139,7 +139,7 @@ class TestE2EDeployment:
 
     def test_config(self, e2e_client):
         """GET /api/config returns lab_name."""
-        resp = e2e_client.get("/api/config")
+        resp = e2e_client.get("/api/v1/config")
         assert resp.status_code == 200
         data = resp.json()
         assert "lab_name" in data
@@ -162,13 +162,13 @@ class TestE2EDeployment:
     def test_public_endpoints_no_auth(self, e2e_client):
         """All public paths return non-401 status codes.
 
-        Note: /api/auth/me is allowlisted from middleware auth but the
+        Note: /api/v1/auth/me is allowlisted from middleware auth but the
         endpoint itself returns 401 when no session exists, so we exclude it.
         """
         public_paths = [
             "/api/health",
-            "/api/setup/status",
-            "/api/config",
+            "/api/v1/setup/status",
+            "/api/v1/config",
             "/",
         ]
         for path in public_paths:
@@ -202,15 +202,15 @@ class TestE2EDeployment:
     # ------------------------------------------------------------------
 
     def test_complete_setup(self, e2e_client):
-        """POST /api/setup/complete creates admin user (skip if already setup)."""
-        status_resp = e2e_client.get("/api/setup/status")
+        """POST /api/v1/setup/complete creates admin user (skip if already setup)."""
+        status_resp = e2e_client.get("/api/v1/setup/status")
         needs_setup = status_resp.json().get("needs_setup", False)
 
         if not needs_setup:
             pytest.skip("Setup already completed")
 
         resp = e2e_client.post(
-            "/api/setup/complete",
+            "/api/v1/setup/complete",
             json={
                 "admin_name": _ADMIN_NAME,
                 "admin_email": _ADMIN_EMAIL,
@@ -226,9 +226,9 @@ class TestE2EDeployment:
     # ------------------------------------------------------------------
 
     def test_login(self, e2e_client):
-        """POST /api/auth/login returns session cookie."""
+        """POST /api/v1/auth/login returns session cookie."""
         resp = e2e_client.post(
-            "/api/auth/login",
+            "/api/v1/auth/login",
             json={"email": _ADMIN_EMAIL, "password": _ADMIN_PASSWORD},
         )
         assert resp.status_code == 200
@@ -241,8 +241,8 @@ class TestE2EDeployment:
     # ------------------------------------------------------------------
 
     def test_auth_me(self, e2e_client):
-        """GET /api/auth/me returns user info with session."""
-        resp = e2e_client.get("/api/auth/me")
+        """GET /api/v1/auth/me returns user info with session."""
+        resp = e2e_client.get("/api/v1/auth/me")
         assert resp.status_code == 200
         data = resp.json()
         assert "user" in data
@@ -405,8 +405,8 @@ class TestE2EDeployment:
     # ------------------------------------------------------------------
 
     def test_logout(self, e2e_client):
-        """POST /api/auth/logout clears session."""
-        resp = e2e_client.post("/api/auth/logout")
+        """POST /api/v1/auth/logout clears session."""
+        resp = e2e_client.post("/api/v1/auth/logout")
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "ok"
