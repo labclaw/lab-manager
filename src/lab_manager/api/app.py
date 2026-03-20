@@ -274,7 +274,12 @@ def create_app() -> FastAPI:
 
         # VLM/LLM: config-only check — Gemini or OpenAI key suffices
         settings = get_settings()
-        has_llm_key = bool(settings.extraction_api_key or settings.openai_api_key)
+        has_llm_key = bool(
+            settings.extraction_api_key
+            or settings.openai_api_key
+            or settings.rag_api_key
+            or settings.nvidia_build_api_key
+        )
         checks["llm"] = "ok" if has_llm_key else "not configured"
 
         # Disk space: warn if uploads partition has less than 500MB free

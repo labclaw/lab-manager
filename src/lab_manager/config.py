@@ -52,6 +52,9 @@ class Settings(BaseSettings):
 
     # RAG
     rag_model: str = "gemini-2.5-flash"
+    rag_api_key: str = ""
+    rag_base_url: str = ""
+    nvidia_build_api_key: str = ""
 
     # Logging
     log_format: str = "console"  # "console" or "json"

@@ -555,6 +555,24 @@ class TestRagExecuteSql:
                     _get_client()
         _get_client.cache_clear()
 
+    def test_get_client_nvidia_build_key(self):
+        from lab_manager.services.rag import _get_client
+
+        _get_client.cache_clear()
+        with patch("lab_manager.services.rag.get_settings") as mock_settings:
+            mock_settings.return_value.extraction_api_key = ""
+            mock_settings.return_value.rag_api_key = ""
+            mock_settings.return_value.rag_base_url = ""
+            mock_settings.return_value.nvidia_build_api_key = "nv-key"
+            mock_settings.return_value.openai_api_key = ""
+            with patch("openai.OpenAI") as mock_openai:
+                _get_client()
+                mock_openai.assert_called_once_with(
+                    base_url="https://integrate.api.nvidia.com/v1",
+                    api_key="nv-key",
+                )
+        _get_client.cache_clear()
+
     @patch("lab_manager.database.get_readonly_engine")
     @patch("lab_manager.database.get_engine")
     def test_execute_sql_dedicated_readonly(self, mock_engine, mock_ro_engine):
