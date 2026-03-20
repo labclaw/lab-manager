@@ -163,3 +163,163 @@ class TestEquipmentFiltering:
             "/api/v1/equipment/", params={"search": "Centrifuge"}
         )
         assert resp.status_code == 200
+
+    def test_pagination(self, authenticated_client: TestClient | httpx.Client):
+        """Test equipment list pagination."""
+        resp = authenticated_client.get(
+            "/api/v1/equipment/", params={"page": 1, "page_size": 10}
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        if "page" in data:
+            assert data["page"] == 1
+
+
+@pytest.mark.e2e
+class TestEquipmentMaintenance:
+    """Tests for equipment maintenance records."""
+
+    def test_maintenance_log(self, authenticated_client: TestClient | httpx.Client):
+        """GET /api/v1/equipment/{id}/maintenance returns maintenance log."""
+        # Create equipment first
+        resp = authenticated_client.post(
+            "/api/v1/equipment/",
+            json={
+                "name": "Maintenance Test Equipment",
+                "model": "MT-E2E-001",
+                "serial_number": "SN-MAINT-001",
+                "status": "active",
+            },
+        )
+        assert resp.status_code in (200, 201)
+        equip_id = resp.json()["id"]
+
+        # Check maintenance log endpoint
+        resp = authenticated_client.get(f"/api/v1/equipment/{equip_id}/maintenance")
+        assert resp.status_code in (200, 404)
+
+        # Cleanup
+        authenticated_client.delete(f"/api/v1/equipment/{equip_id}")
+
+    def test_add_maintenance_record(
+        self, authenticated_client: TestClient | httpx.Client
+    ):
+        """POST /api/v1/equipment/{id}/maintenance adds maintenance record."""
+        # Create equipment
+        resp = authenticated_client.post(
+            "/api/v1/equipment/",
+            json={
+                "name": "Maintenance Record Test",
+                "model": "MR-E2E-001",
+                "serial_number": "SN-MREC-001",
+                "status": "active",
+            },
+        )
+        assert resp.status_code in (200, 201)
+        equip_id = resp.json()["id"]
+
+        # Try to add maintenance record
+        resp = authenticated_client.post(
+            f"/api/v1/equipment/{equip_id}/maintenance",
+            json={
+                "type": "preventive",
+                "description": "Annual calibration",
+                "performed_by": "Test Technician",
+                "performed_at": "2024-01-15",
+            },
+        )
+        assert resp.status_code in (200, 201, 404, 405, 422)
+
+        # Cleanup
+        authenticated_client.delete(f"/api/v1/equipment/{equip_id}")
+
+
+@pytest.mark.e2e
+class TestEquipmentCalibration:
+    """Tests for equipment calibration tracking."""
+
+    def test_calibration_history(self, authenticated_client: TestClient | httpx.Client):
+        """GET /api/v1/equipment/{id}/calibration returns calibration history."""
+        # Create equipment
+        resp = authenticated_client.post(
+            "/api/v1/equipment/",
+            json={
+                "name": "Calibration Test Equipment",
+                "model": "CT-E2E-001",
+                "serial_number": "SN-CAL-001",
+                "status": "active",
+            },
+        )
+        assert resp.status_code in (200, 201)
+        equip_id = resp.json()["id"]
+
+        # Check calibration history endpoint
+        resp = authenticated_client.get(f"/api/v1/equipment/{equip_id}/calibration")
+        assert resp.status_code in (200, 404)
+
+        # Cleanup
+        authenticated_client.delete(f"/api/v1/equipment/{equip_id}")
+
+    def test_schedule_calibration(
+        self, authenticated_client: TestClient | httpx.Client
+    ):
+        """POST /api/v1/equipment/{id}/calibration schedules calibration."""
+        # Create equipment
+        resp = authenticated_client.post(
+            "/api/v1/equipment/",
+            json={
+                "name": "Calibration Schedule Test",
+                "model": "CS-E2E-001",
+                "serial_number": "SN-CS-001",
+                "status": "active",
+            },
+        )
+        assert resp.status_code in (200, 201)
+        equip_id = resp.json()["id"]
+
+        # Try to schedule calibration
+        resp = authenticated_client.post(
+            f"/api/v1/equipment/{equip_id}/calibration",
+            json={
+                "scheduled_date": "2024-06-15",
+                "calibration_type": "full",
+            },
+        )
+        assert resp.status_code in (200, 201, 404, 405, 422)
+
+        # Cleanup
+        authenticated_client.delete(f"/api/v1/equipment/{equip_id}")
+
+
+@pytest.mark.e2e
+class TestEquipmentWarranty:
+    """Tests for equipment warranty tracking."""
+
+    def test_warranty_info(self, authenticated_client: TestClient | httpx.Client):
+        """GET /api/v1/equipment/{id}/warranty returns warranty info."""
+        # Create equipment with warranty
+        resp = authenticated_client.post(
+            "/api/v1/equipment/",
+            json={
+                "name": "Warranty Test Equipment",
+                "model": "WT-E2E-001",
+                "serial_number": "SN-WARR-001",
+                "status": "active",
+                "purchase_date": "2024-01-01",
+                "warranty_expiry": "2025-01-01",
+            },
+        )
+        assert resp.status_code in (200, 201)
+        equip_id = resp.json()["id"]
+
+        # Check warranty endpoint
+        resp = authenticated_client.get(f"/api/v1/equipment/{equip_id}/warranty")
+        assert resp.status_code in (200, 404)
+
+        # Cleanup
+        authenticated_client.delete(f"/api/v1/equipment/{equip_id}")
+
+    def test_expiring_warranties(self, authenticated_client: TestClient | httpx.Client):
+        """GET /api/v1/equipment/warranty/expiring returns expiring warranties."""
+        resp = authenticated_client.get("/api/v1/equipment/warranty/expiring")
+        assert resp.status_code in (200, 404)

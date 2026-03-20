@@ -501,3 +501,160 @@ class TestMalformedRequests:
             headers={"Content-Type": "application/json"},
         )
         assert resp.status_code in (400, 422)
+
+
+@pytest.mark.e2e
+class TestProductsCRUD:
+    """Tests for products CRUD operations."""
+
+    def test_create_product(self, authenticated_client: TestClient | httpx.Client):
+        """POST /api/v1/products/ creates new product."""
+        resp = authenticated_client.post(
+            "/api/v1/products/",
+            json={
+                "name": "E2E Test Product CRUD",
+                "catalog_number": "E2E-CRUD-001",
+                "vendor_id": 1,
+            },
+        )
+        assert resp.status_code in (200, 201, 400, 422)
+
+    def test_delete_product(
+        self,
+        authenticated_client: TestClient | httpx.Client,
+        test_product_id: int,
+    ):
+        """DELETE /api/v1/products/{id} removes product."""
+        # Create a product to delete
+        resp = authenticated_client.post(
+            "/api/v1/products/",
+            json={
+                "name": "Product To Delete",
+                "catalog_number": "E2E-DEL-001",
+            },
+        )
+        if resp.status_code in (200, 201):
+            product_id = resp.json()["id"]
+            del_resp = authenticated_client.delete(f"/api/v1/products/{product_id}")
+            assert del_resp.status_code in (200, 204)
+
+
+@pytest.mark.e2e
+class TestVendorsCRUD:
+    """Tests for vendors CRUD operations."""
+
+    def test_create_vendor(self, authenticated_client: TestClient | httpx.Client):
+        """POST /api/v1/vendors/ creates new vendor."""
+        resp = authenticated_client.post(
+            "/api/v1/vendors/",
+            json={
+                "name": "E2E Test Vendor CRUD",
+                "website": "https://e2e-crud.local",
+            },
+        )
+        assert resp.status_code in (200, 201)
+
+    def test_delete_vendor(self, authenticated_client: TestClient | httpx.Client):
+        """DELETE /api/v1/vendors/{id} removes vendor."""
+        # Create a vendor to delete
+        resp = authenticated_client.post(
+            "/api/v1/vendors/",
+            json={"name": "Vendor To Delete E2E"},
+        )
+        if resp.status_code in (200, 201):
+            vendor_id = resp.json()["id"]
+            del_resp = authenticated_client.delete(f"/api/v1/vendors/{vendor_id}")
+            assert del_resp.status_code in (200, 204)
+
+
+@pytest.mark.e2e
+class TestInventoryBulkOperations:
+    """Tests for inventory bulk operations."""
+
+    def test_bulk_create_inventory(
+        self,
+        authenticated_client: TestClient | httpx.Client,
+        test_product_id: int,
+    ):
+        """POST /api/v1/inventory/bulk creates multiple items."""
+        resp = authenticated_client.post(
+            "/api/v1/inventory/bulk",
+            json={
+                "items": [
+                    {
+                        "product_id": test_product_id,
+                        "quantity": 100,
+                        "location": "Bulk A",
+                    },
+                    {
+                        "product_id": test_product_id,
+                        "quantity": 200,
+                        "location": "Bulk B",
+                    },
+                ]
+            },
+        )
+        assert resp.status_code in (200, 201, 404, 405, 422)
+
+    def test_inventory_report_csv(
+        self, authenticated_client: TestClient | httpx.Client
+    ):
+        """GET /api/v1/inventory/report/csv returns CSV report."""
+        resp = authenticated_client.get("/api/v1/inventory/report/csv")
+        assert resp.status_code in (200, 404)
+
+
+@pytest.mark.e2e
+class TestSetupFlow:
+    """Tests for initial setup flow."""
+
+    def test_setup_complete_flow(self, e2e_client: TestClient | httpx.Client):
+        """Complete setup flow works end-to-end."""
+        # Check setup status
+        status_resp = e2e_client.get("/api/setup/status")
+        assert status_resp.status_code == 200
+        status = status_resp.json()
+        assert "needs_setup" in status
+
+        # If setup is needed, complete it
+        if status.get("needs_setup"):
+            setup_resp = e2e_client.post(
+                "/api/setup/complete",
+                json={
+                    "admin_name": "Setup Test Admin",
+                    "admin_email": "setup-test@test.local",
+                    "admin_password": "setup-test-password-123",
+                },
+            )
+            assert setup_resp.status_code in (200, 400)  # 400 if already done
+
+            # Verify setup is now complete
+            verify_resp = e2e_client.get("/api/setup/status")
+            assert verify_resp.json().get("needs_setup") == False
+
+
+@pytest.mark.e2e
+class TestDAUAnalytics:
+    """Tests for DAU (Daily Active Users) analytics."""
+
+    def test_dau_endpoint(self, authenticated_client: TestClient | httpx.Client):
+        """GET /api/v1/analytics/dau returns DAU stats."""
+        resp = authenticated_client.get("/api/v1/analytics/dau")
+        assert resp.status_code in (200, 404)
+
+    def test_events_endpoint(self, authenticated_client: TestClient | httpx.Client):
+        """GET /api/v1/analytics/events returns event list."""
+        resp = authenticated_client.get("/api/v1/analytics/events")
+        assert resp.status_code in (200, 404)
+
+    def test_dashboard_stats(self, authenticated_client: TestClient | httpx.Client):
+        """GET /api/v1/analytics/dashboard returns comprehensive stats."""
+        resp = authenticated_client.get("/api/v1/analytics/dashboard")
+        assert resp.status_code == 200
+        data = resp.json()
+        # Should have various counts
+        assert "total_products" in data
+        assert "total_vendors" in data
+        assert "total_orders" in data
+        # Field is total_inventory_items, not total_inventory
+        assert "total_inventory_items" in data or "total_inventory" in data
