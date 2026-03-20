@@ -40,7 +40,7 @@ describe('LoginPage', () => {
       let capturedBody: Record<string, string> | null = null
 
       server.use(
-        http.post('/api/auth/login', async ({ request }) => {
+        http.post('/api/v1/auth/login', async ({ request }) => {
           capturedBody = (await request.json()) as Record<string, string>
           return HttpResponse.json({ status: 'ok', user: { id: 1, name: 'Test' } })
         }),
@@ -62,7 +62,7 @@ describe('LoginPage', () => {
       const user = userEvent.setup()
 
       server.use(
-        http.post('/api/auth/login', () =>
+        http.post('/api/v1/auth/login', () =>
           HttpResponse.json({ detail: 'Invalid credentials' }, { status: 401 }),
         ),
       )
@@ -89,7 +89,7 @@ describe('LoginPage', () => {
       })
 
       server.use(
-        http.post('/api/auth/login', async () => {
+        http.post('/api/v1/auth/login', async () => {
           await loginPromise
           return HttpResponse.json({ status: 'ok', user: { id: 1, name: 'Test' } })
         }),

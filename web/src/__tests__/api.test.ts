@@ -90,14 +90,14 @@ describe('api client', () => {
   describe('error handling', () => {
     it('401 throws "Unauthorized"', async () => {
       server.use(
-        http.get('/api/auth/me', () => new HttpResponse(null, { status: 401 })),
+        http.get('/api/v1/auth/me', () => new HttpResponse(null, { status: 401 })),
       )
       await expect(auth.me()).rejects.toThrow('Unauthorized')
     })
 
     it('500 throws error message from response', async () => {
       server.use(
-        http.get('/api/auth/me', () =>
+        http.get('/api/v1/auth/me', () =>
           HttpResponse.json({ detail: 'Internal server error' }, { status: 500 }),
         ),
       )
@@ -106,7 +106,7 @@ describe('api client', () => {
 
     it('500 falls back to status text when no detail', async () => {
       server.use(
-        http.get('/api/auth/me', () =>
+        http.get('/api/v1/auth/me', () =>
           new HttpResponse('not json', { status: 500, statusText: 'Internal Server Error' }),
         ),
       )
