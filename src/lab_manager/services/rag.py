@@ -5,6 +5,7 @@ from __future__ import annotations
 import functools
 import logging
 import re
+from typing import Any
 
 from google import genai
 from sqlalchemy import text
@@ -14,6 +15,19 @@ from lab_manager.config import get_settings
 from lab_manager.services.serialization import serialize_value as _serialize_value
 
 logger = logging.getLogger(__name__)
+
+
+def _has_value(value: Any) -> bool:
+    """Return True only for non-empty strings."""
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _first_value(*values: Any) -> str:
+    """Return the first non-empty string value."""
+    for value in values:
+        if _has_value(value):
+            return value.strip()
+    return ""
 
 
 def _get_model() -> str:
@@ -286,20 +300,90 @@ _TABLE_REF_PATTERN = re.compile(
 )
 
 
-@functools.lru_cache(maxsize=1)
-def _get_client() -> genai.Client:
-    """Create (and cache) a Gemini API client."""
+def _use_openai_compatible_rag() -> bool:
+    """Whether RAG should use an OpenAI-compatible backend instead of Google GenAI."""
     settings = get_settings()
-    api_key = settings.extraction_api_key
-    if not api_key:
-        import os
+    return any(
+        _has_value(value)
+        for value in (
+            settings.rag_base_url,
+            settings.rag_api_key,
+            settings.nvidia_build_api_key,
+        )
+    )
 
-        api_key = os.environ.get("GEMINI_API_KEY", "")
+
+@functools.lru_cache(maxsize=1)
+def _get_client() -> Any:
+    """Create (and cache) a RAG client."""
+    settings = get_settings()
+    import os
+
+    if _use_openai_compatible_rag():
+        from openai import OpenAI
+
+        api_key = _first_value(
+            settings.rag_api_key
+            , settings.nvidia_build_api_key
+            , settings.openai_api_key
+            , os.environ.get("RAG_API_KEY", "")
+            , os.environ.get("NVIDIA_BUILD_API_KEY", "")
+            , os.environ.get("OPENAI_API_KEY", "")
+        )
+        if not api_key:
+            raise RuntimeError(
+                "No RAG API key found. Set RAG_API_KEY, NVIDIA_BUILD_API_KEY, or OPENAI_API_KEY."
+            )
+        base_url = _first_value(
+            settings.rag_base_url,
+            os.environ.get("RAG_BASE_URL", ""),
+            "https://integrate.api.nvidia.com/v1",
+        )
+        return OpenAI(base_url=base_url, api_key=api_key)
+
+    api_key = settings.extraction_api_key or os.environ.get("GEMINI_API_KEY", "")
     if not api_key:
         raise RuntimeError(
             "No Gemini API key found. Set GEMINI_API_KEY or EXTRACTION_API_KEY."
         )
     return genai.Client(api_key=api_key)  # pragma: no cover — requires real API key
+
+
+def _response_text(response: Any) -> str:
+    """Normalize text output across Google GenAI and OpenAI-compatible clients."""
+    text = getattr(response, "text", None)
+    if isinstance(text, str) and text.strip():
+        return text.strip()
+
+    choice = response.choices[0]
+    content = choice.message.content
+    if isinstance(content, str):
+        return content.strip()
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, dict) and item.get("type") == "text":
+                parts.append(item.get("text", ""))
+            elif hasattr(item, "text"):
+                parts.append(item.text)
+        return "\n".join(part for part in parts if part).strip()
+    return str(content).strip()
+
+
+def _generate_completion(client: Any, prompt: str) -> str:
+    """Generate text with the configured RAG backend."""
+    if _use_openai_compatible_rag():
+        response = client.chat.completions.create(
+            model=_get_model(),
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return _response_text(response)
+
+    response = client.models.generate_content(
+        model=_get_model(),
+        contents=prompt,
+    )
+    return _response_text(response)
 
 
 def _validate_sql(sql: str) -> str:
@@ -341,14 +425,10 @@ def _serialize_rows(rows: list[dict]) -> list[dict]:
     return [{k: _serialize_value(v) for k, v in row.items()} for row in rows]
 
 
-def _generate_sql(client: genai.Client, question: str) -> str:
+def _generate_sql(client: Any, question: str) -> str:
     """Ask Gemini to translate a natural language question to SQL."""
     prompt = NL_TO_SQL_PROMPT.format(schema=DB_SCHEMA, question=question)
-    response = client.models.generate_content(
-        model=_get_model(),
-        contents=prompt,
-    )
-    raw = response.text.strip()
+    raw = _generate_completion(client, prompt)
 
     # Gemini sometimes wraps in ```sql ... ```
     if raw.startswith("```"):
@@ -412,7 +492,7 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
 
 
 def _format_answer(
-    client: genai.Client, question: str, sql: str, results: list[dict]
+    client: Any, question: str, sql: str, results: list[dict]
 ) -> str:
     """Ask Gemini to format query results into a human-readable answer."""
     # Truncate results for the prompt if too many rows
@@ -422,11 +502,7 @@ def _format_answer(
         sql=sql,
         results=display_results,
     )
-    response = client.models.generate_content(
-        model=_get_model(),
-        contents=prompt,
-    )
-    return response.text.strip()
+    return _generate_completion(client, prompt)
 
 
 def _fallback_search(question: str) -> dict:

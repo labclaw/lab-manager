@@ -210,6 +210,34 @@ class TestRagInternals:
         result = _format_answer(mock_client, "How many?", "SELECT 1", [{"c": 5}])
         assert "5 vendors" in result
 
+    @patch("lab_manager.services.rag._use_openai_compatible_rag", return_value=True)
+    def test_generate_sql_openai_compatible_client(self, _mock_mode):
+        from lab_manager.services.rag import _generate_sql
+
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.choices = [
+            MagicMock(message=MagicMock(content="SELECT * FROM vendors"))
+        ]
+        mock_client.chat.completions.create.return_value = mock_response
+
+        sql = _generate_sql(mock_client, "List vendors")
+        assert sql == "SELECT * FROM vendors"
+
+    @patch("lab_manager.services.rag._use_openai_compatible_rag", return_value=True)
+    def test_format_answer_openai_compatible_client(self, _mock_mode):
+        from lab_manager.services.rag import _format_answer
+
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.choices = [
+            MagicMock(message=MagicMock(content="There are 2 matching orders."))
+        ]
+        mock_client.chat.completions.create.return_value = mock_response
+
+        result = _format_answer(mock_client, "How many?", "SELECT 1", [{"c": 2}])
+        assert "2 matching orders" in result
+
     def test_get_model(self):
         from lab_manager.services.rag import _get_model
 
