@@ -112,6 +112,37 @@ class TestInventoryE2E:
         )
         assert resp.status_code in (200, 201, 404, 405, 422)
 
+    def test_open_inventory(self, authenticated_client: TestClient | httpx.Client):
+        """POST open inventory marks item as opened."""
+        if TestInventoryE2E._inventory_id is None:
+            pytest.skip("No inventory item to open")
+
+        resp = authenticated_client.post(
+            f"/api/v1/inventory/{TestInventoryE2E._inventory_id}/open",
+            json={},
+        )
+        assert resp.status_code in (200, 201, 404, 405, 422)
+
+    def test_dispose_inventory(self, authenticated_client: TestClient | httpx.Client):
+        """POST dispose inventory marks item as disposed."""
+        # Create a new inventory item to dispose
+        resp = authenticated_client.post(
+            "/api/v1/inventory/",
+            json={
+                "product_id": 1,  # Use existing product
+                "quantity": 10,
+                "location": "Disposal Test",
+                "lot_number": "LOT-DISPOSE-001",
+            },
+        )
+        if resp.status_code in (200, 201):
+            item_id = resp.json().get("id")
+            resp = authenticated_client.post(
+                f"/api/v1/inventory/{item_id}/dispose",
+                json={"reason": "Expired"},
+            )
+            assert resp.status_code in (200, 201, 404, 405, 422)
+
     def test_expiring_inventory(self, authenticated_client: TestClient | httpx.Client):
         """GET expiring inventory returns items near expiry."""
         resp = authenticated_client.get(

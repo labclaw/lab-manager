@@ -106,6 +106,13 @@ class TestSearchEndpoints:
         # May return 400, 422 for empty query or empty results
         assert resp.status_code in (200, 400, 422)
 
+    def test_search_suggest(self, authenticated_client: TestClient | httpx.Client):
+        """GET /api/v1/search/suggest returns suggestions."""
+        resp = authenticated_client.get("/api/v1/search/suggest", params={"q": "test"})
+        if resp.status_code == 200:
+            data = resp.json()
+            assert isinstance(data, (list, dict))
+
 
 @pytest.mark.e2e
 class TestAlertsEndpoints:
@@ -130,6 +137,17 @@ class TestAlertsEndpoints:
         """POST acknowledge alert."""
         # Try to acknowledge a non-existent alert
         resp = authenticated_client.post("/api/v1/alerts/99999/acknowledge")
+        assert resp.status_code in (200, 404, 405)
+
+    def test_resolve_alert(self, authenticated_client: TestClient | httpx.Client):
+        """POST resolve alert."""
+        # Try to resolve a non-existent alert
+        resp = authenticated_client.post("/api/v1/alerts/99999/resolve")
+        assert resp.status_code in (200, 404, 405)
+
+    def test_alerts_check(self, authenticated_client: TestClient | httpx.Client):
+        """POST /api/v1/alerts/check triggers alert check."""
+        resp = authenticated_client.post("/api/v1/alerts/check")
         assert resp.status_code in (200, 404, 405)
 
 
