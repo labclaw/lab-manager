@@ -16,8 +16,32 @@ from fastapi.testclient import TestClient
 from lab_manager.config import get_settings
 
 
-def _make_local_client() -> TestClient:
-    """Create a TestClient with auth enabled, backed by SQLite."""
+_ENV_KEYS = (
+    "AUTH_ENABLED",
+    "ADMIN_SECRET_KEY",
+    "ADMIN_PASSWORD",
+    "API_KEY",
+    "SECURE_COOKIES",
+)
+
+
+@pytest.fixture(scope="module")
+def e2e_client():
+    """Module-scoped HTTP client.
+
+    Uses httpx against APP_BASE_URL if set, otherwise creates a local
+    TestClient with auth enabled + SQLite.
+    """
+    base_url = os.environ.get("APP_BASE_URL")
+    if base_url:
+        client = httpx.Client(base_url=base_url, timeout=30, follow_redirects=True)
+        yield client
+        client.close()
+        return
+
+    # Save originals for restoration.
+    orig_env = {k: os.environ.get(k) for k in _ENV_KEYS}
+
     os.environ["AUTH_ENABLED"] = "true"
     os.environ["ADMIN_SECRET_KEY"] = "e2e-test-secret-key-12345"
     os.environ["ADMIN_PASSWORD"] = "e2e-test-admin-password"
@@ -26,7 +50,7 @@ def _make_local_client() -> TestClient:
     get_settings.cache_clear()
 
     from sqlalchemy.pool import StaticPool
-    from sqlmodel import SQLModel, create_engine
+    from sqlmodel import Session, SQLModel, create_engine
 
     engine = create_engine(
         "sqlite://",
@@ -37,10 +61,10 @@ def _make_local_client() -> TestClient:
 
     SQLModel.metadata.create_all(engine)
 
-    # Point database singletons at the test engine so middleware's
-    # get_db_session() uses the same database as the dependency override.
     import lab_manager.database as db_module
 
+    original_engine = db_module._engine
+    original_factory = db_module._session_factory
     db_module._engine = engine
     db_module._session_factory = None
 
@@ -49,76 +73,25 @@ def _make_local_client() -> TestClient:
 
     app = create_app()
 
-    from sqlmodel import Session
-
     def override_get_db():
         with Session(engine) as session:
             yield session
             session.commit()
 
     app.dependency_overrides[get_db] = override_get_db
-    return TestClient(app)
 
-
-class _HTTPXAdapter:
-    """Thin adapter that gives httpx.Client a TestClient-compatible interface.
-
-    TestClient returns ``response.cookies`` as a ``Cookies`` object on each
-    response, and the client jar persists cookies automatically. httpx.Client
-    does the same, so the main difference is that TestClient paths are
-    relative while httpx needs full URLs.
-    """
-
-    def __init__(self, base_url: str) -> None:
-        self._client = httpx.Client(
-            base_url=base_url, timeout=30, follow_redirects=True
-        )
-
-    # Proxy attribute access to the underlying httpx.Client.
-    def get(self, path: str, **kwargs):
-        return self._client.get(path, **kwargs)
-
-    def post(self, path: str, **kwargs):
-        return self._client.post(path, **kwargs)
-
-    def put(self, path: str, **kwargs):
-        return self._client.put(path, **kwargs)
-
-    def patch(self, path: str, **kwargs):
-        return self._client.patch(path, **kwargs)
-
-    def delete(self, path: str, **kwargs):
-        return self._client.delete(path, **kwargs)
-
-    @property
-    def cookies(self):
-        return self._client.cookies
-
-    def close(self):
-        self._client.close()
-
-
-@pytest.fixture(scope="module")
-def e2e_client():
-    """Session-scoped HTTP client.
-
-    Uses httpx against APP_BASE_URL if set, otherwise creates a local
-    TestClient with auth enabled + SQLite.
-    """
-    base_url = os.environ.get("APP_BASE_URL")
-    if base_url:
-        client = _HTTPXAdapter(base_url)
-        yield client
-        client.close()
-    else:
-        client = _make_local_client()
-        with client:
+    try:
+        with TestClient(app) as client:
             yield client
-        # Restore env for other test modules.
-        os.environ["AUTH_ENABLED"] = "false"
-        os.environ.pop("ADMIN_SECRET_KEY", None)
-        os.environ.pop("ADMIN_PASSWORD", None)
-        os.environ.pop("API_KEY", None)
+    finally:
+        engine.dispose()
+        db_module._engine = original_engine
+        db_module._session_factory = original_factory
+        for k, v in orig_env.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
         get_settings.cache_clear()
 
 
@@ -132,12 +105,8 @@ _ADMIN_PASSWORD = "e2e-test-password-12345"
 class TestE2EDeployment:
     """End-to-end smoke tests exercising the full deployment lifecycle."""
 
-    # Shared state: session cookies are stored after login so subsequent
-    # authenticated requests can reuse them.
-    _cookies: ClassVar[dict] = {}
+    # Shared state: vendor_id is reused across product and order creation.
     _vendor_id: ClassVar[int | None] = None
-    _product_id: ClassVar[int | None] = None
-    _order_id: ClassVar[int | None] = None
 
     # ------------------------------------------------------------------
     # 1. Health
@@ -267,11 +236,6 @@ class TestE2EDeployment:
         assert data["status"] == "ok"
         assert "user" in data
 
-        # Persist the session cookie for subsequent tests.
-        session_val = resp.cookies.get("lab_session")
-        assert session_val, "Expected lab_session cookie to be set"
-        TestE2EDeployment._cookies["lab_session"] = session_val
-
     # ------------------------------------------------------------------
     # 9. Auth me
     # ------------------------------------------------------------------
@@ -336,7 +300,6 @@ class TestE2EDeployment:
         data = resp.json()
         assert "id" in data
         assert data["catalog_number"] == "E2E-001"
-        TestE2EDeployment._product_id = data["id"]
 
     # ------------------------------------------------------------------
     # 13. Create order
@@ -357,7 +320,6 @@ class TestE2EDeployment:
         # Response may be the order directly or wrapped with _duplicate_warning.
         order = data.get("order", data)
         assert "id" in order
-        TestE2EDeployment._order_id = order["id"]
 
     # ------------------------------------------------------------------
     # 14. List orders

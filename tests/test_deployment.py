@@ -224,9 +224,9 @@ class TestStaticFileServing:
             with (
                 patch("lab_manager.api.app.STATIC_DIR", Path(tmpdir)),
                 patch("lab_manager.api.app.Path", wraps=Path),
+                patch.dict(os.environ, {"AUTH_ENABLED": "false"}),
             ):
                 # Need to recreate app with the patched static dir
-                os.environ["AUTH_ENABLED"] = "false"
                 get_settings.cache_clear()
 
                 from lab_manager.api.app import create_app
@@ -239,6 +239,8 @@ class TestStaticFileServing:
                     # May or may not pick up our temp dir depending on import order,
                     # but should not be 401
                     assert resp.status_code in (200, 404)
+
+            get_settings.cache_clear()
 
 
 # ---------------------------------------------------------------------------

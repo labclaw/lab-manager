@@ -423,21 +423,29 @@ def check_pg_status(ctx, status):
 
 
 @then(parsers.parse('tables should exist in the "{schema}" search path'))
-def tables_in_schema(db):
-    """Verify tables are queryable (works for both SQLite and PG)."""
+def tables_in_schema(db, schema):
+    """Verify tables are queryable (SQLite has no schemas; PG uses search_path)."""
     from sqlalchemy import text
 
-    # For SQLite, just verify we can query a known table
     result = db.execute(text("SELECT 1"))
     assert result.scalar() == 1
 
 
 @then(parsers.parse('the "{table}" table should be queryable'))
-def table_queryable(db):
+def table_queryable(db, table):
     """Verify a specific table is queryable."""
     from sqlalchemy import text
 
-    # staff table should exist and be queryable
-    result = db.execute(text("SELECT count(*) FROM staff"))
+    allowed = {
+        "staff",
+        "vendor",
+        "product",
+        "order",
+        "inventory",
+        "document",
+        "location",
+    }
+    assert table in allowed, f"Table {table!r} not in allowed set"
+    result = db.execute(text(f"SELECT count(*) FROM {table}"))
     count = result.scalar()
     assert count is not None
