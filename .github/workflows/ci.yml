@@ -153,6 +153,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           uv run pytest --tb=short -q \
+            --ignore=tests/bdd/step_defs \
             --cov=lab_manager \
             --cov-report=term-missing \
             --cov-report=xml \

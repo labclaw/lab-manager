@@ -8,7 +8,7 @@ import shutil
 from pathlib import Path
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session)
+from sqlalchemy.orm import Session
 
 from lab_manager.config import get_settings
 from lab_manager.intake.extractor import extract_from_text
