@@ -1,12 +1,12 @@
 """Step definitions for product management feature."""
 
 import pytest
+from pytest_bdd import given, when, then, parsers
 from fastapi.testclient import TestClient
-from pytest_bdd import given, parsers, then, when
 
 from lab_manager.api.app import app
-from lab_manager.models.inventory import InventoryItem as Inventory
 from lab_manager.models.product import Product
+from lab_manager.models.inventory import InventoryItem as Inventory
 
 
 @pytest.fixture
@@ -824,3 +824,6 @@ def min_order_qty(response, qty):
 def lead_time(response, days):
     data = response.json()
     assert data.get("lead_days") == days
+
+
+# Import Product and Inventory models for steps that need them

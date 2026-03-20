@@ -1,5 +1,4 @@
 """BDD step definitions for form validation tests."""
-
 import pytest
 from pytest_bdd import given, when, then, scenarios, parsers
 
@@ -15,12 +14,10 @@ def ctx():
 
 # --- Given steps ---
 
-
 @given("a document with id 1 exists")
 def document_exists(db):
     """Create a test document."""
     from lab_manager.models.document import Document
-
     doc = Document(file_name="test.pdf", status="needs_review")
     db.add(doc)
     db.commit()
@@ -30,7 +27,6 @@ def document_exists(db):
 def inventory_item_exists(db):
     """Create a test inventory item."""
     from lab_manager.models.inventory import InventoryItem
-
     item = InventoryItem(quantity=100, status="available")
     db.add(item)
     db.commit()
@@ -40,7 +36,6 @@ def inventory_item_exists(db):
 def order_exists(db):
     """Create a test order."""
     from lab_manager.models.order import Order
-
     order = Order(status="pending")
     db.add(order)
     db.commit()
@@ -48,79 +43,89 @@ def order_exists(db):
 
 # --- When steps ---
 
-
-def _post_login(api, payload):
-    """Support both legacy and versioned login paths during transition."""
-    response = api.post("/api/v1/auth/login", json=payload)
-    if response.status_code != 404:
-        return response
-    return api.post("/api/auth/login", json=payload)
-
-
 @when("I submit login with empty email", target_fixture="response")
 def submit_login_empty_email(api):
     """Submit login without email."""
-    return _post_login(api, {"email": "", "password": "password123"})
+    return api.post(
+        "/api/v1/auth/login",
+        json={"email": "", "password": "password123"}
+    )
 
 
 @when("I submit login with empty password", target_fixture="response")
 def submit_login_empty_password(api):
     """Submit login without password."""
-    return _post_login(api, {"email": "test@test.com", "password": ""})
+    return api.post(
+        "/api/v1/auth/login",
+        json={"email": "test@test.com", "password": ""}
+    )
 
 
 @when('I submit login with email "invalid-email"', target_fixture="response")
 def submit_login_invalid_email(api):
     """Submit login with invalid email."""
-    return _post_login(api, {"email": "invalid-email", "password": "password123"})
+    return api.post(
+        "/api/v1/auth/login",
+        json={"email": "invalid-email", "password": "password123"}
+    )
 
 
 @when('I submit setup with password "short"', target_fixture="response")
 def submit_setup_short_password(api):
     """Submit setup with short password."""
     return api.post(
-        "/api/v1/setup/complete",
+        "/api/setup/complete",
         json={
             "admin_name": "Test",
             "admin_email": "test@test.com",
-            "admin_password": "short",
-        },
+            "admin_password": "short"
+        }
     )
 
 
 @when("I submit review without action", target_fixture="response")
 def submit_review_no_action(api):
     """Submit review without action."""
-    return api.post("/api/v1/documents/1/review", json={"reviewed_by": "admin"})
+    return api.post(
+        "/api/v1/documents/1/review",
+        json={"reviewed_by": "admin"}
+    )
 
 
 @when('I submit review with action "invalid"', target_fixture="response")
 def submit_review_invalid_action(api):
     """Submit review with invalid action."""
     return api.post(
-        "/api/v1/documents/1/review", json={"action": "invalid", "reviewed_by": "admin"}
+        "/api/v1/documents/1/review",
+        json={"action": "invalid", "reviewed_by": "admin"}
     )
 
 
 @when("I consume inventory without quantity", target_fixture="response")
 def consume_no_quantity(api):
     """Consume without quantity."""
-    return api.post("/api/v1/inventory/1/consume", json={})
+    return api.post(
+        "/api/v1/inventory/1/consume",
+        json={}
+    )
 
 
-@when(
-    parsers.parse("I consume inventory with quantity {qty:d}"),
-    target_fixture="response",
-)
+@when(parsers.parse("I consume inventory with quantity {qty:d}"), target_fixture="response")
 def consume_quantity(api, qty):
     """Consume with specific quantity."""
-    return api.post("/api/v1/inventory/1/consume", json={"quantity": qty})
+    return api.post(
+        "/api/v1/inventory/1/consume",
+        json={"quantity": qty}
+    )
 
 
 @when("I receive order without items", target_fixture="response")
 def receive_order_no_items(api):
     """Receive order without items."""
-    return api.post("/api/v1/orders/1/receive", json={})
+    return api.post(
+        "/api/v1/orders/1/receive",
+        json={}
+    )
 
 
 @when("I make various invalid requests")
@@ -138,26 +143,29 @@ def submit_invalid_data(api):
     """Submit invalid data."""
     return api.post(
         "/api/v1/vendors/",
-        json={"name": ""},  # Empty name should fail
+        json={"name": ""}  # Empty name should fail
     )
 
 
 @when("I submit data with SQL injection attempt", target_fixture="response")
 def submit_sql_injection(api):
     """Submit SQL injection attempt."""
-    return api.post("/api/v1/vendors/", json={"name": "'; DROP TABLE vendors; --"})
+    return api.post(
+        "/api/v1/vendors/",
+        json={"name": "'; DROP TABLE vendors; --"}
+    )
 
 
 @when("I submit data with script tags", target_fixture="response")
 def submit_xss(api):
     """Submit XSS attempt."""
     return api.post(
-        "/api/v1/vendors/", json={"name": "<script>alert('xss')</script>Test"}
+        "/api/v1/vendors/",
+        json={"name": "<script>alert('xss')</script>Test"}
     )
 
 
 # --- Then steps ---
-
 
 @then("I should receive a 422 error")
 def receive_422(response):
