@@ -17,7 +17,7 @@ permissions:
 jobs:
   frontend:
     name: Frontend (lint, build, test)
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 15
 
     steps:
@@ -49,7 +49,7 @@ jobs:
 
   lint:
     name: lint
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 15
 
     steps:
@@ -59,7 +59,7 @@ jobs:
       - name: Setup uv
         uses: astral-sh/setup-uv@f0ec1fc3b38f5e7cd731bb6ce540c5af426746bb # v5.4.1
         with:
-          enable-cache: true
+          enable-cache: false
 
       - name: Set up Python
         run: uv python install 3.12
@@ -75,7 +75,7 @@ jobs:
 
   typecheck:
     name: typecheck
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 15
 
     steps:
@@ -85,7 +85,7 @@ jobs:
       - name: Setup uv
         uses: astral-sh/setup-uv@f0ec1fc3b38f5e7cd731bb6ce540c5af426746bb # v5.4.1
         with:
-          enable-cache: true
+          enable-cache: false
 
       - name: Set up Python
         run: uv python install 3.12
@@ -101,10 +101,11 @@ jobs:
 
   test:
     name: test (py${{ matrix.python-version }})
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 25
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         python-version: ["3.12", "3.13"]
 
@@ -116,7 +117,7 @@ jobs:
           POSTGRES_PASSWORD: labmanager
           POSTGRES_DB: labmanager
         ports:
-          - 5432:5432
+          - 5432/tcp
         options: >-
           --health-cmd="pg_isready -U labmanager"
           --health-interval=10s
@@ -126,13 +127,13 @@ jobs:
       meilisearch:
         image: getmeili/meilisearch:v1.12
         ports:
-          - 7700:7700
+          - 7700/tcp
         env:
           MEILI_ENV: development
 
     env:
-      DATABASE_URL: postgresql+psycopg://labmanager:labmanager@localhost:5432/labmanager
-      MEILISEARCH_URL: http://localhost:7700
+      DATABASE_URL: postgresql+psycopg://labmanager:labmanager@localhost:${{ job.services.postgres.ports[5432] }}/labmanager
+      MEILISEARCH_URL: http://localhost:${{ job.services.meilisearch.ports[7700] }}
       AUTH_ENABLED: "false"
 
     steps:
@@ -142,7 +143,7 @@ jobs:
       - name: Setup uv
         uses: astral-sh/setup-uv@f0ec1fc3b38f5e7cd731bb6ce540c5af426746bb # v5.4.1
         with:
-          enable-cache: true
+          enable-cache: false
 
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
@@ -167,7 +168,7 @@ jobs:
 
   package:
     name: package
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 15
     needs:
       - lint
@@ -181,7 +182,7 @@ jobs:
       - name: Setup uv
         uses: astral-sh/setup-uv@f0ec1fc3b38f5e7cd731bb6ce540c5af426746bb # v5.4.1
         with:
-          enable-cache: true
+          enable-cache: false
 
       - name: Set up Python
         run: uv python install 3.12
