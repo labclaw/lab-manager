@@ -142,7 +142,9 @@ def _call_llm(ocr_text: str) -> ExtractedDocument | None:
             logger.error("Extraction failed after %d retries: %s", MAX_RETRIES, e)
         except genai_errors.APIError as e:
             logger.warning("Gemini extraction failed, trying NVIDIA: %s", e)
-            if settings.nvidia_build_api_key or os.environ.get("NVIDIA_BUILD_API_KEY", ""):
+            if settings.nvidia_build_api_key or os.environ.get(
+                "NVIDIA_BUILD_API_KEY", ""
+            ):
                 return _extract_nvidia(
                     ocr_text, "nvidia_nim/meta/llama-3.2-90b-vision-instruct"
                 )
@@ -150,7 +152,9 @@ def _call_llm(ocr_text: str) -> ExtractedDocument | None:
             return None
         except Exception as e:
             logger.warning("Gemini extraction failed, trying NVIDIA: %s", e)
-            if settings.nvidia_build_api_key or os.environ.get("NVIDIA_BUILD_API_KEY", ""):
+            if settings.nvidia_build_api_key or os.environ.get(
+                "NVIDIA_BUILD_API_KEY", ""
+            ):
                 return _extract_nvidia(
                     ocr_text, "nvidia_nim/meta/llama-3.2-90b-vision-instruct"
                 )
@@ -164,9 +168,13 @@ def _extract_nvidia(ocr_text: str, model: str) -> ExtractedDocument | None:
     import httpx
 
     settings = get_settings()
-    api_key = settings.nvidia_build_api_key or os.environ.get("NVIDIA_BUILD_API_KEY", "")
+    api_key = settings.nvidia_build_api_key or os.environ.get(
+        "NVIDIA_BUILD_API_KEY", ""
+    )
     if not api_key:
-        logger.error("Extraction NVIDIA model selected but no NVIDIA_BUILD_API_KEY found")
+        logger.error(
+            "Extraction NVIDIA model selected but no NVIDIA_BUILD_API_KEY found"
+        )
         return None
 
     prompt = f"""{EXTRACTION_PROMPT}

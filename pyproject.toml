@@ -81,3 +81,20 @@ disable_error_code = [
   "return-value",
   "var-annotated",
 ]
+
+[tool.pytest.ini_options]
+markers = [
+  "e2e: End-to-end tests that exercise the full API stack",
+  "slow: Tests that take more than 1 second to run",
+]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+filterwarnings = [
+  "ignore::DeprecationWarning:sqlmodel.*",
+  "ignore::pytest.PytestUnknownMarkWarning",
+]

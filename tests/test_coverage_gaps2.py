@@ -194,7 +194,9 @@ class TestRagInternals:
         ]
         mock_completion.return_value = mock_response
 
-        sql = _generate_sql({"model": "gemini/gemini-2.5-flash", "api_key": "key"}, "List vendors")
+        sql = _generate_sql(
+            {"model": "gemini/gemini-2.5-flash", "api_key": "key"}, "List vendors"
+        )
         assert "SELECT" in sql
         assert "```" not in sql
 
@@ -226,7 +228,9 @@ class TestRagInternals:
         ]
         mock_completion.return_value = mock_response
 
-        sql = _generate_sql({"model": "nvidia_nim/meta/llama", "api_key": "nv"}, "List vendors")
+        sql = _generate_sql(
+            {"model": "nvidia_nim/meta/llama", "api_key": "nv"}, "List vendors"
+        )
         assert sql == "SELECT * FROM vendors"
 
     @patch("lab_manager.services.rag.completion")
