@@ -27,10 +27,10 @@ const PAGE_TITLES: Record<string, string> = {
 function AlertsPage() {
   return (
     <div className="text-center py-16 space-y-3">
-      <h3 className="text-lg font-display font-semibold text-slate-100">
+      <h3 className="text-lg font-display font-semibold text-[var(--foreground)]">
         Alerts
       </h3>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-[var(--muted-foreground)]">
         Alerts page
       </p>
     </div>
@@ -40,10 +40,10 @@ function AlertsPage() {
 function SettingsPage() {
   return (
     <div className="text-center py-16 space-y-3">
-      <h3 className="text-lg font-display font-semibold text-slate-100">
+      <h3 className="text-lg font-display font-semibold text-[var(--foreground)]">
         Settings
       </h3>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-[var(--muted-foreground)]">
         Settings page coming soon
       </p>
     </div>
@@ -81,9 +81,14 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    // Stitch designs are dark-only — always enable dark mode
-    setDarkMode(true)
-    document.documentElement.classList.add('dark')
+    const stored = localStorage.getItem('darkMode')
+    const isDark = stored === 'true'
+    setDarkMode(isDark)
+    if (isDark) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
   }, [])
 
   const toggleDarkMode = () => {
@@ -118,7 +123,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-background-dark">
+      <div className="flex items-center justify-center h-screen bg-[var(--background)]">
         <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
       </div>
     )
@@ -135,7 +140,7 @@ export default function App() {
   return (
     <>
       <ErrorBanner error={error} onDismiss={() => setError(null)} />
-      <div className="flex h-screen bg-background-dark overflow-hidden">
+      <div className="flex h-screen bg-[var(--background)] overflow-hidden">
         <Sidebar
           current={location.pathname}
           collapsed={sidebarCollapsed}

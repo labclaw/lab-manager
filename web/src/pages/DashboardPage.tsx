@@ -109,7 +109,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
     <div className="space-y-8">
       {/* Quick Actions Row */}
       <div className="mb-8">
-        <h3 className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-4">Quick Actions</h3>
+        <h3 className="text-[var(--muted-foreground)] text-[10px] font-bold uppercase tracking-widest mb-4">Quick Actions</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <button
             onClick={() => navigate('/upload')}
@@ -120,21 +120,21 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
           </button>
           <button
             onClick={() => navigate('/orders')}
-            className="flex items-center justify-center gap-3 p-4 bg-card-dark border border-primary/20 hover:border-primary/50 text-slate-100 rounded-xl font-bold text-sm transition-all group"
+            className="flex items-center justify-center gap-3 p-4 bg-[var(--card)] border border-primary/20 hover:border-primary/50 text-[var(--foreground)] rounded-xl font-bold text-sm transition-all group"
           >
             <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">add_shopping_cart</span>
             <span>New Order</span>
           </button>
           <button
             onClick={() => navigate('/inventory')}
-            className="flex items-center justify-center gap-3 p-4 bg-card-dark border border-primary/20 hover:border-primary/50 text-slate-100 rounded-xl font-bold text-sm transition-all group"
+            className="flex items-center justify-center gap-3 p-4 bg-[var(--card)] border border-primary/20 hover:border-primary/50 text-[var(--foreground)] rounded-xl font-bold text-sm transition-all group"
           >
             <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">inventory</span>
             <span>Update Stock</span>
           </button>
           <button
             onClick={() => navigate('/settings')}
-            className="flex items-center justify-center gap-3 p-4 bg-card-dark border border-primary/20 hover:border-primary/50 text-slate-100 rounded-xl font-bold text-sm transition-all group"
+            className="flex items-center justify-center gap-3 p-4 bg-[var(--card)] border border-primary/20 hover:border-primary/50 text-[var(--foreground)] rounded-xl font-bold text-sm transition-all group"
           >
             <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">group</span>
             <span>Manage Lab</span>
@@ -145,55 +145,55 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
       {/* Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         {/* Total Documents */}
-        <div className="bg-card-dark border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Documents</span>
+        <div className="bg-[var(--card)] border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
+          <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Total Documents</span>
             <span className="material-symbols-outlined text-lg opacity-50">description</span>
           </div>
-          <div className="text-3xl font-bold text-white tracking-tight">{totalDocs}</div>
-          <div className="text-[11px] text-slate-500 font-medium">Total lab docs processed</div>
+          <div className="text-3xl font-bold text-[var(--foreground)] tracking-tight">{totalDocs}</div>
+          <div className="text-[11px] text-[var(--muted-foreground)] font-medium">Total lab docs processed</div>
         </div>
 
         {/* Approved - green left border */}
-        <div className="bg-card-dark border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm border-l-4 border-l-accent-green">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Approved</span>
+        <div className="bg-[var(--card)] border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm border-l-4 border-l-accent-green">
+          <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Approved</span>
             <span className="material-symbols-outlined text-lg text-accent-green">check_circle</span>
           </div>
           <div className="text-3xl font-bold text-accent-green tracking-tight">{approved}</div>
-          <div className="text-[11px] text-slate-500 font-medium">{approvalPct}% automation accuracy</div>
+          <div className="text-[11px] text-[var(--muted-foreground)] font-medium">{approvalPct}% automation accuracy</div>
         </div>
 
         {/* Needs Review - amber left border */}
-        <div className="bg-card-dark border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm border-l-4 border-l-amber-400">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Needs Review</span>
+        <div className="bg-[var(--card)] border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm border-l-4 border-l-amber-400">
+          <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Needs Review</span>
             <span className="material-symbols-outlined text-lg text-amber-400">pending_actions</span>
           </div>
           <div className="text-3xl font-bold text-amber-400 tracking-tight">{needsReview}</div>
-          <div className="text-[11px] text-slate-500 font-medium">Awaiting lab verification</div>
+          <div className="text-[11px] text-[var(--muted-foreground)] font-medium">Awaiting lab verification</div>
         </div>
 
         {/* Orders Created */}
-        <div className="bg-card-dark border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Orders Created</span>
+        <div className="bg-[var(--card)] border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
+          <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Orders Created</span>
             <span className="material-symbols-outlined text-lg opacity-50">shopping_bag</span>
           </div>
-          <div className="text-3xl font-bold text-white tracking-tight">{ordersCreated}</div>
-          <div className="text-[11px] text-slate-500 font-medium">
+          <div className="text-3xl font-bold text-[var(--foreground)] tracking-tight">{ordersCreated}</div>
+          <div className="text-[11px] text-[var(--muted-foreground)] font-medium">
             {stats?.total_inventory_items ?? 0} line items reconciled
           </div>
         </div>
 
         {/* Vendors */}
-        <div className="bg-card-dark border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Vendors</span>
+        <div className="bg-[var(--card)] border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
+          <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Vendors</span>
             <span className="material-symbols-outlined text-lg opacity-50">storefront</span>
           </div>
-          <div className="text-3xl font-bold text-white tracking-tight">{totalVendors}</div>
-          <div className="text-[11px] text-slate-500 font-medium">Discovered from scan history</div>
+          <div className="text-3xl font-bold text-[var(--foreground)] tracking-tight">{totalVendors}</div>
+          <div className="text-[11px] text-[var(--muted-foreground)] font-medium">Discovered from scan history</div>
         </div>
       </div>
 
@@ -212,7 +212,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
           </div>
           <button
             onClick={() => navigate('/inventory')}
-            className="px-4 py-2 bg-amber-400 text-background-dark rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-amber-300 transition-colors shadow-lg shadow-amber-400/10"
+            className="px-4 py-2 bg-amber-400 text-[var(--background)] rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-amber-300 transition-colors shadow-lg shadow-amber-400/10"
           >
             Reorder Now
           </button>
@@ -241,13 +241,13 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Top Lab Vendors */}
-        <div className="bg-card-dark border border-primary/10 rounded-xl p-6 shadow-sm">
+        <div className="bg-[var(--card)] border border-primary/10 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-slate-100 text-lg font-bold flex items-center gap-2">
+            <h3 className="text-[var(--foreground)] text-lg font-bold flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">analytics</span>
               Top Lab Vendors
             </h3>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-800 px-2 py-1 rounded">
+            <span className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest bg-[var(--card)] px-2 py-1 rounded">
               Last 90 Days
             </span>
           </div>
@@ -257,18 +257,18 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
                 <div key={v.name} className="space-y-2 group">
                   <div className="flex justify-between items-end">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-slate-200 font-semibold">{v.name}</span>
+                      <span className="text-sm text-[var(--foreground)] font-semibold">{v.name}</span>
                       {i === 0 && (
                         <span className="hidden group-hover:block text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-bold">
                           Primary Vendor
                         </span>
                       )}
                     </div>
-                    <span className="text-xs text-slate-400 font-mono">
+                    <span className="text-xs text-[var(--muted-foreground)] font-mono">
                       {v.count} orders ({v.pct}%)
                     </span>
                   </div>
-                  <div className="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-2.5 w-full bg-[var(--card)] rounded-full overflow-hidden">
                     <div
                       className={VENDOR_BAR_CLASSES[i] ?? VENDOR_BAR_CLASSES[4]}
                       style={{ width: `${v.width}%` }}
@@ -277,15 +277,15 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
                 </div>
               ))
             ) : (
-              <div className="text-sm text-slate-500 py-4">No vendor data yet</div>
+              <div className="text-sm text-[var(--muted-foreground)] py-4">No vendor data yet</div>
             )}
           </div>
         </div>
 
         {/* Document Classification */}
-        <div className="bg-card-dark border border-primary/10 rounded-xl p-6 shadow-sm">
+        <div className="bg-[var(--card)] border border-primary/10 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-slate-100 text-lg font-bold flex items-center gap-2">
+            <h3 className="text-[var(--foreground)] text-lg font-bold flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">folder_open</span>
               Document Classification
             </h3>
@@ -302,16 +302,16 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
                 <div key={d.type} className="space-y-2 group">
                   <div className="flex justify-between items-end">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-slate-200 font-mono">{d.type}</span>
+                      <span className="text-sm text-[var(--foreground)] font-mono">{d.type}</span>
                       {i === 0 && totalDocs > 0 && (
                         <span className="hidden group-hover:block text-[10px] bg-accent-green/20 text-accent-green px-1.5 py-0.5 rounded font-bold">
                           {Math.round((d.count / totalDocs) * 100)}% of docs
                         </span>
                       )}
                     </div>
-                    <span className="text-xs text-slate-400 font-mono">{d.count} files</span>
+                    <span className="text-xs text-[var(--muted-foreground)] font-mono">{d.count} files</span>
                   </div>
-                  <div className="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-2.5 w-full bg-[var(--card)] rounded-full overflow-hidden">
                     <div
                       className={DOC_BAR_CLASSES[i] ?? DOC_BAR_CLASSES[3]}
                       style={{ width: `${d.width}%` }}
@@ -320,7 +320,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
                 </div>
               ))
             ) : (
-              <div className="text-sm text-slate-500 py-4">No document data yet</div>
+              <div className="text-sm text-[var(--muted-foreground)] py-4">No document data yet</div>
             )}
           </div>
         </div>

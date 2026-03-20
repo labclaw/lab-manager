@@ -178,7 +178,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 shadow-md ${
                           active || current
                             ? 'bg-primary text-white'
-                            : 'bg-surface-container text-slate-500/40 border border-outline'
+                            : 'bg-surface-container text-[var(--muted-foreground)]/40 border border-outline'
                         }`}>
                           <span className="material-symbols-outlined text-sm"
                             style={active ? { fontVariationSettings: "'FILL' 1" } : undefined}
@@ -234,7 +234,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
                 <div className="space-y-4">
                   {isPending ? (
                     <div className="p-3 bg-surface-container-low rounded-lg text-[11px] text-on-surface-variant italic">
-                      Awaiting sign-off from Lab Manager head (Principal Investigator)
+                      Awaiting sign-off from lab administrator
                     </div>
                   ) : (
                     <div className="flex justify-between items-end">
@@ -292,10 +292,10 @@ export function OrdersPage({ onError }: OrdersPageProps) {
                 </p>
               </div>
               <div className="flex -space-x-2 mt-4 overflow-hidden">
-                <div className="h-6 w-6 rounded-full border-2 border-[#2a2a44] bg-slate-700" />
-                <div className="h-6 w-6 rounded-full border-2 border-[#2a2a44] bg-slate-600" />
-                <div className="h-6 w-6 rounded-full border-2 border-[#2a2a44] bg-slate-500" />
-                <div className="h-6 w-6 rounded-full border-2 border-[#2a2a44] bg-primary flex items-center justify-center text-[8px] font-bold text-white">+39</div>
+                <div className="h-6 w-6 rounded-full border-2 border-[var(--border)] bg-[var(--muted-foreground)]" />
+                <div className="h-6 w-6 rounded-full border-2 border-[var(--border)] bg-[var(--muted-foreground)]" />
+                <div className="h-6 w-6 rounded-full border-2 border-[var(--border)] bg-[var(--muted-foreground)]" />
+                <div className="h-6 w-6 rounded-full border-2 border-[var(--border)] bg-primary flex items-center justify-center text-[8px] font-bold text-white">+39</div>
               </div>
             </div>
           </div>

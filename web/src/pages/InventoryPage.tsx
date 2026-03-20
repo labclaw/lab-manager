@@ -85,16 +85,16 @@ export function InventoryPage({ onError }: InventoryPageProps) {
       {/* Filters & Actions Bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-card-dark rounded-xl shadow-sm hover:bg-surface-container-high transition-colors text-sm font-medium border border-outline">
+          <button className="flex items-center gap-2 px-4 py-2 bg-[var(--card)] rounded-xl shadow-sm hover:bg-surface-container-high transition-colors text-sm font-medium border border-outline">
             <span className="material-symbols-outlined text-lg">filter_list</span>
             <span>Filters</span>
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-card-dark rounded-xl shadow-sm hover:bg-surface-container-high transition-colors text-sm font-medium border border-outline">
+          <button className="flex items-center gap-2 px-4 py-2 bg-[var(--card)] rounded-xl shadow-sm hover:bg-surface-container-high transition-colors text-sm font-medium border border-outline">
             <span className="material-symbols-outlined text-lg">category</span>
             <span>Category</span>
           </button>
-          <div className="h-6 w-px bg-[#2d2d44] mx-2" />
-          <span className="text-xs text-slate-400 font-medium">
+          <div className="h-6 w-px bg-[var(--border)] mx-2" />
+          <span className="text-xs text-[var(--muted-foreground)] font-medium">
             {total.toLocaleString()} Items total
           </span>
         </div>
@@ -111,17 +111,17 @@ export function InventoryPage({ onError }: InventoryPageProps) {
       </div>
 
       {/* Inventory Data Table */}
-      <section className="bg-card-dark rounded-[2rem] shadow-sm overflow-hidden flex flex-col flex-1 border border-outline">
+      <section className="bg-[var(--card)] rounded-[2rem] shadow-sm overflow-hidden flex flex-col flex-1 border border-outline">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-surface-container-high/50">
-                <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Item Name</th>
-                <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Lot #</th>
-                <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Vendor</th>
-                <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Location</th>
-                <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Stock</th>
-                <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
+                <th className="px-8 py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Item Name</th>
+                <th className="px-6 py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Lot #</th>
+                <th className="px-6 py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Vendor</th>
+                <th className="px-6 py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Location</th>
+                <th className="px-6 py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Stock</th>
+                <th className="px-6 py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-outline">
@@ -134,13 +134,13 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                         <p className="font-bold text-on-surface">
                           {item.product_name ?? `Product #${item.product_id}`}
                         </p>
-                        <p className="text-[11px] text-slate-400">
+                        <p className="text-[11px] text-[var(--muted-foreground)]">
                           {item.lot_number ? `Lot ${item.lot_number}` : (item.unit ?? '')}
                         </p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-6 text-sm font-mono text-slate-400">
+                  <td className="px-6 py-6 text-sm font-mono text-[var(--muted-foreground)]">
                     {item.lot_number ?? '\u2014'}
                   </td>
                   <td className="px-6 py-6 text-sm font-medium">
@@ -148,12 +148,12 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                   </td>
                   <td className="px-6 py-6">
                     {item.location_name ? (
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-surface-container-high text-slate-400 text-xs font-medium border border-outline">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-surface-container-high text-[var(--muted-foreground)] text-xs font-medium border border-outline">
                         <span className="material-symbols-outlined text-[14px] mr-1">meeting_room</span>
                         {item.location_name}
                       </span>
                     ) : (
-                      <span className="text-slate-400">{'\u2014'}</span>
+                      <span className="text-[var(--muted-foreground)]">{'\u2014'}</span>
                     )}
                   </td>
                   <td className="px-6 py-6">
@@ -169,7 +169,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                       <button className="p-2 hover:bg-primary/20 text-primary rounded-lg transition-colors" title="Order More">
                         <span className="material-symbols-outlined">shopping_cart_checkout</span>
                       </button>
-                      <button className="p-2 hover:bg-surface-container-highest text-slate-400 rounded-lg transition-colors" title="Edit Item">
+                      <button className="p-2 hover:bg-surface-container-highest text-[var(--muted-foreground)] rounded-lg transition-colors" title="Edit Item">
                         <span className="material-symbols-outlined">edit</span>
                       </button>
                     </div>
@@ -182,11 +182,11 @@ export function InventoryPage({ onError }: InventoryPageProps) {
           {items.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
               <div className="w-12 h-12 rounded-2xl bg-surface-container-high flex items-center justify-center">
-                <span className="material-symbols-outlined text-slate-400">inventory_2</span>
+                <span className="material-symbols-outlined text-[var(--muted-foreground)]">inventory_2</span>
               </div>
               <div className="space-y-1">
                 <h3 className="text-base font-semibold text-on-surface">Inventory is empty</h3>
-                <p className="text-sm text-slate-400 max-w-xs mx-auto">
+                <p className="text-sm text-[var(--muted-foreground)] max-w-xs mx-auto">
                   Process documents through the review queue to populate inventory.
                 </p>
               </div>
@@ -197,7 +197,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
         {/* Pagination Footer */}
         {total > 0 && (
           <div className="mt-auto px-8 py-4 bg-surface-container-lowest/30 border-t border-outline flex items-center justify-between">
-            <span className="text-xs text-slate-400 font-medium">
+            <span className="text-xs text-[var(--muted-foreground)] font-medium">
               Showing {startItem}-{endItem} of {total.toLocaleString()} items
             </span>
             <div className="flex items-center gap-2">
@@ -239,7 +239,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
 
       {/* Bottom Stats Bento Cards — matches Stitch design */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="p-6 bg-card-dark rounded-3xl border border-outline shadow-sm flex flex-col justify-between">
+        <div className="p-6 bg-[var(--card)] rounded-3xl border border-outline shadow-sm flex flex-col justify-between">
           <div>
             <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Storage Status</span>
             <h3 className="text-2xl font-bold mt-1">{total > 0 ? '94%' : '0%'}</h3>
@@ -252,7 +252,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
             {total > 0 ? 'Freezer #4 nearing capacity' : 'No items stored'}
           </p>
         </div>
-        <div className="p-6 bg-card-dark rounded-3xl border border-outline shadow-sm">
+        <div className="p-6 bg-[var(--card)] rounded-3xl border border-outline shadow-sm">
           <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Monthly Spend</span>
           <h3 className="text-2xl font-bold mt-1 text-on-surface">
             ${total > 0 ? '4,120' : '0'}
@@ -262,15 +262,15 @@ export function InventoryPage({ onError }: InventoryPageProps) {
             <span className="text-xs font-bold">{total > 0 ? '+12% vs last month' : 'No spending data'}</span>
           </div>
         </div>
-        <div className="p-6 bg-card-dark rounded-3xl border border-outline shadow-sm">
+        <div className="p-6 bg-[var(--card)] rounded-3xl border border-outline shadow-sm">
           <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Active Orders</span>
           <h3 className="text-2xl font-bold mt-1 text-on-surface">0</h3>
           <div className="mt-4 flex -space-x-2">
-            <div className="w-7 h-7 rounded-full bg-primary border-2 border-card-dark flex items-center justify-center text-[10px] text-white font-bold">V</div>
-            <div className="w-7 h-7 rounded-full bg-[#2d2d44] border-2 border-card-dark flex items-center justify-center text-[10px] text-slate-400 font-bold">S</div>
+            <div className="w-7 h-7 rounded-full bg-primary border-2 border-[var(--card)] flex items-center justify-center text-[10px] text-white font-bold">V</div>
+            <div className="w-7 h-7 rounded-full bg-[var(--border)] border-2 border-[var(--card)] flex items-center justify-center text-[10px] text-[var(--muted-foreground)] font-bold">S</div>
           </div>
         </div>
-        <div className="p-6 bg-card-dark rounded-3xl border border-outline shadow-sm">
+        <div className="p-6 bg-[var(--card)] rounded-3xl border border-outline shadow-sm">
           <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Audit Due</span>
           <h3 className="text-2xl font-bold mt-1 text-on-surface">14 Days</h3>
           <button className="mt-4 text-xs font-bold text-primary flex items-center gap-1 hover:underline">

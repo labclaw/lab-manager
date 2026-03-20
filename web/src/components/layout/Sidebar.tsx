@@ -34,7 +34,7 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        'hidden md:flex flex-col bg-sidebar-dark border-r border-primary/10 transition-all duration-300',
+        'hidden md:flex flex-col bg-[var(--sidebar)] border-r border-primary/10 transition-all duration-300',
         collapsed ? 'w-16' : 'w-64',
       )}
     >
@@ -45,8 +45,8 @@ export function Sidebar({
         </div>
         {!collapsed && (
           <div>
-            <h2 className="text-slate-100 text-xl font-bold leading-none tracking-tight">Lab Manager</h2>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">MGH Neuroscience</p>
+            <h2 className="text-[var(--foreground)] text-xl font-bold leading-none tracking-tight">Lab Manager</h2>
+            <p className="text-[10px] text-[var(--muted-foreground)] font-bold uppercase tracking-widest mt-1">Laboratory</p>
           </div>
         )}
       </div>
@@ -69,7 +69,7 @@ export function Sidebar({
                 'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors',
                 isActive
                   ? 'bg-primary/10 text-primary font-semibold'
-                  : 'text-slate-400 hover:bg-primary/5 hover:text-slate-100',
+                  : 'text-[var(--muted-foreground)] hover:bg-primary/5 hover:text-[var(--foreground)]',
               )}
               title={collapsed ? item.label : undefined}
             >
@@ -95,13 +95,13 @@ export function Sidebar({
           </div>
           {!collapsed && (
             <div className="overflow-hidden">
-              <p className="text-sm font-bold text-slate-100 truncate">Dr. Aris Thorne</p>
+              <p className="text-sm font-bold text-[var(--foreground)] truncate">Admin</p>
             </div>
           )}
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-4 py-2 text-slate-400 hover:text-red-400 transition-colors text-sm font-medium"
+          className="flex items-center gap-3 w-full px-4 py-2 text-[var(--muted-foreground)] hover:text-red-400 transition-colors text-sm font-medium"
           title={collapsed ? 'Sign Out' : undefined}
         >
           <span className="material-symbols-outlined text-lg">logout</span>
@@ -113,7 +113,7 @@ export function Sidebar({
       <button
         onClick={onToggle}
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        className="hidden lg:flex absolute -right-3 top-20 items-center justify-center w-6 h-6 rounded-full bg-card-dark border border-primary/10 text-slate-400 hover:text-slate-100 transition-colors"
+        className="hidden lg:flex absolute -right-3 top-20 items-center justify-center w-6 h-6 rounded-full bg-[var(--card)] border border-primary/10 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
       >
         <span className="material-symbols-outlined text-sm">
           {collapsed ? 'chevron_right' : 'chevron_left'}
