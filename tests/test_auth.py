@@ -182,7 +182,7 @@ def test_admin_auth_requires_admin_password(monkeypatch, auth_engine):
     monkeypatch.setenv("AUTH_ENABLED", "true")
     monkeypatch.setenv("ADMIN_SECRET_KEY", "test-secret-key-for-signing")
     monkeypatch.setenv("API_KEY", "test-api-key-12345")
-    monkeypatch.delenv("ADMIN_PASSWORD", raising=False)
+    monkeypatch.setenv("ADMIN_PASSWORD", "")
     get_settings.cache_clear()
 
     import lab_manager.database as db_module

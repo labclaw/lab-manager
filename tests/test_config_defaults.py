@@ -5,6 +5,9 @@ from lab_manager.config import Settings
 
 def test_rag_model_default_is_current():
     """RAG model default should be a current LiteLLM-routable model."""
+    import os
+
+    os.environ.pop("RAG_MODEL", None)
     s = Settings(
         database_url="sqlite://",
         admin_secret_key="test",

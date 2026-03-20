@@ -142,12 +142,10 @@ export interface AskResponse {
 }
 
 async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
-  const headers: Record<string, string> = {
-    ...opts?.headers,
-  }
+  const headers = new Headers(opts?.headers)
   // Only set Content-Type for non-FormData bodies
   if (!(opts?.body instanceof FormData)) {
-    headers['Content-Type'] = 'application/json'
+    headers.set('Content-Type', 'application/json')
   }
   const res = await fetch(`${BASE}${url}`, {
     ...opts,
