@@ -65,10 +65,7 @@ export function LoginPage() {
 
           {/* Password Input */}
           <div className="flex flex-col gap-2">
-            <div className="flex justify-between items-center px-1">
-              <label htmlFor="password" className="text-[var(--foreground)] text-sm font-medium">Password</label>
-              <a href="#" className="text-primary text-xs font-semibold hover:underline">Forgot password?</a>
-            </div>
+            <label htmlFor="password" className="text-[var(--foreground)] text-sm font-medium ml-1">Password</label>
             <div className="relative">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-xl">lock</span>
               <input
@@ -81,16 +78,6 @@ export function LoginPage() {
                 required
               />
             </div>
-          </div>
-
-          {/* Remember Me */}
-          <div className="flex items-center gap-2 px-1">
-            <input
-              id="remember"
-              type="checkbox"
-              className="w-4 h-4 rounded border-[var(--border)] bg-[var(--background)] text-primary focus:ring-offset-[var(--background)]"
-            />
-            <label htmlFor="remember" className="text-[var(--muted-foreground)] text-sm">Remember this device</label>
           </div>
 
           {/* Sign In Button */}
@@ -112,14 +99,6 @@ export function LoginPage() {
             )}
           </button>
         </form>
-
-        {/* Footer Info */}
-        <div className="mt-8 text-center">
-          <p className="text-[var(--muted-foreground)] text-sm">
-            Don&apos;t have an account?{' '}
-            <a href="#" className="text-primary font-semibold hover:underline">Request access</a>
-          </p>
-        </div>
       </div>
 
       {/* Security Badge */}
