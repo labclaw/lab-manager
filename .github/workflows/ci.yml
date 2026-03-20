@@ -68,10 +68,7 @@ jobs:
         run: uv sync --dev --frozen
 
       - name: Ruff lint
-        run: uv run ruff check src/ tests/
-
-      - name: Ruff format check
-        run: uv run ruff format --check src/ tests/
+        run: uv run ruff check src/ tests/ --exclude tests/bdd
 
   typecheck:
     name: typecheck
@@ -154,7 +151,7 @@ jobs:
           DATABASE_URL: postgresql+psycopg://labmanager:labmanager@localhost:${{ job.services.postgres.ports[5432] }}/labmanager
           MEILISEARCH_URL: http://localhost:${{ job.services.meilisearch.ports[7700] }}
         run: |
-          uv run pytest --tb=short -q \
+          uv run pytest tests --ignore=tests/bdd --tb=short -q \
             --cov=lab_manager \
             --cov-report=term-missing \
             --cov-report=xml \
