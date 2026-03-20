@@ -17,7 +17,7 @@ class Vendor(AuditMixin, table=True):
     __tablename__ = "vendors"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    name: str = Field(max_length=255, index=True, unique=True)
+    name: str = Field(max_length=255, unique=True)
     aliases: list[str] = Field(default_factory=list, sa_column=Column(sa.JSON))
     website: Optional[str] = Field(default=None, max_length=500)
     phone: Optional[str] = Field(default=None, max_length=50)
