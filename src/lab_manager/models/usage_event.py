@@ -21,7 +21,7 @@ class UsageEvent(AuditMixin, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     user_email: str = Field(max_length=255)
-    event_type: str = Field(max_length=50, index=True)
+    event_type: str = Field(max_length=50)
     page: Optional[str] = Field(default=None, max_length=255)
     timestamp: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
