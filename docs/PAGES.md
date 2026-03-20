@@ -2,7 +2,7 @@
 
 Master registry of all pages. **If a page isn't here, it doesn't exist.**
 
-Last updated: 2026-03-19
+Last updated: 2026-03-20
 
 ## Navigation Structure
 
@@ -101,7 +101,7 @@ Last updated: 2026-03-19
 |---|---|
 | **Route** | `/documents` |
 | **Purpose** | Browse all uploaded documents with status, search, and filtering |
-| **Stitch Screen** | `Shen Lab Documents Management` |
+| **Stitch Screen** | `Documents Management` |
 | **Spec** | `docs/specs/documents.md` |
 | **Status** | Built — needs spec alignment |
 
