@@ -184,58 +184,67 @@ class TestPipeline:
 
 
 class TestRagInternals:
-    @patch("lab_manager.services.rag._get_client")
-    def test_generate_sql_strips_markdown(self, mock_get_client):
+    @patch("lab_manager.services.rag.completion")
+    def test_generate_sql_strips_markdown(self, mock_completion):
         from lab_manager.services.rag import _generate_sql
 
-        mock_client = MagicMock()
-        mock_get_client.return_value = mock_client
         mock_response = MagicMock()
-        mock_response.text = "```sql\nSELECT * FROM vendors\n```"
-        mock_client.models.generate_content.return_value = mock_response
+        mock_response.choices = [
+            MagicMock(message=MagicMock(content="```sql\nSELECT * FROM vendors\n```"))
+        ]
+        mock_completion.return_value = mock_response
 
-        sql = _generate_sql(mock_client, "List vendors")
+        sql = _generate_sql({"model": "gemini/gemini-2.5-flash", "api_key": "key"}, "List vendors")
         assert "SELECT" in sql
         assert "```" not in sql
 
-    @patch("lab_manager.services.rag._get_client")
-    def test_format_answer(self, mock_get_client):
+    @patch("lab_manager.services.rag.completion")
+    def test_format_answer(self, mock_completion):
         from lab_manager.services.rag import _format_answer
 
-        mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.text = "There are 5 vendors in the database."
-        mock_client.models.generate_content.return_value = mock_response
+        mock_response.choices = [
+            MagicMock(message=MagicMock(content="There are 5 vendors in the database."))
+        ]
+        mock_completion.return_value = mock_response
 
-        result = _format_answer(mock_client, "How many?", "SELECT 1", [{"c": 5}])
+        result = _format_answer(
+            {"model": "gemini/gemini-2.5-flash", "api_key": "key"},
+            "How many?",
+            "SELECT 1",
+            [{"c": 5}],
+        )
         assert "5 vendors" in result
 
-    @patch("lab_manager.services.rag._use_openai_compatible_rag", return_value=True)
-    def test_generate_sql_openai_compatible_client(self, _mock_mode):
+    @patch("lab_manager.services.rag.completion")
+    def test_generate_sql_openai_compatible_client(self, mock_completion):
         from lab_manager.services.rag import _generate_sql
 
-        mock_client = MagicMock()
         mock_response = MagicMock()
         mock_response.choices = [
             MagicMock(message=MagicMock(content="SELECT * FROM vendors"))
         ]
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_completion.return_value = mock_response
 
-        sql = _generate_sql(mock_client, "List vendors")
+        sql = _generate_sql({"model": "nvidia_nim/meta/llama", "api_key": "nv"}, "List vendors")
         assert sql == "SELECT * FROM vendors"
 
-    @patch("lab_manager.services.rag._use_openai_compatible_rag", return_value=True)
-    def test_format_answer_openai_compatible_client(self, _mock_mode):
+    @patch("lab_manager.services.rag.completion")
+    def test_format_answer_openai_compatible_client(self, mock_completion):
         from lab_manager.services.rag import _format_answer
 
-        mock_client = MagicMock()
         mock_response = MagicMock()
         mock_response.choices = [
             MagicMock(message=MagicMock(content="There are 2 matching orders."))
         ]
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_completion.return_value = mock_response
 
-        result = _format_answer(mock_client, "How many?", "SELECT 1", [{"c": 2}])
+        result = _format_answer(
+            {"model": "nvidia_nim/meta/llama", "api_key": "nv"},
+            "How many?",
+            "SELECT 1",
+            [{"c": 2}],
+        )
         assert "2 matching orders" in result
 
     def test_get_model(self):

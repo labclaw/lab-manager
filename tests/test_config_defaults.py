@@ -4,7 +4,7 @@ from lab_manager.config import Settings
 
 
 def test_rag_model_default_is_current():
-    """RAG model default should be a current Gemini model via GenAI API."""
+    """RAG model default should be a current LiteLLM-routable model."""
     s = Settings(
         database_url="sqlite://",
         admin_secret_key="test",

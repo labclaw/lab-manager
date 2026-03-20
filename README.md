@@ -29,7 +29,7 @@ Then open `http://localhost`, finish the browser setup wizard, and sign in.
 
 Notes:
 - The generated local `.env` disables secure cookies so login works over plain HTTP on `localhost`.
-- AI keys are optional for a first pass. Without `GEMINI_API_KEY`, the core CRUD, login, admin, search, and inventory flows still work, but AI extraction and RAG features will stay unavailable.
+- AI keys are optional for a first pass. Without a configured extraction key and RAG backend key, the core CRUD, login, admin, search, and inventory flows still work, but AI extraction and Ask AI features will stay unavailable.
 - `/admin/` uses the generated `ADMIN_PASSWORD` printed by the bootstrap script.
 
 ## Create Your Own Lab Manager
