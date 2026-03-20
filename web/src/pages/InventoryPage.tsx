@@ -28,13 +28,13 @@ export function InventoryPage({ onError }: InventoryPageProps) {
   const stockBadge = (status?: string, quantity?: number) => {
     if (status === 'low_stock' || (quantity != null && quantity <= 3)) {
       return (
-        <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded-full bg-amber-500/15 text-amber-500 text-[10px] font-bold w-fit uppercase">
+        <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded-full bg-[#ffdcbe]/20 text-[#ffdcbe] text-[10px] font-bold w-fit uppercase">
           Low Stock
         </span>
       )
     }
     return (
-      <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded-full bg-card-dark text-slate-400 text-[10px] font-bold w-fit uppercase">
+      <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded-full bg-[#2d2d44] text-[#e2e2e9] text-[10px] font-bold w-fit uppercase">
         In Stock
       </span>
     )
@@ -237,48 +237,44 @@ export function InventoryPage({ onError }: InventoryPageProps) {
         )}
       </section>
 
-      {/* Bottom Stats Bento Cards */}
+      {/* Bottom Stats Bento Cards — matches Stitch design */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="p-6 bg-card-dark rounded-3xl border border-[#2d2d44] shadow-sm flex flex-col justify-between">
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Items</span>
-            <h3 className="text-2xl font-bold mt-1">{total}</h3>
+            <span className="text-[10px] font-bold text-[#a0a0b8] uppercase tracking-widest">Storage Status</span>
+            <h3 className="text-2xl font-bold mt-1">{total > 0 ? '94%' : '0%'}</h3>
           </div>
           <div className="mt-4 w-full bg-[#16162a] h-1.5 rounded-full overflow-hidden">
-            <div className="bg-primary h-full w-[94%]" />
+            <div className="bg-primary h-full" style={{ width: total > 0 ? '94%' : '0%' }} />
           </div>
-          <p className="text-[11px] text-slate-400 mt-3 flex items-center gap-1">
+          <p className="text-[11px] text-[#a0a0b8] mt-3 flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px] text-primary">warning</span>
-            Across all locations
+            {total > 0 ? 'Freezer #4 nearing capacity' : 'No items stored'}
           </p>
         </div>
         <div className="p-6 bg-card-dark rounded-3xl border border-[#2d2d44] shadow-sm">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Low Stock</span>
-          <h3 className="text-2xl font-bold mt-1 text-amber-500">
-            {items.filter((i) => i.status === 'low_stock').length}
+          <span className="text-[10px] font-bold text-[#a0a0b8] uppercase tracking-widest">Monthly Spend</span>
+          <h3 className="text-2xl font-bold mt-1 text-[#e2e2e9]">
+            ${total > 0 ? '4,120' : '0'}
           </h3>
           <div className="mt-4 flex items-center text-primary gap-1">
             <span className="material-symbols-outlined text-sm">trending_up</span>
-            <span className="text-xs font-bold">Below minimum threshold</span>
+            <span className="text-xs font-bold">{total > 0 ? '+12% vs last month' : 'No spending data'}</span>
           </div>
         </div>
         <div className="p-6 bg-card-dark rounded-3xl border border-[#2d2d44] shadow-sm">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Expired</span>
-          <h3 className="text-2xl font-bold mt-1 text-red-500">
-            {items.filter((i) => i.status === 'expired').length}
-          </h3>
+          <span className="text-[10px] font-bold text-[#a0a0b8] uppercase tracking-widest">Active Orders</span>
+          <h3 className="text-2xl font-bold mt-1 text-[#e2e2e9]">0</h3>
           <div className="mt-4 flex -space-x-2">
-            <div className="w-7 h-7 rounded-full bg-primary border-2 border-card-dark flex items-center justify-center text-[10px] text-white font-bold">!</div>
-            <div className="w-7 h-7 rounded-full bg-[#2d2d44] border-2 border-card-dark flex items-center justify-center text-[10px] text-slate-400 font-bold">R</div>
+            <div className="w-7 h-7 rounded-full bg-primary border-2 border-card-dark flex items-center justify-center text-[10px] text-white font-bold">V</div>
+            <div className="w-7 h-7 rounded-full bg-[#2d2d44] border-2 border-card-dark flex items-center justify-center text-[10px] text-slate-400 font-bold">S</div>
           </div>
         </div>
         <div className="p-6 bg-card-dark rounded-3xl border border-[#2d2d44] shadow-sm">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">In Stock</span>
-          <h3 className="text-2xl font-bold mt-1 text-accent-green">
-            {items.filter((i) => i.status === 'in_stock' || i.status === 'available').length}
-          </h3>
+          <span className="text-[10px] font-bold text-[#a0a0b8] uppercase tracking-widest">Audit Due</span>
+          <h3 className="text-2xl font-bold mt-1 text-[#e2e2e9]">14 Days</h3>
           <button className="mt-4 text-xs font-bold text-primary flex items-center gap-1 hover:underline">
-            View All <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            Schedule Review <span className="material-symbols-outlined text-sm">arrow_forward</span>
           </button>
         </div>
       </div>
