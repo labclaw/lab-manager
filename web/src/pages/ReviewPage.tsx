@@ -105,7 +105,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-3">
         <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-        <span className="text-sm text-slate-500 font-medium">Checking queue...</span>
+        <span className="text-sm text-[var(--muted-foreground)] font-medium">Checking queue...</span>
       </div>
     )
   }
@@ -113,15 +113,15 @@ export function ReviewPage({ onError }: ReviewPageProps) {
   if (queue.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center">
-          <span className="material-symbols-outlined text-2xl text-slate-400">
+        <div className="w-12 h-12 rounded-2xl bg-[var(--card)] flex items-center justify-center">
+          <span className="material-symbols-outlined text-2xl text-[var(--muted-foreground)]">
             check_circle
           </span>
         </div>
-        <h3 className="text-base font-semibold text-white">
+        <h3 className="text-base font-semibold text-[var(--foreground)]">
           No documents waiting for review
         </h3>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-[var(--muted-foreground)]">
           Upload a packing list or invoice to begin.
         </p>
         <button
@@ -141,25 +141,25 @@ export function ReviewPage({ onError }: ReviewPageProps) {
   return (
     <div className="-m-6 flex flex-col h-[calc(100vh-4rem)]">
       {/* Top Bar */}
-      <header className="h-16 border-b border-border-dark flex items-center justify-between px-6 bg-background-dark shrink-0">
+      <header className="h-16 border-b border-[var(--border)] flex items-center justify-between px-6 bg-[var(--background)] shrink-0">
         <div>
-          <h2 className="text-xl font-bold text-white leading-tight">Review Queue</h2>
-          <p className="text-xs text-slate-500 font-medium">
+          <h2 className="text-xl font-bold text-[var(--foreground)] leading-tight">Review Queue</h2>
+          <p className="text-xs text-[var(--muted-foreground)] font-medium">
             {queue.length} document{queue.length !== 1 ? 's' : ''} awaiting verification
           </p>
         </div>
         <div className="flex items-center gap-4">
           <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-lg">
               search
             </span>
             <input
-              className="bg-surface-dark border-border-dark text-sm rounded-lg pl-10 pr-4 py-1.5 w-64 focus:ring-primary focus:border-primary"
+              className="bg-[var(--card)] border-[var(--border)] text-sm rounded-lg pl-10 pr-4 py-1.5 w-64 focus:ring-primary focus:border-primary"
               placeholder="Search filename..."
               type="text"
             />
           </div>
-          <button className="p-2 text-slate-400 hover:text-white">
+          <button className="p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
             <span className="material-symbols-outlined">filter_list</span>
           </button>
         </div>
@@ -168,7 +168,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
       {/* Workspace Split */}
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Document List (40%) */}
-        <section className="w-[40%] border-r border-border-dark flex flex-col bg-surface-dark/30">
+        <section className="w-[40%] border-r border-[var(--border)] flex flex-col bg-[var(--card)]/30">
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
             {queue.map((item) => {
               const isSelected = item.id === doc.id
@@ -184,13 +184,13 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                   className={
                     isSelected
                       ? 'p-4 rounded-xl border-2 border-primary bg-primary/5 cursor-pointer relative group'
-                      : 'p-4 rounded-xl border border-border-dark bg-surface-dark/50 hover:bg-surface-dark cursor-pointer transition-all'
+                      : 'p-4 rounded-xl border border-[var(--border)] bg-[var(--card)]/50 hover:bg-[var(--card)] cursor-pointer transition-all'
                   }
                 >
                   <div className="flex justify-between items-start mb-2">
                     <h3
                       className={`text-sm font-bold truncate w-4/5 ${
-                        isSelected ? 'text-white' : 'text-slate-200'
+                        isSelected ? 'text-[var(--foreground)]' : 'text-[var(--foreground)]'
                       }`}
                     >
                       {item.filename ?? `Doc #${item.id}`}
@@ -201,10 +201,10 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                   </div>
                   <div className="flex justify-between items-end">
                     <div className="space-y-0.5">
-                      <p className="text-xs text-slate-400 font-medium">
+                      <p className="text-xs text-[var(--muted-foreground)] font-medium">
                         {item.vendor_name ?? 'Unknown vendor'}
                       </p>
-                      <p className="text-[10px] text-slate-500 italic">
+                      <p className="text-[10px] text-[var(--muted-foreground)] italic">
                         Extracted: {formatDate(item.created_at)}
                       </p>
                     </div>
@@ -221,15 +221,15 @@ export function ReviewPage({ onError }: ReviewPageProps) {
         </section>
 
         {/* Detail Panel (60%) */}
-        <section className="flex-1 flex flex-col bg-background-dark overflow-hidden relative">
+        <section className="flex-1 flex flex-col bg-[var(--background)] overflow-hidden relative">
           {/* Document Preview Area */}
-          <div className="h-[35%] min-h-[300px] p-6 bg-black flex flex-col border-b border-border-dark/50">
+          <div className="h-[35%] min-h-[300px] p-6 bg-black flex flex-col border-b border-[var(--border)]/50">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                <span className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest">
                   Document Preview
                 </span>
-                <div className="h-4 w-px bg-slate-700" />
+                <div className="h-4 w-px bg-[var(--border)]" />
                 {docDetail.confidence != null && (
                   <span
                     className={`text-xs flex items-center gap-1 font-semibold ${
@@ -252,18 +252,18 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                 )}
               </div>
               <div className="flex gap-2">
-                <button className="p-1.5 rounded bg-surface-dark hover:bg-slate-700 text-slate-400">
+                <button className="p-1.5 rounded bg-[var(--card)] hover:bg-[var(--border)] text-[var(--muted-foreground)]">
                   <span className="material-symbols-outlined text-sm">zoom_in</span>
                 </button>
-                <button className="p-1.5 rounded bg-surface-dark hover:bg-slate-700 text-slate-400">
+                <button className="p-1.5 rounded bg-[var(--card)] hover:bg-[var(--border)] text-[var(--muted-foreground)]">
                   <span className="material-symbols-outlined text-sm">zoom_out</span>
                 </button>
-                <button className="p-1.5 rounded bg-surface-dark hover:bg-slate-700 text-slate-400">
+                <button className="p-1.5 rounded bg-[var(--card)] hover:bg-[var(--border)] text-[var(--muted-foreground)]">
                   <span className="material-symbols-outlined text-sm">open_in_new</span>
                 </button>
               </div>
             </div>
-            <div className="flex-1 rounded-lg border border-slate-800 bg-surface-dark/20 flex items-center justify-center overflow-hidden relative group">
+            <div className="flex-1 rounded-lg border border-slate-800 bg-[var(--card)]/20 flex items-center justify-center overflow-hidden relative group">
               <div className="text-center transition-transform group-hover:scale-105 duration-500">
                 <div className="mb-4 bg-primary/20 p-8 inline-block rounded-full relative">
                   <span className="material-symbols-outlined text-primary text-5xl">
@@ -271,10 +271,10 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-tr from-primary/30 to-transparent animate-pulse rounded-full" />
                 </div>
-                <p className="text-sm text-slate-300 font-medium">
+                <p className="text-sm text-[var(--foreground)] font-medium">
                   {docDetail.filename ?? `Document #${docDetail.id}`}
                 </p>
-                <p className="text-[10px] text-slate-500">Page 1 of 1 &bull; 1.2 MB</p>
+                <p className="text-[10px] text-[var(--muted-foreground)]">Page 1 of 1 &bull; 1.2 MB</p>
               </div>
               {/* Grid pattern for technical feel */}
               <div
@@ -294,18 +294,18 @@ export function ReviewPage({ onError }: ReviewPageProps) {
             <div className="flex-1 p-6 pb-28">
               {/* Extracted Data Grid */}
               <div className="mb-8">
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <h4 className="text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-widest mb-4 flex items-center gap-2">
                   <span className="material-symbols-outlined text-sm">grid_view</span>
                   Extracted Header Data
                 </h4>
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
                   <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                    <label className="block text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wide">
                       Vendor
                     </label>
                     <div className="relative group">
                       <input
-                        className="w-full bg-surface-dark border-border-dark rounded-lg py-2.5 pl-3 pr-10 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-surface-dark/80"
+                        className="w-full bg-[var(--card)] border-[var(--border)] rounded-lg py-2.5 pl-3 pr-10 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-[var(--card)]/80"
                         type="text"
                         readOnly
                         value={docDetail.vendor_name ?? ''}
@@ -316,12 +316,12 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                    <label className="block text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wide">
                       PO Number
                     </label>
                     <div className="relative">
                       <input
-                        className="w-full bg-surface-dark border-border-dark rounded-lg py-2.5 pl-3 pr-10 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-surface-dark/80"
+                        className="w-full bg-[var(--card)] border-[var(--border)] rounded-lg py-2.5 pl-3 pr-10 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-[var(--card)]/80"
                         type="text"
                         readOnly
                         value="--"
@@ -332,13 +332,13 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                    <label className="block text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wide">
                       Document Type
                     </label>
                     <select
                       disabled
                       value={docDetail.document_type ?? ''}
-                      className="w-full bg-surface-dark border-border-dark rounded-lg py-2.5 px-3 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-surface-dark/80"
+                      className="w-full bg-[var(--card)] border-[var(--border)] rounded-lg py-2.5 px-3 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-[var(--card)]/80"
                     >
                       <option value="packing_list">Packing List</option>
                       <option value="invoice">Invoice</option>
@@ -349,39 +349,39 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                    <label className="block text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wide">
                       Ship Date
                     </label>
                     <input
-                      className="w-full bg-surface-dark border-border-dark rounded-lg py-2.5 px-3 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-surface-dark/80"
+                      className="w-full bg-[var(--card)] border-[var(--border)] rounded-lg py-2.5 px-3 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-[var(--card)]/80"
                       type="date"
                       readOnly
                       value=""
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                    <label className="block text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wide">
                       Received Date
                     </label>
                     <input
-                      className="w-full bg-surface-dark border-border-dark rounded-lg py-2.5 px-3 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-surface-dark/80"
+                      className="w-full bg-[var(--card)] border-[var(--border)] rounded-lg py-2.5 px-3 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-[var(--card)]/80"
                       type="date"
                       readOnly
                       value={docDetail.created_at?.split('T')[0] ?? ''}
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                    <label className="block text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wide">
                       Received By
                     </label>
                     <div className="relative">
                       <input
-                        className="w-full bg-surface-dark border-border-dark rounded-lg py-2.5 pl-3 pr-10 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-surface-dark/80"
+                        className="w-full bg-[var(--card)] border-[var(--border)] rounded-lg py-2.5 pl-3 pr-10 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-[var(--card)]/80"
                         placeholder="Scanning name..."
                         type="text"
                         readOnly
                       />
-                      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">
+                      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-lg">
                         edit
                       </span>
                     </div>
@@ -391,14 +391,14 @@ export function ReviewPage({ onError }: ReviewPageProps) {
 
               {/* Line Items Table */}
               <div>
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <h4 className="text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-widest mb-4 flex items-center gap-2">
                   <span className="material-symbols-outlined text-sm">list_alt</span>
                   Extracted Line Items
                 </h4>
-                <div className="overflow-hidden rounded-xl border border-border-dark bg-surface-dark/30">
+                <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)]/30">
                   <table className="w-full text-left text-sm border-collapse">
                     <thead>
-                      <tr className="bg-surface-dark/60 text-slate-400 font-bold border-b border-border-dark">
+                      <tr className="bg-[var(--card)]/60 text-[var(--muted-foreground)] font-bold border-b border-[var(--border)]">
                         <th className="px-4 py-3 text-[10px] uppercase tracking-wider">
                           Catalog #
                         </th>
@@ -416,10 +416,10 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-border-dark text-slate-300">
+                    <tbody className="divide-y divide-border-dark text-[var(--foreground)]">
                       <tr className="hover:bg-primary/5 transition-colors">
                         <td
-                          className="px-4 py-3 font-mono text-xs text-slate-300"
+                          className="px-4 py-3 font-mono text-xs text-[var(--foreground)]"
                           colSpan={5}
                         >
                           <span className="italic">
@@ -442,8 +442,8 @@ export function ReviewPage({ onError }: ReviewPageProps) {
             </div>
 
             {/* Side Snippet: Activity Log */}
-            <div className="w-64 border-l border-border-dark/30 p-4 bg-surface-dark/10">
-              <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <div className="w-64 border-l border-[var(--border)]/30 p-4 bg-[var(--card)]/10">
+              <h4 className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-sm">history</span>
                 Activity Log
               </h4>
@@ -451,10 +451,10 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                 <div className="flex gap-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
                   <div>
-                    <p className="text-[11px] text-slate-200 leading-tight">
+                    <p className="text-[11px] text-[var(--foreground)] leading-tight">
                       Document ingested via Scanner A
                     </p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">
+                    <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5">
                       {formatDate(docDetail.created_at)}
                     </p>
                   </div>
@@ -462,21 +462,21 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                 <div className="flex gap-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
                   <div>
-                    <p className="text-[11px] text-slate-200 leading-tight">
+                    <p className="text-[11px] text-[var(--foreground)] leading-tight">
                       AI Extraction completed
                     </p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">
+                    <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5">
                       {formatDate(docDetail.created_at)}
                     </p>
                   </div>
                 </div>
                 <div className="flex gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-slate-600 mt-1.5 shrink-0" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-[var(--muted-foreground)] mt-1.5 shrink-0" />
                   <div>
-                    <p className="text-[11px] text-slate-400 leading-tight">
+                    <p className="text-[11px] text-[var(--muted-foreground)] leading-tight">
                       Assigned to reviewer
                     </p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">
+                    <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5">
                       {formatDate(docDetail.created_at)}
                     </p>
                   </div>
@@ -486,7 +486,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                 <p className="text-[10px] font-bold text-primary uppercase mb-2">
                   Review Tip
                 </p>
-                <p className="text-[11px] text-slate-400 leading-relaxed">
+                <p className="text-[11px] text-[var(--muted-foreground)] leading-relaxed">
                   Check extracted fields against the original document. Flag any
                   mismatches for correction.
                 </p>
@@ -497,17 +497,17 @@ export function ReviewPage({ onError }: ReviewPageProps) {
           {/* Rejection dialog */}
           {rejecting && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
-              <div className="bg-surface-dark border border-border-dark rounded-xl p-6 w-full max-w-md space-y-4 shadow-2xl">
-                <h3 className="text-base font-semibold text-white">Reject Document</h3>
-                <p className="text-sm text-slate-400">
+              <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 w-full max-w-md space-y-4 shadow-2xl">
+                <h3 className="text-base font-semibold text-[var(--foreground)]">Reject Document</h3>
+                <p className="text-sm text-[var(--muted-foreground)]">
                   Provide a reason for rejecting{' '}
-                  <span className="font-medium text-white">{doc.filename}</span>
+                  <span className="font-medium text-[var(--foreground)]">{doc.filename}</span>
                 </p>
                 <textarea
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
                   placeholder="Describe the issue..."
-                  className="w-full h-24 bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                  className="w-full h-24 bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                 />
                 <div className="flex items-center gap-3 justify-end">
                   <button
@@ -515,7 +515,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                       setRejecting(false)
                       setRejectReason('')
                     }}
-                    className="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition-colors"
+                    className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
                   >
                     Cancel
                   </button>
@@ -537,7 +537,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
           )}
 
           {/* Footer Action Bar */}
-          <footer className="p-4 border-t border-border-dark bg-background-dark/95 backdrop-blur-md absolute bottom-0 left-0 right-0 z-10 shadow-2xl">
+          <footer className="p-4 border-t border-[var(--border)] bg-[var(--background)]/95 backdrop-blur-md absolute bottom-0 left-0 right-0 z-10 shadow-2xl">
             <div className="flex items-center justify-between">
               <div className="flex gap-4">
                 <div className="relative group">
@@ -551,29 +551,29 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                     </span>
                     {approveMutation.isPending ? 'Approving...' : 'Approve'}
                   </button>
-                  <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-background-dark border border-border-dark rounded text-[9px] font-bold text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-[var(--background)] border border-[var(--border)] rounded text-[9px] font-bold text-[var(--muted-foreground)] opacity-0 group-hover:opacity-100 transition-opacity">
                     &#8984;&#8629;
                   </span>
                 </div>
                 <div className="relative group">
                   <button
                     disabled={actionLoading}
-                    className="px-6 py-2.5 bg-surface-dark border border-primary/40 hover:border-primary text-slate-200 font-bold rounded-lg text-sm transition-all flex items-center gap-2 hover:bg-primary/5 disabled:opacity-50"
+                    className="px-6 py-2.5 bg-[var(--card)] border border-primary/40 hover:border-primary text-[var(--foreground)] font-bold rounded-lg text-sm transition-all flex items-center gap-2 hover:bg-primary/5 disabled:opacity-50"
                   >
                     <span className="material-symbols-outlined text-lg text-primary">
                       edit_document
                     </span>
                     Edit &amp; Approve
                   </button>
-                  <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-background-dark border border-border-dark rounded text-[9px] font-bold text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-[var(--background)] border border-[var(--border)] rounded text-[9px] font-bold text-[var(--muted-foreground)] opacity-0 group-hover:opacity-100 transition-opacity">
                     &#8984;E
                   </span>
                 </div>
               </div>
               <div className="flex items-center gap-6">
-                <div className="hidden xl:flex items-center gap-4 text-slate-500 mr-4">
+                <div className="hidden xl:flex items-center gap-4 text-[var(--muted-foreground)] mr-4">
                   <div className="flex items-center gap-1.5">
-                    <kbd className="px-1.5 py-0.5 bg-surface-dark border border-border-dark rounded text-[10px] font-bold">
+                    <kbd className="px-1.5 py-0.5 bg-[var(--card)] border border-[var(--border)] rounded text-[10px] font-bold">
                       ESC
                     </kbd>
                     <span className="text-[10px] font-medium uppercase tracking-wider">
@@ -581,10 +581,10 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <kbd className="px-1.5 py-0.5 bg-surface-dark border border-border-dark rounded text-[10px] font-bold">
+                    <kbd className="px-1.5 py-0.5 bg-[var(--card)] border border-[var(--border)] rounded text-[10px] font-bold">
                       J
                     </kbd>
-                    <kbd className="px-1.5 py-0.5 bg-surface-dark border border-border-dark rounded text-[10px] font-bold">
+                    <kbd className="px-1.5 py-0.5 bg-[var(--card)] border border-[var(--border)] rounded text-[10px] font-bold">
                       K
                     </kbd>
                     <span className="text-[10px] font-medium uppercase tracking-wider">
@@ -595,7 +595,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                 <button
                   onClick={() => setRejecting(true)}
                   disabled={actionLoading}
-                  className="px-6 py-2.5 border-2 border-red-500/30 text-red-400 hover:text-white hover:bg-red-500/80 hover:border-red-500 font-bold rounded-lg text-sm transition-all flex items-center gap-2 disabled:opacity-50"
+                  className="px-6 py-2.5 border-2 border-red-500/30 text-red-400 hover:text-[var(--foreground)] hover:bg-red-500/80 hover:border-red-500 font-bold rounded-lg text-sm transition-all flex items-center gap-2 disabled:opacity-50"
                 >
                   <span className="material-symbols-outlined text-lg">block</span>
                   Reject
