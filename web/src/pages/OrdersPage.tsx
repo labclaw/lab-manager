@@ -95,7 +95,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
               Tracking {total} active shipments and pending procurement requisitions.
             </p>
           </div>
-          <button className="bg-gradient-to-br from-primary to-primary-container text-white px-6 py-3 rounded-xl font-bold flex items-center shadow-lg hover:scale-105 transition-transform duration-200">
+          <button disabled className="bg-gradient-to-br from-primary to-primary-container text-white px-6 py-3 rounded-xl font-bold flex items-center shadow-lg opacity-50 cursor-not-allowed" title="Coming soon">
             <span className="material-symbols-outlined mr-2">add_shopping_cart</span>
             New Requisition
           </button>
@@ -262,26 +262,13 @@ export function OrdersPage({ onError }: OrdersPageProps) {
           })}
 
           {/* Bottom Stats */}
-          <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+          <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
             <div className="bg-primary p-6 rounded-xl text-white flex flex-col justify-between shadow-lg">
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-widest opacity-80 mb-1">Total Monthly Spend</h4>
                 <p className="text-2xl font-extrabold">
                   {formatCurrency(allOrders.reduce((sum, o) => sum + (o.total_amount ?? 0), 0))}
                 </p>
-              </div>
-              <div className="mt-4 flex items-center gap-2">
-                <span className="material-symbols-outlined text-xs">trending_up</span>
-                <span className="text-[10px] font-bold">+12% from last month</span>
-              </div>
-            </div>
-            <div className="bg-surface-container border border-outline p-6 rounded-xl flex flex-col justify-between">
-              <div>
-                <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">Delivery Success</h4>
-                <p className="text-2xl font-extrabold text-on-surface">98.4%</p>
-              </div>
-              <div className="h-1 w-full bg-outline mt-4 rounded-full overflow-hidden">
-                <div className="h-full bg-primary w-[98%]" />
               </div>
             </div>
             <div className="bg-surface-container-high border border-outline p-6 rounded-xl flex flex-col justify-between">
@@ -290,12 +277,6 @@ export function OrdersPage({ onError }: OrdersPageProps) {
                 <p className="text-2xl font-extrabold text-on-surface">
                   {allOrders.filter((o) => o.status === 'shipped').reduce((sum, o) => sum + (o.item_count ?? 0), 0)}
                 </p>
-              </div>
-              <div className="flex -space-x-2 mt-4 overflow-hidden">
-                <div className="h-6 w-6 rounded-full border-2 border-[var(--border)] bg-[var(--muted-foreground)]" />
-                <div className="h-6 w-6 rounded-full border-2 border-[var(--border)] bg-[var(--muted-foreground)]" />
-                <div className="h-6 w-6 rounded-full border-2 border-[var(--border)] bg-[var(--muted-foreground)]" />
-                <div className="h-6 w-6 rounded-full border-2 border-[var(--border)] bg-primary flex items-center justify-center text-[8px] font-bold text-white">+39</div>
               </div>
             </div>
           </div>
