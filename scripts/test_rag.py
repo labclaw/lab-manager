@@ -60,7 +60,7 @@ def test_api():
     import urllib.request
     import urllib.parse
 
-    base_url = "http://localhost:8000/api/ask"
+    base_url = "http://localhost:8000/api/v1/ask"
 
     for i, question in enumerate(EXAMPLE_QUERIES, 1):
         print(f"\n{'=' * 70}")
@@ -106,7 +106,7 @@ def test_api():
     try:
         with urllib.request.urlopen(req, timeout=60) as resp:
             result = json.loads(resp.read().decode("utf-8"))
-        print(f"GET /api/ask?q=... -> {result['answer']}")
+        print(f"GET /api/v1/ask?q=... -> {result['answer']}")
     except Exception as e:
         print(f"ERROR (GET): {e}")
 

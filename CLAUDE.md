@@ -113,7 +113,7 @@ providers/more_ocr.py  — DeepSeek, GLM, PaddleOCR, Mistral, registries
 | Inventory (9) | CRUD + consume/transfer/adjust/dispose/open + low-stock/expiring/history |
 | Documents (5) | CRUD + review workflow + stats |
 | Search (2) | `GET /api/search?q=...` + `/suggest` (Meilisearch) |
-| RAG (2) | `GET/POST /api/ask` — NL→SQL via Gemini |
+| RAG (2) | `GET/POST /api/v1/ask` — NL→SQL via Gemini |
 | Analytics (10) | Dashboard, spending, inventory value, top products, staff, vendor summary |
 | Export (4) | CSV downloads: inventory, orders, products, vendors |
 | Alerts (5) | Check/list/acknowledge/resolve + summary |

@@ -12,6 +12,7 @@ interface SidebarProps {
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: 'dashboard' },
+  { path: '/ask', label: 'Ask AI', icon: 'smart_toy' },
   { path: '/documents', label: 'Documents', icon: 'description' },
   { path: '/review', label: 'Review Queue', icon: 'fact_check' },
   { path: '/inventory', label: 'Inventory', icon: 'inventory_2' },

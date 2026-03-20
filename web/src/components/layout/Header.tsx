@@ -8,8 +8,7 @@ interface HeaderProps {
   readonly onToggleDarkMode: () => void
 }
 
-export function Header({ title: _title, onSearch, darkMode, onToggleDarkMode }: HeaderProps) {
-  void _title
+export function Header({ title, onSearch, darkMode, onToggleDarkMode }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -44,7 +43,11 @@ export function Header({ title: _title, onSearch, darkMode, onToggleDarkMode }: 
 
   return (
     <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-primary/10 px-6 py-4 lg:px-10 bg-[var(--background)]/80 backdrop-blur-md sticky top-0 z-50">
-      <div className="flex items-center gap-8 flex-1">
+      <div className="flex items-center gap-8 flex-1 min-w-0">
+        <div className="hidden xl:flex flex-col min-w-0">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">Current View</span>
+          <h1 className="text-lg font-bold text-[var(--foreground)] truncate">{title}</h1>
+        </div>
         <label className="hidden md:flex flex-col max-w-xl w-full h-10 relative">
           <div className="flex w-full flex-1 items-stretch rounded-lg h-full">
             <div className="text-[var(--muted-foreground)] flex border-none bg-[var(--card)] items-center justify-center pl-4 rounded-l-lg">

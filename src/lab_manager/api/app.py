@@ -573,12 +573,12 @@ def create_app() -> FastAPI:
     )
     app.include_router(api_router)
 
-    # --- Apply rate limiting decorators to GET /api/ask endpoint ---
+    # --- Apply rate limiting decorators to GET /api/v1/ask endpoint ---
     # Rate limit: 10 requests per minute (same as POST)
     for route in app.routes:
         if hasattr(route, "path") and hasattr(route, "endpoint"):
             if (
-                route.path in ("/api/ask", "/api/ask/")
+                route.path in ("/api/v1/ask", "/api/v1/ask/")
                 and route.methods
                 and "GET" in route.methods
             ):
