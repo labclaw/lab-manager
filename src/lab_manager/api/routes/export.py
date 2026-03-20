@@ -9,7 +9,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
-from sqlmodel import Session
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db
 from lab_manager.services import analytics as svc
@@ -101,7 +102,9 @@ def export_products(db: Session = Depends(get_db)):
         "is_hazardous",
         "is_controlled",
     ]
-    query = db.query(Product).order_by(Product.id).yield_per(100)
+    query = db.scalars(
+        select(Product).order_by(Product.id).execution_options(yield_per=100)
+    )
 
     def generate():
         output = io.StringIO()
@@ -129,7 +132,9 @@ def export_products(db: Session = Depends(get_db)):
 @router.get("/vendors", include_in_schema=False)
 def export_vendors(db: Session = Depends(get_db)):
     fieldnames = ["id", "name", "website", "phone", "email", "notes"]
-    query = db.query(Vendor).order_by(Vendor.id).yield_per(100)
+    query = db.scalars(
+        select(Vendor).order_by(Vendor.id).execution_options(yield_per=100)
+    )
 
     def generate():
         output = io.StringIO()
