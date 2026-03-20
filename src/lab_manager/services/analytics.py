@@ -6,7 +6,7 @@ from datetime import date, timedelta
 from typing import Optional
 
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 
 from lab_manager.models.document import Document, DocumentStatus
 from lab_manager.models.inventory import ACTIVE_STATUSES, InventoryItem

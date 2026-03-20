@@ -9,7 +9,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Query, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, field_validator
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
