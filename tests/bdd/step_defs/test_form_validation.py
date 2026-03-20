@@ -52,20 +52,23 @@ def order_exists(db):
 @when("I submit login with empty email", target_fixture="response")
 def submit_login_empty_email(api):
     """Submit login without email."""
-    return api.post("/api/auth/login", json={"email": "", "password": "password123"})
+    return api.post("/api/v1/auth/login", json={"email": "", "password": "password123"})
 
 
 @when("I submit login with empty password", target_fixture="response")
 def submit_login_empty_password(api):
     """Submit login without password."""
-    return api.post("/api/auth/login", json={"email": "test@test.com", "password": ""})
+    return api.post(
+        "/api/v1/auth/login", json={"email": "test@test.com", "password": ""}
+    )
 
 
 @when('I submit login with email "invalid-email"', target_fixture="response")
 def submit_login_invalid_email(api):
     """Submit login with invalid email."""
     return api.post(
-        "/api/auth/login", json={"email": "invalid-email", "password": "password123"}
+        "/api/v1/auth/login",
+        json={"email": "invalid-email", "password": "password123"},
     )
 
 
@@ -73,7 +76,7 @@ def submit_login_invalid_email(api):
 def submit_setup_short_password(api):
     """Submit setup with short password."""
     return api.post(
-        "/api/setup/complete",
+        "/api/v1/setup/complete",
         json={
             "admin_name": "Test",
             "admin_email": "test@test.com",
