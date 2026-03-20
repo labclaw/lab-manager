@@ -27,6 +27,11 @@ class InventoryStatus(str, enum.Enum):
     deleted = "deleted"
 
 
+# Canonical set of statuses considered "active" for stock and expiry calculations.
+# available = unopened and usable, opened = in-use but still usable.
+ACTIVE_STATUSES = frozenset({InventoryStatus.available, InventoryStatus.opened})
+
+
 class InventoryItem(AuditMixin, table=True):
     __tablename__ = "inventory"
     __table_args__ = (
