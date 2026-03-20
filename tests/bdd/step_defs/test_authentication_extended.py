@@ -261,7 +261,7 @@ def receive_session_cookie_check(api_client):
 def cookie_httponly(api_client):
     """Verify HttpOnly."""
     # Check cookie attributes from response headers
-    set_cookie = api_client.response.headers.get("set-cookie", "")
+    api_client.response.headers.get("set-cookie", "")
     # Note: HttpOnly is set by server, we verify the attribute exists
     assert isinstance(set_cookie, str)
     assert api_client.response.cookies is not None
@@ -270,7 +270,7 @@ def cookie_httponly(api_client):
 @then("the cookie should have SameSite attribute")
 def cookie_samesite(api_client):
     """Verify SameSite."""
-    set_cookie = api_client.response.headers.get("set-cookie", "")
+    api_client.response.headers.get("set-cookie", "")
     # SameSite should be in the cookie header
     assert isinstance(set_cookie, str)
     assert api_client.response.cookies is not None
