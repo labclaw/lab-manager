@@ -14,6 +14,16 @@ from lab_manager.intake.schemas import ExtractedDocument, ExtractedItem
 from lab_manager.models.document import Document, DocumentStatus
 
 
+@pytest.fixture(autouse=True)
+def _pipeline_e2e_settings(monkeypatch):
+    monkeypatch.setenv("AUTH_ENABLED", "false")
+    monkeypatch.setenv("ADMIN_SECRET_KEY", "test-secret-key-not-for-production")
+    monkeypatch.setenv("ADMIN_PASSWORD", "test-admin-password-not-for-production")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
 def _make_png() -> bytes:
     """Minimal valid 1x1 PNG."""
 
