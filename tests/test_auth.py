@@ -178,17 +178,17 @@ def test_login_inactive_user(auth_client, inactive_staff):
 
 
 def test_admin_auth_requires_admin_password(monkeypatch, auth_engine):
-    """SQLAdmin must not fall back to API_KEY for admin login."""
-    monkeypatch.setenv("AUTH_ENABLED", "true")
-    monkeypatch.setenv("ADMIN_SECRET_KEY", "test-secret-key-for-signing")
-    monkeypatch.setenv("API_KEY", "test-api-key-12345")
-    monkeypatch.setenv("ADMIN_PASSWORD", "")
-    get_settings.cache_clear()
+    """SQLAdmin must not fall back to API_KEY for admin login.
 
     The actual RuntimeError is raised inside admin._make_auth_backend()
     at startup. We test the Settings validation here directly to avoid
     cross-test pollution of the get_settings cache.
     """
+    monkeypatch.setenv("AUTH_ENABLED", "true")
+    monkeypatch.setenv("ADMIN_SECRET_KEY", "test-secret-key-for-signing")
+    monkeypatch.setenv("API_KEY", "test-api-key-12345")
+    monkeypatch.setenv("ADMIN_PASSWORD", "")
+    get_settings.cache_clear()
     from lab_manager.config import Settings
 
     settings_no_pw = Settings(
