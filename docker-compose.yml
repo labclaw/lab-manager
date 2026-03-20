@@ -58,7 +58,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile.test
+      dockerfile: Dockerfile
     expose:
       - "8000"
     mem_limit: 1g
