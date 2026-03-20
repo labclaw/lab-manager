@@ -1,76 +1,121 @@
-Feature: Staff Management
+# 员工管理 — 完整生命周期测试
+Feature: Staff Management Lifecycle
   As a lab administrator
-  I want to manage lab staff accounts
-  So that team members can access the system appropriately
+  I want to manage staff accounts and permissions
+  So that lab access is properly controlled
 
   Background:
-    Given I am authenticated as "admin"
+    Given I am authenticated as staff "admin1" with admin role
 
-  Scenario: Create staff account
+  # 创建员工
+  Scenario: Create new staff member
     When I create a staff member with:
-      | email    | scientist@lab.com |
-      | name     | Dr. Jane Smith    |
-      | role     | scientist         |
-    Then the staff account should be created
-    And a welcome email should be sent
+      | name | email | role |
+      | John Doe | john@example.com | staff |
+    Then the staff member should be created
+    And the staff should have a unique ID
 
-  Scenario: List staff members
-    Given 5 staff members exist
-    When I request all staff
-    Then I should receive 5 staff members
+  Scenario: Create staff with duplicate email
+    Given staff "john@example.com" already exists
+    When I create a staff member with email "john@example.com"
+    Then I should receive a conflict error
+    And the error should indicate email already in use
+
+  Scenario: Create staff without required fields
+    When I create a staff member without a name
+    Then I should receive a validation error
+    And the error should list missing fields
+
+  # 更新员工
+  Scenario: Update staff name
+    Given staff "scientist1" exists
+    When I update staff "scientist1" name to "Dr. Scientist"
+    Then the name should be updated
+    And the update should be logged in audit trail
 
   Scenario: Update staff role
-    Given a staff member "tech@lab.com" with role "technician" exists
-    When I update the role to "scientist"
+    Given staff "scientist1" with role "staff"
+    When I change role to "admin"
     Then the role should be updated
+    And the staff should have new permissions
 
-  Scenario: Deactivate staff account
-    Given a staff member "leaving@lab.com" exists
-    When I deactivate the account
-    Then the account status should be "inactive"
-    And the user should not be able to login
+  Scenario: Update last active timestamp
+    Given staff "scientist1" last active 2 days ago
+    When staff "scientist1" makes an API request
+    Then last_active should be updated
+    And the timestamp should be recent
 
-  Scenario: Reactivate staff account
-    Given an inactive staff account exists
-    When I reactivate the account
-    Then the account status should be "active"
-    And the user should be able to login
+  # 停用/激活
+  Scenario: Deactivate staff member
+    Given staff "scientist1" is active
+    When I deactivate the staff account
+    Then the account should be inactive
+    And the staff should not be able to login
 
-  Scenario: Staff activity report
-    Given staff members have activity:
-      | email              | actions |
-      | active@lab.com     | 50      |
-      | moderate@lab.com   | 20      |
-      | inactive@lab.com   | 5       |
+  Scenario: Reactivate staff member
+    Given staff "scientist1" is inactive
+    When I reactivate the staff account
+    Then the account should be active
+    And the staff should be able to login
+
+  Scenario: Deactivate staff with active sessions
+    Given staff "scientist1" has 3 active sessions
+    When I deactivate the staff account
+    Then all sessions should be invalidated
+    And the staff should be logged out
+
+  # 权限
+  Scenario: Staff with staff role cannot access admin endpoints
+    Given I am authenticated as staff with role "staff"
+    When I try to access admin panel
+    Then I should receive 403 Forbidden
+
+  Scenario: Admin can access all endpoints
+    Given I am authenticated as staff with role "admin"
+    When I access any endpoint
+    Then I should have appropriate access
+
+  # 搜索
+  Scenario: Search staff by name
+    Given staff "John Doe" and "Jane Smith" exist
+    When I search for staff "John"
+    Then I should find "John Doe"
+    And I should not find "Jane Smith"
+
+  Scenario: Filter staff by role
+    Given 3 admin staff and 7 regular staff
+    When I filter by role "admin"
+    Then I should see 3 staff members
+
+  # 统计
+  Scenario: Get staff activity statistics
+    Given staff have various activity levels
     When I request staff activity report
-    Then I should see activity counts per staff member
-    And staff should be ordered by activity
+    Then each staff should have action counts
+    And the report should be sorted by activity
 
-  Scenario: Role-based permissions
-    Given staff with roles:
-      | role      | can_manage_users | can_delete_data |
-      | admin     | true             | true            |
-      | scientist | false            | false           |
-    When I check permissions
-    Then each role should have appropriate permissions
+  # 边界情况
+  Scenario: List staff with pagination
+    Given 50 staff members exist
+    When I request staff list page 2 with size 10
+    Then I should see staff 11-20
+    And total count should be 50
 
-  Scenario: Staff profile update
-    Given a staff member exists
-    When the staff member updates their profile
-    Then the profile should be updated
-    And email changes should require verification
+  Scenario: Delete staff who created orders
+    Given staff "olduser" created 10 orders
+    When I delete staff "olduser"
+    Then orders should be reassigned or marked
+    And deletion should be logged
 
-  Scenario: Password reset
-    Given a staff member "forgot@lab.com" exists
-    When I request password reset
-    Then a reset link should be sent
-    And the link should expire after 24 hours
+  # 密码重置
+  Scenario: Request password reset
+    Given staff "scientist1" exists with email "sci@example.com"
+    When I request password reset for "sci@example.com"
+    Then a reset link should be generated
+    And an email should be queued
 
-  Scenario: Staff search
-    Given staff members exist:
-      | name        |
-      | John Smith  |
-      | Jane Doe    |
-      | Bob Johnson |
-    When I search staff for "John"
-    Then I should receive 2 staff members
+  Scenario: Use expired reset token
+    Given reset token "expired-token" expired 2 hours ago
+    When I try to reset password with "expired-token"
+    Then I should receive an error
+    And the error should indicate token expired
