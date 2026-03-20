@@ -46,9 +46,6 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
-        op.f("ix_usage_events_event_type"), "usage_events", ["event_type"], unique=False
-    )
-    op.create_index(
         "ix_usage_events_user_timestamp",
         "usage_events",
         ["user_email", "timestamp"],
@@ -65,5 +62,4 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("ix_usage_events_type_timestamp", table_name="usage_events")
     op.drop_index("ix_usage_events_user_timestamp", table_name="usage_events")
-    op.drop_index(op.f("ix_usage_events_event_type"), table_name="usage_events")
     op.drop_table("usage_events")
