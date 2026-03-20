@@ -4,7 +4,7 @@
 let invPage = 0;
 const INV_PAGE_SIZE = 30;
 let invStatus = "";
-const INV_API = "/api/inventory";
+const INV_API = "/api/v1/inventory";
 
 // Called when navigating to #inventory view
 async function loadInventory() {
