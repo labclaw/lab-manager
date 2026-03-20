@@ -49,27 +49,30 @@ def order_exists(db):
 # --- When steps ---
 
 
+def _post_login(api, payload):
+    """Support both legacy and versioned login paths during transition."""
+    response = api.post("/api/v1/auth/login", json=payload)
+    if response.status_code != 404:
+        return response
+    return api.post("/api/auth/login", json=payload)
+
+
 @when("I submit login with empty email", target_fixture="response")
 def submit_login_empty_email(api):
     """Submit login without email."""
-    return api.post("/api/v1/auth/login", json={"email": "", "password": "password123"})
+    return _post_login(api, {"email": "", "password": "password123"})
 
 
 @when("I submit login with empty password", target_fixture="response")
 def submit_login_empty_password(api):
     """Submit login without password."""
-    return api.post(
-        "/api/v1/auth/login", json={"email": "test@test.com", "password": ""}
-    )
+    return _post_login(api, {"email": "test@test.com", "password": ""})
 
 
 @when('I submit login with email "invalid-email"', target_fixture="response")
 def submit_login_invalid_email(api):
     """Submit login with invalid email."""
-    return api.post(
-        "/api/v1/auth/login",
-        json={"email": "invalid-email", "password": "password123"},
-    )
+    return _post_login(api, {"email": "invalid-email", "password": "password123"})
 
 
 @when('I submit setup with password "short"', target_fixture="response")
