@@ -563,7 +563,9 @@ class TestRagExecuteSql:
             mock_settings.return_value.extraction_api_key = ""
             mock_settings.return_value.rag_api_key = ""
             mock_settings.return_value.rag_base_url = ""
-            mock_settings.return_value.rag_model = "nvidia_nim/meta/llama-3.2-90b-vision-instruct"
+            mock_settings.return_value.rag_model = (
+                "nvidia_nim/meta/llama-3.2-90b-vision-instruct"
+            )
             mock_settings.return_value.nvidia_build_api_key = "nv-key"
             mock_settings.return_value.openai_api_key = ""
             params = _get_client()

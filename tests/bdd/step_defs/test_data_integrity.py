@@ -47,7 +47,11 @@ def product_exists(api, catalog):
     vendor = r.json()
     r = api.post(
         "/api/v1/products/",
-        json={"name": f"Product {catalog}", "catalog_number": catalog, "vendor_id": vendor["id"]},
+        json={
+            "name": f"Product {catalog}",
+            "catalog_number": catalog,
+            "vendor_id": vendor["id"],
+        },
     )
     return r.json() if r.status_code in (200, 201) else None
 
@@ -76,14 +80,19 @@ def negative_inventory(api, db):
 
     product = db.query(Product).first()
     if product:
-        r = api.post("/api/v1/inventory/", json={"product_id": str(product.id), "quantity": -10})
+        r = api.post(
+            "/api/v1/inventory/", json={"product_id": str(product.id), "quantity": -10}
+        )
         return r
     return None
 
 
 @when('I create staff with email "invalid-email"')
 def create_staff_invalid_email(api):
-    r = api.post("/api/v1/staff/", json={"name": "Test", "email": "invalid-email", "role": "staff"})
+    r = api.post(
+        "/api/v1/staff/",
+        json={"name": "Test", "email": "invalid-email", "role": "staff"},
+    )
     return r
 
 
