@@ -20,7 +20,7 @@ describe('api client', () => {
     it('list calls GET /documents with pagination params', async () => {
       const result = await documents.list(1, 20)
       expect(result.items).toHaveLength(2)
-      expect(result.items![0].filename).toBe('invoice_001.pdf')
+      expect(result.items![0].file_name).toBe('invoice_001.pdf')
       expect(result.total).toBe(2)
       expect(result.page).toBe(1)
     })
@@ -28,7 +28,7 @@ describe('api client', () => {
     it('list with status filter passes status param', async () => {
       const result = await documents.list(1, 20, 'needs_review')
       expect(result.items).toHaveLength(2)
-      expect(result.items![0].filename).toBe('review_doc_1.pdf')
+      expect(result.items![0].file_name).toBe('review_doc_1.pdf')
     })
 
     it('review calls POST /documents/{id}/review with action body', async () => {
@@ -40,7 +40,7 @@ describe('api client', () => {
     it('upload sends FormData to POST /documents/upload', async () => {
       const file = new File(['test content'], 'test.pdf', { type: 'application/pdf' })
       const result = await documents.upload(file)
-      expect(result).toEqual({ id: 99, filename: 'uploaded.pdf', status: 'pending' })
+      expect(result).toEqual({ id: 99, file_name: 'uploaded.pdf', status: 'needs_review' })
     })
   })
 
