@@ -188,7 +188,10 @@ def send_large_json_body(api):
     return api.post("/api/v1/vendors/", json=large_data)
 
 
-@when(parsers.parse('I upload a document with path "{path}"'), target_fixture="upload_response")
+@when(
+    parsers.parse('I upload a document with path "{path}"'),
+    target_fixture="upload_response",
+)
 def upload_with_path(api, path):
     return api.post(
         "/api/v1/documents/",
@@ -214,12 +217,17 @@ def malformed_auth_header(api):
 
 @when("I make an authenticated request", target_fixture="auth_response")
 def make_authenticated_request(api):
-    return api.get("/api/v1/vendors/", headers={"Authorization": "Bearer expired-token"})
+    return api.get(
+        "/api/v1/vendors/", headers={"Authorization": "Bearer expired-token"}
+    )
 
 
 @when("I try to create 1000 products in one request", target_fixture="bulk_response")
 def bulk_create_1000(api):
-    payload = [{"name": f"P{i}", "catalog_number": f"B-{i}", "vendor_id": 1} for i in range(1000)]
+    payload = [
+        {"name": f"P{i}", "catalog_number": f"B-{i}", "vendor_id": 1}
+        for i in range(1000)
+    ]
     return api.post("/api/v1/products/", json=payload)
 
 
@@ -364,7 +372,10 @@ def check_cors_headers(api):
     r = api.options("/api/v1/vendors/")
     assert r.status_code == 200
     headers = {k.lower(): v for k, v in r.headers.items()}
-    assert "access-control-allow-origin" in headers or "access-control-allow-methods" in headers
+    assert (
+        "access-control-allow-origin" in headers
+        or "access-control-allow-methods" in headers
+    )
 
 
 @then("allowed methods should be listed")
