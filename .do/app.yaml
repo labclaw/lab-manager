@@ -20,6 +20,22 @@ services:
       - key: DATABASE_URL
         scope: RUN_TIME
         value: ${db.DATABASE_URL}
+      # Direct DB connection components for migrations (bypass connection pool)
+      - key: DB_HOST
+        scope: RUN_TIME
+        value: ${db.HOSTNAME}
+      - key: DB_PORT
+        scope: RUN_TIME
+        value: ${db.PORT}
+      - key: DB_USER
+        scope: RUN_TIME
+        value: ${db.USERNAME}
+      - key: DB_PASSWORD
+        scope: RUN_TIME
+        value: ${db.PASSWORD}
+      - key: DB_NAME
+        scope: RUN_TIME
+        value: ${db.DATABASE}
       - key: MEILISEARCH_URL
         scope: RUN_TIME
         value: http://search:7700
