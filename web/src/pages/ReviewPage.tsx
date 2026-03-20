@@ -274,7 +274,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                 <p className="text-sm text-slate-300 font-medium">
                   {docDetail.filename ?? `Document #${docDetail.id}`}
                 </p>
-                <p className="text-[10px] text-slate-500">Page 1 of 1</p>
+                <p className="text-[10px] text-slate-500">Page 1 of 1 &bull; 1.2 MB</p>
               </div>
               {/* Grid pattern for technical feel */}
               <div
@@ -419,7 +419,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                     <tbody className="divide-y divide-border-dark text-slate-300">
                       <tr className="hover:bg-primary/5 transition-colors">
                         <td
-                          className="px-4 py-3 font-mono text-xs text-slate-500"
+                          className="px-4 py-3 font-mono text-xs text-slate-300"
                           colSpan={5}
                         >
                           <span className="italic">

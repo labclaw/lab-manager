@@ -225,7 +225,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
                       <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-400">
                         {doc.vendor_name ?? '--'}
                       </td>
-                      <td className="px-4 py-4 text-xs font-mono text-slate-500">
+                      <td className="px-4 py-4 text-xs font-mono text-slate-500 max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis">
                         {doc.document_type ?? '--'}
                       </td>
                       <td className="px-4 py-4">
