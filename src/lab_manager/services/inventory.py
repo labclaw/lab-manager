@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from lab_manager.exceptions import NotFoundError, ValidationError
 from lab_manager.models.consumption import ConsumptionAction, ConsumptionLog
-from lab_manager.models.inventory import InventoryItem, InventoryStatus
+from lab_manager.models.inventory import ACTIVE_STATUSES, InventoryItem, InventoryStatus
 from lab_manager.models.order import Order, OrderItem, OrderStatus
 from lab_manager.models.product import Product
 
@@ -332,7 +332,7 @@ def get_stock_level(product_id: int, db: Session) -> dict:
         db.query(func.sum(InventoryItem.quantity_on_hand))
         .filter(
             InventoryItem.product_id == product_id,
-            InventoryItem.status.notin_([InventoryStatus.disposed]),
+            InventoryItem.status.in_(ACTIVE_STATUSES),
         )
         .scalar()
     )
@@ -354,7 +354,7 @@ def get_low_stock(db: Session) -> list[dict]:
         .outerjoin(
             InventoryItem,
             (InventoryItem.product_id == Product.id)
-            & (InventoryItem.status.notin_([InventoryStatus.disposed])),
+            & (InventoryItem.status.in_(ACTIVE_STATUSES)),
         )
         .filter(Product.min_stock_level.isnot(None))
         .group_by(
@@ -383,9 +383,7 @@ def get_expiring(db: Session, days: int = 30) -> list[InventoryItem]:
         .filter(
             InventoryItem.expiry_date.isnot(None),
             InventoryItem.expiry_date <= cutoff,
-            InventoryItem.status.notin_(
-                [InventoryStatus.disposed, InventoryStatus.depleted]
-            ),
+            InventoryItem.status.in_(ACTIVE_STATUSES),
         )
         .all()
     )
