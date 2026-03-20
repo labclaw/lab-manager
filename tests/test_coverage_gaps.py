@@ -173,6 +173,8 @@ class TestPagination:
 
     def test_paginate_with_more_pages(self, db_session):
         """Test paginate when there are more items than page_size."""
+        from sqlalchemy import select
+
         from lab_manager.api.pagination import paginate
         from lab_manager.models.vendor import Vendor
 
@@ -180,8 +182,8 @@ class TestPagination:
             db_session.add(Vendor(name=f"V{i}"))
         db_session.flush()
 
-        q = db_session.query(Vendor)
-        result = paginate(q, page=1, page_size=2)
+        q = select(Vendor)
+        result = paginate(q, db_session, page=1, page_size=2)
         assert result["page_size"] == 2
         assert len(result["items"]) == 2
         assert result["total"] >= 5
@@ -719,15 +721,15 @@ class TestDocumentRoutes:
 
 class TestExportRoutes:
     def test_export_empty_inventory(self, client):
-        resp = client.get("/api/v1/export/inventory.csv")
+        resp = client.get("/api/v1/export/inventory")
         assert resp.status_code == 200
 
     def test_export_products_csv(self, client):
-        resp = client.get("/api/v1/export/products.csv")
+        resp = client.get("/api/v1/export/products")
         assert resp.status_code == 200
 
     def test_export_vendors_csv(self, client):
-        resp = client.get("/api/v1/export/vendors.csv")
+        resp = client.get("/api/v1/export/vendors")
         assert resp.status_code == 200
 
 

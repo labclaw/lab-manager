@@ -17,7 +17,7 @@ from itsdangerous import BadSignature, URLSafeTimedSerializer
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
-from sqlalchemy import text
+from sqlalchemy import select, text
 from starlette.middleware.cors import CORSMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
@@ -56,6 +56,7 @@ def _spa_assets_ready(static_dir: Path) -> bool:
         return False
 
     return all((dist_dir / ref.lstrip("/")).is_file() for ref in asset_refs)
+
 
 # Strip control characters from X-User header to prevent log injection.
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
@@ -136,7 +137,9 @@ def create_app() -> FastAPI:
     # Ensure upload directory exists at startup (not per-request in health check)
     Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
     scans_dir = Path(settings.scans_dir).expanduser() if settings.scans_dir else None
-    devices_dir = Path(settings.devices_dir).expanduser() if settings.devices_dir else None
+    devices_dir = (
+        Path(settings.devices_dir).expanduser() if settings.devices_dir else None
+    )
     # Disable interactive docs in production (exposes full API schema)
     docs_kwargs = {}
     if settings.auth_enabled:
@@ -381,7 +384,7 @@ def create_app() -> FastAPI:
 
         try:
             with get_db_session() as db:
-                staff = db.query(Staff).filter(Staff.email == email).first()
+                staff = db.scalars(select(Staff).where(Staff.email == email)).first()
                 # Eagerly load attributes before session closes
                 if staff:
                     staff_id = staff.id
@@ -492,9 +495,11 @@ def create_app() -> FastAPI:
         from lab_manager.models.staff import Staff
 
         return (
-            db.query(Staff)
-            .filter(Staff.password_hash.isnot(None), Staff.is_active.is_(True))
-            .first()
+            db.scalars(
+                select(Staff).where(
+                    Staff.password_hash.isnot(None), Staff.is_active.is_(True)
+                )
+            ).first()
             is not None
         )
 
@@ -559,7 +564,7 @@ def create_app() -> FastAPI:
                 )
 
             # Create or update staff record
-            staff = db.query(Staff).filter(Staff.email == admin_email).first()
+            staff = db.scalars(select(Staff).where(Staff.email == admin_email)).first()
             if staff:
                 staff.name = admin_name
                 staff.role = "admin"
@@ -680,7 +685,9 @@ def create_app() -> FastAPI:
     # artifacts, so we check for assets/ to decide SPA vs legacy mode.
     DIST_DIR = STATIC_DIR / "dist"
     SPA_ASSETS = DIST_DIR / "assets"
-    if _spa_assets_ready(STATIC_DIR):  # pragma: no cover — depends on React build artifacts
+    if _spa_assets_ready(
+        STATIC_DIR
+    ):  # pragma: no cover — depends on React build artifacts
         app.mount(
             "/assets",
             StaticFiles(directory=str(SPA_ASSETS)),

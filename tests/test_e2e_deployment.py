@@ -391,8 +391,8 @@ class TestE2EDeployment:
     # ------------------------------------------------------------------
 
     def test_export_csv(self, e2e_client):
-        """GET /api/v1/export/vendors.csv returns 200 with CSV content."""
-        resp = e2e_client.get("/api/v1/export/vendors.csv")
+        """GET /api/v1/export/vendors returns 200 with CSV content."""
+        resp = e2e_client.get("/api/v1/export/vendors")
         assert resp.status_code == 200
         content_type = resp.headers.get("content-type", "")
         assert "text/csv" in content_type

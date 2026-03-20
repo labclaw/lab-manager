@@ -130,28 +130,28 @@ def create_vendors_for_export(api):
 
 @when("I download the inventory CSV", target_fixture="csv_response")
 def download_inventory_csv(api):
-    r = api.get("/api/v1/export/inventory.csv")
+    r = api.get("/api/v1/export/inventory")
     assert r.status_code == 200, r.text
     return r
 
 
 @when("I download the orders CSV", target_fixture="csv_response")
 def download_orders_csv(api):
-    r = api.get("/api/v1/export/orders.csv")
+    r = api.get("/api/v1/export/orders")
     assert r.status_code == 200, r.text
     return r
 
 
 @when("I download the products CSV", target_fixture="csv_response")
 def download_products_csv(api):
-    r = api.get("/api/v1/export/products.csv")
+    r = api.get("/api/v1/export/products")
     assert r.status_code == 200, r.text
     return r
 
 
 @when("I download the vendors CSV", target_fixture="csv_response")
 def download_vendors_csv(api):
-    r = api.get("/api/v1/export/vendors.csv")
+    r = api.get("/api/v1/export/vendors")
     assert r.status_code == 200, r.text
     return r
 

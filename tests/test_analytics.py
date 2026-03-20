@@ -210,7 +210,7 @@ def test_document_stats(client, db_session):
 
 def test_export_inventory_csv(client, db_session):
     _seed_data(db_session)
-    resp = client.get("/api/v1/export/inventory.csv")
+    resp = client.get("/api/v1/export/inventory")
     assert resp.status_code == 200
     assert "text/csv" in resp.headers["content-type"]
     assert "attachment" in resp.headers["content-disposition"]
@@ -221,7 +221,7 @@ def test_export_inventory_csv(client, db_session):
 
 def test_export_orders_csv(client, db_session):
     _seed_data(db_session)
-    resp = client.get("/api/v1/export/orders.csv")
+    resp = client.get("/api/v1/export/orders")
     assert resp.status_code == 200
     assert "text/csv" in resp.headers["content-type"]
     lines = resp.text.strip().split("\n")
@@ -230,7 +230,7 @@ def test_export_orders_csv(client, db_session):
 
 def test_export_products_csv(client, db_session):
     _seed_data(db_session)
-    resp = client.get("/api/v1/export/products.csv")
+    resp = client.get("/api/v1/export/products")
     assert resp.status_code == 200
     lines = resp.text.strip().split("\n")
     assert len(lines) == 2
@@ -239,7 +239,7 @@ def test_export_products_csv(client, db_session):
 
 def test_export_vendors_csv(client, db_session):
     _seed_data(db_session)
-    resp = client.get("/api/v1/export/vendors.csv")
+    resp = client.get("/api/v1/export/vendors")
     assert resp.status_code == 200
     lines = resp.text.strip().split("\n")
     assert len(lines) == 2
@@ -248,7 +248,7 @@ def test_export_vendors_csv(client, db_session):
 
 def test_export_empty_table(client, db_session):
     """CSV export with empty tables should return 200 with empty body."""
-    resp = client.get("/api/v1/export/vendors.csv")
+    resp = client.get("/api/v1/export/vendors")
     assert resp.status_code == 200
 
 
