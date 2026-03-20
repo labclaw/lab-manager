@@ -187,12 +187,15 @@ export const documents = {
   get: (id: number) => apiFetch<Document>(`/documents/${id}`),
   reviewQueue: () =>
     apiFetch<ApiResponse<Document>>('/documents?status=needs_review'),
-  approve: (id: number) =>
-    apiFetch<Document>(`/documents/${id}/approve`, { method: 'POST' }),
-  reject: (id: number, reason: string) =>
-    apiFetch<Document>(`/documents/${id}/reject`, {
+  review: (id: number, body: { action: 'approve' | 'reject'; reviewed_by: string; review_notes?: string }) =>
+    apiFetch<Document>(`/documents/${id}/review`, {
       method: 'POST',
-      body: JSON.stringify({ reason }),
+      body: JSON.stringify(body),
+    }),
+  update: (id: number, data: Record<string, unknown>) =>
+    apiFetch<Document>(`/documents/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
     }),
   upload: (file: File) => {
     const form = new FormData()
@@ -221,7 +224,19 @@ export const search = {
 
 // Alerts
 export const alerts = {
-  list: () => apiFetch<ApiResponse<Alert>>('/alerts'),
+  list: (filters?: { alert_type?: string; severity?: string; acknowledged?: boolean; resolved?: boolean }) => {
+    const params = new URLSearchParams()
+    if (filters?.alert_type) params.set('alert_type', filters.alert_type)
+    if (filters?.severity) params.set('severity', filters.severity)
+    if (filters?.acknowledged != null) params.set('acknowledged', String(filters.acknowledged))
+    if (filters?.resolved != null) params.set('resolved', String(filters.resolved))
+    const qs = params.toString()
+    return apiFetch<ApiResponse<Alert>>(`/alerts${qs ? `?${qs}` : ''}`)
+  },
+  summary: () => apiFetch<{ total: number; by_severity: Record<string, number>; by_type: Record<string, number>; unacknowledged: number }>('/alerts/summary'),
+  check: () => apiFetch<{ new_alerts: number }>('/alerts/check', { method: 'POST' }),
   acknowledge: (id: number) =>
     apiFetch<Alert>(`/alerts/${id}/acknowledge`, { method: 'POST' }),
+  resolve: (id: number) =>
+    apiFetch<Alert>(`/alerts/${id}/resolve`, { method: 'POST' }),
 }
