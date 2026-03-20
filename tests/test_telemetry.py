@@ -133,3 +133,37 @@ def test_events_filter_by_type(client, db_session):
     resp = client.get("/api/v1/telemetry/events?event_type=login")
     data = resp.json()
     assert all(e["event_type"] == "login" for e in data)
+
+
+def test_evict_stale_entries(client, db_session):
+    """_evict_stale should remove old entries when cache exceeds limit."""
+    import time
+
+    import lab_manager.api.routes.telemetry as tel_mod
+
+    # Temporarily lower the max size to trigger eviction
+    # Eviction runs when len > _MAX_STORE_SIZE, so set to 2
+    original_max = tel_mod._MAX_STORE_SIZE
+    tel_mod._MAX_STORE_SIZE = 2
+
+    try:
+        # Add entries that will become stale (old timestamps)
+        old_time = time.monotonic() - 120  # 2 minutes ago
+        tel_mod._rate_limits["old1:page"] = old_time
+        tel_mod._rate_limits["old2:page"] = old_time
+        tel_mod._rate_limits["old3:page"] = old_time
+
+        # This event should trigger eviction since we're above the limit
+        resp = client.post(
+            "/api/v1/telemetry/event",
+            params={"event_type": "test", "page": "/new"},
+        )
+        assert resp.status_code == 200
+
+        # Old entries should have been evicted
+        assert "old1:page" not in tel_mod._rate_limits
+        assert "old2:page" not in tel_mod._rate_limits
+        assert "old3:page" not in tel_mod._rate_limits
+    finally:
+        tel_mod._MAX_STORE_SIZE = original_max
+        tel_mod._rate_limits.clear()
