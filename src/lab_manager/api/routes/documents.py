@@ -161,22 +161,33 @@ def _run_extraction(doc_id: int) -> None:
         # Extract structured data
         try:
             from lab_manager.config import get_settings
+            from lab_manager.intake.validator import validate
 
             settings = get_settings()
             extracted = extract_from_text(ocr_text)
+            if extracted is None:
+                raise RuntimeError("Extraction returned no structured data")
             doc.document_type = extracted.document_type
             doc.vendor_name = extracted.vendor_name
             doc.extracted_data = extracted.model_dump()
             doc.extraction_model = settings.extraction_model
             doc.extraction_confidence = extracted.confidence
             doc.status = DocumentStatus.needs_review
+            issues = validate(doc.extracted_data)
+            doc.review_notes = (
+                "; ".join(f"{issue['field']}:{issue['issue']}" for issue in issues)
+                if issues
+                else None
+            )
         except Exception as e:
             logger.error("Extraction failed for doc %d: %s", doc_id, e)
             doc.status = DocumentStatus.needs_review
             doc.review_notes = f"Extraction failed: {e}"
 
         db.commit()
-        logger.info("Extraction complete for doc %d, status=%s", doc_id, doc.status)
+        logger.info(
+            "Extraction complete for doc %d, status=%s", doc_id, doc.status
+        )
     except Exception:
         logger.exception("Unexpected error in extraction for doc %d", doc_id)
         db.rollback()
@@ -315,7 +326,7 @@ def upload_document(
         status=DocumentStatus.processing,
     )
     db.add(doc)
-    db.flush()
+    db.commit()
     db.refresh(doc)
 
     # Trigger background OCR + extraction
@@ -460,15 +471,15 @@ def review_document(
         existing_order = db.query(Order).filter(Order.document_id == doc.id).first()
         if not existing_order and doc.extracted_data:
             _create_order_from_doc(doc, db)
-        # Index all created records in Meilisearch (background)
-        db.flush()
+        # Commit so background task can see all records
+        db.commit()
         background_tasks.add_task(_index_approved_doc, doc.id)
     elif body.action == "reject":
         doc.status = DocumentStatus.rejected
         doc.reviewed_by = body.reviewed_by
         doc.review_notes = body.review_notes
+        db.commit()
 
-    db.flush()
     db.refresh(doc)
     return doc
 

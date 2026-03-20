@@ -64,7 +64,7 @@ services:
     mem_limit: 1g
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-labmanager}:${POSTGRES_PASSWORD:?err}@db:5432/${POSTGRES_DB:-labmanager}
-      DATABASE_READONLY_URL: postgresql+psycopg://labmanager_ro:${POSTGRES_RO_PASSWORD:?err}@db:5432/${POSTGRES_DB:-labmanager}
+      DATABASE_READONLY_URL: ${DATABASE_READONLY_URL:-}
       MEILISEARCH_URL: http://search:7700
       MEILISEARCH_API_KEY: ${MEILI_MASTER_KEY:?err}
       ADMIN_SECRET_KEY: ${ADMIN_SECRET_KEY:?Set ADMIN_SECRET_KEY in .env}
@@ -72,9 +72,13 @@ services:
       AUTH_ENABLED: ${AUTH_ENABLED:-true}
       SECURE_COOKIES: ${SECURE_COOKIES:-true}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OCR_MODEL: ${OCR_MODEL:-gemini-2.5-flash}
       EXTRACTION_API_KEY: ${GEMINI_API_KEY:-}
-      EXTRACTION_MODEL: ${EXTRACTION_MODEL:-gemini-3.1-flash-preview}
+      EXTRACTION_MODEL: ${EXTRACTION_MODEL:-gemini-2.5-flash}
       RAG_MODEL: ${RAG_MODEL:-gemini-2.5-flash}
+      RAG_API_KEY: ${RAG_API_KEY:-}
+      RAG_BASE_URL: ${RAG_BASE_URL:-}
+      NVIDIA_BUILD_API_KEY: ${NVIDIA_BUILD_API_KEY:-}
       UPLOAD_DIR: /app/uploads
     depends_on:
       db:

@@ -30,6 +30,12 @@ def test_extracted_document_optional_fields():
     assert doc.po_number is None
 
 
+def test_extracted_document_vendor_name_optional():
+    """Documents without a reliable vendor can still be represented."""
+    doc = ExtractedDocument(vendor_name=None, document_type="other", items=[])
+    assert doc.vendor_name is None
+
+
 def test_extraction_prompt_matches_valid_doc_types():
     """EXTRACTION_PROMPT doc_type list must match VALID_DOC_TYPES in schemas."""
     import re
