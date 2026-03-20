@@ -6,7 +6,7 @@ from functools import lru_cache
 import logging
 
 import meilisearch
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 
 from lab_manager.config import get_settings
 from lab_manager.services.serialization import serialize_value as _serialize_value

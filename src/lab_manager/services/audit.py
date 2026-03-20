@@ -5,7 +5,7 @@ from __future__ import annotations
 import contextvars
 
 from sqlalchemy import event, inspect
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 
 from lab_manager.models.audit import AuditLog
 from lab_manager.models.base import AuditMixin, utcnow

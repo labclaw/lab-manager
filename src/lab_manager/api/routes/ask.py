@@ -6,7 +6,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 
 from lab_manager.api.deps import get_db
 from lab_manager.services.rag import ask
