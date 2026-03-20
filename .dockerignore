@@ -1,6 +1,8 @@
 .venv/
 .venv-paddle/
 web/node_modules/
+web/src/
+web/.vite/
 .git/
 .github/
 shenlab-docs/
