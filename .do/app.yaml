@@ -25,7 +25,8 @@ services:
         value: http://search:7700
       - key: MEILISEARCH_API_KEY
         scope: RUN_TIME
-        value: ${MEILI_MASTER_KEY}
+        type: SECRET
+        value: changeme-meilisearch-key
       - key: ADMIN_SECRET_KEY
         scope: RUN_TIME
         type: SECRET
