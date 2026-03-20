@@ -7,11 +7,10 @@ import {
   Building2,
   PackageCheck,
   ChevronRight,
-  CartPlus,
   ShoppingCart,
   FlaskConical,
   ClipboardCheck,
-  ConveyorBelt,
+  Package,
 } from 'lucide-react'
 
 interface OrdersPageProps {
@@ -108,7 +107,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
             </p>
           </div>
           <button disabled className="bg-gradient-to-br from-primary to-primary-container text-white px-6 py-3 rounded-xl font-bold flex items-center shadow-lg opacity-50 cursor-not-allowed" title="Coming soon">
-            <CartPlus className="mr-2" />
+            <ShoppingCart className="mr-2" />
             New Requisition
           </button>
         </div>
@@ -238,7 +237,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
                     {isPending ? (
                       <ClipboardCheck className={`size-6 ${isPending ? 'text-on-surface-variant' : 'text-primary'}`} />
                     ) : (
-                      <ConveyorBelt className={`size-6 ${isPending ? 'text-on-surface-variant' : 'text-primary'}`} />
+                      <Package className={`size-6 ${isPending ? 'text-on-surface-variant' : 'text-primary'}`} />
                     )}
                   </div>
                 </div>
