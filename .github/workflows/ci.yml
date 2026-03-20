@@ -132,8 +132,6 @@ jobs:
           MEILI_ENV: development
 
     env:
-      DATABASE_URL: postgresql+psycopg://labmanager:labmanager@localhost:${{ job.services.postgres.ports[5432] }}/labmanager
-      MEILISEARCH_URL: http://localhost:${{ job.services.meilisearch.ports[7700] }}
       AUTH_ENABLED: "false"
 
     steps:
@@ -152,6 +150,9 @@ jobs:
         run: uv sync --dev --frozen
 
       - name: Run tests with coverage
+        env:
+          DATABASE_URL: postgresql+psycopg://labmanager:labmanager@localhost:${{ job.services.postgres.ports[5432] }}/labmanager
+          MEILISEARCH_URL: http://localhost:${{ job.services.meilisearch.ports[7700] }}
         run: |
           uv run pytest --tb=short -q \
             --cov=lab_manager \
