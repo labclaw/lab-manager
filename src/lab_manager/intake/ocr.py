@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 
 from google import genai
-from google.api_core import exceptions as gcp_exceptions
+from google.genai import errors as genai_errors
 
 from lab_manager.config import get_settings
 from lab_manager.intake.prompts import OCR_PROMPT
@@ -68,7 +68,7 @@ def extract_text_from_image(image_path: Path) -> str:
     except FileNotFoundError:
         logger.error("OCR file not found: %s", image_path)
         return ""
-    except gcp_exceptions.GoogleAPIError as e:
+    except genai_errors.APIError as e:
         logger.error("OCR API error for %s: %s", image_path.name, e)
         return ""
     except Exception as e:

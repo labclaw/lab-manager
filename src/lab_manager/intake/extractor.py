@@ -7,7 +7,7 @@ import time
 
 import instructor
 from google import genai
-from google.api_core import exceptions as gcp_exceptions
+from google.genai import errors as genai_errors
 
 from lab_manager.config import get_settings
 from lab_manager.intake.schemas import ExtractedDocument
@@ -68,7 +68,7 @@ def _call_llm(ocr_text: str) -> ExtractedDocument | None:
                 time.sleep(RETRY_DELAY_SECONDS)
                 continue
             logger.error("Extraction failed after %d retries: %s", MAX_RETRIES, e)
-        except gcp_exceptions.GoogleAPIError as e:
+        except genai_errors.APIError as e:
             logger.error("Extraction API error: %s", e)
             return None
         except Exception as e:
