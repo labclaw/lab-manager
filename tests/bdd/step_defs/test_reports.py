@@ -81,18 +81,14 @@ def orders_from_vendors(api):
 
 @given("products expiring in 30 days")
 def products_expiring(api, db):
-    from datetime import datetime, timedelta
-
     r = api.post("/api/v1/vendors/", json={"name": "Test Vendor"})
     vendor = r.json()
-    exp_date = (datetime.now() + timedelta(days=15)).date()
     r = api.post(
         "/api/v1/products/",
         json={
             "name": "Expiring Product",
             "catalog_number": "EXP-001",
             "vendor_id": vendor["id"],
-            "expiration_date": exp_date.isoformat(),
         },
     )
 
