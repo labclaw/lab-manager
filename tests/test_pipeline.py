@@ -1,9 +1,25 @@
 """Tests for document intake pipeline."""
 
+import os
 from unittest.mock import patch
 
+import pytest
+
+from lab_manager.config import get_settings
 from lab_manager.intake.pipeline import process_document
 from lab_manager.models.document import DocumentStatus
+
+
+@pytest.fixture(autouse=True)
+def _pipeline_test_settings(monkeypatch):
+    """Force pipeline tests to run with auth disabled and deterministic settings."""
+    monkeypatch.setenv("AUTH_ENABLED", "false")
+    monkeypatch.setenv("ADMIN_SECRET_KEY", "test-secret-key-not-for-production")
+    monkeypatch.setenv("ADMIN_PASSWORD", "test-admin-password-not-for-production")
+    monkeypatch.setenv("DATABASE_URL", os.environ.get("DATABASE_URL", "sqlite://"))
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 def test_process_document_records_failure_on_ocr_error(db_session, tmp_path):
