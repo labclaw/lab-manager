@@ -1,14 +1,14 @@
 """Add processing to documents status CHECK constraint.
 
-Revision ID: a1b2c3d4e5f6
-Revises: f6a7b8c9d0e1
+Revision ID: b2c3d4e5f6a7
+Revises: a1b2c3d4e5f6
 Create Date: 2026-03-19
 """
 
 from alembic import op
 
-revision = "a1b2c3d4e5f6"
-down_revision = "f6a7b8c9d0e1"
+revision = "b2c3d4e5f6a7"
+down_revision = "a1b2c3d4e5f6"
 branch_labels = None
 depends_on = None
 
