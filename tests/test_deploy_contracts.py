@@ -46,7 +46,9 @@ def test_scans_and_devices_unmounted_when_unconfigured(monkeypatch):
 
     try:
         app = create_app()
-        mount_names = {route.name for route in app.routes if getattr(route, "name", None)}
+        mount_names = {
+            route.name for route in app.routes if getattr(route, "name", None)
+        }
         assert "scans" not in mount_names
         assert "devices" not in mount_names
     finally:
@@ -57,8 +59,12 @@ def test_incomplete_spa_build_falls_back_to_legacy_ui(tmp_path, monkeypatch):
     """If the hashed JS bundle is missing, serve the legacy UI instead of a blank page."""
     static_dir = tmp_path / "static"
     static_dir.mkdir()
-    (static_dir / "index.html").write_text("<html><body>legacy ui</body></html>", encoding="utf-8")
-    (static_dir / "sw.js").write_text("self.addEventListener('fetch', ()=>{});", encoding="utf-8")
+    (static_dir / "index.html").write_text(
+        "<html><body>legacy ui</body></html>", encoding="utf-8"
+    )
+    (static_dir / "sw.js").write_text(
+        "self.addEventListener('fetch', ()=>{});", encoding="utf-8"
+    )
     (static_dir / "manifest.json").write_text("{}", encoding="utf-8")
 
     dist_dir = static_dir / "dist"
