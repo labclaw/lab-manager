@@ -51,11 +51,12 @@ export function UploadPage() {
   const intervalsRef = useRef<Set<ReturnType<typeof setInterval>>>(new Set())
 
   useEffect(() => {
+    const intervals = intervalsRef.current
     return () => {
-      for (const interval of intervalsRef.current) {
+      for (const interval of intervals) {
         clearInterval(interval)
       }
-      intervalsRef.current.clear()
+      intervals.clear()
     }
   }, [])
 
