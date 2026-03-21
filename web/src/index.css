@@ -1,38 +1,37 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #8b5cf6;
+  --color-primary: #6C5CE7;
   --color-background-light: #f6f5f8;
-  --color-background-dark: #0f0f23;
-  --color-card-dark: #1a1a2e;
+  --color-background-dark: #0B0B14;
+  --color-card-dark: #12121E;
   --color-sidebar-dark: #12121E;
-  --color-accent-green: #00d4aa;
-  --color-surface-dark: #1a1a2e;
-  --color-border-dark: #2d2d44;
-  --color-success: #00d4aa;
+  --color-accent-green: #00D4AA;
+  --color-surface-dark: #1A1A2E;
+  --color-border-dark: #2A2A3E;
+  --color-success: #00D4AA;
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
 
   /* Stitch Material-3 semantic tokens */
-  --color-on-surface: #f0f1f2;
-  --color-on-surface-variant: #a1a1b5;
-  --color-on-background: #f0f1f2;
-  --color-outline: #2d2d44;
-  --color-surface-container: #24243e;
-  --color-surface-container-high: #2a2a44;
-  --color-surface-container-low: #1e1e36;
-  --color-surface-container-lowest: #16162a;
-  --color-surface-container-highest: #33334d;
-  --color-secondary-container: #4e3b7f;
-  --color-on-secondary-container: #e9ddff;
-  --color-primary-container: #6d28d9;
-  --color-tertiary-fixed: #ffdcbe;
-  --color-on-tertiary-fixed-variant: #693c00;
-  --color-error-container: #441a1a;
-  --color-error: #ff5555;
+  --color-on-surface: #F0F0F5;
+  --color-on-surface-variant: #A1A1B5;
+  --color-on-background: #F0F0F5;
+  --color-outline: #2A2A3E;
+  --color-surface-container: #242438;
+  --color-surface-container-high: #2A2A44;
+  --color-surface-container-low: #1E1E36;
+  --color-surface-container-lowest: #16162A;
+  --color-surface-container-highest: #33334D;
+  --color-secondary-container: #4E3B7F;
+  --color-on-secondary-container: #E9DDFF;
+  --color-primary-container: #6C5CE7;
+  --color-tertiary-fixed: #FFDCBE;
+  --color-on-tertiary-fixed-variant: #693C00;
+  --color-error-container: #441A1A;
+  --color-error: #FF5555;
 }
 
 :root {
@@ -48,10 +47,10 @@
   --foreground: #1a1a2e;
   --muted-foreground: #6b7280;
 
-  --primary: #8b5cf6;
+  --primary: #6C5CE7;
   --primary-foreground: #ffffff;
 
-  --accent: #10b981;
+  --accent: #00D4AA;
   --accent-foreground: #ffffff;
 
   --destructive: #ef4444;
@@ -65,7 +64,7 @@
 
   --border: #e5e7eb;
   --input: #e5e7eb;
-  --ring: #8b5cf6;
+  --ring: #6C5CE7;
 
   --radius: 0.5rem;
 
@@ -73,42 +72,42 @@
   --sidebar-foreground: #1a1a2e;
   --sidebar-border: #e5e7eb;
   --sidebar-accent: #f1f3f8;
-  --sidebar-ring: #8b5cf6;
+  --sidebar-ring: #6C5CE7;
 }
 
 .dark {
-  --background: #0f0f23;
-  --card: #1a1a2e;
-  --popover: #1a1a2e;
-  --muted: #1e1e2e;
+  --background: #0B0B14;
+  --card: #12121E;
+  --popover: #12121E;
+  --muted: #1A1A2E;
 
-  --foreground: #f0f0f5;
+  --foreground: #F0F0F5;
   --muted-foreground: #8e8ea0;
 
-  --primary: #8b5cf6;
+  --primary: #6C5CE7;
   --primary-foreground: #ffffff;
 
-  --accent: #10b981;
+  --accent: #00D4AA;
   --accent-foreground: #ffffff;
 
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
 
   --warning: #f59e0b;
-  --warning-foreground: #0f0f23;
+  --warning-foreground: #0B0B14;
 
   --info: #5b8def;
   --info-foreground: #ffffff;
 
-  --border: #2d2d44;
-  --input: #2d2d44;
-  --ring: #8b5cf6;
+  --border: #2A2A3E;
+  --input: #2A2A3E;
+  --ring: #6C5CE7;
 
-  --sidebar: #12121e;
-  --sidebar-foreground: #f0f0f5;
-  --sidebar-border: #2d2d44;
-  --sidebar-accent: #1e1e2e;
-  --sidebar-ring: #8b5cf6;
+  --sidebar: #12121E;
+  --sidebar-foreground: #F0F0F5;
+  --sidebar-border: #2A2A3E;
+  --sidebar-accent: #1A1A2E;
+  --sidebar-ring: #6C5CE7;
 }
 
 @layer base {
@@ -131,10 +130,6 @@
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
-
-  .material-symbols-outlined {
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-  }
 }
 
 @layer components {
@@ -154,7 +149,7 @@
   }
 
   .card {
-    @apply bg-[var(--card)] border border-[var(--border)] rounded-xl p-6;
+    @apply bg-[var(--card)] border border-[var(--border)] rounded-lg p-6;
   }
 
   .badge {

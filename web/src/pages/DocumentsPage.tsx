@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { documents as docApi } from '@/lib/api'
-import { SkeletonTable } from '@/components/ui/SkeletonTable'
-import { EmptyState } from '@/components/ui/EmptyState'
+import { Search, Upload, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface DocumentsPageProps {
   readonly onError: (msg: string) => void
@@ -102,9 +101,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
         <h2 className="text-xl font-bold">Documents</h2>
         <div className="flex items-center gap-4 flex-1 max-w-2xl px-8">
           <div className="relative w-full">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-              search
-            </span>
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Search vendor or filename..."
@@ -118,7 +115,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
           onClick={() => navigate('/upload')}
           className="flex items-center gap-2 bg-success hover:bg-success/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors"
         >
-          <span className="material-symbols-outlined">upload_file</span>
+          <Upload />
           Upload Doc
         </button>
       </header>
@@ -153,26 +150,28 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
       <div className="px-8 pb-8 flex-1 min-h-0 flex flex-col">
         <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm flex-1 min-h-0">
           {isLoading ? (
-            <div className="p-4">
-              <SkeletonTable rows={10} columns={6} />
+            <div className="flex flex-col items-center justify-center h-64 space-y-3">
+              <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+              <span className="text-sm text-slate-500 font-medium">
+                Fetching documents...
+              </span>
             </div>
           ) : filteredDocs.length === 0 ? (
-            <EmptyState
-              icon="description"
-              title={search ? `No documents matching "${search}"` : 'No documents found'}
-              description={search ? 'Try a different search term' : 'Upload a document to get started'}
-              action={
-                !search && (
-                  <button
-                    onClick={() => navigate('/upload')}
-                    className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium"
-                  >
-                    <span className="material-symbols-outlined text-lg">upload_file</span>
-                    Upload Document
-                  </button>
-                )
-              }
-            />
+            <div className="flex flex-col items-center justify-center h-64 space-y-3">
+              <FileText className="size-10 text-slate-500" />
+              <p className="text-sm text-slate-500">
+                {search ? `No documents matching "${search}"` : 'No documents found'}
+              </p>
+              {!search && (
+                <button
+                  onClick={() => navigate('/upload')}
+                  className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium mt-2"
+                >
+                  <Upload className="size-5" />
+                  Upload Document
+                </button>
+              )}
+            </div>
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
@@ -212,9 +211,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
                     >
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
-                          <span className="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">
-                            picture_as_pdf
-                          </span>
+                          <FileText className="text-slate-400 group-hover:text-primary transition-colors" />
                           <span className="text-sm font-medium">
                             {doc.file_name ?? `Doc #${doc.id}`}
                           </span>
@@ -282,7 +279,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
                 className="flex items-center justify-center w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-card-dark text-slate-400 hover:text-primary hover:border-primary/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Previous page"
               >
-                <span className="material-symbols-outlined">chevron_left</span>
+                <ChevronLeft />
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
@@ -290,7 +287,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
                 className="flex items-center justify-center w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-card-dark text-slate-400 hover:text-primary hover:border-primary/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Next page"
               >
-                <span className="material-symbols-outlined">chevron_right</span>
+                <ChevronRight />
               </button>
             </div>
           </div>

@@ -1,6 +1,10 @@
 import { useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import {
+  Upload, ShoppingCart, Boxes, Users, FileText, CheckCircle,
+  Clock, ShoppingBag, Store, AlertTriangle, Calendar, BarChart3, FolderOpen,
+} from 'lucide-react'
 import { analytics, inventory, vendors, documents } from '@/lib/api'
 import type { Vendor, DashboardStats } from '@/lib/api'
 
@@ -115,28 +119,28 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
             onClick={() => navigate('/upload')}
             className="flex items-center justify-center gap-3 p-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-primary/20 group"
           >
-            <span className="material-symbols-outlined group-hover:scale-110 transition-transform">upload_file</span>
+            <Upload className="size-5 group-hover:scale-110 transition-transform" />
             <span>Upload Document</span>
           </button>
           <button
             onClick={() => navigate('/orders')}
             className="flex items-center justify-center gap-3 p-4 bg-[var(--card)] border border-primary/20 hover:border-primary/50 text-[var(--foreground)] rounded-xl font-bold text-sm transition-all group"
           >
-            <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">add_shopping_cart</span>
+            <ShoppingCart className="size-5 text-primary group-hover:scale-110 transition-transform" />
             <span>New Order</span>
           </button>
           <button
             onClick={() => navigate('/inventory')}
             className="flex items-center justify-center gap-3 p-4 bg-[var(--card)] border border-primary/20 hover:border-primary/50 text-[var(--foreground)] rounded-xl font-bold text-sm transition-all group"
           >
-            <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">inventory</span>
+            <Boxes className="size-5 text-primary group-hover:scale-110 transition-transform" />
             <span>Update Stock</span>
           </button>
           <button
             onClick={() => navigate('/settings')}
             className="flex items-center justify-center gap-3 p-4 bg-[var(--card)] border border-primary/20 hover:border-primary/50 text-[var(--foreground)] rounded-xl font-bold text-sm transition-all group"
           >
-            <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">group</span>
+            <Users className="size-5 text-primary group-hover:scale-110 transition-transform" />
             <span>Manage Lab</span>
           </button>
         </div>
@@ -148,7 +152,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
         <div className="bg-[var(--card)] border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
           <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Total Documents</span>
-            <span className="material-symbols-outlined text-lg opacity-50">description</span>
+            <FileText className="size-5 opacity-50" />
           </div>
           <div className="text-3xl font-bold text-[var(--foreground)] tracking-tight">{totalDocs}</div>
           <div className="text-[11px] text-[var(--muted-foreground)] font-medium">Total lab docs processed</div>
@@ -158,7 +162,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
         <div className="bg-[var(--card)] border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm border-l-4 border-l-accent-green">
           <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Approved</span>
-            <span className="material-symbols-outlined text-lg text-accent-green">check_circle</span>
+            <CheckCircle className="size-5 text-accent-green" />
           </div>
           <div className="text-3xl font-bold text-accent-green tracking-tight">{approved}</div>
           <div className="text-[11px] text-[var(--muted-foreground)] font-medium">{approvalPct}% automation accuracy</div>
@@ -168,7 +172,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
         <div className="bg-[var(--card)] border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm border-l-4 border-l-amber-400">
           <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Needs Review</span>
-            <span className="material-symbols-outlined text-lg text-amber-400">pending_actions</span>
+            <Clock className="size-5 text-amber-400" />
           </div>
           <div className="text-3xl font-bold text-amber-400 tracking-tight">{needsReview}</div>
           <div className="text-[11px] text-[var(--muted-foreground)] font-medium">Awaiting lab verification</div>
@@ -178,7 +182,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
         <div className="bg-[var(--card)] border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
           <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Orders Created</span>
-            <span className="material-symbols-outlined text-lg opacity-50">shopping_bag</span>
+            <ShoppingBag className="size-5 opacity-50" />
           </div>
           <div className="text-3xl font-bold text-[var(--foreground)] tracking-tight">{ordersCreated}</div>
           <div className="text-[11px] text-[var(--muted-foreground)] font-medium">
@@ -190,7 +194,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
         <div className="bg-[var(--card)] border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
           <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Vendors</span>
-            <span className="material-symbols-outlined text-lg opacity-50">storefront</span>
+            <Store className="size-5 opacity-50" />
           </div>
           <div className="text-3xl font-bold text-[var(--foreground)] tracking-tight">{totalVendors}</div>
           <div className="text-[11px] text-[var(--muted-foreground)] font-medium">Discovered from scan history</div>
@@ -202,7 +206,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
         {/* Critical Inventory Level */}
         <div className="flex items-center gap-4 bg-amber-400/5 border border-amber-400/20 p-5 rounded-xl group hover:bg-amber-400/10 transition-colors">
           <div className="size-12 rounded-full bg-amber-400/10 flex items-center justify-center text-amber-400 shrink-0">
-            <span className="material-symbols-outlined text-2xl">warning</span>
+            <AlertTriangle className="size-6" />
           </div>
           <div className="flex-1">
             <p className="text-amber-50 text-sm font-bold">Critical Inventory Level</p>
@@ -221,7 +225,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
         {/* Expiring Reagents */}
         <div className="flex items-center gap-4 bg-red-500/5 border border-red-500/20 p-5 rounded-xl group hover:bg-red-500/10 transition-colors">
           <div className="size-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 shrink-0">
-            <span className="material-symbols-outlined text-2xl">schedule</span>
+            <Calendar className="size-6" />
           </div>
           <div className="flex-1">
             <p className="text-red-50 text-sm font-bold">Expiring Reagents</p>
@@ -244,7 +248,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
         <div className="bg-[var(--card)] border border-primary/10 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-[var(--foreground)] text-lg font-bold flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">analytics</span>
+              <BarChart3 className="size-5 text-primary" />
               Top Lab Vendors
             </h3>
             <span className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest bg-[var(--card)] px-2 py-1 rounded">
@@ -286,7 +290,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
         <div className="bg-[var(--card)] border border-primary/10 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-[var(--foreground)] text-lg font-bold flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">folder_open</span>
+              <FolderOpen className="size-5 text-primary" />
               Document Classification
             </h3>
             <button
