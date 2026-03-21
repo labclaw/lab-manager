@@ -11,6 +11,7 @@ repos:
         args: ["--maxkb=51200"]
       - id: no-commit-to-branch
         args: ["--branch", "main"]
+      - id: check-merge-conflict
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.2
@@ -25,3 +26,15 @@ repos:
       - id: detect-secrets
         args: ["--baseline", ".secrets.baseline"]
         exclude: uv\.lock
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.6.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.0
+    hooks:
+      - id: gitleaks
