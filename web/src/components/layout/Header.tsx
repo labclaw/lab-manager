@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { Search, Bell, Sun, Moon } from 'lucide-react'
 import { search } from '@/lib/api'
 
 interface HeaderProps {
@@ -51,7 +52,7 @@ export function Header({ title, onSearch, showSearch = true, darkMode, onToggleD
         <label className={`${showSearch ? 'hidden md:flex' : 'hidden'} flex-col max-w-xl w-full h-10 relative`}>
           <div className="flex w-full flex-1 items-stretch rounded-lg h-full">
             <div className="text-[var(--muted-foreground)] flex border-none bg-[var(--card)] items-center justify-center pl-4 rounded-l-lg">
-              <span className="material-symbols-outlined text-xl">search</span>
+              <Search className="size-5 text-[var(--muted-foreground)]" />
             </div>
             <input
               className="form-input flex w-full min-w-0 flex-1 border-none bg-[var(--card)] text-[var(--foreground)] focus:ring-1 focus:ring-primary/50 h-full placeholder:text-[var(--muted-foreground)] px-4 rounded-r-lg text-sm font-normal"
@@ -89,16 +90,14 @@ export function Header({ title, onSearch, showSearch = true, darkMode, onToggleD
       </div>
       <div className="flex items-center gap-4">
         <button className="flex items-center justify-center rounded-lg size-10 bg-[var(--card)] text-[var(--foreground)] hover:bg-primary/20 transition-colors">
-          <span className="material-symbols-outlined text-xl">notifications</span>
+          <Bell className="size-5" />
         </button>
         <button
           onClick={onToggleDarkMode}
           aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           className="flex items-center justify-center rounded-lg size-10 bg-[var(--card)] text-[var(--foreground)] hover:bg-primary/20 transition-colors"
         >
-          <span className="material-symbols-outlined text-xl">
-            {darkMode ? 'light_mode' : 'dark_mode'}
-          </span>
+          {darkMode ? <Sun className="size-5" /> : <Moon className="size-5" />}
         </button>
         <div className="flex items-center gap-3 pl-4 border-l border-primary/10">
           <span className="text-sm font-medium text-[var(--muted-foreground)]">Admin</span>

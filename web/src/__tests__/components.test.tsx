@@ -93,7 +93,7 @@ describe('ErrorBanner', () => {
   it('dismiss button calls onDismiss', async () => {
     const onDismiss = vi.fn()
     renderWithProviders(<ErrorBanner error="Error occurred" onDismiss={onDismiss} />)
-    const dismissButton = screen.getByText('close').closest('button')!
+    const dismissButton = screen.getByRole('button', { name: 'Dismiss' })
     await userEvent.click(dismissButton)
     expect(onDismiss).toHaveBeenCalledOnce()
   })

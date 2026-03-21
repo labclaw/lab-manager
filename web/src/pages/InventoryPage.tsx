@@ -1,8 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import {
+  Dna,
+  FlaskConical,
+  Filter,
+  Tag,
+  PlusCircle,
+  Truck,
+  Building,
+  ShoppingCart,
+  Pencil,
+  Package,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react'
 import { inventory as invApi } from '@/lib/api'
-import { SkeletonTable } from '@/components/ui/SkeletonTable'
-import { EmptyState } from '@/components/ui/EmptyState'
 
 interface InventoryPageProps {
   readonly onError: (msg: string) => void
@@ -46,13 +58,13 @@ export function InventoryPage({ onError }: InventoryPageProps) {
     if (status === 'low_stock' || status === 'expired') {
       return (
         <div className="w-10 h-10 rounded-lg bg-error-container flex items-center justify-center">
-          <span className="material-symbols-outlined text-error" style={{ fontVariationSettings: "'FILL' 1" }}>biotech</span>
+          <Dna className="size-5 text-error" />
         </div>
       )
     }
     return (
       <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-        <span className="material-symbols-outlined text-primary">experiment</span>
+        <FlaskConical className="size-5 text-primary" />
       </div>
     )
   }
@@ -76,8 +88,8 @@ export function InventoryPage({ onError }: InventoryPageProps) {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-8">
-        <SkeletonTable rows={15} columns={8} />
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
       </div>
     )
   }
@@ -88,11 +100,11 @@ export function InventoryPage({ onError }: InventoryPageProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button disabled className="flex items-center gap-2 px-4 py-2 bg-[var(--card)] rounded-xl shadow-sm text-sm font-medium border border-outline opacity-50 cursor-not-allowed" title="Coming soon">
-            <span className="material-symbols-outlined text-lg">filter_list</span>
+            <Filter className="size-5" />
             <span>Filters</span>
           </button>
           <button disabled className="flex items-center gap-2 px-4 py-2 bg-[var(--card)] rounded-xl shadow-sm text-sm font-medium border border-outline opacity-50 cursor-not-allowed" title="Coming soon">
-            <span className="material-symbols-outlined text-lg">category</span>
+            <Tag className="size-5" />
             <span>Category</span>
           </button>
           <div className="h-6 w-px bg-[var(--border)] mx-2" />
@@ -102,11 +114,11 @@ export function InventoryPage({ onError }: InventoryPageProps) {
         </div>
         <div className="flex items-center gap-3">
           <button disabled className="bg-surface-container-high text-primary font-semibold px-6 py-2.5 rounded-xl text-sm flex items-center gap-2 opacity-50 cursor-not-allowed" title="Coming soon">
-            <span className="material-symbols-outlined text-lg">add_circle</span>
+            <PlusCircle className="size-5" />
             <span>New Item</span>
           </button>
           <button disabled className="bg-primary text-white font-semibold px-6 py-2.5 rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-primary/20 opacity-50 cursor-not-allowed" title="Coming soon">
-            <span className="material-symbols-outlined text-lg">local_shipping</span>
+            <Truck className="size-5" />
             <span>Bulk Order</span>
           </button>
         </div>
@@ -151,7 +163,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                   <td className="px-6 py-6">
                     {item.location_name ? (
                       <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-surface-container-high text-[var(--muted-foreground)] text-xs font-medium border border-outline">
-                        <span className="material-symbols-outlined text-[14px] mr-1">meeting_room</span>
+                        <Building className="size-3.5 mr-1" />
                         {item.location_name}
                       </span>
                     ) : (
@@ -169,10 +181,10 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                   <td className="px-6 py-6 text-right">
                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button className="p-2 hover:bg-primary/20 text-primary rounded-lg transition-colors" title="Order More">
-                        <span className="material-symbols-outlined">shopping_cart_checkout</span>
+                        <ShoppingCart className="size-5" />
                       </button>
                       <button className="p-2 hover:bg-surface-container-highest text-[var(--muted-foreground)] rounded-lg transition-colors" title="Edit Item">
-                        <span className="material-symbols-outlined">edit</span>
+                        <Pencil className="size-5" />
                       </button>
                     </div>
                   </td>
@@ -182,11 +194,17 @@ export function InventoryPage({ onError }: InventoryPageProps) {
           </table>
 
           {items.length === 0 && (
-            <EmptyState
-              icon="inventory_2"
-              title="Inventory is empty"
-              description="Process documents through the review queue to populate inventory."
-            />
+            <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-surface-container-high flex items-center justify-center">
+                <Package className="size-5 text-[var(--muted-foreground)]" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-semibold text-on-surface">Inventory is empty</h3>
+                <p className="text-sm text-[var(--muted-foreground)] max-w-xs mx-auto">
+                  Process documents through the review queue to populate inventory.
+                </p>
+              </div>
+            </div>
           )}
         </div>
 
@@ -202,7 +220,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                 disabled={page <= 1}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container-highest transition-colors disabled:opacity-30"
               >
-                <span className="material-symbols-outlined text-sm">chevron_left</span>
+                <ChevronLeft className="size-4" />
               </button>
               {pageNumbers.map((pn, idx) =>
                 pn === 'ellipsis' ? (
@@ -226,7 +244,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                 disabled={page >= totalPages}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container-highest transition-colors disabled:opacity-30"
               >
-                <span className="material-symbols-outlined text-sm">chevron_right</span>
+                <ChevronRight className="size-4" />
               </button>
             </div>
           </div>

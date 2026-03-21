@@ -4,6 +4,24 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { documents as docApi } from '@/lib/api'
 import { SkeletonTable } from '@/components/ui/SkeletonTable'
 import { EmptyState } from '@/components/ui/EmptyState'
+import {
+  CheckCircle,
+  CircleCheck,
+  Filter,
+  ChevronRight,
+  ZoomIn,
+  ZoomOut,
+  ExternalLink,
+  FileText,
+  LayoutGrid,
+  List,
+  History,
+  CirclePlus,
+  Ban,
+  AlertTriangle,
+  Upload,
+  Pencil,
+} from 'lucide-react'
 
 interface ReviewPageProps {
   readonly onError: (msg: string) => void
@@ -113,20 +131,24 @@ export function ReviewPage({ onError }: ReviewPageProps) {
 
   if (queue.length === 0) {
     return (
-      <EmptyState
-        icon="check_circle"
-        title="No documents waiting for review"
-        description="Upload a packing list or invoice to begin."
-        action={
-          <button
-            onClick={() => navigate('/upload')}
-            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium"
-          >
-            <span className="material-symbols-outlined text-lg">upload_file</span>
-            Upload Document
-          </button>
-        }
-      />
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <div className="w-12 h-12 rounded-2xl bg-[var(--card)] flex items-center justify-center">
+          <CheckCircle className="size-6 text-[var(--muted-foreground)]" />
+        </div>
+        <h3 className="text-base font-semibold text-[var(--foreground)]">
+          No documents waiting for review
+        </h3>
+        <p className="text-sm text-[var(--muted-foreground)]">
+          Upload a packing list or invoice to begin.
+        </p>
+        <button
+          onClick={() => navigate('/upload')}
+          className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium"
+        >
+          <Upload className="size-5" />
+          Upload Document
+        </button>
+      </div>
     )
   }
 
@@ -145,7 +167,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
         </div>
         <div className="flex items-center gap-4">
           <button className="p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
-            <span className="material-symbols-outlined">filter_list</span>
+            <Filter />
           </button>
         </div>
       </header>
@@ -194,9 +216,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                       </p>
                     </div>
                     {isSelected && (
-                      <span className="material-symbols-outlined text-primary text-xl">
-                        arrow_forward_ios
-                      </span>
+                      <ChevronRight className="size-5 text-primary" />
                     )}
                   </div>
                 </div>
@@ -225,7 +245,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                           : 'text-red-500'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-xs">verified</span>
+                    <CircleCheck className="size-3.5" />
                     {(docDetail.extraction_confidence ?? 0) >= 0.8
                       ? 'High'
                       : (docDetail.extraction_confidence ?? 0) >= 0.6
@@ -246,13 +266,13 @@ export function ReviewPage({ onError }: ReviewPageProps) {
               </div>
               <div className="flex gap-2">
                 <button className="p-1.5 rounded bg-[var(--card)] hover:bg-[var(--border)] text-[var(--muted-foreground)]">
-                  <span className="material-symbols-outlined text-sm">zoom_in</span>
+                  <ZoomIn className="size-4" />
                 </button>
                 <button className="p-1.5 rounded bg-[var(--card)] hover:bg-[var(--border)] text-[var(--muted-foreground)]">
-                  <span className="material-symbols-outlined text-sm">zoom_out</span>
+                  <ZoomOut className="size-4" />
                 </button>
                 <button className="p-1.5 rounded bg-[var(--card)] hover:bg-[var(--border)] text-[var(--muted-foreground)]">
-                  <span className="material-symbols-outlined text-sm">open_in_new</span>
+                  <ExternalLink className="size-4" />
                 </button>
               </div>
             </div>
@@ -266,9 +286,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
               ) : (
                 <div className="text-center transition-transform group-hover:scale-105 duration-500">
                   <div className="mb-4 bg-primary/20 p-8 inline-block rounded-full relative">
-                    <span className="material-symbols-outlined text-primary text-5xl">
-                      picture_as_pdf
-                    </span>
+                    <FileText className="text-primary size-12" />
                     <div className="absolute inset-0 bg-gradient-to-tr from-primary/30 to-transparent animate-pulse rounded-full" />
                   </div>
                   <p className="text-sm text-[var(--foreground)] font-medium">
@@ -296,7 +314,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
               {/* Extracted Data Grid */}
               <div className="mb-8">
                 <h4 className="text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-sm">grid_view</span>
+                  <LayoutGrid className="size-4" />
                   Extracted Header Data
                 </h4>
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
@@ -311,9 +329,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                         readOnly
                         value={docDetail.vendor_name ?? ''}
                       />
-                      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 text-lg">
-                        check_circle
-                      </span>
+                      <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 size-5" />
                     </div>
                   </div>
                   <div className="space-y-1.5">
@@ -328,9 +344,11 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                         value={docDetail.extracted_data?.po_number ?? ''}
                         placeholder="No PO number extracted"
                       />
-                      <span className={`material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-lg ${docDetail.extracted_data?.po_number ? 'text-emerald-500' : 'text-amber-500'}`}>
-                        {docDetail.extracted_data?.po_number ? 'check_circle' : 'warning'}
-                      </span>
+                      {docDetail.extracted_data?.po_number ? (
+                        <CheckCircle className={`absolute right-3 top-1/2 -translate-y-1/2 size-5 text-emerald-500`} />
+                      ) : (
+                        <AlertTriangle className="absolute right-3 top-1/2 -translate-y-1/2 size-5 text-amber-500" />
+                      )}
                     </div>
                   </div>
                   <div className="space-y-1.5">
@@ -384,9 +402,11 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                         readOnly
                         value={docDetail.extracted_data?.received_by ?? ''}
                       />
-                      <span className={`material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-lg ${docDetail.extracted_data?.received_by ? 'text-emerald-500' : 'text-[var(--muted-foreground)]'}`}>
-                        {docDetail.extracted_data?.received_by ? 'check_circle' : 'edit'}
-                      </span>
+                      {docDetail.extracted_data?.received_by ? (
+                        <CheckCircle className={`absolute right-3 top-1/2 -translate-y-1/2 size-5 text-emerald-500`} />
+                      ) : (
+                        <Pencil className="absolute right-3 top-1/2 -translate-y-1/2 size-5 text-[var(--muted-foreground)]" />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -395,7 +415,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
               {/* Line Items Table */}
               <div>
                 <h4 className="text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-sm">list_alt</span>
+                  <List className="size-4" />
                   Extracted Line Items
                 </h4>
                 <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)]/30">
@@ -458,9 +478,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                 </div>
                 <div className="mt-4 flex justify-end">
                   <button className="text-primary hover:text-primary/80 text-xs font-bold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm">
-                      add_circle
-                    </span>
+                    <CirclePlus className="size-4" />
                     Add Manual Row
                   </button>
                 </div>
@@ -470,7 +488,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
             {/* Side Snippet: Activity Log */}
             <div className="w-64 border-l border-[var(--border)]/30 p-4 bg-[var(--card)]/10">
               <h4 className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest mb-4 flex items-center gap-2">
-                <span className="material-symbols-outlined text-sm">history</span>
+                <History className="size-4" />
                 Activity Log
               </h4>
               <div className="space-y-4">
@@ -584,9 +602,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                     disabled={actionLoading}
                     className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-sm transition-all shadow-lg shadow-emerald-900/30 flex items-center gap-2 ring-1 ring-emerald-500/50 disabled:opacity-50"
                   >
-                    <span className="material-symbols-outlined text-lg">
-                      check_circle
-                    </span>
+                    <CheckCircle className="size-5" />
                     {approveMutation.isPending ? 'Approving...' : 'Approve'}
                   </button>
                   <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-[var(--background)] border border-[var(--border)] rounded text-[9px] font-bold text-[var(--muted-foreground)] opacity-0 group-hover:opacity-100 transition-opacity">
@@ -621,7 +637,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                   disabled={actionLoading}
                   className="px-6 py-2.5 border-2 border-red-500/30 text-red-400 hover:text-[var(--foreground)] hover:bg-red-500/80 hover:border-red-500 font-bold rounded-lg text-sm transition-all flex items-center gap-2 disabled:opacity-50"
                 >
-                  <span className="material-symbols-outlined text-lg">block</span>
+                  <Ban className="size-5" />
                   Reject
                 </button>
               </div>
