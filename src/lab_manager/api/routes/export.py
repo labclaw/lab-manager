@@ -60,8 +60,8 @@ def _csv_response(rows: list[dict], filename: str) -> StreamingResponse:
     )
 
 
-@router.get("/inventory.csv")
-@router.get("/inventory", include_in_schema=False)
+@router.get("/inventory")
+@router.get("/inventory.csv", include_in_schema=False)
 @router.get("/inventory/csv", include_in_schema=False)
 def export_inventory(
     location_id: Optional[int] = Query(None),
@@ -71,8 +71,8 @@ def export_inventory(
     return _csv_response(rows, "inventory.csv")
 
 
-@router.get("/orders.csv")
-@router.get("/orders", include_in_schema=False)
+@router.get("/orders")
+@router.get("/orders.csv", include_in_schema=False)
 def export_orders(
     vendor_id: Optional[int] = Query(None),
     date_from: Optional[date] = Query(None),
@@ -85,8 +85,8 @@ def export_orders(
     return _csv_response(rows, "orders.csv")
 
 
-@router.get("/products.csv")
-@router.get("/products", include_in_schema=False)
+@router.get("/products")
+@router.get("/products.csv", include_in_schema=False)
 def export_products(db: Session = Depends(get_db)):
     fieldnames = [
         "id",
@@ -128,8 +128,8 @@ def export_products(db: Session = Depends(get_db)):
     )
 
 
-@router.get("/vendors.csv")
-@router.get("/vendors", include_in_schema=False)
+@router.get("/vendors")
+@router.get("/vendors.csv", include_in_schema=False)
 def export_vendors(db: Session = Depends(get_db)):
     fieldnames = ["id", "name", "website", "phone", "email", "notes"]
     query = db.scalars(

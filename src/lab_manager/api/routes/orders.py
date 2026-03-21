@@ -146,6 +146,9 @@ def list_orders(
     page_size: int = Query(50, ge=1, le=200),
     vendor_id: Optional[int] = Query(None),
     status: Optional[str] = Query(None),
+    status_group: Optional[str] = Query(
+        None, description="Filter by status group: 'active', 'past', or 'drafts'"
+    ),
     po_number: Optional[str] = Query(None),
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
@@ -159,6 +162,14 @@ def list_orders(
         q = q.where(Order.vendor_id == vendor_id)
     if status:
         q = q.where(Order.status == status)
+    elif status_group:
+        # Map status_group to status filters
+        if status_group == "active":
+            q = q.where(Order.status.notin_(["received", "cancelled", "deleted"]))
+        elif status_group == "past":
+            q = q.where(Order.status.in_(["received", "cancelled"]))
+        elif status_group == "drafts":
+            q = q.where(Order.status == "draft")
     if po_number:
         q = q.where(ilike_col(Order.po_number, po_number))
     if date_from:
