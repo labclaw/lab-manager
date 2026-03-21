@@ -116,7 +116,7 @@ jobs:
           POSTGRES_PASSWORD: labmanager
           POSTGRES_DB: labmanager
         ports:
-          - 5432:5432
+          - 25432:5432
         options: >-
           --health-cmd="pg_isready -U labmanager"
           --health-interval=10s
@@ -126,13 +126,13 @@ jobs:
       meilisearch:
         image: getmeili/meilisearch:v1.12
         ports:
-          - 7700:7700
+          - 27700:7700
         env:
           MEILI_ENV: development
 
     env:
-      DATABASE_URL: postgresql+psycopg://labmanager:labmanager@localhost:5432/labmanager
-      MEILISEARCH_URL: http://localhost:7700
+      DATABASE_URL: postgresql+psycopg://labmanager:labmanager@localhost:25432/labmanager
+      MEILISEARCH_URL: http://localhost:27700
       AUTH_ENABLED: "false"
 
     steps:
