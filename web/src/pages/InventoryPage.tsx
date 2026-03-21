@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { inventory as invApi } from '@/lib/api'
+import { SkeletonTable } from '@/components/ui/SkeletonTable'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 interface InventoryPageProps {
   readonly onError: (msg: string) => void
@@ -74,8 +76,8 @@ export function InventoryPage({ onError }: InventoryPageProps) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      <div className="flex flex-col gap-8">
+        <SkeletonTable rows={15} columns={8} />
       </div>
     )
   }
@@ -180,17 +182,11 @@ export function InventoryPage({ onError }: InventoryPageProps) {
           </table>
 
           {items.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-surface-container-high flex items-center justify-center">
-                <span className="material-symbols-outlined text-[var(--muted-foreground)]">inventory_2</span>
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-base font-semibold text-on-surface">Inventory is empty</h3>
-                <p className="text-sm text-[var(--muted-foreground)] max-w-xs mx-auto">
-                  Process documents through the review queue to populate inventory.
-                </p>
-              </div>
-            </div>
+            <EmptyState
+              icon="inventory_2"
+              title="Inventory is empty"
+              description="Process documents through the review queue to populate inventory."
+            />
           )}
         </div>
 

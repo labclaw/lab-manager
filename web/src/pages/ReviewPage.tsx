@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { documents as docApi } from '@/lib/api'
+import { SkeletonTable } from '@/components/ui/SkeletonTable'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 interface ReviewPageProps {
   readonly onError: (msg: string) => void
@@ -103,35 +105,28 @@ export function ReviewPage({ onError }: ReviewPageProps) {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 space-y-3">
-        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-        <span className="text-sm text-[var(--muted-foreground)] font-medium">Checking queue...</span>
+      <div className="p-8">
+        <SkeletonTable rows={5} columns={4} />
       </div>
     )
   }
 
   if (queue.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-[var(--card)] flex items-center justify-center">
-          <span className="material-symbols-outlined text-2xl text-[var(--muted-foreground)]">
-            check_circle
-          </span>
-        </div>
-        <h3 className="text-base font-semibold text-[var(--foreground)]">
-          No documents waiting for review
-        </h3>
-        <p className="text-sm text-[var(--muted-foreground)]">
-          Upload a packing list or invoice to begin.
-        </p>
-        <button
-          onClick={() => navigate('/upload')}
-          className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium"
-        >
-          <span className="material-symbols-outlined text-lg">upload_file</span>
-          Upload Document
-        </button>
-      </div>
+      <EmptyState
+        icon="check_circle"
+        title="No documents waiting for review"
+        description="Upload a packing list or invoice to begin."
+        action={
+          <button
+            onClick={() => navigate('/upload')}
+            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium"
+          >
+            <span className="material-symbols-outlined text-lg">upload_file</span>
+            Upload Document
+          </button>
+        }
+      />
     )
   }
 
