@@ -112,6 +112,101 @@ class GLMOCRProvider(OCRProvider):
             return ""
 
 
+class GLM5NIMProvider(OCRProvider):
+    """GLM-5 via NVIDIA NIM API (free tier).
+
+    Uses NVIDIA NIM endpoint for GLM-5 text model. Since GLM-5 on NIM is text-only,
+    this provider does a two-step OCR: first uses NVIDIA vision model to extract
+    raw text, then uses GLM-5 to clean and structure the OCR output.
+    For direct vision OCR, use GLMOCRProvider with a local vLLM server instead.
+    """
+
+    name = "glm5_nim"
+    model_id = "z-ai/glm5"
+
+    def __init__(self, api_key: Optional[str] = None):
+        self.api_key = api_key
+
+    def extract_text(self, image_path: str) -> str:
+        import base64
+        import os
+
+        import httpx
+
+        api_key = (
+            self.api_key
+            or os.environ.get("NVIDIA_BUILD_API_KEY", "")
+            or os.environ.get("NVIDIA_API_KEY", "")
+        )
+        if not api_key:
+            log.warning("No NVIDIA API key for GLM-5 NIM")
+            return ""
+
+        try:
+            # Step 1: Vision OCR via NVIDIA Llama-3.2-90b-vision
+            b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
+            suffix = Path(image_path).suffix.lower().lstrip(".")
+            mime = "image/jpeg" if suffix in ("jpg", "jpeg") else f"image/{suffix}"
+
+            vision_resp = httpx.post(
+                "https://integrate.api.nvidia.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "meta/llama-3.2-90b-vision-instruct",
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "image_url",
+                                    "image_url": {"url": f"data:{mime};base64,{b64}"},
+                                },
+                                {"type": "text", "text": OCR_PROMPT},
+                            ],
+                        }
+                    ],
+                    "max_tokens": 4096,
+                    "temperature": 0.1,
+                },
+                timeout=120,
+            )
+            vision_resp.raise_for_status()
+            raw_ocr = vision_resp.json()["choices"][0]["message"]["content"]
+
+            # Step 2: GLM-5 refines the OCR text
+            refine_resp = httpx.post(
+                "https://integrate.api.nvidia.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "z-ai/glm5",
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": (
+                                "Clean up and organize this raw OCR text from a lab document. "
+                                "Fix obvious OCR errors, preserve all numbers/codes exactly, "
+                                "output clean plain text only:\n\n" + raw_ocr
+                            ),
+                        }
+                    ],
+                    "max_tokens": 4096,
+                    "temperature": 0.1,
+                },
+                timeout=60,
+            )
+            refine_resp.raise_for_status()
+            return refine_resp.json()["choices"][0]["message"]["content"].strip()
+        except Exception as e:
+            log.warning("GLM-5 NIM OCR error: %s", e)
+            return ""
+
+
 class PaddleOCRProvider(OCRProvider):
     """PaddleOCR (local, no GPU required for inference)."""
 
@@ -416,7 +511,8 @@ OCR_PROVIDERS = {
     "deepseek_vl": "lab_manager.intake.providers.more_ocr:DeepSeekVLProvider",
     "glm_4v": "lab_manager.intake.providers.more_ocr:GLMOCRProvider",
     "paddleocr": "lab_manager.intake.providers.more_ocr:PaddleOCRProvider",
-    # API providers
+    # API providers (free tier available)
+    "glm5_nim": "lab_manager.intake.providers.more_ocr:GLM5NIMProvider",
     "mistral_ocr3": "lab_manager.intake.providers.more_ocr:MistralOCR3Provider",
     "mistral_pixtral": "lab_manager.intake.providers.more_ocr:MistralOCRProvider",
     "gemini_flash": "lab_manager.intake.providers.qwen_vllm:GeminiOCRProvider",

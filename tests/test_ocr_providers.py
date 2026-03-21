@@ -206,6 +206,65 @@ class TestMistralOCR3Provider:
 
 
 # ---------------------------------------------------------------------------
+# GLM5NIMProvider tests
+# ---------------------------------------------------------------------------
+
+
+class TestGLM5NIMProvider:
+    def test_defaults(self):
+        from lab_manager.intake.providers.more_ocr import GLM5NIMProvider
+
+        p = GLM5NIMProvider()
+        assert p.name == "glm5_nim"
+        assert p.model_id == "z-ai/glm5"
+
+    def test_registered(self):
+        from lab_manager.intake.providers.more_ocr import OCR_PROVIDERS
+
+        assert "glm5_nim" in OCR_PROVIDERS
+
+    def test_no_api_key_returns_empty(self):
+        from lab_manager.intake.providers.more_ocr import GLM5NIMProvider
+
+        with patch.dict(
+            "os.environ",
+            {"NVIDIA_BUILD_API_KEY": "", "NVIDIA_API_KEY": ""},
+            clear=False,
+        ):
+            p = GLM5NIMProvider(api_key="")
+            result = p.extract_text("/tmp/test.png")
+            assert result == ""
+
+    @patch("httpx.post")
+    def test_extract_text_success(self, mock_post):
+        from lab_manager.intake.providers.more_ocr import GLM5NIMProvider
+
+        # Mock two calls: vision OCR then GLM-5 refinement
+        vision_resp = MagicMock()
+        vision_resp.json.return_value = {
+            "choices": [{"message": {"content": "Raw OCR text from vision"}}]
+        }
+        vision_resp.raise_for_status = MagicMock()
+
+        glm_resp = MagicMock()
+        glm_resp.json.return_value = {
+            "choices": [{"message": {"content": "Cleaned OCR text by GLM-5"}}]
+        }
+        glm_resp.raise_for_status = MagicMock()
+
+        mock_post.side_effect = [vision_resp, glm_resp]
+
+        p = GLM5NIMProvider(api_key="test-key")
+        with patch("lab_manager.intake.providers.more_ocr.Path") as mock_path:
+            mock_path.return_value.read_bytes.return_value = b"fake-image"
+            mock_path.return_value.suffix = ".jpg"
+            result = p.extract_text("/tmp/test.jpg")
+
+        assert result == "Cleaned OCR text by GLM-5"
+        assert mock_post.call_count == 2
+
+
+# ---------------------------------------------------------------------------
 # Tiered detection tests
 # ---------------------------------------------------------------------------
 
