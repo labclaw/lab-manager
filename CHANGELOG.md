@@ -2,6 +2,19 @@
 
 All notable changes to LabClaw Lab Manager will be documented in this file.
 
+## [0.1.7] - 2026-03-20
+
+### Fixed
+- Fixed `lucide-react` icon library not resolving in frontend builds and tests (missing from node_modules)
+- Removed unused `EmptyState` import in ReviewPage causing lint failure
+- Fixed stale ref access in UploadPage effect cleanup (react-hooks/exhaustive-deps)
+
+### Changed
+- Cleaned up 27 stale branches (21 local + 6 remote) and 6 orphaned worktrees — all superseded by main
+- Deleted `fix/inventory-session-type` branch (SQLModel `db.exec()` migration superseded by SQLAlchemy 2.0 `db.scalars()`/`db.execute()` already in main)
+- All frontend tests now pass: 12/12 test files, 154/154 tests, lint clean, build clean
+- Backend: 916 passed, 12 skipped
+
 ## [0.1.6] - 2026-03-20
 
 ### Fixed
