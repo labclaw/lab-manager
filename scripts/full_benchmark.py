@@ -45,9 +45,9 @@ NVIDIA_KEY = os.environ.get("NVIDIA_BUILD_API_KEY") or os.environ.get(
 )
 API_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 
-MAX_RETRIES = 3
-RETRY_DELAY = 5
-INTER_CALL_DELAY = 2  # seconds between API calls
+MAX_RETRIES = 5
+RETRY_DELAY = 10  # base delay for exponential backoff
+INTER_CALL_DELAY = 5  # seconds between API calls (avoid NVIDIA rate limits)
 
 # All VLM models that passed single-image test (4/4 or vision-capable)
 VLM_MODELS = [
@@ -89,8 +89,23 @@ EXTRACT_MODELS = [
 # ---------------------------------------------------------------------------
 
 
-def _nvidia_call(payload: dict, timeout: int = 180) -> str:
+API_LOG = BENCH_DIR / "api_calls.jsonl"
+
+
+def _nvidia_call(
+    payload: dict, timeout: int = 180, call_meta: dict | None = None
+) -> str:
+    """Call NVIDIA NIM API with full logging of every request/response."""
+    model = payload.get("model", "unknown")
     for attempt in range(MAX_RETRIES):
+        t0 = time.time()
+        record = {
+            "timestamp": datetime.now().isoformat(),
+            "model": model,
+            "attempt": attempt + 1,
+            "timeout": timeout,
+            **(call_meta or {}),
+        }
         try:
             resp = httpx.post(
                 API_URL,
@@ -101,9 +116,42 @@ def _nvidia_call(payload: dict, timeout: int = 180) -> str:
                 json=payload,
                 timeout=timeout,
             )
+            dt = time.time() - t0
+            body = resp.json()
+            content = body["choices"][0]["message"]["content"]
+            usage = body.get("usage", {})
+
+            record.update(
+                {
+                    "http_status": resp.status_code,
+                    "latency_s": round(dt, 2),
+                    "response_chars": len(content),
+                    "prompt_tokens": usage.get("prompt_tokens"),
+                    "completion_tokens": usage.get("completion_tokens"),
+                    "total_tokens": usage.get("total_tokens"),
+                    "success": True,
+                }
+            )
+            with open(API_LOG, "a") as f:
+                f.write(json.dumps(record, default=str) + "\n")
+
             resp.raise_for_status()
-            return resp.json()["choices"][0]["message"]["content"]
+            return content
+
         except httpx.HTTPStatusError as e:
+            dt = time.time() - t0
+            record.update(
+                {
+                    "http_status": e.response.status_code,
+                    "latency_s": round(dt, 2),
+                    "error": str(e)[:300],
+                    "response_body": e.response.text[:500],
+                    "success": False,
+                }
+            )
+            with open(API_LOG, "a") as f:
+                f.write(json.dumps(record, default=str) + "\n")
+
             if e.response.status_code == 429:
                 delay = RETRY_DELAY * (2**attempt)
                 log.warning(
@@ -115,15 +163,31 @@ def _nvidia_call(payload: dict, timeout: int = 180) -> str:
                 time.sleep(delay)
                 continue
             if e.response.status_code in (404, 400):
-                raise  # model not available, don't retry
+                raise
             raise
+
         except (httpx.TimeoutException, httpx.ConnectError) as e:
+            dt = time.time() - t0
+            record.update(
+                {
+                    "http_status": "timeout"
+                    if isinstance(e, httpx.TimeoutException)
+                    else "conn_error",
+                    "latency_s": round(dt, 2),
+                    "error": str(e)[:300],
+                    "success": False,
+                }
+            )
+            with open(API_LOG, "a") as f:
+                f.write(json.dumps(record, default=str) + "\n")
+
             if attempt < MAX_RETRIES - 1:
                 delay = RETRY_DELAY * (2**attempt)
                 log.warning("Connection error, retrying in %ds: %s", delay, e)
                 time.sleep(delay)
                 continue
             raise
+
     raise RuntimeError(f"API failed after {MAX_RETRIES} retries")
 
 
@@ -192,6 +256,7 @@ def benchmark_ocr():
 
             try:
                 b64 = base64.b64encode(img.read_bytes()).decode()
+                img_size_kb = img.stat().st_size // 1024
                 text = _nvidia_call(
                     {
                         "model": model_id,
@@ -211,11 +276,17 @@ def benchmark_ocr():
                         ],
                         "max_tokens": 4096,
                         "temperature": 0.1,
-                    }
+                    },
+                    call_meta={
+                        "phase": "ocr",
+                        "file": img.name,
+                        "file_size_kb": img_size_kb,
+                    },
                 )
                 dt = time.time() - t0
                 result["status"] = "ok"
                 result["text"] = text
+                result["file_size_kb"] = img_size_kb
                 result["length"] = len(text)
                 result["time"] = round(dt, 1)
 
