@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { documents as docApi } from '@/lib/api'
 import { SkeletonTable } from '@/components/ui/SkeletonTable'
-import { EmptyState } from '@/components/ui/EmptyState'
 import {
   CheckCircle,
   CircleCheck,
