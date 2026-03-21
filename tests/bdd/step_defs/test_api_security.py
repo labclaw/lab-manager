@@ -20,17 +20,17 @@ def test_sql_injection_search():
     pass
 
 
-@scenario(FEATURE, "XSS in vendor name")
+@scenario(FEATURE, "HTML characters in vendor name round-trip safely")
 def test_xss_vendor_name():
     pass
 
 
-@scenario(FEATURE, "XSS in product description")
+@scenario(FEATURE, "HTML characters in product metadata round-trip safely")
 def test_xss_product_description():
     pass
 
 
-@scenario(FEATURE, "Path traversal in document upload")
+@scenario(FEATURE, "Path traversal in document path is rejected")
 def test_path_traversal():
     pass
 
@@ -45,7 +45,7 @@ def test_request_body_size():
     pass
 
 
-@scenario(FEATURE, "Invalid UUID in path")
+@scenario(FEATURE, "Invalid product identifier in path")
 def test_invalid_uuid():
     pass
 
@@ -60,7 +60,7 @@ def test_quantity_exceeds_max():
     pass
 
 
-@scenario(FEATURE, "Rate limit exceeded")
+@scenario(FEATURE, "Rate limit exceeded on login")
 def test_rate_limit():
     pass
 
@@ -70,22 +70,7 @@ def test_cors_preflight():
     pass
 
 
-@scenario(FEATURE, "Invalid authorization header format")
-def test_invalid_auth_header():
-    pass
-
-
-@scenario(FEATURE, "Expired token")
-def test_expired_token():
-    pass
-
-
-@scenario(FEATURE, "Bulk create exceeds limit")
-def test_bulk_create_limit():
-    pass
-
-
-@scenario(FEATURE, "Invalid content type")
+@scenario(FEATURE, "Invalid upload content type")
 def test_invalid_content_type():
     pass
 

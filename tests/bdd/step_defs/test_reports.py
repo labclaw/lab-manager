@@ -57,7 +57,11 @@ def products_with_inventory(api):
     for i in range(5):
         r = api.post(
             "/api/v1/products/",
-            json={"name": f"Product {i}", "catalog_number": f"CAT-{i}", "vendor_id": vendor["id"]},
+            json={
+                "name": f"Product {i}",
+                "catalog_number": f"CAT-{i}",
+                "vendor_id": vendor["id"],
+            },
         )
 
 
@@ -79,13 +83,16 @@ def orders_from_vendors(api):
 def products_expiring(api, db):
     from datetime import datetime, timedelta
 
-
     r = api.post("/api/v1/vendors/", json={"name": "Test Vendor"})
     vendor = r.json()
     (datetime.now() + timedelta(days=15)).date()
     r = api.post(
         "/api/v1/products/",
-        json={"name": "Expiring Product", "catalog_number": "EXP-001", "vendor_id": vendor["id"]},
+        json={
+            "name": "Expiring Product",
+            "catalog_number": "EXP-001",
+            "vendor_id": vendor["id"],
+        },
     )
 
 
