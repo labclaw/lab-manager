@@ -2,6 +2,16 @@
 
 All notable changes to LabClaw Lab Manager will be documented in this file.
 
+## [0.1.8] - 2026-03-21
+
+### Added
+- **Tiered OCR detection**: `OCR_TIER` setting (`local`/`api`/`auto`) — local vLLM models as fast initial detection, API fallback
+- **DeepSeek-OCR provider**: Dedicated 3B OCR model via vLLM (0.1-0.4 sec/page, 16GB VRAM)
+- **PaddleOCR-VL provider**: Ultra-lightweight 0.9B model via vLLM (2-3GB VRAM, 109 languages)
+- **Mistral OCR 3 provider**: Dedicated `/v1/ocr` API endpoint ($2/1k pages, 96.6% table accuracy)
+- New config settings: `OCR_TIER`, `OCR_LOCAL_MODEL`, `OCR_LOCAL_URL`, `MISTRAL_API_KEY`
+- 23 new tests for providers, tiered detection, and config
+
 ## [0.1.7] - 2026-03-20
 
 ### Fixed
