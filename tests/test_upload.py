@@ -38,8 +38,10 @@ def client(upload_dir, db_session):
     app.dependency_overrides[get_db] = override_get_db
     from fastapi.testclient import TestClient
 
-    with TestClient(app) as c:
-        yield c
+    c = TestClient(app)
+    c.__enter__()
+    yield c
+    c.__exit__(None, None, None)
 
 
 def _make_png_bytes() -> bytes:
