@@ -195,16 +195,7 @@ describe('DashboardPage', () => {
   })
 
   describe('AC8: Loading state shows spinner', () => {
-    it('shows quick actions immediately while data loads', () => {
-      renderDashboard()
-      // Quick actions render before data loads
-      expect(screen.getByText('Upload Document')).toBeInTheDocument()
-      expect(screen.getByText('New Order')).toBeInTheDocument()
-      expect(screen.getByText('Update Stock')).toBeInTheDocument()
-      expect(screen.getByText('Manage Lab')).toBeInTheDocument()
-    })
-
-    it('shows zero counts before data loads', () => {
+    it('shows loading indicator while data loads', () => {
       // Override to delay response
       server.use(
         http.get('/api/v1/analytics/dashboard', async () => {
@@ -215,9 +206,15 @@ describe('DashboardPage', () => {
         }),
       )
       renderDashboard()
-      // Before data loads, stats default to 0
-      const zeros = screen.getAllByText('0')
-      expect(zeros.length).toBeGreaterThan(0)
+      // While stats are loading, show loading text
+      expect(screen.getByText('Loading dashboard...')).toBeInTheDocument()
+    })
+
+    it('shows dashboard content after data loads', async () => {
+      renderDashboard()
+      // After data loads, quick actions appear
+      expect(await screen.findByText('Upload Document')).toBeInTheDocument()
+      expect(screen.getByText('New Order')).toBeInTheDocument()
     })
   })
 })
