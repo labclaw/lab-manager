@@ -18,7 +18,11 @@ async function loadStats() {
 
 function renderStats() {
   const s = stats;
-  if (!s) return;
+  if (!s) {
+    const grid = document.getElementById("stats-grid");
+    if (grid) grid.innerHTML = '<p class="text-slate-500 col-span-full text-center py-8">Unable to load dashboard data. Try refreshing the page.</p>';
+    return;
+  }
 
   const grid = document.getElementById("stats-grid");
   const cards = [
