@@ -31,7 +31,7 @@ const DOC_BAR_CLASSES = [
 export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
   const navigate = useNavigate()
 
-  const { data: stats, error: statsErr } = useQuery({
+  const { data: stats, error: statsErr, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => analytics.dashboard() as Promise<DashboardStats>,
   })
@@ -108,6 +108,17 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
 
   const lowStockCount = lowStockData?.items?.length ?? 0
   const expiringCount = expiringData?.items?.length ?? 0
+
+  if (statsLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <p className="text-sm text-[var(--muted-foreground)]">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">
