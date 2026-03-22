@@ -112,6 +112,101 @@ class GLMOCRProvider(OCRProvider):
             return ""
 
 
+class GLM5NIMProvider(OCRProvider):
+    """GLM-5 via NVIDIA NIM API (free tier).
+
+    Uses NVIDIA NIM endpoint for GLM-5 text model. Since GLM-5 on NIM is text-only,
+    this provider does a two-step OCR: first uses NVIDIA vision model to extract
+    raw text, then uses GLM-5 to clean and structure the OCR output.
+    For direct vision OCR, use GLMOCRProvider with a local vLLM server instead.
+    """
+
+    name = "glm5_nim"
+    model_id = "z-ai/glm5"
+
+    def __init__(self, api_key: Optional[str] = None):
+        self.api_key = api_key
+
+    def extract_text(self, image_path: str) -> str:
+        import base64
+        import os
+
+        import httpx
+
+        api_key = (
+            self.api_key
+            or os.environ.get("NVIDIA_BUILD_API_KEY", "")
+            or os.environ.get("NVIDIA_API_KEY", "")
+        )
+        if not api_key:
+            log.warning("No NVIDIA API key for GLM-5 NIM")
+            return ""
+
+        try:
+            # Step 1: Vision OCR via NVIDIA Llama-3.2-90b-vision
+            b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
+            suffix = Path(image_path).suffix.lower().lstrip(".")
+            mime = "image/jpeg" if suffix in ("jpg", "jpeg") else f"image/{suffix}"
+
+            vision_resp = httpx.post(
+                "https://integrate.api.nvidia.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "meta/llama-3.2-90b-vision-instruct",
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "image_url",
+                                    "image_url": {"url": f"data:{mime};base64,{b64}"},
+                                },
+                                {"type": "text", "text": OCR_PROMPT},
+                            ],
+                        }
+                    ],
+                    "max_tokens": 4096,
+                    "temperature": 0.1,
+                },
+                timeout=120,
+            )
+            vision_resp.raise_for_status()
+            raw_ocr = vision_resp.json()["choices"][0]["message"]["content"]
+
+            # Step 2: GLM-5 refines the OCR text
+            refine_resp = httpx.post(
+                "https://integrate.api.nvidia.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "z-ai/glm5",
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": (
+                                "Clean up and organize this raw OCR text from a lab document. "
+                                "Fix obvious OCR errors, preserve all numbers/codes exactly, "
+                                "output clean plain text only:\n\n" + raw_ocr
+                            ),
+                        }
+                    ],
+                    "max_tokens": 4096,
+                    "temperature": 0.1,
+                },
+                timeout=60,
+            )
+            refine_resp.raise_for_status()
+            return refine_resp.json()["choices"][0]["message"]["content"].strip()
+        except Exception as e:
+            log.warning("GLM-5 NIM OCR error: %s", e)
+            return ""
+
+
 class PaddleOCRProvider(OCRProvider):
     """PaddleOCR (local, no GPU required for inference)."""
 
@@ -242,15 +337,187 @@ class CodexOCRProvider(OCRProvider):
             return ""
 
 
+# ---------------------------------------------------------------------------
+# Local OCR models (designed for initial detection / fast pre-screening)
+# ---------------------------------------------------------------------------
+
+
+class DeepSeekOCRProvider(OCRProvider):
+    """DeepSeek-OCR 3B via vLLM OpenAI-compatible endpoint.
+
+    Dedicated OCR model (different from DeepSeek-VL2 general VLM).
+    ~16GB VRAM, 0.1-0.4 sec/page, supports context compression.
+    """
+
+    name = "deepseek_ocr"
+    model_id = "deepseek-ai/DeepSeek-OCR"
+
+    def __init__(
+        self,
+        base_url: str = "http://localhost:8000/v1",
+        model: str = "deepseek-ai/DeepSeek-OCR",
+    ):
+        self.base_url = base_url
+        self.model = model
+
+    def extract_text(self, image_path: str) -> str:
+        import base64
+
+        from openai import OpenAI
+
+        try:
+            client = OpenAI(base_url=self.base_url, api_key="dummy")
+            b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
+            suffix = Path(image_path).suffix.lower().lstrip(".")
+            mime = "image/jpeg" if suffix in ("jpg", "jpeg") else f"image/{suffix}"
+
+            response = client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:{mime};base64,{b64}"},
+                            },
+                            {"type": "text", "text": OCR_PROMPT},
+                        ],
+                    }
+                ],
+                max_tokens=4096,
+            )
+            return getattr(response.choices[0].message, "content", "") or ""
+        except Exception as e:
+            log.warning("DeepSeek-OCR error: %s", e)
+            return ""
+
+
+class PaddleOCRVLProvider(OCRProvider):
+    """PaddleOCR-VL 0.9B via vLLM OpenAI-compatible endpoint.
+
+    Ultra-lightweight (0.9B params, ~2-3GB VRAM), fastest local OCR.
+    109 languages, document-aware layout understanding.
+    """
+
+    name = "paddleocr_vl"
+    model_id = "PaddlePaddle/PaddleOCR-VL"
+
+    def __init__(
+        self,
+        base_url: str = "http://localhost:8000/v1",
+        model: str = "PaddlePaddle/PaddleOCR-VL",
+    ):
+        self.base_url = base_url
+        self.model = model
+
+    def extract_text(self, image_path: str) -> str:
+        import base64
+
+        from openai import OpenAI
+
+        try:
+            client = OpenAI(base_url=self.base_url, api_key="dummy")
+            b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
+            suffix = Path(image_path).suffix.lower().lstrip(".")
+            mime = "image/jpeg" if suffix in ("jpg", "jpeg") else f"image/{suffix}"
+
+            response = client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:{mime};base64,{b64}"},
+                            },
+                            {"type": "text", "text": OCR_PROMPT},
+                        ],
+                    }
+                ],
+                max_tokens=4096,
+            )
+            return getattr(response.choices[0].message, "content", "") or ""
+        except Exception as e:
+            log.warning("PaddleOCR-VL error: %s", e)
+            return ""
+
+
+class MistralOCR3Provider(OCRProvider):
+    """Mistral OCR 3 via dedicated /v1/ocr API endpoint.
+
+    $2/1k pages, 96.6% table accuracy, 88.9% handwriting accuracy.
+    Uses dedicated OCR endpoint (not chat completions like MistralOCRProvider).
+    """
+
+    name = "mistral_ocr3"
+    model_id = "mistral-ocr-latest"
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: str = "mistral-ocr-latest",
+    ):
+        self.model = model
+        self.api_key = api_key
+
+    def extract_text(self, image_path: str) -> str:
+        import base64
+        import os
+
+        import httpx
+
+        api_key = self.api_key or os.environ.get("MISTRAL_API_KEY", "")
+        if not api_key:
+            log.warning("No MISTRAL_API_KEY configured for Mistral OCR 3")
+            return ""
+
+        try:
+            b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
+            suffix = Path(image_path).suffix.lower().lstrip(".")
+            mime = "image/jpeg" if suffix in ("jpg", "jpeg") else f"image/{suffix}"
+
+            resp = httpx.post(
+                "https://api.mistral.ai/v1/ocr",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": self.model,
+                    "document": {
+                        "type": "image_url",
+                        "image_url": f"data:{mime};base64,{b64}",
+                    },
+                },
+                timeout=120,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            pages = data.get("pages", [])
+            return "\n\n".join(page.get("markdown", "") for page in pages).strip()
+        except Exception as e:
+            log.warning("Mistral OCR 3 error: %s", e)
+            return ""
+
+
 # Registry of all available OCR providers
 OCR_PROVIDERS = {
+    # Local models (fast initial detection, no API cost)
+    "deepseek_ocr": "lab_manager.intake.providers.more_ocr:DeepSeekOCRProvider",
+    "paddleocr_vl": "lab_manager.intake.providers.more_ocr:PaddleOCRVLProvider",
     "qwen3_vl": "lab_manager.intake.providers.qwen_vllm:QwenVLLMProvider",
-    "gemini_flash": "lab_manager.intake.providers.qwen_vllm:GeminiOCRProvider",
-    "gemini_api": "lab_manager.intake.providers.qwen_vllm:GeminiAPIOCRProvider",
     "deepseek_vl": "lab_manager.intake.providers.more_ocr:DeepSeekVLProvider",
     "glm_4v": "lab_manager.intake.providers.more_ocr:GLMOCRProvider",
     "paddleocr": "lab_manager.intake.providers.more_ocr:PaddleOCRProvider",
+    # API providers (free tier available)
+    "glm5_nim": "lab_manager.intake.providers.more_ocr:GLM5NIMProvider",
+    "mistral_ocr3": "lab_manager.intake.providers.more_ocr:MistralOCR3Provider",
     "mistral_pixtral": "lab_manager.intake.providers.more_ocr:MistralOCRProvider",
+    "gemini_flash": "lab_manager.intake.providers.qwen_vllm:GeminiOCRProvider",
+    "gemini_api": "lab_manager.intake.providers.qwen_vllm:GeminiAPIOCRProvider",
+    # Premium (CLI-based, expensive)
     "claude_sonnet": "lab_manager.intake.providers.more_ocr:ClaudeOCRProvider",
     "codex_gpt": "lab_manager.intake.providers.more_ocr:CodexOCRProvider",
 }
