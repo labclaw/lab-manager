@@ -1,4 +1,10 @@
-"""OCR text extraction from document images."""
+"""OCR text extraction from document images.
+
+Supports tiered detection:
+- "local": Use local vLLM model (DeepSeek-OCR, PaddleOCR-VL, etc.) — fast, free
+- "api":   Use cloud API (Gemini, Mistral OCR 3, NVIDIA) — accurate, paid
+- "auto":  Try local first, fall back to API on failure (default)
+"""
 
 from __future__ import annotations
 
@@ -30,6 +36,8 @@ _MIME_MAP = {
 
 MAX_NVIDIA_RETRIES = 5
 NVIDIA_RETRY_DELAY_SECONDS = 5
+
+_VALID_TIERS = ("local", "api", "auto")
 
 
 def _get_mime_type(filename: str) -> str:
@@ -71,6 +79,41 @@ def _response_text(response) -> str:
             return str(content).strip()
 
     return ""
+
+
+# ---------------------------------------------------------------------------
+# Local OCR (vLLM-based models)
+# ---------------------------------------------------------------------------
+
+
+def _ocr_local(image_path: Path, settings) -> str:
+    """Run OCR via a local vLLM model from the provider registry."""
+    from lab_manager.intake.providers.more_ocr import OCR_PROVIDERS, get_provider
+
+    provider_name = getattr(settings, "ocr_local_model", "deepseek_ocr")
+    if provider_name not in OCR_PROVIDERS:
+        raise RuntimeError(
+            f"Unknown local OCR provider: {provider_name}. "
+            f"Available: {list(OCR_PROVIDERS.keys())}"
+        )
+
+    provider = get_provider(provider_name, OCR_PROVIDERS)
+
+    # Override base_url from settings if the provider supports it
+    local_url = getattr(settings, "ocr_local_url", "")
+    if local_url and hasattr(provider, "base_url"):
+        provider.base_url = local_url
+
+    logger.info("OCR local: using %s for %s", provider_name, image_path.name)
+    text = provider.extract_text(str(image_path))
+    if not text:
+        raise RuntimeError(f"Local OCR ({provider_name}) returned empty text")
+    return text
+
+
+# ---------------------------------------------------------------------------
+# API OCR (cloud providers)
+# ---------------------------------------------------------------------------
 
 
 def _ocr_gemini(image_path: Path, settings) -> str:
@@ -169,32 +212,67 @@ def _ocr_nvidia(image_path: Path, settings, model: str) -> str:
     raise RuntimeError(f"NVIDIA OCR failed after retries: {last_error}")
 
 
+def _ocr_api(image_path: Path, settings) -> str:
+    """Run OCR via cloud API with fallback chain: Gemini → NVIDIA."""
+    model = _get_ocr_model(settings)
+
+    if _is_nvidia_model(model):
+        return _ocr_nvidia(image_path, settings, model)
+
+    try:
+        return _ocr_gemini(image_path, settings)
+    except Exception as e:
+        logger.warning("Gemini OCR failed, trying NVIDIA fallback: %s", e)
+        if settings.nvidia_build_api_key or os.environ.get("NVIDIA_BUILD_API_KEY", ""):
+            return _ocr_nvidia(
+                image_path,
+                settings,
+                "nvidia_nim/meta/llama-3.2-90b-vision-instruct",
+            )
+        raise
+
+
+# ---------------------------------------------------------------------------
+# Public entry point
+# ---------------------------------------------------------------------------
+
+
 def extract_text_from_image(image_path: Path) -> str:
     """Run OCR on a document image and return raw text.
 
-    Returns empty string on any failure (file not found, API error, etc.)
-    with error details logged.
+    Uses tiered detection controlled by OCR_TIER setting:
+    - "local": vLLM model only (fast, free, requires local GPU)
+    - "api":   Cloud API only (Gemini/NVIDIA, accurate, paid)
+    - "auto":  Try local first, fall back to API on failure (default)
+
+    Returns empty string on any failure with error details logged.
     """
     try:
         settings = get_settings()
-        model = _get_ocr_model(settings)
+        tier = getattr(settings, "ocr_tier", "auto")
+        if tier not in _VALID_TIERS:
+            logger.warning("Invalid OCR_TIER=%s, defaulting to 'auto'", tier)
+            tier = "auto"
 
-        if _is_nvidia_model(model):
-            return _ocr_nvidia(image_path, settings, model)
+        if tier == "local":
+            return _ocr_local(image_path, settings)
 
+        if tier == "api":
+            return _ocr_api(image_path, settings)
+
+        # tier == "auto": try local first, fall back to API
         try:
-            return _ocr_gemini(image_path, settings)
+            text = _ocr_local(image_path, settings)
+            if text:
+                return text
         except Exception as e:
-            logger.warning("Gemini OCR failed, trying NVIDIA fallback: %s", e)
-            if settings.nvidia_build_api_key or os.environ.get(
-                "NVIDIA_BUILD_API_KEY", ""
-            ):
-                return _ocr_nvidia(
-                    image_path,
-                    settings,
-                    "nvidia_nim/meta/llama-3.2-90b-vision-instruct",
-                )
-            raise
+            logger.info(
+                "Local OCR failed for %s, falling back to API: %s",
+                image_path.name,
+                e,
+            )
+
+        return _ocr_api(image_path, settings)
 
     except FileNotFoundError:
         logger.error("OCR file not found: %s", image_path)

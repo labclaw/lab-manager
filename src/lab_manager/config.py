@@ -54,10 +54,15 @@ class Settings(BaseSettings):
     auth_enabled: bool = True
     secure_cookies: bool = True
 
-    # Document intake
+    # Document intake — OCR tiered detection
+    # ocr_tier: "local" (vLLM only), "api" (cloud APIs), "auto" (local first, API fallback)
+    ocr_tier: str = "auto"
     ocr_model: str = "gemini-2.5-flash"
+    ocr_local_model: str = "deepseek_ocr"  # provider name from OCR_PROVIDERS registry
+    ocr_local_url: str = "http://localhost:8000/v1"  # vLLM endpoint for local models
     extraction_model: str = "gemini-2.5-flash"
     extraction_api_key: str = ""
+    mistral_api_key: str = ""
     openai_api_key: str = ""
 
     # RAG
