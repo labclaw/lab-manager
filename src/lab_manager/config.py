@@ -50,6 +50,22 @@ class Settings(BaseSettings):
             )
         return self
 
+    @model_validator(mode="after")
+    def _validate_public_auth_guard(self):
+        """Block no-auth mode on public domains."""
+        if self.auth_enabled:
+            return self
+
+        host = (self.domain or "").strip().lower().split(":", 1)[0]
+        local_hosts = {"", "localhost", "127.0.0.1", "::1"}
+        if host in local_hosts or host.endswith(".local"):
+            return self
+
+        raise ValueError(
+            "AUTH_ENABLED=false is only allowed for localhost or .local deployments. "
+            "Public domains must keep authentication enabled."
+        )
+
     meilisearch_url: str = "http://localhost:7700"
     meilisearch_api_key: str = ""
 
@@ -57,6 +73,7 @@ class Settings(BaseSettings):
     database_readonly_url: str = ""
 
     # Lab identity (configurable per deployment)
+    domain: str = "localhost"
     lab_name: str = "My Lab"
     lab_subtitle: str = ""
 

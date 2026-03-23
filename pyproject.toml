@@ -41,6 +41,9 @@ lab_manager = [
   "static/sw.js",
   "static/js/*.js",
   "static/icons/*",
+  "static/dist/**/*",
+  "alembic/versions/*.py",
+  "alembic/script.py.mako",
 ]
 
 [dependency-groups]
