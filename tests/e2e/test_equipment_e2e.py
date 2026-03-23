@@ -8,6 +8,7 @@ from __future__ import annotations
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from uuid import uuid4
 
 
 @pytest.mark.e2e
@@ -15,6 +16,35 @@ class TestEquipmentE2E:
     """End-to-end tests for equipment management."""
 
     _equipment_id: int | None = None
+
+    @classmethod
+    def _ensure_equipment_id(
+        cls, authenticated_client: TestClient | httpx.Client
+    ) -> int:
+        """Create equipment in the current isolated test DB when needed."""
+        if cls._equipment_id is not None:
+            existing = authenticated_client.get(
+                f"/api/v1/equipment/{cls._equipment_id}"
+            )
+            if existing.status_code == 200:
+                return cls._equipment_id
+
+        suffix = uuid4().hex[:8]
+        resp = authenticated_client.post(
+            "/api/v1/equipment/",
+            json={
+                "name": f"E2E Centrifuge {suffix}",
+                "model": f"CF-E2E-{suffix.upper()}",
+                "serial_number": f"SN-E2E-CF-{suffix.upper()}",
+                "status": "active",
+                "location": "Lab B",
+                "purchase_date": "2024-01-15",
+                "warranty_expiry": "2026-01-15",
+            },
+        )
+        assert resp.status_code in (200, 201), resp.text
+        cls._equipment_id = resp.json()["id"]
+        return cls._equipment_id
 
     def test_list_equipment(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/equipment/ returns paginated list."""
@@ -44,12 +74,8 @@ class TestEquipmentE2E:
 
     def test_get_equipment_by_id(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/equipment/{id} returns equipment details."""
-        if TestEquipmentE2E._equipment_id is None:
-            pytest.skip("No equipment created")
-
-        resp = authenticated_client.get(
-            f"/api/v1/equipment/{TestEquipmentE2E._equipment_id}"
-        )
+        equipment_id = TestEquipmentE2E._ensure_equipment_id(authenticated_client)
+        resp = authenticated_client.get(f"/api/v1/equipment/{equipment_id}")
         assert resp.status_code == 200
         data = resp.json()
         assert "name" in data
@@ -57,11 +83,9 @@ class TestEquipmentE2E:
 
     def test_update_equipment(self, authenticated_client: TestClient | httpx.Client):
         """PATCH /api/v1/equipment/{id} updates equipment."""
-        if TestEquipmentE2E._equipment_id is None:
-            pytest.skip("No equipment to update")
-
+        equipment_id = TestEquipmentE2E._ensure_equipment_id(authenticated_client)
         resp = authenticated_client.patch(
-            f"/api/v1/equipment/{TestEquipmentE2E._equipment_id}",
+            f"/api/v1/equipment/{equipment_id}",
             json={"status": "maintenance", "location": "Lab C"},
         )
         assert resp.status_code == 200
@@ -70,12 +94,8 @@ class TestEquipmentE2E:
 
     def test_delete_equipment(self, authenticated_client: TestClient | httpx.Client):
         """DELETE /api/v1/equipment/{id} removes equipment."""
-        if TestEquipmentE2E._equipment_id is None:
-            pytest.skip("No equipment to delete")
-
-        resp = authenticated_client.delete(
-            f"/api/v1/equipment/{TestEquipmentE2E._equipment_id}"
-        )
+        equipment_id = TestEquipmentE2E._ensure_equipment_id(authenticated_client)
+        resp = authenticated_client.delete(f"/api/v1/equipment/{equipment_id}")
         assert resp.status_code in (200, 204)
         TestEquipmentE2E._equipment_id = None
 

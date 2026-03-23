@@ -353,46 +353,62 @@ class TestVendorsEndpoints:
 
 @pytest.mark.e2e
 class TestEndpointAccessibility:
-    """Tests for endpoint accessibility (auth optional in e2e mode)."""
+    """Tests that protected endpoints are reachable with authentication."""
 
-    def test_vendors_endpoint_accessible(self, e2e_client: TestClient | httpx.Client):
+    def test_vendors_endpoint_accessible(
+        self, authenticated_client: TestClient | httpx.Client
+    ):
         """Vendors endpoint is accessible."""
-        resp = e2e_client.get("/api/v1/vendors/")
+        resp = authenticated_client.get("/api/v1/vendors/")
         assert resp.status_code == 200
 
-    def test_products_endpoint_accessible(self, e2e_client: TestClient | httpx.Client):
+    def test_products_endpoint_accessible(
+        self, authenticated_client: TestClient | httpx.Client
+    ):
         """Products endpoint is accessible."""
-        resp = e2e_client.get("/api/v1/products/")
+        resp = authenticated_client.get("/api/v1/products/")
         assert resp.status_code == 200
 
-    def test_inventory_endpoint_accessible(self, e2e_client: TestClient | httpx.Client):
+    def test_inventory_endpoint_accessible(
+        self, authenticated_client: TestClient | httpx.Client
+    ):
         """Inventory endpoint is accessible."""
-        resp = e2e_client.get("/api/v1/inventory/")
+        resp = authenticated_client.get("/api/v1/inventory/")
         assert resp.status_code == 200
 
-    def test_orders_endpoint_accessible(self, e2e_client: TestClient | httpx.Client):
+    def test_orders_endpoint_accessible(
+        self, authenticated_client: TestClient | httpx.Client
+    ):
         """Orders endpoint is accessible."""
-        resp = e2e_client.get("/api/v1/orders/")
+        resp = authenticated_client.get("/api/v1/orders/")
         assert resp.status_code == 200
 
-    def test_documents_endpoint_accessible(self, e2e_client: TestClient | httpx.Client):
+    def test_documents_endpoint_accessible(
+        self, authenticated_client: TestClient | httpx.Client
+    ):
         """Documents endpoint is accessible."""
-        resp = e2e_client.get("/api/v1/documents/")
+        resp = authenticated_client.get("/api/v1/documents/")
         assert resp.status_code == 200
 
-    def test_equipment_endpoint_accessible(self, e2e_client: TestClient | httpx.Client):
+    def test_equipment_endpoint_accessible(
+        self, authenticated_client: TestClient | httpx.Client
+    ):
         """Equipment endpoint is accessible."""
-        resp = e2e_client.get("/api/v1/equipment/")
+        resp = authenticated_client.get("/api/v1/equipment/")
         assert resp.status_code == 200
 
-    def test_analytics_endpoint_accessible(self, e2e_client: TestClient | httpx.Client):
+    def test_analytics_endpoint_accessible(
+        self, authenticated_client: TestClient | httpx.Client
+    ):
         """Analytics endpoint is accessible."""
-        resp = e2e_client.get("/api/v1/analytics/dashboard")
+        resp = authenticated_client.get("/api/v1/analytics/dashboard")
         assert resp.status_code == 200
 
-    def test_audit_endpoint_accessible(self, e2e_client: TestClient | httpx.Client):
+    def test_audit_endpoint_accessible(
+        self, authenticated_client: TestClient | httpx.Client
+    ):
         """Audit endpoint is accessible."""
-        resp = e2e_client.get("/api/v1/audit/")
+        resp = authenticated_client.get("/api/v1/audit/")
         assert resp.status_code == 200
 
 

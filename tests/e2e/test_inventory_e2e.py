@@ -8,6 +8,7 @@ from __future__ import annotations
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from uuid import uuid4
 
 
 @pytest.mark.e2e
@@ -15,6 +16,35 @@ class TestInventoryE2E:
     """End-to-end tests for inventory management."""
 
     _inventory_id: int | None = None
+
+    @classmethod
+    def _ensure_inventory_id(
+        cls,
+        authenticated_client: TestClient | httpx.Client,
+        test_product_id: int,
+    ) -> int:
+        """Create inventory in the current isolated test DB when needed."""
+        if cls._inventory_id is not None:
+            existing = authenticated_client.get(
+                f"/api/v1/inventory/{cls._inventory_id}"
+            )
+            if existing.status_code == 200:
+                return cls._inventory_id
+
+        suffix = uuid4().hex[:8]
+        resp = authenticated_client.post(
+            "/api/v1/inventory/",
+            json={
+                "product_id": test_product_id,
+                "quantity": 500,
+                "location": "Shelf B2",
+                "lot_number": f"LOT-E2E-INV-{suffix.upper()}",
+                "expiry_date": "2027-12-31",
+            },
+        )
+        assert resp.status_code in (200, 201), resp.text
+        cls._inventory_id = resp.json()["id"]
+        return cls._inventory_id
 
     def test_list_inventory(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/inventory/ returns paginated list."""
@@ -46,26 +76,32 @@ class TestInventoryE2E:
         qty = data.get("quantity_on_hand") or data.get("quantity")
         assert qty is not None
 
-    def test_get_inventory_by_id(self, authenticated_client: TestClient | httpx.Client):
+    def test_get_inventory_by_id(
+        self,
+        authenticated_client: TestClient | httpx.Client,
+        test_product_id: int,
+    ):
         """GET /api/v1/inventory/{id} returns item details."""
-        if TestInventoryE2E._inventory_id is None:
-            pytest.skip("No inventory item created")
-
-        resp = authenticated_client.get(
-            f"/api/v1/inventory/{TestInventoryE2E._inventory_id}"
+        inventory_id = TestInventoryE2E._ensure_inventory_id(
+            authenticated_client, test_product_id
         )
+        resp = authenticated_client.get(f"/api/v1/inventory/{inventory_id}")
         assert resp.status_code == 200
         data = resp.json()
         # API uses quantity_on_hand or quantity depending on version
         assert "quantity_on_hand" in data or "quantity" in data
 
-    def test_update_inventory(self, authenticated_client: TestClient | httpx.Client):
+    def test_update_inventory(
+        self,
+        authenticated_client: TestClient | httpx.Client,
+        test_product_id: int,
+    ):
         """PATCH /api/v1/inventory/{id} updates inventory."""
-        if TestInventoryE2E._inventory_id is None:
-            pytest.skip("No inventory item to update")
-
+        inventory_id = TestInventoryE2E._ensure_inventory_id(
+            authenticated_client, test_product_id
+        )
         resp = authenticated_client.patch(
-            f"/api/v1/inventory/{TestInventoryE2E._inventory_id}",
+            f"/api/v1/inventory/{inventory_id}",
             json={"quantity": 450, "location": "Shelf B3"},
         )
         assert resp.status_code == 200
