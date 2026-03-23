@@ -67,6 +67,7 @@ class TestDocumentCRUDEdgeCases:
             "/api/v1/documents/999999",
             json={"status": "reviewed"},
         )
+        # API returns 422 (validation error) for non-existent document
         assert resp.status_code == 422, f"Expected 422, got {resp.status_code}"
 
     def test_delete_nonexistent_document(

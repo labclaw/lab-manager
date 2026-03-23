@@ -9,7 +9,9 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-ADMIN_PASSWORD = "e2e-test-password-secure-12345"
+import conftest
+
+ADMIN_PASSWORD = conftest.ADMIN_PASSWORD
 
 
 @pytest.mark.e2e

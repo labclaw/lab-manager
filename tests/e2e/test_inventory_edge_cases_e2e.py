@@ -274,19 +274,19 @@ class TestInventoryDispose:
             f"Expected 200 or 201, got {resp.status_code}"
         )
 
-    def test_dispose_partial_quantity(
+    def test_dispose_item(
         self,
         authenticated_client: TestClient | httpx.Client,
         test_product_id: int,
     ):
-        """POST /api/v1/inventory/{id}/dispose rejects unsupported partial disposal."""
+        """POST /api/v1/inventory/{id}/dispose disposes an item."""
         # Create item
         create_resp = authenticated_client.post(
             "/api/v1/inventory/",
             json={
                 "product_id": test_product_id,
                 "quantity": 100,
-                "location": "Partial Dispose Test",
+                "location": "Dispose Test",
             },
         )
         assert create_resp.status_code == 201, (
@@ -294,11 +294,11 @@ class TestInventoryDispose:
         )
         item_id = create_resp.json()["id"]
 
-        # Dispose partial
+        # Dispose the item
         resp = authenticated_client.post(
             f"/api/v1/inventory/{item_id}/dispose",
-            json={"reason": "Partial dispose", "disposed_by": "e2e-tester"},
+            json={"reason": "Expired", "disposed_by": "e2e-tester"},
         )
-        assert resp.status_code in (200, 201, 422), (
-            f"Expected 200/201/422, got {resp.status_code}"
+        assert resp.status_code in (200, 201), (
+            f"Expected 200 or 201, got {resp.status_code}"
         )

@@ -148,7 +148,11 @@ class TestOrderItems:
         authenticated_client: TestClient | httpx.Client,
         test_order_id: int,
     ):
-        """POST /api/v1/orders/{id}/items handles invalid product."""
+        """POST /api/v1/orders/{id}/items handles invalid product.
+
+        Note: API currently allows creating items with non-existent product_id.
+        This test documents actual behavior; consider adding FK validation.
+        """
         resp = authenticated_client.post(
             f"/api/v1/orders/{test_order_id}/items",
             json={
@@ -156,9 +160,8 @@ class TestOrderItems:
                 "quantity": 10,
             },
         )
-        assert resp.status_code in (201, 422), (
-            f"Expected 201 or 422, got {resp.status_code}"
-        )
+        # API allows non-existent product_id (no FK validation)
+        assert resp.status_code == 201, f"Expected 201, got {resp.status_code}"
 
     def test_add_item_negative_quantity(
         self,
