@@ -2,6 +2,16 @@
 
 All notable changes to LabClaw Lab Manager will be documented in this file.
 
+## [0.1.8.1] - 2026-03-22
+
+### Fixed
+- Defensive API response parsing in `_response_text()` and `_ocr_nvidia()` — prevents crashes on malformed/empty API responses
+- Command injection prevention in Claude/Codex OCR providers via `shlex.quote()`
+- GLM5NIM provider: defensive response parsing + skip refinement on empty OCR
+- `batch_ingest.py`: status logic bug (consensus docs now `processed` instead of always `needs_review`)
+- `batch_ingest.py`: DB session leak on exception, JSON parse safety, 50MB file size check
+- `full_benchmark.py`: ETA calculation fix on resume (division by zero guard)
+
 ## [0.1.8] - 2026-03-21
 
 ### Added
