@@ -25,7 +25,9 @@ class TestInventoryE2E:
     ) -> int:
         """Create inventory in the current isolated test DB when needed."""
         if cls._inventory_id is not None:
-            existing = authenticated_client.get(f"/api/v1/inventory/{cls._inventory_id}")
+            existing = authenticated_client.get(
+                f"/api/v1/inventory/{cls._inventory_id}"
+            )
             if existing.status_code == 200:
                 return cls._inventory_id
 

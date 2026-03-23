@@ -18,10 +18,14 @@ class TestEquipmentE2E:
     _equipment_id: int | None = None
 
     @classmethod
-    def _ensure_equipment_id(cls, authenticated_client: TestClient | httpx.Client) -> int:
+    def _ensure_equipment_id(
+        cls, authenticated_client: TestClient | httpx.Client
+    ) -> int:
         """Create equipment in the current isolated test DB when needed."""
         if cls._equipment_id is not None:
-            existing = authenticated_client.get(f"/api/v1/equipment/{cls._equipment_id}")
+            existing = authenticated_client.get(
+                f"/api/v1/equipment/{cls._equipment_id}"
+            )
             if existing.status_code == 200:
                 return cls._equipment_id
 

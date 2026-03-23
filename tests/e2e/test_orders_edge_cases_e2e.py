@@ -87,7 +87,10 @@ class TestOrdersReceive:
         """POST /api/v1/orders/{id}/receive rejects non-existent orders."""
         resp = authenticated_client.post(
             "/api/v1/orders/999999/receive",
-            json={"received_by": "E2E Test", "items": [{"product_id": 1, "quantity": 1}]},
+            json={
+                "received_by": "E2E Test",
+                "items": [{"product_id": 1, "quantity": 1}],
+            },
         )
         assert resp.status_code in (404, 422), (
             f"Expected 404 or 422, got {resp.status_code}"
