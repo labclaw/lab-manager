@@ -24,6 +24,16 @@ dependencies = [
   "litellm>=1.82.4",
 ]
 
+[project.scripts]
+lab-populate-db = "lab_manager.cli.populate_db:main"
+lab-index-search = "lab_manager.cli.index_meilisearch:main"
+lab-set-password = "lab_manager.cli.set_staff_password:main"
+lab-process-scans = "lab_manager.cli.process_scans:main"
+lab-pipeline = "lab_manager.cli.pipeline_v2:main"
+lab-batch-ingest = "lab_manager.cli.batch_ingest:main"
+lab-extract-equipment = "lab_manager.cli.extract_equipment:main"
+lab-benchmark = "lab_manager.cli.full_benchmark:main"
+
 [build-system]
 requires = ["setuptools>=75.0"]
 build-backend = "setuptools.build_meta"
