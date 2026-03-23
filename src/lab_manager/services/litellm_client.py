@@ -200,7 +200,7 @@ def create_completion(
         >>> print(response.choices[0].message.content)
     """
     # Load config if available (for routing/fallbacks)
-    config = load_litellm_config()
+    load_litellm_config()
 
     # Get client params (API keys, base URLs)
     client_params = get_client_params(model)
