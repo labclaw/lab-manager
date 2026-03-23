@@ -8,6 +8,7 @@ from __future__ import annotations
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from uuid import uuid4
 
 
 @pytest.mark.e2e
@@ -15,6 +16,33 @@ class TestOrdersE2E:
     """End-to-end tests for order management."""
 
     _order_id: int | None = None
+
+    @classmethod
+    def _ensure_order_id(
+        cls,
+        authenticated_client: TestClient | httpx.Client,
+        test_vendor_id: int,
+    ) -> int:
+        """Create an order in the current isolated test DB when needed."""
+        if cls._order_id is not None:
+            existing = authenticated_client.get(f"/api/v1/orders/{cls._order_id}")
+            if existing.status_code == 200:
+                return cls._order_id
+
+        suffix = uuid4().hex[:8]
+        resp = authenticated_client.post(
+            "/api/v1/orders/",
+            json={
+                "po_number": f"E2E-ORDER-{suffix.upper()}",
+                "vendor_id": test_vendor_id,
+                "status": "pending",
+                "notes": "E2E test order",
+            },
+        )
+        assert resp.status_code in (200, 201), resp.text
+        order = resp.json().get("order", resp.json())
+        cls._order_id = order["id"]
+        return cls._order_id
 
     def test_list_orders(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/orders/ returns paginated list."""
@@ -45,23 +73,27 @@ class TestOrdersE2E:
         TestOrdersE2E._order_id = order.get("id")
         assert "id" in order
 
-    def test_get_order_by_id(self, authenticated_client: TestClient | httpx.Client):
+    def test_get_order_by_id(
+        self,
+        authenticated_client: TestClient | httpx.Client,
+        test_vendor_id: int,
+    ):
         """GET /api/v1/orders/{id} returns order details."""
-        if TestOrdersE2E._order_id is None:
-            pytest.skip("No order created")
-
-        resp = authenticated_client.get(f"/api/v1/orders/{TestOrdersE2E._order_id}")
+        order_id = TestOrdersE2E._ensure_order_id(authenticated_client, test_vendor_id)
+        resp = authenticated_client.get(f"/api/v1/orders/{order_id}")
         assert resp.status_code == 200
         data = resp.json()
         assert "po_number" in data
 
-    def test_update_order(self, authenticated_client: TestClient | httpx.Client):
+    def test_update_order(
+        self,
+        authenticated_client: TestClient | httpx.Client,
+        test_vendor_id: int,
+    ):
         """PATCH /api/v1/orders/{id} updates order."""
-        if TestOrdersE2E._order_id is None:
-            pytest.skip("No order to update")
-
+        order_id = TestOrdersE2E._ensure_order_id(authenticated_client, test_vendor_id)
         resp = authenticated_client.patch(
-            f"/api/v1/orders/{TestOrdersE2E._order_id}",
+            f"/api/v1/orders/{order_id}",
             json={"status": "approved", "notes": "Updated via E2E test"},
         )
         # Accept 422 if API has validation requirements
@@ -70,12 +102,14 @@ class TestOrdersE2E:
             data = resp.json()
             assert data["status"] == "approved"
 
-    def test_delete_order(self, authenticated_client: TestClient | httpx.Client):
+    def test_delete_order(
+        self,
+        authenticated_client: TestClient | httpx.Client,
+        test_vendor_id: int,
+    ):
         """DELETE /api/v1/orders/{id} removes order."""
-        if TestOrdersE2E._order_id is None:
-            pytest.skip("No order to delete")
-
-        resp = authenticated_client.delete(f"/api/v1/orders/{TestOrdersE2E._order_id}")
+        order_id = TestOrdersE2E._ensure_order_id(authenticated_client, test_vendor_id)
+        resp = authenticated_client.delete(f"/api/v1/orders/{order_id}")
         assert resp.status_code in (200, 204)
         TestOrdersE2E._order_id = None
 

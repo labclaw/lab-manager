@@ -6,6 +6,7 @@ Shared fixtures for all e2e test modules.
 from __future__ import annotations
 
 import os
+from uuid import uuid4
 from typing import Generator
 
 import httpx
@@ -27,9 +28,14 @@ ADMIN_EMAIL = "e2e-admin@test.local"
 ADMIN_PASSWORD = "e2e-test-password-secure-12345"
 
 
-@pytest.fixture(scope="session")
+def _unique_suffix() -> str:
+    """Generate a short suffix so seeded E2E records do not collide."""
+    return uuid4().hex[:8]
+
+
+@pytest.fixture()
 def e2e_client() -> Generator[TestClient | httpx.Client, None, None]:
-    """Session-scoped HTTP client for e2e tests.
+    """Function-scoped HTTP client for e2e tests.
 
     Uses httpx against APP_BASE_URL if set, otherwise creates a local
     TestClient with auth enabled + SQLite.
@@ -105,13 +111,13 @@ def e2e_client() -> Generator[TestClient | httpx.Client, None, None]:
         get_settings.cache_clear()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def authenticated_client(
     e2e_client: TestClient | httpx.Client,
 ) -> TestClient | httpx.Client:
-    """Session-scoped client that is logged in as admin.
+    """Function-scoped client that is logged in as admin.
 
-    Performs setup if needed and logs in once per session.
+    Performs setup if needed and logs in for the current test only.
     """
     # Check setup status
     status_resp = e2e_client.get("/api/v1/setup/status")
@@ -139,14 +145,15 @@ def authenticated_client(
     return e2e_client
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def test_vendor_id(authenticated_client: TestClient | httpx.Client) -> int:
     """Create a test vendor and return its ID."""
+    suffix = _unique_suffix()
     resp = authenticated_client.post(
         "/api/v1/vendors/",
         json={
-            "name": "E2E Test Vendor",
-            "email": "vendor@e2e-test.local",
+            "name": f"E2E Test Vendor {suffix}",
+            "email": f"vendor-{suffix}@e2e-test.local",
             "website": "https://e2e-test.local",
         },
     )
@@ -154,17 +161,18 @@ def test_vendor_id(authenticated_client: TestClient | httpx.Client) -> int:
     return resp.json()["id"]
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def test_product_id(
     authenticated_client: TestClient | httpx.Client,
     test_vendor_id: int,
 ) -> int:
     """Create a test product and return its ID."""
+    suffix = _unique_suffix()
     resp = authenticated_client.post(
         "/api/v1/products/",
         json={
-            "catalog_number": "E2E-TEST-001",
-            "name": "E2E Test Product",
+            "catalog_number": f"E2E-TEST-{suffix.upper()}",
+            "name": f"E2E Test Product {suffix}",
             "vendor_id": test_vendor_id,
             "category": "Reagents",
             "unit_price": 99.99,
@@ -174,16 +182,17 @@ def test_product_id(
     return resp.json()["id"]
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def test_order_id(
     authenticated_client: TestClient | httpx.Client,
     test_vendor_id: int,
 ) -> int:
     """Create a test order and return its ID."""
+    suffix = _unique_suffix()
     resp = authenticated_client.post(
         "/api/v1/orders/",
         json={
-            "po_number": "E2E-PO-001",
+            "po_number": f"E2E-PO-{suffix.upper()}",
             "vendor_id": test_vendor_id,
             "status": "pending",
         },
@@ -193,15 +202,16 @@ def test_order_id(
     return data.get("order", data)["id"]
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def test_equipment_id(authenticated_client: TestClient | httpx.Client) -> int:
     """Create test equipment and return its ID."""
+    suffix = _unique_suffix()
     resp = authenticated_client.post(
         "/api/v1/equipment/",
         json={
-            "name": "E2E Test Equipment",
-            "model": "TEST-MODEL-001",
-            "serial_number": "SN-E2E-001",
+            "name": f"E2E Test Equipment {suffix}",
+            "model": f"TEST-MODEL-{suffix.upper()}",
+            "serial_number": f"SN-E2E-{suffix.upper()}",
             "status": "active",
             "location": "Lab A",
         },
@@ -210,19 +220,20 @@ def test_equipment_id(authenticated_client: TestClient | httpx.Client) -> int:
     return resp.json()["id"]
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def test_inventory_id(
     authenticated_client: TestClient | httpx.Client,
     test_product_id: int,
 ) -> int:
     """Create test inventory item and return its ID."""
+    suffix = _unique_suffix()
     resp = authenticated_client.post(
         "/api/v1/inventory/",
         json={
             "product_id": test_product_id,
             "quantity": 100,
             "location": "Shelf A1",
-            "lot_number": "LOT-E2E-001",
+            "lot_number": f"LOT-E2E-{suffix.upper()}",
         },
     )
     assert resp.status_code == 201, f"Failed to create inventory: {resp.text}"
