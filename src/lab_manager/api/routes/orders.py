@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -95,11 +96,13 @@ class OrderUpdate(BaseModel):
 class OrderItemCreate(BaseModel):
     catalog_number: Optional[str] = Field(default=None, max_length=100)
     description: Optional[str] = Field(default=None, max_length=1000)
-    quantity: float = Field(default=1, gt=0, le=_MAX_ORDER_ITEM_QUANTITY)
+    quantity: Decimal = Field(
+        default=Decimal("1"), gt=0, le=Decimal(str(_MAX_ORDER_ITEM_QUANTITY))
+    )
     unit: Optional[str] = Field(default=None, max_length=50)
     lot_number: Optional[str] = Field(default=None, max_length=100)
     batch_number: Optional[str] = Field(default=None, max_length=100)
-    unit_price: Optional[float] = Field(default=None, ge=0)
+    unit_price: Optional[Decimal] = Field(default=None, ge=0)
     product_id: Optional[int] = None
     extra: dict = {}
 
@@ -107,11 +110,13 @@ class OrderItemCreate(BaseModel):
 class OrderItemUpdate(BaseModel):
     catalog_number: Optional[str] = Field(default=None, max_length=100)
     description: Optional[str] = Field(default=None, max_length=1000)
-    quantity: Optional[float] = Field(default=None, gt=0, le=_MAX_ORDER_ITEM_QUANTITY)
+    quantity: Optional[Decimal] = Field(
+        default=None, gt=0, le=Decimal(str(_MAX_ORDER_ITEM_QUANTITY))
+    )
     unit: Optional[str] = Field(default=None, max_length=50)
     lot_number: Optional[str] = Field(default=None, max_length=100)
     batch_number: Optional[str] = Field(default=None, max_length=100)
-    unit_price: Optional[float] = Field(default=None, ge=0)
+    unit_price: Optional[Decimal] = Field(default=None, ge=0)
     product_id: Optional[int] = None
     extra: Optional[dict] = None
 
@@ -302,7 +307,9 @@ def delete_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)
 class ReceiveItemEntry(BaseModel):
     order_item_id: Optional[int] = None
     product_id: Optional[int] = None
-    quantity: float = Field(default=1, gt=0, le=_MAX_ORDER_ITEM_QUANTITY)
+    quantity: Decimal = Field(
+        default=Decimal("1"), gt=0, le=Decimal(str(_MAX_ORDER_ITEM_QUANTITY))
+    )
     lot_number: Optional[str] = Field(default=None, max_length=100)
     unit: Optional[str] = Field(default=None, max_length=50)
     expiry_date: Optional[date] = None

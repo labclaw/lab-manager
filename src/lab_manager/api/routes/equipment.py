@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -36,7 +37,7 @@ class EquipmentCreate(BaseModel):
     description: Optional[str] = None
     location_id: Optional[int] = None
     room: Optional[str] = None
-    estimated_value: Optional[float] = None
+    estimated_value: Optional[Decimal] = Field(default=None, ge=0)
     status: str = EquipmentStatus.active
     is_api_controllable: bool = False
     api_interface: Optional[str] = None
@@ -56,7 +57,7 @@ class EquipmentUpdate(BaseModel):
     description: Optional[str] = None
     location_id: Optional[int] = None
     room: Optional[str] = None
-    estimated_value: Optional[float] = None
+    estimated_value: Optional[Decimal] = Field(default=None, ge=0)
     status: Optional[str] = None
     is_api_controllable: Optional[bool] = None
     api_interface: Optional[str] = None
