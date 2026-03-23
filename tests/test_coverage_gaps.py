@@ -340,27 +340,26 @@ class TestRagService:
         result = ask("   ", db_session)
         assert result["answer"] == "Please provide a question."
 
-    @patch("lab_manager.services.rag._get_client")
-    def test_ask_no_api_key(self, mock_get_client, db_session):
+    def test_ask_no_api_key(self, db_session):
         from lab_manager.services.rag import ask
 
-        mock_get_client.side_effect = RuntimeError("No API key")
-        with patch("lab_manager.services.rag._fallback_search") as mock_fb:
-            mock_fb.return_value = {
-                "question": "test",
-                "answer": "fallback",
-                "raw_results": [],
-                "source": "search",
-            }
-            result = ask("How many products?", db_session)
-            assert result["source"] == "search"
+        with patch(
+            "lab_manager.services.litellm_client.get_client_params"
+        ) as mock_params:
+            mock_params.side_effect = RuntimeError("No API key")
+            with patch("lab_manager.services.rag._fallback_search") as mock_fb:
+                mock_fb.return_value = {
+                    "question": "test",
+                    "answer": "fallback",
+                    "raw_results": [],
+                    "source": "search",
+                }
+                result = ask("How many products?", db_session)
+                assert result["source"] == "search"
 
-    @patch("lab_manager.services.rag._get_client")
-    def test_ask_sql_gen_fails(self, mock_get_client, db_session):
+    def test_ask_sql_gen_fails(self, db_session):
         from lab_manager.services.rag import ask
 
-        mock_client = MagicMock()
-        mock_get_client.return_value = mock_client
         with patch("lab_manager.services.rag._generate_sql") as mock_gen:
             mock_gen.side_effect = ValueError("bad sql")
             with patch("lab_manager.services.rag._fallback_search") as mock_fb:
@@ -373,12 +372,9 @@ class TestRagService:
                 result = ask("How many?", db_session)
                 assert result["source"] == "search"
 
-    @patch("lab_manager.services.rag._get_client")
-    def test_ask_sql_exec_fails(self, mock_get_client, db_session):
+    def test_ask_sql_exec_fails(self, db_session):
         from lab_manager.services.rag import ask
 
-        mock_client = MagicMock()
-        mock_get_client.return_value = mock_client
         with (
             patch("lab_manager.services.rag._generate_sql") as mock_gen,
             patch("lab_manager.services.rag._execute_sql") as mock_exec,
@@ -395,12 +391,9 @@ class TestRagService:
             result = ask("How many?", db_session)
             assert result["source"] == "search"
 
-    @patch("lab_manager.services.rag._get_client")
-    def test_ask_format_fails(self, mock_get_client, db_session):
+    def test_ask_format_fails(self, db_session):
         from lab_manager.services.rag import ask
 
-        mock_client = MagicMock()
-        mock_get_client.return_value = mock_client
         with (
             patch("lab_manager.services.rag._generate_sql") as mock_gen,
             patch("lab_manager.services.rag._execute_sql") as mock_exec,
@@ -413,12 +406,9 @@ class TestRagService:
             assert "formatting failed" in result["answer"]
             assert result["source"] == "sql"
 
-    @patch("lab_manager.services.rag._get_client")
-    def test_ask_success(self, mock_get_client, db_session):
+    def test_ask_success(self, db_session):
         from lab_manager.services.rag import ask
 
-        mock_client = MagicMock()
-        mock_get_client.return_value = mock_client
         with (
             patch("lab_manager.services.rag._generate_sql") as mock_gen,
             patch("lab_manager.services.rag._execute_sql") as mock_exec,
@@ -435,8 +425,10 @@ class TestRagService:
         from lab_manager.services.rag import MAX_QUESTION_LENGTH, ask
 
         long_q = "x" * (MAX_QUESTION_LENGTH + 500)
-        with patch("lab_manager.services.rag._get_client") as mock_gc:
-            mock_gc.side_effect = RuntimeError("no key")
+        with patch(
+            "lab_manager.services.litellm_client.get_client_params"
+        ) as mock_params:
+            mock_params.side_effect = RuntimeError("no key")
             with patch("lab_manager.services.rag._fallback_search") as mock_fb:
                 mock_fb.return_value = {
                     "question": long_q,

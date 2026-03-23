@@ -539,40 +539,37 @@ class TestInventoryServiceEdgeCases:
 
 
 # ---------------------------------------------------------------------------
-# rag.py — _get_client RuntimeError, _execute_sql paths
+# litellm_client.py — get_client_params RuntimeError
 # ---------------------------------------------------------------------------
 
 
 class TestRagExecuteSql:
     def test_get_client_no_key(self):
-        from lab_manager.services.rag import _get_client
+        from lab_manager.services.litellm_client import get_client_params
 
-        _get_client.cache_clear()
-        with patch("lab_manager.services.rag.get_settings") as mock_settings:
+        with patch("lab_manager.services.litellm_client.get_settings") as mock_settings:
             mock_settings.return_value.extraction_api_key = ""
+            mock_settings.return_value.nvidia_build_api_key = ""
+            mock_settings.return_value.rag_api_key = ""
+            mock_settings.return_value.openai_api_key = ""
             with patch.dict("os.environ", {}, clear=True):
-                with pytest.raises(RuntimeError, match="No Gemini API key"):
-                    _get_client()
-        _get_client.cache_clear()
+                # When calling with a gemini model without a key
+                with pytest.raises(RuntimeError, match="Gemini API key"):
+                    get_client_params("gemini-2.5-flash")
 
     def test_get_client_nvidia_build_key(self):
-        from lab_manager.services.rag import _get_client
+        from lab_manager.services.litellm_client import get_client_params
 
-        _get_client.cache_clear()
-        with patch("lab_manager.services.rag.get_settings") as mock_settings:
+        with patch("lab_manager.services.litellm_client.get_settings") as mock_settings:
             mock_settings.return_value.extraction_api_key = ""
             mock_settings.return_value.rag_api_key = ""
             mock_settings.return_value.rag_base_url = ""
-            mock_settings.return_value.rag_model = (
-                "nvidia_nim/meta/llama-3.2-90b-vision-instruct"
-            )
             mock_settings.return_value.nvidia_build_api_key = "nv-key"
             mock_settings.return_value.openai_api_key = ""
-            params = _get_client()
+            params = get_client_params("nvidia_nim/meta/llama-3.2-90b-vision-instruct")
             assert params["api_key"] == "nv-key"
             assert params["api_base"] == "https://integrate.api.nvidia.com/v1"
             assert params["model"].startswith("nvidia_nim/")
-        _get_client.cache_clear()
 
     @patch("lab_manager.database.get_readonly_engine")
     @patch("lab_manager.database.get_engine")
