@@ -86,6 +86,9 @@ class Settings(BaseSettings):
     rag_base_url: str = ""
     nvidia_build_api_key: str = ""
 
+    # LiteLLM — optional config file for model routing/fallbacks
+    litellm_config_path: str = ""  # Path to litellm_config.yaml (empty = disabled)
+
     # Logging
     log_format: str = "console"  # "console" or "json"
 
