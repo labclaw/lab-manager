@@ -184,7 +184,7 @@ class TestPipeline:
 
 
 class TestRagInternals:
-    @patch("lab_manager.services.rag.completion")
+    @patch("lab_manager.services.litellm_client.completion")
     def test_generate_sql_strips_markdown(self, mock_completion):
         from lab_manager.services.rag import _generate_sql
 
@@ -194,13 +194,11 @@ class TestRagInternals:
         ]
         mock_completion.return_value = mock_response
 
-        sql = _generate_sql(
-            {"model": "gemini/gemini-2.5-flash", "api_key": "key"}, "List vendors"
-        )
+        sql = _generate_sql("List vendors")
         assert "SELECT" in sql
         assert "```" not in sql
 
-    @patch("lab_manager.services.rag.completion")
+    @patch("lab_manager.services.litellm_client.completion")
     def test_format_answer(self, mock_completion):
         from lab_manager.services.rag import _format_answer
 
@@ -210,15 +208,10 @@ class TestRagInternals:
         ]
         mock_completion.return_value = mock_response
 
-        result = _format_answer(
-            {"model": "gemini/gemini-2.5-flash", "api_key": "key"},
-            "How many?",
-            "SELECT 1",
-            [{"c": 5}],
-        )
+        result = _format_answer("How many?", "SELECT 1", [{"c": 5}])
         assert "5 vendors" in result
 
-    @patch("lab_manager.services.rag.completion")
+    @patch("lab_manager.services.litellm_client.completion")
     def test_generate_sql_openai_compatible_client(self, mock_completion):
         from lab_manager.services.rag import _generate_sql
 
@@ -228,12 +221,10 @@ class TestRagInternals:
         ]
         mock_completion.return_value = mock_response
 
-        sql = _generate_sql(
-            {"model": "nvidia_nim/meta/llama", "api_key": "nv"}, "List vendors"
-        )
+        sql = _generate_sql("List vendors")
         assert sql == "SELECT * FROM vendors"
 
-    @patch("lab_manager.services.rag.completion")
+    @patch("lab_manager.services.litellm_client.completion")
     def test_format_answer_openai_compatible_client(self, mock_completion):
         from lab_manager.services.rag import _format_answer
 
@@ -243,12 +234,7 @@ class TestRagInternals:
         ]
         mock_completion.return_value = mock_response
 
-        result = _format_answer(
-            {"model": "nvidia_nim/meta/llama", "api_key": "nv"},
-            "How many?",
-            "SELECT 1",
-            [{"c": 2}],
-        )
+        result = _format_answer("How many?", "SELECT 1", [{"c": 2}])
         assert "2 matching orders" in result
 
     def test_get_model(self):
