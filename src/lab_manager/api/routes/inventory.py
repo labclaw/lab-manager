@@ -62,7 +62,7 @@ class InventoryItemUpdate(BaseModel):
     product_id: Optional[int] = None
     location_id: Optional[int] = None
     lot_number: Optional[str] = Field(default=None, max_length=100)
-    quantity_on_hand: Optional[float] = None
+    quantity_on_hand: Optional[Decimal] = None
     unit: Optional[str] = Field(default=None, max_length=50)
     expiry_date: Optional[date] = None
     opened_date: Optional[date] = None
@@ -91,7 +91,7 @@ class TransferBody(BaseModel):
 
 
 class AdjustBody(BaseModel):
-    new_quantity: float = Field(ge=0)
+    new_quantity: Decimal = Field(ge=0)
     reason: str = Field(max_length=500)
     adjusted_by: str = Field(max_length=200)
 

@@ -307,7 +307,9 @@ def delete_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)
 class ReceiveItemEntry(BaseModel):
     order_item_id: Optional[int] = None
     product_id: Optional[int] = None
-    quantity: float = Field(default=1, gt=0, le=_MAX_ORDER_ITEM_QUANTITY)
+    quantity: Decimal = Field(
+        default=Decimal("1"), gt=0, le=Decimal(str(_MAX_ORDER_ITEM_QUANTITY))
+    )
     lot_number: Optional[str] = Field(default=None, max_length=100)
     unit: Optional[str] = Field(default=None, max_length=50)
     expiry_date: Optional[date] = None
