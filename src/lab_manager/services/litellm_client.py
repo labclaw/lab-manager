@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import logging
 import os
-from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -41,7 +40,6 @@ def _first_value(*values: Any) -> str:
     return ""
 
 
-@lru_cache(maxsize=1)
 def load_litellm_config() -> dict[str, Any] | None:
     """Load litellm_config.yaml if configured and exists.
 
@@ -151,6 +149,7 @@ def get_client_params(model: str) -> dict[str, Any]:
             "api_base": _first_value(
                 settings.rag_base_url,
                 os.environ.get("RAG_BASE_URL", ""),
+                os.environ.get("NVIDIA_NIM_BASE_URL", ""),
                 "https://integrate.api.nvidia.com/v1",
             ),
         }
