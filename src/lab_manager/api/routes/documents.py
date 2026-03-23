@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Literal, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, field_validator
 from sqlalchemy import func, select
@@ -264,6 +264,7 @@ def _index_approved_doc(doc_id: int) -> None:
 @router.post("/upload", status_code=201)
 def upload_document(
     file: UploadFile,
+    request: Request,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
@@ -305,7 +306,9 @@ def upload_document(
     saved_name = f"{timestamp}_{usec}_{safe_name}"
 
     # Save to disk
-    upload_dir = Path(settings.upload_dir)
+    upload_dir = Path(
+        getattr(request.app.state, "upload_dir", Path(settings.upload_dir).resolve())
+    )
     upload_dir.mkdir(parents=True, exist_ok=True)
     dest = upload_dir / saved_name
     dest.write_bytes(content)

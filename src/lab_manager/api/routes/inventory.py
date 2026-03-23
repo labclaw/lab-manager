@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -40,7 +41,7 @@ class InventoryItemCreate(BaseModel):
     product_id: int
     location_id: Optional[int] = None
     lot_number: Optional[str] = Field(default=None, max_length=100)
-    quantity_on_hand: float = Field(default=0, ge=0)
+    quantity_on_hand: Decimal = Field(default=Decimal("0"), ge=0)
     unit: Optional[str] = Field(default=None, max_length=50)
     expiry_date: Optional[date] = None
     opened_date: Optional[date] = None
@@ -79,7 +80,7 @@ class InventoryItemUpdate(BaseModel):
 
 
 class ConsumeBody(BaseModel):
-    quantity: float = Field(gt=0)
+    quantity: Decimal = Field(gt=0)
     consumed_by: str = Field(max_length=200)
     purpose: Optional[str] = Field(default=None, max_length=500)
 
