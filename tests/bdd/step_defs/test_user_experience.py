@@ -1,7 +1,7 @@
 """BDD step definitions for user experience tests."""
 
 import pytest
-from pytest_bdd import given, when, then, scenarios
+from pytest_bdd import given, when, then, scenarios, parsers
 
 scenarios("../features/user_experience.feature")
 
@@ -40,6 +40,57 @@ def logged_in(api):
     )
 
 
+@given("I am on the dashboard")
+@given("I am on the dashboard in light mode")
+def on_dashboard():
+    """Frontend navigation context only."""
+
+
+@given("no documents exist in the system")
+def no_documents_exist(db):
+    from lab_manager.models.document import Document
+
+    db.query(Document).delete()
+    db.commit()
+
+
+@given("I am on the login page")
+def on_login_page():
+    """Frontend-only context marker."""
+
+
+@given("some documents exist")
+@given("50 documents exist")
+def some_documents_exist(db):
+    from lab_manager.models.document import Document
+
+    if db.query(Document).count() == 0:
+        for i in range(50):
+            db.add(
+                Document(
+                    file_path=f"/tmp/ux_{i}.pdf",
+                    file_name=f"ux_{i}.pdf",
+                    status="approved",
+                )
+            )
+        db.commit()
+
+
+@given("slow network conditions")
+def slow_network_conditions():
+    """Frontend-only loading-state context."""
+
+
+@given("I am uploading a document")
+def uploading_document():
+    """Frontend-only notification context."""
+
+
+@given("an API error occurs")
+def api_error_occurs():
+    """Frontend-only error-notification context."""
+
+
 # --- When steps ---
 
 
@@ -49,19 +100,21 @@ def navigate_dashboard(api):
     return api.get("/api/v1/analytics/dashboard")
 
 
-@when("I click the Documents nav link")
-def click_documents_nav():
-    """Click documents nav - frontend test."""
-    pass
+@when(
+    parsers.parse('I click the "{label}" nav link'), target_fixture="documents_response"
+)
+def click_documents_nav(api, label):
+    """Navigation click is represented by the target page fetch."""
+    return api.get("/api/v1/documents/")
 
 
-@when("I click the dark mode toggle")
-def click_dark_mode_toggle():
+@when("I click the dark mode toggle", target_fixture="dashboard_response")
+def click_dark_mode_toggle(api):
     """Toggle dark mode - frontend test."""
-    pass
+    return api.get("/api/v1/analytics/dashboard")
 
 
-@when("I refresh the page")
+@when("I refresh the page", target_fixture="dashboard_response")
 def refresh_page(api, dashboard_response):
     """Refresh page."""
     return api.get("/api/v1/analytics/dashboard")
@@ -166,6 +219,7 @@ def empty_state_visible(documents_response):
     data = documents_response.json()
     # Empty state means 0 items
     assert "items" in data
+    assert len(data["items"]) == 0
 
 
 @then("the message should suggest uploading a document")

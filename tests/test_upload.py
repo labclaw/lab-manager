@@ -13,9 +13,14 @@ def upload_dir(tmp_path):
     """Set UPLOAD_DIR env var before app creation so StaticFiles mount uses it."""
     d = tmp_path / "uploads"
     d.mkdir()
+    original_upload_dir = os.environ.get("UPLOAD_DIR")
     os.environ["UPLOAD_DIR"] = str(d)
     get_settings.cache_clear()
     yield d
+    if original_upload_dir is None:
+        os.environ.pop("UPLOAD_DIR", None)
+    else:
+        os.environ["UPLOAD_DIR"] = original_upload_dir
     get_settings.cache_clear()
 
 
@@ -30,6 +35,7 @@ def client(upload_dir, db_session):
     from lab_manager.api.routes import documents
 
     app = create_app()
+    original_run_extraction = documents._run_extraction
     documents._run_extraction = lambda doc_id: None
 
     def override_get_db():
@@ -42,6 +48,7 @@ def client(upload_dir, db_session):
     c.__enter__()
     yield c
     c.__exit__(None, None, None)
+    documents._run_extraction = original_run_extraction
 
 
 def _make_png_bytes() -> bytes:
@@ -179,6 +186,25 @@ class TestUploadEndpoint:
         assert resp.status_code == 201
         file_name = resp.json()["file_name"]
         assert (upload_dir / file_name).exists()
+
+    def test_upload_uses_app_mounted_directory_when_settings_change(
+        self, client, upload_dir, tmp_path
+    ):
+        """Uploads should use the app's mounted directory, not later env changes."""
+        other_dir = tmp_path / "other-uploads"
+        other_dir.mkdir()
+        os.environ["UPLOAD_DIR"] = str(other_dir)
+        get_settings.cache_clear()
+
+        png = _make_png_bytes()
+        resp = client.post(
+            "/api/v1/documents/upload",
+            files={"file": ("mounted_dir_test.png", io.BytesIO(png), "image/png")},
+        )
+        assert resp.status_code == 201
+        file_name = resp.json()["file_name"]
+        assert (upload_dir / file_name).exists()
+        assert not (other_dir / file_name).exists()
 
     def test_upload_jpeg(self, client, upload_dir):
         """JPEG uploads are accepted."""

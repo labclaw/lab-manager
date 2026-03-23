@@ -2,6 +2,16 @@
 
 All notable changes to LabClaw Lab Manager will be documented in this file.
 
+## [0.1.8.2] - 2026-03-23
+
+### Fixed
+- Bound upload writes to the same per-app `/uploads` directory used by static serving, eliminating settings-cache drift between request handling and mounted file serving
+- Rebound logging to the current stderr when each FastAPI app instance is created, preventing repeated test runs from writing to closed capture streams
+- Restored the maintained release gate to the current API security smoke suite instead of the stale BDD security backlog
+
+### Changed
+- Promoted `v0.1.8.2` as the current stable internal release across runtime metadata and release docs
+
 ## [0.1.8.1] - 2026-03-22
 
 ### Fixed
