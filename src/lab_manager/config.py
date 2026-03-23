@@ -2,19 +2,32 @@
 
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
+logger = logging.getLogger(__name__)
+
 
 class Settings(BaseSettings):
     """Application configuration."""
 
-    # In production, set DATABASE_URL via env var; this default is for local dev/test only.
+    # Default DATABASE_URL for local dev/test. Override in production via env.
     database_url: str = (
         "postgresql+psycopg://labmanager:labmanager@localhost:5432/labmanager"
     )
+
+    @model_validator(mode="after")
+    def _warn_default_database_url(self):
+        """Log a warning if the default DATABASE_URL is still in use."""
+        if self.database_url and "labmanager:labmanager@localhost" in self.database_url:
+            logger.warning(
+                "Using default DATABASE_URL (localhost). "
+                "Set DATABASE_URL explicitly for production deployments."
+            )
+        return self
 
     @model_validator(mode="after")
     def _normalize_database_urls(self):

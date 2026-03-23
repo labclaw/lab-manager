@@ -6,4 +6,4 @@ cd "$ROOT_DIR"
 
 docker compose --env-file .env.example config -q
 uv run pytest tests/test_release_gate.py -q
-uv run pytest tests/bdd/step_defs/test_api_security.py -q
+uv run pytest tests/test_api_security.py -q
