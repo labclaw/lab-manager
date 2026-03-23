@@ -568,9 +568,14 @@ class TestGetConsumptionHistory:
         product = Product(catalog_number="CAT-001", name="Reagent", vendor_id=vendor.id)
         db_session.add(product)
         db_session.flush()
+        inv_item = InventoryItem(
+            product_id=product.id, quantity_on_hand=Decimal("10.0")
+        )
+        db_session.add(inv_item)
+        db_session.flush()
         log = ConsumptionLog(
             product_id=product.id,
-            inventory_id=1,
+            inventory_id=inv_item.id,
             quantity_used=Decimal("2.0"),
             quantity_remaining=Decimal("8.0"),
             consumed_by="Alice",
