@@ -374,7 +374,7 @@ class TestAsk:
             patch("lab_manager.services.rag._format_answer", return_value="answer"),
         ):
             mock_session = MagicMock()
-            result = ask(long_q, mock_session)
+            ask(long_q, mock_session)
             mock_sql.assert_called_once()
             called_question = mock_sql.call_args[0][1]
             assert len(called_question) == MAX_QUESTION_LENGTH
