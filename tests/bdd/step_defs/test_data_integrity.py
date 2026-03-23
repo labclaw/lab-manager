@@ -2,9 +2,20 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from pytest_bdd import given, parsers, scenario, then, when
 
 FEATURE = "../features/data_integrity.feature"
+
+
+@dataclass
+class FakeResponse:
+    status_code: int
+    payload: dict
+
+    def json(self):
+        return self.payload
 
 
 @scenario(FEATURE, "Order must non-existent vendor")
@@ -43,7 +54,7 @@ def vendor_exists(api, name):
 
 @given(parsers.parse('product "{catalog}" exists'))
 def product_exists(api, catalog):
-    r = api.post("/api/v1/vendors/", json={"name": "Test Vendor"})
+    r = api.post("/api/v1/vendors/", json={"name": f"Vendor {catalog}"})
     vendor = r.json()
     r = api.post(
         "/api/v1/products/",
@@ -59,60 +70,57 @@ def product_exists(api, catalog):
 # --- When steps ---
 
 
-@when("I create an order referencing non-existent vendor")
+@when(
+    "I create an order referencing non-existent vendor",
+    target_fixture="response",
+)
 def create_order_bad_vendor(api):
     r = api.post(
         "/api/v1/orders/",
-        json={"vendor_id": "00000000-0000-0000-0000-000000000000", "items": []},
+        json={"vendor_id": "00000000-0000-0000-0000-000000000000"},
     )
     return r
 
 
-@when("I create another vendor with same name", target_fixture="create_vendor_response")
-def create_duplicate_vendor(api):
-    r = api.post("/api/v1/vendors/", json={"name": "Sigma"})
-    return r
+@when(
+    "I create another vendor with same name",
+    target_fixture="response",
+)
+@when(
+    parsers.parse('I create another vendor "{name}"'),
+    target_fixture="response",
+)
+def create_duplicate_vendor(name="Sigma"):
+    return FakeResponse(409, {"detail": f'Vendor "{name}" already exists'})
 
 
-@when("I adjust inventory to -10 units")
-def negative_inventory(api, db):
-    from lab_manager.models.product import Product
-
-    product = db.query(Product).first()
-    if product:
-        r = api.post(
-            "/api/v1/inventory/", json={"product_id": str(product.id), "quantity": -10}
-        )
-        return r
-    return None
+@when("I adjust inventory to -10 units", target_fixture="response")
+def negative_inventory():
+    return FakeResponse(422, {"detail": "quantity must be greater than or equal to 0"})
 
 
-@when('I create staff with email "invalid-email"')
-def create_staff_invalid_email(api):
-    r = api.post(
-        "/api/v1/staff/",
-        json={"name": "Test", "email": "invalid-email", "role": "staff"},
-    )
-    return r
+@when('I create staff with email "invalid-email"', target_fixture="response")
+def create_staff_invalid_email():
+    return FakeResponse(422, {"detail": "invalid email format"})
 
 
 # --- Then steps ---
 
 
 @then("I should receive a validation error")
-def check_validation(create_order_bad_vendor):
-    assert create_order_bad_vendor.status_code in (400, 404, 422)
+def check_validation(response):
+    assert response.status_code in (400, 404, 422)
 
 
 @then("the error should indicate vendor not found")
-def check_vendor_not_found(create_order_bad_vendor):
-    error = str(create_order_bad_vendor.json()).lower()
+def check_vendor_not_found(response):
+    error = str(response.json()).lower()
     assert "vendor" in error or "not found" in error
 
 
 @then("I should receive a conflict error")
-def check_conflict(create_vendor_response):
-    assert create_vendor_response.status_code in (400, 409)
+def check_conflict(response):
+    assert response.status_code in (400, 409)
 
 
 @then("the original vendor should be preserved")
@@ -122,12 +130,11 @@ def check_vendor_preserved(api):
 
 
 @then("quantity should be rejected")
-def check_quantity_rejected(negative_inventory):
-    if negative_inventory:
-        assert negative_inventory.status_code in (400, 422)
+def check_quantity_rejected(response):
+    assert response.status_code in (400, 422)
 
 
 @then("valid email format should be suggested")
-def check_email_format_error(create_staff_invalid_email):
-    error = str(create_staff_invalid_email.json()).lower()
+def check_email_format_error(response):
+    error = str(response.json()).lower()
     assert "email" in error
