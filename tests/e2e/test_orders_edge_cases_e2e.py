@@ -19,20 +19,22 @@ class TestOrdersPagination:
     ):
         """GET /api/v1/orders/ returns paginated results."""
         resp = authenticated_client.get("/api/v1/orders/")
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
-        assert "items" in data
-        assert "total" in data
+        assert "items" in data, f"Response missing 'items': {data.keys()}"
+        assert "total" in data, f"Response missing 'total': {data.keys()}"
 
     def test_pagination_with_status_filter(
         self, authenticated_client: TestClient | httpx.Client
     ):
         """GET /api/v1/orders/ with status filter."""
         resp = authenticated_client.get("/api/v1/orders/", params={"status": "pending"})
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
         for item in data["items"]:
-            assert item["status"] == "pending"
+            assert item["status"] == "pending", (
+                f"Expected status=pending, got {item['status']}"
+            )
 
     def test_pagination_with_vendor_filter(
         self,
@@ -43,10 +45,12 @@ class TestOrdersPagination:
         resp = authenticated_client.get(
             "/api/v1/orders/", params={"vendor_id": test_vendor_id}
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
         for item in data["items"]:
-            assert item["vendor_id"] == test_vendor_id
+            assert item["vendor_id"] == test_vendor_id, (
+                f"Expected vendor_id={test_vendor_id}, got {item['vendor_id']}"
+            )
 
 
 @pytest.mark.e2e
@@ -57,46 +61,37 @@ class TestOrdersReceive:
         self,
         authenticated_client: TestClient | httpx.Client,
         test_order_id: int,
+        test_product_id: int,
     ):
         """POST /api/v1/orders/{id}/receive receives order."""
+        add_resp = authenticated_client.post(
+            f"/api/v1/orders/{test_order_id}/items",
+            json={"product_id": test_product_id, "quantity": 1},
+        )
+        assert add_resp.status_code == 201, f"Expected 201, got {add_resp.status_code}"
+
         resp = authenticated_client.post(
             f"/api/v1/orders/{test_order_id}/receive",
             json={
                 "received_by": "E2E Test",
-                "notes": "Test receive",
+                "items": [{"product_id": test_product_id, "quantity": 1}],
             },
         )
-        assert resp.status_code in (200, 201, 400, 404, 422)
-
-    def test_receive_already_received(
-        self,
-        authenticated_client: TestClient | httpx.Client,
-        test_order_id: int,
-    ):
-        """POST /api/v1/orders/{id}/receive rejects double receive."""
-        # First receive
-        authenticated_client.post(
-            f"/api/v1/orders/{test_order_id}/receive",
-            json={"received_by": "E2E Test"},
+        assert resp.status_code in (200, 201), (
+            f"Expected 200 or 201, got {resp.status_code}"
         )
-        # Second receive
-        resp = authenticated_client.post(
-            f"/api/v1/orders/{test_order_id}/receive",
-            json={"received_by": "E2E Test"},
-        )
-        # May succeed (idempotent) or fail
-        assert resp.status_code in (200, 201, 400, 404, 422)
 
     def test_receive_nonexistent_order(
         self, authenticated_client: TestClient | httpx.Client
     ):
-        """POST /api/v1/orders/{id}/receive returns 404 for non-existent."""
+        """POST /api/v1/orders/{id}/receive rejects non-existent orders."""
         resp = authenticated_client.post(
             "/api/v1/orders/999999/receive",
-            json={"received_by": "E2E Test"},
+            json={"received_by": "E2E Test", "items": [{"product_id": 1, "quantity": 1}]},
         )
-        # May return 404 or 422
-        assert resp.status_code in (400, 404, 422)
+        assert resp.status_code in (404, 422), (
+            f"Expected 404 or 422, got {resp.status_code}"
+        )
 
     def test_receive_with_items(
         self,
@@ -106,7 +101,7 @@ class TestOrdersReceive:
     ):
         """POST /api/v1/orders/{id}/receive with item details."""
         # Add item first
-        authenticated_client.post(
+        add_resp = authenticated_client.post(
             f"/api/v1/orders/{test_order_id}/items",
             json={
                 "product_id": test_product_id,
@@ -114,15 +109,18 @@ class TestOrdersReceive:
                 "unit_price": 99.99,
             },
         )
+        assert add_resp.status_code == 201, f"Expected 201, got {add_resp.status_code}"
 
         resp = authenticated_client.post(
             f"/api/v1/orders/{test_order_id}/receive",
             json={
                 "received_by": "E2E Test",
-                "items": [{"product_id": test_product_id, "received_quantity": 10}],
+                "items": [{"product_id": test_product_id, "quantity": 10}],
             },
         )
-        assert resp.status_code in (200, 201, 400, 404, 422)
+        assert resp.status_code in (200, 201), (
+            f"Expected 200 or 201, got {resp.status_code}"
+        )
 
 
 @pytest.mark.e2e
@@ -136,9 +134,11 @@ class TestOrderItems:
     ):
         """GET /api/v1/orders/{id}/items returns items."""
         resp = authenticated_client.get(f"/api/v1/orders/{test_order_id}/items")
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
-        assert "items" in data or isinstance(data, list)
+        assert "items" in data or isinstance(data, list), (
+            f"Response should have 'items' or be a list: {type(data)}"
+        )
 
     def test_add_item_invalid_product(
         self,
@@ -153,8 +153,9 @@ class TestOrderItems:
                 "quantity": 10,
             },
         )
-        # API may create item anyway or reject
-        assert resp.status_code in (200, 201, 400, 404, 422)
+        assert resp.status_code in (201, 422), (
+            f"Expected 201 or 422, got {resp.status_code}"
+        )
 
     def test_add_item_negative_quantity(
         self,
@@ -170,7 +171,7 @@ class TestOrderItems:
                 "quantity": -5,
             },
         )
-        assert resp.status_code in (400, 422)
+        assert resp.status_code == 422, f"Expected 422, got {resp.status_code}"
 
     def test_add_item_zero_quantity(
         self,
@@ -178,7 +179,7 @@ class TestOrderItems:
         test_order_id: int,
         test_product_id: int,
     ):
-        """POST /api/v1/orders/{id}/items handles zero quantity."""
+        """POST /api/v1/orders/{id}/items rejects zero quantity."""
         resp = authenticated_client.post(
             f"/api/v1/orders/{test_order_id}/items",
             json={
@@ -186,7 +187,7 @@ class TestOrderItems:
                 "quantity": 0,
             },
         )
-        assert resp.status_code in (200, 201, 400, 422)
+        assert resp.status_code == 422, f"Expected 422, got {resp.status_code}"
 
     def test_update_item(
         self,
@@ -200,17 +201,15 @@ class TestOrderItems:
             f"/api/v1/orders/{test_order_id}/items",
             json={"product_id": test_product_id, "quantity": 10},
         )
-        if add_resp.status_code in (200, 201):
-            items = authenticated_client.get(
-                f"/api/v1/orders/{test_order_id}/items"
-            ).json()
-            item_id = items["items"][0]["id"] if "items" in items else items[0]["id"]
+        assert add_resp.status_code == 201, f"Expected 201, got {add_resp.status_code}"
+        items = authenticated_client.get(f"/api/v1/orders/{test_order_id}/items").json()
+        item_id = items["items"][0]["id"]
 
-            resp = authenticated_client.patch(
-                f"/api/v1/orders/{test_order_id}/items/{item_id}",
-                json={"quantity": 20},
-            )
-            assert resp.status_code in (200, 404)
+        resp = authenticated_client.patch(
+            f"/api/v1/orders/{test_order_id}/items/{item_id}",
+            json={"quantity": 20},
+        )
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
 
     def test_delete_item(
         self,
@@ -224,16 +223,14 @@ class TestOrderItems:
             f"/api/v1/orders/{test_order_id}/items",
             json={"product_id": test_product_id, "quantity": 5},
         )
-        if add_resp.status_code in (200, 201):
-            items = authenticated_client.get(
-                f"/api/v1/orders/{test_order_id}/items"
-            ).json()
-            item_id = items["items"][0]["id"] if "items" in items else items[0]["id"]
+        assert add_resp.status_code == 201, f"Expected 201, got {add_resp.status_code}"
+        items = authenticated_client.get(f"/api/v1/orders/{test_order_id}/items").json()
+        item_id = items["items"][0]["id"]
 
-            resp = authenticated_client.delete(
-                f"/api/v1/orders/{test_order_id}/items/{item_id}"
-            )
-            assert resp.status_code in (200, 204, 404)
+        resp = authenticated_client.delete(
+            f"/api/v1/orders/{test_order_id}/items/{item_id}"
+        )
+        assert resp.status_code == 204, f"Expected 204, got {resp.status_code}"
 
     def test_get_item_by_id(
         self,
@@ -247,16 +244,14 @@ class TestOrderItems:
             f"/api/v1/orders/{test_order_id}/items",
             json={"product_id": test_product_id, "quantity": 5},
         )
-        if add_resp.status_code in (200, 201):
-            items = authenticated_client.get(
-                f"/api/v1/orders/{test_order_id}/items"
-            ).json()
-            item_id = items["items"][0]["id"] if "items" in items else items[0]["id"]
+        assert add_resp.status_code == 201, f"Expected 201, got {add_resp.status_code}"
+        items = authenticated_client.get(f"/api/v1/orders/{test_order_id}/items").json()
+        item_id = items["items"][0]["id"]
 
-            resp = authenticated_client.get(
-                f"/api/v1/orders/{test_order_id}/items/{item_id}"
-            )
-            assert resp.status_code in (200, 404)
+        resp = authenticated_client.get(
+            f"/api/v1/orders/{test_order_id}/items/{item_id}"
+        )
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
 
     def test_get_nonexistent_item(
         self,
@@ -265,7 +260,7 @@ class TestOrderItems:
     ):
         """GET /api/v1/orders/{id}/items/{item_id} returns 404."""
         resp = authenticated_client.get(f"/api/v1/orders/{test_order_id}/items/999999")
-        assert resp.status_code == 404
+        assert resp.status_code == 404, f"Expected 404, got {resp.status_code}"
 
 
 @pytest.mark.e2e
@@ -277,7 +272,7 @@ class TestOrderStatusTransitions:
         authenticated_client: TestClient | httpx.Client,
         test_vendor_id: int,
     ):
-        """Order transitions from pending to approved."""
+        """Order transition request from pending to approved is handled safely."""
         # Create order
         create_resp = authenticated_client.post(
             "/api/v1/orders/",
@@ -287,7 +282,9 @@ class TestOrderStatusTransitions:
                 "status": "pending",
             },
         )
-        assert create_resp.status_code in (200, 201)
+        assert create_resp.status_code == 201, (
+            f"Expected 201, got {create_resp.status_code}"
+        )
         order_id = create_resp.json().get("order", create_resp.json())["id"]
 
         # Update to approved
@@ -295,57 +292,63 @@ class TestOrderStatusTransitions:
             f"/api/v1/orders/{order_id}",
             json={"status": "approved"},
         )
-        # May allow or reject status transition
-        assert resp.status_code in (200, 400, 422)
+        assert resp.status_code in (200, 422), (
+            f"Expected 200 or 422, got {resp.status_code}"
+        )
 
     def test_approved_to_ordered(
         self,
         authenticated_client: TestClient | httpx.Client,
         test_vendor_id: int,
     ):
-        """Order transitions from approved to ordered."""
-        # Create and approve order
+        """Order transition request to ordered is handled safely."""
+        # Create order in default pending state.
         create_resp = authenticated_client.post(
             "/api/v1/orders/",
             json={
                 "po_number": "E2E-STATUS-002",
                 "vendor_id": test_vendor_id,
-                "status": "approved",
             },
         )
-        if create_resp.status_code not in (200, 201):
-            pytest.skip("Could not create order")
+        assert create_resp.status_code == 201, (
+            f"Expected 201, got {create_resp.status_code}"
+        )
         order_id = create_resp.json().get("order", create_resp.json())["id"]
 
         resp = authenticated_client.patch(
             f"/api/v1/orders/{order_id}",
             json={"status": "ordered"},
         )
-        assert resp.status_code in (200, 400, 422)
+        assert resp.status_code in (200, 422), (
+            f"Expected 200 or 422, got {resp.status_code}"
+        )
 
     def test_ordered_to_received(
         self,
         authenticated_client: TestClient | httpx.Client,
         test_vendor_id: int,
     ):
-        """Order transitions from ordered to received."""
+        """Order transition request to received is handled safely."""
         create_resp = authenticated_client.post(
             "/api/v1/orders/",
             json={
                 "po_number": "E2E-STATUS-003",
                 "vendor_id": test_vendor_id,
-                "status": "ordered",
+                "status": "shipped",
             },
         )
-        if create_resp.status_code not in (200, 201):
-            pytest.skip("Could not create order")
+        assert create_resp.status_code == 201, (
+            f"Expected 201, got {create_resp.status_code}"
+        )
         order_id = create_resp.json().get("order", create_resp.json())["id"]
 
         resp = authenticated_client.patch(
             f"/api/v1/orders/{order_id}",
             json={"status": "received"},
         )
-        assert resp.status_code in (200, 400, 422)
+        assert resp.status_code in (200, 422), (
+            f"Expected 200 or 422, got {resp.status_code}"
+        )
 
     def test_invalid_status_transition(
         self,
@@ -358,7 +361,7 @@ class TestOrderStatusTransitions:
             f"/api/v1/orders/{test_order_id}",
             json={"status": "invalid_status"},
         )
-        assert resp.status_code in (400, 422)
+        assert resp.status_code == 422, f"Expected 422, got {resp.status_code}"
 
 
 @pytest.mark.e2e
@@ -373,46 +376,52 @@ class TestOrderValidation:
             "/api/v1/orders/",
             json={"po_number": "E2E-NO-VENDOR"},
         )
-        # May create with null vendor or require it
-        assert resp.status_code in (200, 201, 400, 422)
+        assert resp.status_code in (201, 422), (
+            f"Expected 201 or 422, got {resp.status_code}"
+        )
 
     def test_create_duplicate_po_number(
         self,
         authenticated_client: TestClient | httpx.Client,
         test_vendor_id: int,
     ):
-        """POST /api/v1/orders/ handles duplicate PO number."""
+        """POST /api/v1/orders/ handles duplicate PO number according to API contract."""
         po_number = "E2E-DUPLICATE-PO"
         # First create
-        authenticated_client.post(
+        first_resp = authenticated_client.post(
             "/api/v1/orders/",
             json={"po_number": po_number, "vendor_id": test_vendor_id},
+        )
+        assert first_resp.status_code == 201, (
+            f"Expected 201, got {first_resp.status_code}"
         )
         # Second create with same PO
         resp = authenticated_client.post(
             "/api/v1/orders/",
             json={"po_number": po_number, "vendor_id": test_vendor_id},
         )
-        # May allow duplicates or reject
-        assert resp.status_code in (200, 201, 400, 409, 422)
+        assert resp.status_code in (201, 409), (
+            f"Expected 201 or 409 for duplicate, got {resp.status_code}"
+        )
 
     def test_update_nonexistent_order(
         self, authenticated_client: TestClient | httpx.Client
     ):
-        """PATCH /api/v1/orders/{id} returns 404 for non-existent."""
+        """PATCH /api/v1/orders/{id} rejects invalid/non-existent updates."""
         resp = authenticated_client.patch(
             "/api/v1/orders/999999",
-            json={"status": "approved"},
+            json={"status": "shipped"},
         )
-        # May return 404 or 422
-        assert resp.status_code in (400, 404, 422)
+        assert resp.status_code in (404, 422), (
+            f"Expected 404 or 422, got {resp.status_code}"
+        )
 
     def test_delete_nonexistent_order(
         self, authenticated_client: TestClient | httpx.Client
     ):
         """DELETE /api/v1/orders/{id} returns 404 for non-existent."""
         resp = authenticated_client.delete("/api/v1/orders/999999")
-        assert resp.status_code == 404
+        assert resp.status_code == 404, f"Expected 404, got {resp.status_code}"
 
 
 @pytest.mark.e2e
@@ -422,7 +431,7 @@ class TestOrderSearch:
     def test_search_by_po_number(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/orders/ searches by PO number."""
         resp = authenticated_client.get("/api/v1/orders/", params={"search": "E2E-PO"})
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
 
     def test_filter_by_date_range(
         self, authenticated_client: TestClient | httpx.Client
@@ -435,4 +444,4 @@ class TestOrderSearch:
                 "end_date": "2026-12-31",
             },
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"

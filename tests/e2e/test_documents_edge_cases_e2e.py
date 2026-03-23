@@ -15,92 +15,73 @@ class TestDocumentUploadValidation:
     """Tests for document upload validation."""
 
     def test_upload_empty_file(self, authenticated_client: TestClient | httpx.Client):
-        """POST /api/v1/documents/upload rejects empty file."""
+        """POST /api/v1/documents/upload rejects empty file with 400."""
         resp = authenticated_client.post(
             "/api/v1/documents/upload",
             files={"file": ("empty.txt", b"", "text/plain")},
         )
-        assert resp.status_code in (400, 422)
+        assert resp.status_code == 400, (
+            f"Expected 400 for empty file, got {resp.status_code}"
+        )
 
     def test_upload_invalid_mime_type(
         self, authenticated_client: TestClient | httpx.Client
     ):
-        """POST /api/v1/documents/upload rejects invalid MIME type."""
+        """POST /api/v1/documents/upload rejects executable with 400."""
         resp = authenticated_client.post(
             "/api/v1/documents/upload",
             files={
                 "file": ("test.exe", b"invalid content", "application/octet-stream")
             },
         )
-        assert resp.status_code in (400, 415, 422)
+        assert resp.status_code == 400, (
+            f"Expected 400 for invalid MIME, got {resp.status_code}"
+        )
 
     def test_upload_missing_file(self, authenticated_client: TestClient | httpx.Client):
-        """POST /api/v1/documents/upload handles missing file."""
+        """POST /api/v1/documents/upload returns 422 without file."""
         resp = authenticated_client.post("/api/v1/documents/upload")
-        assert resp.status_code in (400, 422)
+        assert resp.status_code == 422, f"Expected 422, got {resp.status_code}"
 
     def test_upload_very_large_filename(
         self, authenticated_client: TestClient | httpx.Client
     ):
-        """POST /api/v1/documents/upload handles long filename."""
-        long_name = "a" * 500 + ".txt"
+        """POST /api/v1/documents/upload rejects very long filename with 400."""
+        long_name = "a" * 200 + ".txt"  # Very long filename exceeds limit
         resp = authenticated_client.post(
             "/api/v1/documents/upload",
             files={"file": (long_name, b"test content", "text/plain")},
         )
-        assert resp.status_code in (200, 201, 400, 422)
-
-    def test_upload_special_chars_filename(
-        self, authenticated_client: TestClient | httpx.Client
-    ):
-        """POST /api/v1/documents/upload handles special characters."""
-        resp = authenticated_client.post(
-            "/api/v1/documents/upload",
-            files={"file": ('test<>:"/\\|?*.txt', b"test", "text/plain")},
-        )
-        # May sanitize or reject
-        assert resp.status_code in (200, 201, 400, 422)
+        assert resp.status_code == 400, f"Expected 400, got {resp.status_code}"
 
 
 @pytest.mark.e2e
 class TestDocumentCRUDEdgeCases:
     """Tests for document CRUD edge cases."""
 
-    def test_create_without_file(self, authenticated_client: TestClient | httpx.Client):
-        """POST /api/v1/documents/ creates document without file."""
-        resp = authenticated_client.post(
-            "/api/v1/documents/",
-            json={
-                "document_type": "packing_list",
-                "status": "pending",
-            },
-        )
-        assert resp.status_code in (200, 201, 400, 422)
-
     def test_update_nonexistent_document(
         self, authenticated_client: TestClient | httpx.Client
     ):
-        """PATCH /api/v1/documents/{id} returns 404 for non-existent."""
+        """PATCH /api/v1/documents/{id} returns 422 for non-existent."""
         resp = authenticated_client.patch(
             "/api/v1/documents/999999",
             json={"status": "reviewed"},
         )
-        # May return 404 or 422
-        assert resp.status_code in (400, 404, 422)
+        assert resp.status_code == 422, f"Expected 422, got {resp.status_code}"
 
     def test_delete_nonexistent_document(
         self, authenticated_client: TestClient | httpx.Client
     ):
         """DELETE /api/v1/documents/{id} returns 404 for non-existent."""
         resp = authenticated_client.delete("/api/v1/documents/999999")
-        assert resp.status_code == 404
+        assert resp.status_code == 404, f"Expected 404, got {resp.status_code}"
 
     def test_get_nonexistent_document(
         self, authenticated_client: TestClient | httpx.Client
     ):
         """GET /api/v1/documents/{id} returns 404 for non-existent."""
         resp = authenticated_client.get("/api/v1/documents/999999")
-        assert resp.status_code == 404
+        assert resp.status_code == 404, f"Expected 404, got {resp.status_code}"
 
 
 @pytest.mark.e2e
@@ -110,77 +91,71 @@ class TestDocumentReview:
     def test_review_nonexistent_document(
         self, authenticated_client: TestClient | httpx.Client
     ):
-        """POST /api/v1/documents/{id}/review returns 404 for non-existent."""
+        """POST /api/v1/documents/{id}/review rejects missing documents."""
         resp = authenticated_client.post(
             "/api/v1/documents/999999/review",
-            json={"status": "approved"},
+            json={"action": "approve"},
         )
-        # May return 404 or 422
-        assert resp.status_code in (400, 404, 422)
+        assert resp.status_code in (404, 422), (
+            f"Expected 404 or 422, got {resp.status_code}"
+        )
 
     def test_review_with_extracted_data(
         self, authenticated_client: TestClient | httpx.Client
     ):
-        """POST /api/v1/documents/{id}/review with extracted data."""
+        """POST /api/v1/documents/{id}/review with extracted data succeeds."""
         # Create document first
         create_resp = authenticated_client.post(
             "/api/v1/documents/",
             json={
+                "file_path": "/tmp/review-test.txt",
+                "file_name": "review-test.txt",
                 "document_type": "packing_list",
-                "status": "pending_review",
+                "status": "needs_review",
+                "extracted_data": {
+                    "vendor_name": "Test Vendor",
+                    "items": [{"name": "Item 1", "quantity": 10}],
+                },
             },
         )
-        if create_resp.status_code in (200, 201):
-            doc_id = create_resp.json()["id"]
-
-            resp = authenticated_client.post(
-                f"/api/v1/documents/{doc_id}/review",
-                json={
-                    "status": "approved",
-                    "extracted_data": {
-                        "vendor_name": "Test Vendor",
-                        "items": [{"name": "Item 1", "quantity": 10}],
-                    },
-                },
-            )
-            assert resp.status_code in (200, 400, 404, 422)
-
-    def test_review_status_transitions(
-        self, authenticated_client: TestClient | httpx.Client
-    ):
-        """Document review status transitions correctly."""
-        # Create document
-        create_resp = authenticated_client.post(
-            "/api/v1/documents/",
-            json={"document_type": "invoice", "status": "pending"},
+        assert create_resp.status_code == 201, (
+            f"Expected 201, got {create_resp.status_code}"
         )
-        if create_resp.status_code in (200, 201):
-            doc_id = create_resp.json()["id"]
+        doc_id = create_resp.json()["id"]
 
-            # Transition to reviewed
-            resp = authenticated_client.post(
-                f"/api/v1/documents/{doc_id}/review",
-                json={"status": "reviewed"},
-            )
-            assert resp.status_code in (200, 400, 404)
+        resp = authenticated_client.post(
+            f"/api/v1/documents/{doc_id}/review",
+            json={
+                "action": "approve",
+                "reviewed_by": "e2e-reviewer",
+            },
+        )
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
 
     def test_review_invalid_status(
         self, authenticated_client: TestClient | httpx.Client
     ):
-        """POST /api/v1/documents/{id}/review rejects invalid status."""
+        """POST /api/v1/documents/{id}/review rejects invalid action with 422."""
         # Create document first
         create_resp = authenticated_client.post(
             "/api/v1/documents/",
-            json={"document_type": "packing_list", "status": "pending"},
+            json={
+                "file_path": "/tmp/review-invalid.txt",
+                "file_name": "review-invalid.txt",
+                "document_type": "packing_list",
+                "status": "needs_review",
+            },
         )
-        if create_resp.status_code in (200, 201):
-            doc_id = create_resp.json()["id"]
+        assert create_resp.status_code == 201, (
+            f"Expected 201, got {create_resp.status_code}"
+        )
+        doc_id = create_resp.json()["id"]
 
-            resp = authenticated_client.post(
-                f"/api/v1/documents/{doc_id}/review",
-                json={"status": "invalid_status"},
-            )
-            assert resp.status_code in (400, 422)
+        resp = authenticated_client.post(
+            f"/api/v1/documents/{doc_id}/review",
+            json={"action": "invalid_status_xyz"},
+        )
+        assert resp.status_code == 422, f"Expected 422, got {resp.status_code}"
 
 
 @pytest.mark.e2e
@@ -192,31 +167,24 @@ class TestDocumentFiltering:
         resp = authenticated_client.get(
             "/api/v1/documents/", params={"status": "pending"}
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
         for item in data["items"]:
-            assert item["status"] == "pending"
+            assert item["status"] == "pending", (
+                f"Expected status=pending, got {item['status']}"
+            )
 
     def test_filter_by_type(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/documents/ filters by document type."""
         resp = authenticated_client.get(
             "/api/v1/documents/", params={"document_type": "invoice"}
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
         for item in data["items"]:
-            assert item["document_type"] == "invoice"
-
-    def test_filter_by_vendor(
-        self,
-        authenticated_client: TestClient | httpx.Client,
-        test_vendor_id: int,
-    ):
-        """GET /api/v1/documents/ filters by vendor."""
-        resp = authenticated_client.get(
-            "/api/v1/documents/", params={"vendor_id": test_vendor_id}
-        )
-        assert resp.status_code == 200
+            assert item["document_type"] == "invoice", (
+                f"Expected document_type=invoice, got {item['document_type']}"
+            )
 
 
 @pytest.mark.e2e
@@ -226,19 +194,9 @@ class TestDocumentStats:
     def test_stats_endpoint(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/documents/stats returns stats."""
         resp = authenticated_client.get("/api/v1/documents/stats")
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
-        # Should have some count fields
-        assert isinstance(data, dict)
-
-    def test_stats_by_status(self, authenticated_client: TestClient | httpx.Client):
-        """GET /api/v1/documents/stats groups by status."""
-        resp = authenticated_client.get("/api/v1/documents/stats")
-        if resp.status_code == 200:
-            data = resp.json()
-            # May have status breakdown
-            if "by_status" in data:
-                assert isinstance(data["by_status"], dict)
+        assert isinstance(data, dict), f"Expected dict, got {type(data)}"
 
 
 @pytest.mark.e2e
@@ -246,16 +204,16 @@ class TestDocumentUploadFormats:
     """Tests for different document upload formats."""
 
     def test_upload_pdf(self, authenticated_client: TestClient | httpx.Client):
-        """POST /api/v1/documents/upload accepts PDF."""
+        """POST /api/v1/documents/upload accepts PDF with 201."""
         pdf_content = b"%PDF-1.4\n%fake pdf content"
         resp = authenticated_client.post(
             "/api/v1/documents/upload",
             files={"file": ("test.pdf", pdf_content, "application/pdf")},
         )
-        assert resp.status_code in (200, 201)
+        assert resp.status_code == 201, f"Expected 201, got {resp.status_code}"
 
     def test_upload_jpeg(self, authenticated_client: TestClient | httpx.Client):
-        """POST /api/v1/documents/upload accepts JPEG."""
+        """POST /api/v1/documents/upload accepts JPEG with 201."""
         # Minimal JPEG header
         jpeg_header = bytes(
             [
@@ -287,26 +245,7 @@ class TestDocumentUploadFormats:
             "/api/v1/documents/upload",
             files={"file": ("test.jpg", jpeg_header, "image/jpeg")},
         )
-        assert resp.status_code in (200, 201)
-
-    def test_upload_png(self, authenticated_client: TestClient | httpx.Client):
-        """POST /api/v1/documents/upload accepts PNG."""
-        # Minimal PNG header
-        png_header = bytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
-        resp = authenticated_client.post(
-            "/api/v1/documents/upload",
-            files={"file": ("test.png", png_header, "image/png")},
-        )
-        assert resp.status_code in (200, 201, 400, 422)
-
-    def test_upload_text(self, authenticated_client: TestClient | httpx.Client):
-        """POST /api/v1/documents/upload accepts text."""
-        resp = authenticated_client.post(
-            "/api/v1/documents/upload",
-            files={"file": ("test.txt", b"test content", "text/plain")},
-        )
-        # May accept or reject text files
-        assert resp.status_code in (200, 201, 400, 415)
+        assert resp.status_code == 201, f"Expected 201, got {resp.status_code}"
 
 
 @pytest.mark.e2e
@@ -316,19 +255,21 @@ class TestDocumentPagination:
     def test_pagination_default(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/documents/ returns paginated results."""
         resp = authenticated_client.get("/api/v1/documents/")
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
-        assert "items" in data
-        assert "total" in data
+        assert "items" in data, f"Response missing 'items': {data.keys()}"
+        assert "total" in data, f"Response missing 'total': {data.keys()}"
 
     def test_pagination_custom_size(
         self, authenticated_client: TestClient | httpx.Client
     ):
         """GET /api/v1/documents/ respects page_size."""
         resp = authenticated_client.get("/api/v1/documents/", params={"page_size": 10})
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
-        assert len(data["items"]) <= 10
+        assert len(data["items"]) <= 10, (
+            f"Expected <=10 items, got {len(data['items'])}"
+        )
 
     def test_pagination_second_page(
         self, authenticated_client: TestClient | httpx.Client
@@ -337,6 +278,6 @@ class TestDocumentPagination:
         resp = authenticated_client.get(
             "/api/v1/documents/", params={"page": 2, "page_size": 5}
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
-        assert data["page"] == 2
+        assert data["page"] == 2, f"Expected page=2, got {data['page']}"

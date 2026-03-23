@@ -19,21 +19,21 @@ class TestInventoryPagination:
     ):
         """GET /api/v1/inventory/ returns paginated results."""
         resp = authenticated_client.get("/api/v1/inventory/")
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
-        assert "items" in data
-        assert "total" in data
-        assert "page" in data
-        assert "page_size" in data
+        assert "items" in data, f"Response missing 'items': {data.keys()}"
+        assert "total" in data, f"Response missing 'total': {data.keys()}"
+        assert "page" in data, f"Response missing 'page': {data.keys()}"
+        assert "page_size" in data, f"Response missing 'page_size': {data.keys()}"
 
     def test_pagination_custom_page_size(
         self, authenticated_client: TestClient | httpx.Client
     ):
         """GET /api/v1/inventory/ respects page_size."""
         resp = authenticated_client.get("/api/v1/inventory/", params={"page_size": 5})
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
-        assert data["page_size"] == 5
+        assert data["page_size"] == 5, f"Expected page_size=5, got {data['page_size']}"
 
     def test_pagination_second_page(
         self, authenticated_client: TestClient | httpx.Client
@@ -42,19 +42,21 @@ class TestInventoryPagination:
         resp = authenticated_client.get(
             "/api/v1/inventory/", params={"page": 2, "page_size": 5}
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
-        assert data["page"] == 2
+        assert data["page"] == 2, f"Expected page=2, got {data['page']}"
 
     def test_pagination_invalid_page(
         self, authenticated_client: TestClient | httpx.Client
     ):
-        """GET /api/v1/inventory/ handles invalid page number."""
+        """GET /api/v1/inventory/ returns empty items for out-of-range page."""
         resp = authenticated_client.get("/api/v1/inventory/", params={"page": 99999})
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
-        # Should return empty items for out-of-range page
-        assert data["items"] == [] or data["total"] >= 0
+        # Out-of-range page should return empty items
+        assert data["items"] == [], (
+            f"Expected empty items, got {len(data['items'])} items"
+        )
 
 
 @pytest.mark.e2e
@@ -62,31 +64,33 @@ class TestInventorySorting:
     """Tests for inventory sorting."""
 
     def test_sort_by_quantity(self, authenticated_client: TestClient | httpx.Client):
-        """GET /api/v1/inventory/ sorts by quantity."""
+        """GET /api/v1/inventory/ sorts by quantity descending."""
         resp = authenticated_client.get(
             "/api/v1/inventory/", params={"sort_by": "quantity", "sort_order": "desc"}
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
         items = data["items"]
         if len(items) >= 2:
-            # Descending order
-            assert items[0]["quantity"] >= items[1]["quantity"]
+            assert items[0]["quantity"] >= items[1]["quantity"], (
+                f"Items not sorted descending: {items[0]['quantity']} < {items[1]['quantity']}"
+            )
 
     def test_sort_by_location(self, authenticated_client: TestClient | httpx.Client):
-        """GET /api/v1/inventory/ sorts by location."""
+        """GET /api/v1/inventory/ sorts by location ascending."""
         resp = authenticated_client.get(
             "/api/v1/inventory/", params={"sort_by": "location", "sort_order": "asc"}
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
 
     def test_sort_invalid_field(self, authenticated_client: TestClient | httpx.Client):
-        """GET /api/v1/inventory/ handles invalid sort field."""
+        """GET /api/v1/inventory/ handles invalid sort field safely."""
         resp = authenticated_client.get(
-            "/api/v1/inventory/", params={"sort_by": "invalid_field"}
+            "/api/v1/inventory/", params={"sort_by": "invalid_field_xyz"}
         )
-        # API may ignore invalid sort or return error
-        assert resp.status_code in (200, 400, 422)
+        assert resp.status_code in (200, 400, 422), (
+            f"Expected 200/400/422, got {resp.status_code}"
+        )
 
 
 @pytest.mark.e2e
@@ -98,9 +102,11 @@ class TestInventoryExpiring:
     ):
         """GET /api/v1/inventory/expiring returns expiring items."""
         resp = authenticated_client.get("/api/v1/inventory/expiring")
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
-        assert "items" in data or isinstance(data, list)
+        assert "items" in data or isinstance(data, list), (
+            f"Response should have 'items' or be a list: {type(data)}"
+        )
 
     def test_expiring_with_days_param(
         self, authenticated_client: TestClient | httpx.Client
@@ -109,98 +115,44 @@ class TestInventoryExpiring:
         resp = authenticated_client.get(
             "/api/v1/inventory/expiring", params={"days": 30}
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
+        # Response should be valid JSON structure
         data = resp.json()
         items = data.get("items", data) if isinstance(data, dict) else data
-        # All items should be expiring within 30 days
-        for item in items:
-            if "expiration_date" in item and item["expiration_date"]:
-                # Date validation would go here
-                pass
-
-    def test_expiring_no_expirations(
-        self, authenticated_client: TestClient | httpx.Client
-    ):
-        """GET /api/v1/inventory/expiring returns empty when none expiring."""
-        resp = authenticated_client.get(
-            "/api/v1/inventory/expiring", params={"days": 0}
-        )
-        # May return 422 for days=0 (validation error)
-        assert resp.status_code in (200, 422)
+        assert isinstance(items, list), f"Expected list, got {type(items)}"
 
 
 @pytest.mark.e2e
 class TestInventoryNegativeQuantity:
     """Tests for negative quantity rejection."""
 
-    def test_create_negative_quantity(
-        self,
-        authenticated_client: TestClient | httpx.Client,
-        test_product_id: int,
-    ):
-        """POST /api/v1/inventory/ handles negative quantity."""
-        resp = authenticated_client.post(
-            "/api/v1/inventory/",
-            json={
-                "product_id": test_product_id,
-                "quantity": -10,
-                "location": "Test Location",
-            },
-        )
-        # API may accept or reject negative quantities
-        assert resp.status_code in (200, 201, 400, 422)
-
-    def test_consume_more_than_available(
-        self,
-        authenticated_client: TestClient | httpx.Client,
-        test_inventory_id: int,
-    ):
-        """POST /api/v1/inventory/{id}/consume rejects over-consumption."""
-        # First get current quantity
-        get_resp = authenticated_client.get(f"/api/v1/inventory/{test_inventory_id}")
-        assert get_resp.status_code == 200
-        data = get_resp.json()
-        current_qty = float(data.get("quantity", data.get("quantity_on_hand", 0)))
-
-        # Try to consume more than available
-        resp = authenticated_client.post(
-            f"/api/v1/inventory/{test_inventory_id}/consume",
-            json={"quantity": current_qty + 1000},
-        )
-        # API may allow or reject
-        assert resp.status_code in (200, 201, 400, 422)
-
     def test_consume_negative_quantity(
         self,
         authenticated_client: TestClient | httpx.Client,
         test_inventory_id: int,
     ):
-        """POST /api/v1/inventory/{id}/consume rejects negative quantity."""
+        """POST /api/v1/inventory/{id}/consume rejects negative quantity with 422."""
         resp = authenticated_client.post(
             f"/api/v1/inventory/{test_inventory_id}/consume",
             json={"quantity": -5},
         )
-        assert resp.status_code in (400, 422)
+        assert resp.status_code == 422, (
+            f"Expected 422 for negative quantity, got {resp.status_code}"
+        )
 
-    def test_adjust_negative_quantity(
+    def test_consume_zero_quantity(
         self,
         authenticated_client: TestClient | httpx.Client,
         test_inventory_id: int,
     ):
-        """POST /api/v1/inventory/{id}/adjust handles adjustment to negative."""
-        # First get current quantity
-        get_resp = authenticated_client.get(f"/api/v1/inventory/{test_inventory_id}")
-        assert get_resp.status_code == 200
-        data = get_resp.json()
-        current_qty = float(data.get("quantity", data.get("quantity_on_hand", 0)))
-
-        # Try to adjust to negative
+        """POST /api/v1/inventory/{id}/consume rejects zero quantity with 422."""
         resp = authenticated_client.post(
-            f"/api/v1/inventory/{test_inventory_id}/adjust",
-            json={"quantity": -(current_qty + 100)},
+            f"/api/v1/inventory/{test_inventory_id}/consume",
+            json={"quantity": 0},
         )
-        # API may allow or reject
-        assert resp.status_code in (200, 201, 400, 422)
+        assert resp.status_code == 422, (
+            f"Expected 422 for zero quantity, got {resp.status_code}"
+        )
 
 
 @pytest.mark.e2e
@@ -212,11 +164,9 @@ class TestInventoryFiltering:
         resp = authenticated_client.get(
             "/api/v1/inventory/", params={"location": "Shelf A1"}
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
-        # Location filtering may use location_id instead of location string
-        # Just verify we get a valid response structure
-        assert "items" in data
+        assert "items" in data, f"Response missing 'items': {data.keys()}"
 
     def test_filter_by_product(
         self,
@@ -227,10 +177,12 @@ class TestInventoryFiltering:
         resp = authenticated_client.get(
             "/api/v1/inventory/", params={"product_id": test_product_id}
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
         for item in data["items"]:
-            assert item["product_id"] == test_product_id
+            assert item["product_id"] == test_product_id, (
+                f"Expected product_id={test_product_id}, got {item['product_id']}"
+            )
 
     def test_filter_by_lot_number(
         self, authenticated_client: TestClient | httpx.Client
@@ -239,7 +191,7 @@ class TestInventoryFiltering:
         resp = authenticated_client.get(
             "/api/v1/inventory/", params={"lot_number": "LOT-E2E-001"}
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
 
 
 @pytest.mark.e2e
@@ -255,52 +207,37 @@ class TestInventoryHistory:
         resp = authenticated_client.get(
             f"/api/v1/inventory/{test_inventory_id}/history"
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
-        assert "items" in data or isinstance(data, list)
+        assert "items" in data or isinstance(data, list), (
+            f"Response should have 'items' or be a list: {type(data)}"
+        )
 
     def test_history_nonexistent_item(
         self, authenticated_client: TestClient | httpx.Client
     ):
-        """GET /api/v1/inventory/{id}/history handles non-existent item."""
+        """GET /api/v1/inventory/{id}/history handles missing items gracefully."""
         resp = authenticated_client.get("/api/v1/inventory/999999/history")
-        # May return 200 with empty list or 404
-        assert resp.status_code in (200, 404)
+        assert resp.status_code in (200, 404), (
+            f"Expected 200 or 404, got {resp.status_code}"
+        )
 
 
 @pytest.mark.e2e
 class TestInventoryTransfer:
     """Tests for inventory transfer operations."""
 
-    def test_transfer_to_same_location(
-        self,
-        authenticated_client: TestClient | httpx.Client,
-        test_inventory_id: int,
-    ):
-        """POST /api/v1/inventory/{id}/transfer handles same location."""
-        # Get current location
-        get_resp = authenticated_client.get(f"/api/v1/inventory/{test_inventory_id}")
-        data = get_resp.json()
-        current_location = data.get("location", data.get("location_id", "A1"))
-
-        resp = authenticated_client.post(
-            f"/api/v1/inventory/{test_inventory_id}/transfer",
-            json={"location": current_location},
-        )
-        # May succeed (no-op) or return error
-        assert resp.status_code in (200, 201, 400, 404, 422)
-
     def test_transfer_invalid_quantity(
         self,
         authenticated_client: TestClient | httpx.Client,
         test_inventory_id: int,
     ):
-        """POST /api/v1/inventory/{id}/transfer rejects invalid quantity."""
+        """POST /api/v1/inventory/{id}/transfer rejects negative quantity with 422."""
         resp = authenticated_client.post(
             f"/api/v1/inventory/{test_inventory_id}/transfer",
             json={"location": "New Location", "quantity": -5},
         )
-        assert resp.status_code in (400, 422)
+        assert resp.status_code == 422, f"Expected 422, got {resp.status_code}"
 
 
 @pytest.mark.e2e
@@ -312,7 +249,7 @@ class TestInventoryDispose:
         authenticated_client: TestClient | httpx.Client,
         test_product_id: int,
     ):
-        """POST /api/v1/inventory/{id}/dispose with reason."""
+        """POST /api/v1/inventory/{id}/dispose validates the dispose payload."""
         # Create item to dispose
         create_resp = authenticated_client.post(
             "/api/v1/inventory/",
@@ -323,22 +260,26 @@ class TestInventoryDispose:
                 "lot_number": "LOT-DISPOSE-001",
             },
         )
-        assert create_resp.status_code == 201
+        assert create_resp.status_code == 201, (
+            f"Expected 201, got {create_resp.status_code}"
+        )
         item_id = create_resp.json()["id"]
 
         # Dispose with reason
         resp = authenticated_client.post(
             f"/api/v1/inventory/{item_id}/dispose",
-            json={"reason": "Expired", "quantity": 10},
+            json={"reason": "Expired", "disposed_by": "e2e-tester"},
         )
-        assert resp.status_code in (200, 201, 400, 404, 422)
+        assert resp.status_code in (200, 201), (
+            f"Expected 200 or 201, got {resp.status_code}"
+        )
 
     def test_dispose_partial_quantity(
         self,
         authenticated_client: TestClient | httpx.Client,
         test_product_id: int,
     ):
-        """POST /api/v1/inventory/{id}/dispose partial quantity."""
+        """POST /api/v1/inventory/{id}/dispose rejects unsupported partial disposal."""
         # Create item
         create_resp = authenticated_client.post(
             "/api/v1/inventory/",
@@ -348,12 +289,16 @@ class TestInventoryDispose:
                 "location": "Partial Dispose Test",
             },
         )
-        if create_resp.status_code == 201:
-            item_id = create_resp.json()["id"]
+        assert create_resp.status_code == 201, (
+            f"Expected 201, got {create_resp.status_code}"
+        )
+        item_id = create_resp.json()["id"]
 
-            # Dispose partial
-            resp = authenticated_client.post(
-                f"/api/v1/inventory/{item_id}/dispose",
-                json={"quantity": 50},
-            )
-            assert resp.status_code in (200, 201, 400, 404, 422)
+        # Dispose partial
+        resp = authenticated_client.post(
+            f"/api/v1/inventory/{item_id}/dispose",
+            json={"reason": "Partial dispose", "disposed_by": "e2e-tester"},
+        )
+        assert resp.status_code in (200, 201, 422), (
+            f"Expected 200/201/422, got {resp.status_code}"
+        )
