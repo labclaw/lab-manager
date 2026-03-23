@@ -63,8 +63,9 @@ def _response_text(response) -> str:
         return text.strip()
 
     choices = getattr(response, "choices", None)
-    if choices:
-        content = choices[0].message.content
+    if choices and len(choices) > 0:
+        msg = getattr(choices[0], "message", None)
+        content = getattr(msg, "content", None) if msg else None
         if isinstance(content, str):
             return content.strip()
         if isinstance(content, list):
@@ -191,7 +192,11 @@ def _ocr_nvidia(image_path: Path, settings, model: str) -> str:
             )
             resp.raise_for_status()
             data = resp.json()
-            return data["choices"][0]["message"]["content"]
+            choices = data.get("choices") or []
+            if not choices:
+                raise RuntimeError("NVIDIA OCR returned empty choices")
+            content = choices[0].get("message", {}).get("content", "")
+            return content
         except httpx.HTTPStatusError as e:
             last_error = e
             if e.response.status_code == 429 and attempt < MAX_NVIDIA_RETRIES - 1:

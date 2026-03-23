@@ -244,7 +244,12 @@ def benchmark_ocr():
 
             completed += 1
             elapsed = time.time() - t_start
-            eta = (elapsed / max(completed - len(done), 1)) * (total - completed)
+            newly_done = completed - len(done)
+            eta = (
+                (elapsed / max(newly_done, 1)) * (total - completed)
+                if newly_done > 0
+                else 0
+            )
 
             t0 = time.time()
             result = {
@@ -410,7 +415,12 @@ def benchmark_extract():
 
             completed += 1
             elapsed = time.time() - t_start
-            eta = (elapsed / max(completed - len(done), 1)) * (total - completed)
+            newly_done = completed - len(done)
+            eta = (
+                (elapsed / max(newly_done, 1)) * (total - completed)
+                if newly_done > 0
+                else 0
+            )
 
             ocr_text = tf.read_text()
             if not ocr_text or len(ocr_text) < 20:

@@ -6,6 +6,7 @@ Add new OCR models here. Each just needs to implement extract_text(image_path) -
 from __future__ import annotations
 
 import logging
+import shlex
 import subprocess
 from pathlib import Path
 from typing import Optional
@@ -174,7 +175,14 @@ class GLM5NIMProvider(OCRProvider):
                 timeout=120,
             )
             vision_resp.raise_for_status()
-            raw_ocr = vision_resp.json()["choices"][0]["message"]["content"]
+            v_data = vision_resp.json()
+            v_choices = v_data.get("choices") or []
+            raw_ocr = (
+                v_choices[0].get("message", {}).get("content", "") if v_choices else ""
+            )
+
+            if not raw_ocr.strip():
+                return ""
 
             # Step 2: GLM-5 refines the OCR text
             refine_resp = httpx.post(
@@ -201,7 +209,13 @@ class GLM5NIMProvider(OCRProvider):
                 timeout=60,
             )
             refine_resp.raise_for_status()
-            return refine_resp.json()["choices"][0]["message"]["content"].strip()
+            r_data = refine_resp.json()
+            r_choices = r_data.get("choices") or []
+            return (
+                r_choices[0].get("message", {}).get("content", "").strip()
+                if r_choices
+                else ""
+            )
         except Exception as e:
             log.warning("GLM-5 NIM OCR error: %s", e)
             return ""
@@ -294,7 +308,8 @@ class ClaudeOCRProvider(OCRProvider):
     def extract_text(self, image_path: str) -> str:
         import os
 
-        prompt = f"Read the image at {image_path} and follow these instructions:\n\n{OCR_PROMPT}"
+        safe_path = shlex.quote(str(image_path))
+        prompt = f"Read the image at {safe_path} and follow these instructions:\n\n{OCR_PROMPT}"
         try:
             result = subprocess.run(
                 ["claude", "-p", prompt, "--output-format", "text"],
@@ -321,7 +336,8 @@ class CodexOCRProvider(OCRProvider):
         self.timeout = timeout
 
     def extract_text(self, image_path: str) -> str:
-        prompt = f"Look at the image file {image_path} and follow these instructions:\n\n{OCR_PROMPT}"
+        safe_path = shlex.quote(str(image_path))
+        prompt = f"Look at the image file {safe_path} and follow these instructions:\n\n{OCR_PROMPT}"
         try:
             result = subprocess.run(
                 ["codex", "-p", prompt, "-m", "gpt-5.4", "--quiet"],
