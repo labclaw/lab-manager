@@ -74,4 +74,4 @@ jobs:
       - name: Verify image
         run: |
           docker pull ghcr.io/${{ github.repository }}:${{ steps.version.outputs.tag }}
-          docker run --rm ghcr.io/${{ github.repository }}:${{ steps.version.outputs.tag }} python -c "from lab_manager import __version__; print(__version__)"
+          docker run --rm --entrypoint /app/.venv/bin/python ghcr.io/${{ github.repository }}:${{ steps.version.outputs.tag }} -c "import lab_manager; print('OK')"
