@@ -1,3 +1,14 @@
+# --- Stage 1: Build React frontend ---
+FROM node:20-slim AS web-builder
+
+WORKDIR /build
+COPY web/package.json web/package-lock.json ./web/
+RUN cd web && npm ci
+COPY web/ ./web/
+# Vite outputs to ../src/lab_manager/static/dist (resolves to /build/src/ in this stage)
+RUN cd web && npm run build
+
+# --- Stage 2: Production image ---
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -9,6 +20,10 @@ RUN pip install uv==0.7.12 \
 COPY pyproject.toml uv.lock ./
 COPY src/ src/
 RUN uv sync --frozen --no-dev
+
+# Copy pre-built frontend from web-builder stage
+# Vite build output is at /build/src/lab_manager/static/dist
+COPY --from=web-builder /build/src/lab_manager/static/dist/ src/lab_manager/static/dist/
 
 COPY alembic/ alembic/
 COPY alembic.ini .
