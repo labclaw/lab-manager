@@ -317,7 +317,7 @@ def test_auth_me_rejects_deactivated_user(auth_client, staff_user, auth_db_sessi
     """/api/v1/auth/me should revalidate the staff row, not trust cookie payload alone."""
     auth_client.post(
         "/api/v1/auth/login",
-        json={"email": "test@shenlab.org", "password": "correctpassword"},
+        json={"email": "test@example.com", "password": "correctpassword"},
     )
     staff_user.is_active = False
     auth_db_session.commit()
@@ -329,7 +329,7 @@ def test_auth_me_rejects_missing_user(auth_client, staff_user, auth_db_session):
     """/api/v1/auth/me should reject sessions for deleted staff rows."""
     auth_client.post(
         "/api/v1/auth/login",
-        json={"email": "test@shenlab.org", "password": "correctpassword"},
+        json={"email": "test@example.com", "password": "correctpassword"},
     )
     auth_db_session.delete(staff_user)
     auth_db_session.commit()

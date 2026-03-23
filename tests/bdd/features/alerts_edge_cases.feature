@@ -1,6 +1,6 @@
 # Edge cases for alert management
 Feature: Alert Edge Cases
-  As a lab manager at Shen Lab
+  As a lab manager in the lab
   I want robust alert handling
   So that no alerts are lost or mishandled
 
