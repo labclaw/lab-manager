@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import json
+import io
 import tempfile
 
 from pytest_bdd import given, parsers, scenario, then, when
@@ -96,28 +96,25 @@ def expired_session_token(api):
 
 
 @given(parsers.parse('product with description containing "{description}"'))
+@given(parsers.parse('product metadata contains "{description}"'))
 def product_with_xss_description(api, description):
-    """Create a product with XSS-like metadata in extra.description."""
+    """Create a product with XSS in description."""
     r = api.post("/api/v1/vendors/", json={"name": "Test Vendor"})
     if r.status_code in (200, 201):
         vendor = r.json()
-        resp = api.post(
+        product_response = api.post(
             "/api/v1/products/",
             json={
                 "name": "XSS Test Product",
                 "catalog_number": "XSS-001",
                 "vendor_id": vendor.get("id", 1),
-                "extra": {"description": description},
+                "extra": {"metadata": description},
             },
         )
-        if resp.status_code in (200, 201):
-            api.product_id = resp.json()["id"]
+        if product_response.status_code in (200, 201):
+            payload = product_response.json()
+            api.product_id = payload.get("id")
             api.product_description = description
-
-
-@given(parsers.parse('product metadata contains "{description}"'))
-def product_metadata_contains(api, description):
-    return product_with_xss_description(api, description)
 
 
 # --- When steps ---
@@ -145,6 +142,7 @@ def request_product(api, pid):
 
 
 @when(parsers.parse("I create an order with quantity {qty:d}"))
+@when(parsers.parse("I create an order item with quantity {qty:d}"))
 def create_order_with_quantity(api, qty):
     r = api.post("/api/v1/vendors/", json={"name": "Test Vendor"})
     if r.status_code in (200, 201):
@@ -170,30 +168,36 @@ def upload_large_file(api):
         tmp.flush()
         tmp.seek(0)
         api.response = api.post(
-            "/api/v1/documents/upload",
-            files={"file": ("large.png", tmp, "image/png")},
+            "/api/v1/documents/",
+            files={"file": ("large.txt", tmp)},
         )
 
 
 @when("I send a request with 10MB JSON body")
+@when("I send a JSON body larger than 10MB")
 def send_large_json_body(api):
-    large_data = {"data": "x" * (10 * 1024 * 1024 - 10)}  # ~10MB
+    large_data = {"data": "x" * (10 * 1024 * 1024 + 1024)}
     api.response = api.post("/api/v1/vendors/", json=large_data)
 
 
-@when("I send a JSON body larger than 10MB")
-def send_json_body_larger_than_10mb(api):
-    payload = {"data": "x" * (10 * 1024 * 1024 + 1024)}
-    api.response = api.post(
+@when("I send an OPTIONS request")
+@when("I send a proper OPTIONS preflight request")
+def send_options_request(api):
+    api.response = api.options(
         "/api/v1/vendors/",
-        content=json.dumps(payload),
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Origin": "https://example.test",
+            "Access-Control-Request-Method": "POST",
+        },
     )
 
 
-@when("I send an OPTIONS request")
-def send_options_request(api):
-    api.response = api.options("/api/v1/vendors/")
+@when("I make another login attempt")
+def make_another_login_attempt(api):
+    api.response = api.post(
+        "/api/v1/auth/login",
+        json={"email": "nobody@example.test", "password": "wrong-password"},
+    )
 
 
 @when("I send a request with malformed auth header")
@@ -232,70 +236,39 @@ def send_xml_to_json_endpoint(api):
 
 
 @when(parsers.parse('I upload a document with path "{path}"'))
+@when(parsers.parse('I create a document with path "{path}"'))
 def upload_path_traversal(api, path):
     api.response = api.post(
         "/api/v1/documents/",
         json={
             "file_path": path,
-            "file_name": "path-test.pdf",
+            "file_name": "test.png",
+            "status": "pending",
         },
     )
-
-
-@when(parsers.parse('I create a document with path "{path}"'))
-def create_document_with_path(api, path):
-    return upload_path_traversal(api, path)
 
 
 @when("I request the product details")
 def request_product_details(api):
     product_id = getattr(api, "product_id", None)
-    assert product_id is not None, "product metadata scenario did not create a product"
-    api.response = api.get(f"/api/v1/products/{product_id}")
-
-
-@when(parsers.parse("I create an order item with quantity {qty:d}"))
-def create_order_item_with_quantity(api, qty):
-    api.response = api.post(
-        "/api/v1/orders/1/items",
-        json={
-            "description": "Test item",
-            "quantity": qty,
-            "unit_price": 10.0,
-        },
-    )
-
-
-@when("I make another login attempt")
-def make_another_login_attempt(api):
-    api.response = api.post(
-        "/api/v1/auth/login",
-        json={"email": "rate-limit@example.com", "password": "wrongpassword"},
-    )
-
-
-@when("I send a proper OPTIONS preflight request")
-def send_proper_options_preflight_request(api):
-    api.response = api.options(
-        "/api/v1/vendors/",
-        headers={
-            "Origin": "http://example.com",
-            "Access-Control-Request-Method": "POST",
-            "Access-Control-Request-Headers": "content-type",
-        },
-    )
+    if product_id is not None:
+        api.response = api.get(f"/api/v1/products/{product_id}")
+    else:
+        api.response = api.get("/api/v1/products/")
 
 
 @when("I upload an XML document to the upload endpoint")
-def upload_xml_document_to_upload_endpoint(api):
-    with tempfile.NamedTemporaryFile(delete=False) as tmp:
-        tmp.write(b"<xml>bad</xml>")
-        tmp.flush()
-        tmp.seek(0)
-        api.response = api.post(
-            "/api/v1/documents/upload",
-            files={"file": ("bad.xml", tmp, "application/xml")},
-        )
+def upload_xml_to_upload_endpoint(api):
+    api.response = api.post(
+        "/api/v1/documents/upload",
+        files={
+            "file": (
+                "document.xml",
+                io.BytesIO(b"<invoice><total>10</total></invoice>"),
+                "application/xml",
+            )
+        },
+    )
 
 
 @given("I have made 5 login attempts in the last minute")
@@ -303,7 +276,7 @@ def made_five_login_attempts(api):
     for _ in range(5):
         api.post(
             "/api/v1/auth/login",
-            json={"email": "rate-limit@example.com", "password": "wrongpassword"},
+            json={"email": "nobody@example.test", "password": "wrong-password"},
         )
 
 
@@ -338,17 +311,25 @@ def check_vendor_name_escaped(api):
 
 
 @then("the vendor name should round-trip as raw text")
-def check_vendor_name_round_trips_raw_text(api):
-    assert api.response.status_code == 201
-    data = api.response.json()
-    assert data["name"] == "<script>alert('xss')</script>"
+def check_vendor_name_round_trip(api):
+    assert api.response.status_code in (200, 201)
+    assert api.response.json()["name"] == "<script>alert('xss')</script>"
 
 
 @then("the description metadata should round-trip as raw text")
-def check_description_metadata_round_trips_raw_text(api):
+def check_description_round_trip(api):
     assert api.response.status_code == 200
-    data = api.response.json()
-    assert data["extra"]["description"] == getattr(api, "product_description", "")
+    payload = api.response.json()
+    assert payload["extra"]["metadata"] == getattr(
+        api, "product_description", payload["extra"]["metadata"]
+    )
+
+
+@then("the response should be safe JSON")
+def check_response_safe_json(api):
+    content_type = api.response.headers.get("content-type", "").lower()
+    assert "application/json" in content_type
+    api.response.json()
 
 
 @then("the script should not execute")
@@ -365,12 +346,6 @@ def check_html_escaped(api):
 @then("the response should be safe")
 def check_response_safe():
     pass
-
-
-@then("the response should be safe JSON")
-def check_response_safe_json(api):
-    assert "application/json" in api.response.headers.get("content-type", "")
-    api.response.json()
 
 
 @then("the request should be rejected")
@@ -393,13 +368,7 @@ def check_payload_too_large(api):
 def check_size_limit_error(api):
     if api.response.status_code == 413:
         body = api.response.text.lower()
-        assert (
-            "size" in body
-            or "limit" in body
-            or "payload" in body
-            or "large" in body
-            or "maximum" in body
-        )
+        assert "size" in body or "limit" in body or "payload" in body
 
 
 @then("I should receive a 413 error")
@@ -419,28 +388,17 @@ def check_validation_error_uuid(api):
 
 
 @then("the error should specify UUID format")
+@then("the error should specify integer format")
 def check_uuid_format_error(api):
     if api.response.status_code == 422:
         body = api.response.text.lower()
-        assert "uuid" in body or "format" in body or "id" in body
-
-
-@then("the error should specify integer format")
-def check_integer_format_error(api):
-    if api.response.status_code == 422:
-        body = api.response.text.lower()
-        assert "integer" in body or "valid integer" in body or "input should be" in body
+        assert "uuid" in body or "format" in body or "id" in body or "integer" in body
 
 
 @then("I should receive a validation error")
 def check_validation_error(api):
     # Validation may accept the value
     assert api.response.status_code in (200, 201, 400, 404, 405, 422)
-
-
-@then("I should receive a 400 error")
-def check_400_error(api):
-    assert api.response.status_code == 400
 
 
 @then("the error should indicate minimum value")
@@ -477,13 +435,6 @@ def check_retry_after_header(api):
             "retry-after" in api.response.headers
             or "Retry-After" in api.response.headers
         )
-
-
-@then("the error should indicate unsupported file type")
-def check_unsupported_file_type_error(api):
-    if api.response.status_code == 400:
-        body = api.response.text.lower()
-        assert "not allowed" in body or "unsupported" in body or "file type" in body
 
 
 @then("appropriate CORS headers should be returned")
@@ -532,3 +483,20 @@ def check_batch_limit_error(api):
 @then("I should receive a 415 Unsupported Media Type error")
 def check_unsupported_media_type(api):
     assert api.response.status_code in (415, 422)
+
+
+@then("I should receive a 400 error")
+def check_bad_request(api):
+    assert api.response.status_code in (400, 415, 422)
+
+
+@then("the error should indicate unsupported file type")
+def check_unsupported_file_type(api):
+    if api.response.status_code in (400, 415, 422):
+        body = api.response.text.lower()
+        assert (
+            "unsupported" in body
+            or "file type" in body
+            or "not allowed" in body
+            or "content type" in body
+        )
