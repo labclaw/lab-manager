@@ -11,7 +11,7 @@ Traceability and release gating are related but different:
 - this file maps specs, code, and tests
 - the release gate decides whether the shipped product surface is safe to release
 
-For `v0.1.6`, the release gate is the maintained core suite plus `scripts/run_release_gate.sh`. The older BDD backlog is still part of product cleanup, but it is not the authoritative release decision.
+For `v0.1.8.2`, the release gate is the maintained core suite plus `scripts/run_release_gate.sh`. The older BDD backlog is still part of product cleanup, but it is not the authoritative release decision.
 
 ---
 

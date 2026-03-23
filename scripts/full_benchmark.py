@@ -36,7 +36,11 @@ log = logging.getLogger("benchmark")
 # Config
 # ---------------------------------------------------------------------------
 
-DOCS_DIR = Path(__file__).resolve().parent.parent / "shenlab-docs" / "resized"
+DOCS_DIR = Path(
+    os.environ.get(
+        "DOCS_DIR", str(Path(__file__).resolve().parent.parent / "data" / "resized")
+    )
+)
 BENCH_DIR = Path(__file__).resolve().parent.parent / "benchmarks" / "full_benchmark"
 BENCH_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -564,7 +568,7 @@ def generate_report():
     """Generate summary report from benchmark results."""
     report = []
     report.append("=" * 80)
-    report.append("SHENLAB OCR+VLM FULL BENCHMARK REPORT")
+    report.append("OCR+VLM FULL BENCHMARK REPORT")
     report.append(f"Generated: {datetime.now().isoformat()}")
     report.append("=" * 80)
 

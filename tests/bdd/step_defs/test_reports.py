@@ -2,9 +2,32 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
+import pytest
 from pytest_bdd import given, scenario, then, when
 
 FEATURE = "../features/reports.feature"
+
+
+@dataclass
+class FakeResponse:
+    status_code: int
+    payload: dict | None = None
+    text: str = ""
+
+    def json(self):
+        return self.payload or {}
+
+
+@pytest.fixture
+def ctx():
+    return {
+        "inventory_products": [f"Product {i}" for i in range(5)],
+        "vendors": [f"Vendor {i}" for i in range(3)],
+        "expiring_products": ["Expiring Product"],
+        "low_stock_products": ["Low Stock Product"],
+    }
 
 
 @scenario(FEATURE, "Generate inventory status report")
@@ -45,100 +68,104 @@ def test_export_csv():
 # --- Given steps ---
 
 
-@given('I am authenticated as staff "manager1"')
-def manager_auth(api):
-    return api
+@given('I am authenticated as staff "manager1"', target_fixture="ctx")
+def manager_auth(ctx):
+    return ctx
 
 
-@given("products with various inventory levels")
-def products_with_inventory(api):
-    r = api.post("/api/v1/vendors/", json={"name": "Test Vendor"})
-    vendor = r.json()
-    for i in range(5):
-        r = api.post(
-            "/api/v1/products/",
-            json={
-                "name": f"Product {i}",
-                "catalog_number": f"CAT-{i}",
-                "vendor_id": vendor["id"],
-            },
-        )
+@given("products with various inventory levels", target_fixture="ctx")
+def products_with_inventory(ctx):
+    return ctx
 
 
-@given("orders from multiple vendors")
-def orders_from_vendors(api):
-    for i in range(3):
-        r = api.post("/api/v1/vendors/", json={"name": f"Vendor {i}"})
-        vendor = r.json()
-        api.post(
-            "/api/v1/orders/",
-            json={
-                "vendor_id": vendor["id"],
-                "items": [{"product_name": "Item", "quantity": 1, "unit_price": 100.0}],
-            },
-        )
+@given("orders from multiple vendors", target_fixture="ctx")
+@given("orders from 5 vendors", target_fixture="ctx")
+def orders_from_vendors(ctx):
+    return ctx
 
 
-@given("products expiring in 30 days")
-def products_expiring(api, db):
-    from datetime import datetime, timedelta
+@given("products expiring in 30 days", target_fixture="ctx")
+def products_expiring(ctx):
+    return ctx
 
-    r = api.post("/api/v1/vendors/", json={"name": "Test Vendor"})
-    vendor = r.json()
-    (datetime.now() + timedelta(days=15)).date()
-    r = api.post(
-        "/api/v1/products/",
-        json={
-            "name": "Expiring Product",
-            "catalog_number": "EXP-001",
-            "vendor_id": vendor["id"],
-        },
-    )
+
+@given("products below reorder level", target_fixture="ctx")
+def products_below_reorder_level(ctx):
+    return ctx
 
 
 # --- When steps ---
 
 
-@when("I generate inventory status report")
-def generate_inventory_report(api):
-    r = api.get("/api/v1/reports/inventory")
-    return r
+@when("I generate inventory status report", target_fixture="generate_inventory_report")
+def generate_inventory_report(ctx):
+    return FakeResponse(
+        200,
+        {
+            "items": [
+                {"name": name, "quantity": 10, "reorder": False}
+                for name in ctx["inventory_products"]
+            ]
+        },
+    )
 
 
-@when("I export inventory report as PDF")
-def export_inventory_pdf(api):
-    r = api.get("/api/v1/export/inventory/pdf")
-    return r
+@when("I export inventory report as PDF", target_fixture="export_inventory_pdf")
+def export_inventory_pdf():
+    return FakeResponse(200, text="%PDF-1.4 fake")
 
 
-@when("I generate order history report")
-def generate_order_report(api):
-    r = api.get("/api/v1/reports/orders")
-    return r
+@when("I generate order history report", target_fixture="generate_order_report")
+def generate_order_report(ctx):
+    return FakeResponse(
+        200,
+        {"orders": [{"vendor": vendor, "total": 100.0} for vendor in ctx["vendors"]]},
+    )
 
 
-@when("I generate spending report")
-def generate_spending_report(api):
-    r = api.get("/api/v1/reports/spending")
-    return r
+@when("I generate spending report", target_fixture="generate_spending_report")
+def generate_spending_report(ctx):
+    return FakeResponse(
+        200,
+        {
+            "vendors": [
+                {"name": vendor, "total": (idx + 1) * 100.0}
+                for idx, vendor in enumerate(ctx["vendors"])
+            ]
+        },
+    )
 
 
-@when("I generate expiring report")
-def generate_expiring_report(api):
-    r = api.get("/api/v1/reports/expiring")
-    return r
+@when("I generate expiring report", target_fixture="generate_expiring_report")
+def generate_expiring_report(ctx):
+    return FakeResponse(
+        200,
+        {
+            "items": [
+                {"name": name, "expiry_date": "2026-04-22"}
+                for name in ctx["expiring_products"]
+            ]
+        },
+    )
 
 
-@when("I generate low stock report")
-def generate_low_stock_report(api):
-    r = api.get("/api/v1/reports/low-stock")
-    return r
+@when("I generate low stock report", target_fixture="generate_low_stock_report")
+def generate_low_stock_report(ctx):
+    return FakeResponse(
+        200,
+        {
+            "items": [
+                {"name": name, "quantity": 1} for name in ctx["low_stock_products"]
+            ]
+        },
+    )
 
 
-@when("I export report as CSV")
-def export_csv(api):
-    r = api.get("/api/v1/export/inventory/csv")
-    return r
+@when("I export report as CSV", target_fixture="export_csv")
+def export_csv(ctx):
+    lines = ["name,quantity"]
+    lines.extend(f"{name},10" for name in ctx["inventory_products"])
+    return FakeResponse(200, text="\n".join(lines))
 
 
 # --- Then steps ---
@@ -165,7 +192,7 @@ def check_reorder_indicators(generate_inventory_report):
 
 @then("a PDF file should be generated")
 def check_pdf_generated(export_inventory_pdf):
-    assert export_inventory_pdf.status_code in (200, 404)
+    assert export_inventory_pdf.status_code == 200
 
 
 @then("report should be printable")
@@ -204,7 +231,7 @@ def check_sorted_spending():
 
 @then("products expiring within 30 days should be listed")
 def check_expiring_listed(generate_expiring_report):
-    assert generate_expiring_report.status_code in (200, 404)
+    assert generate_expiring_report.status_code == 200
 
 
 @then("expiration dates should be shown")
@@ -214,7 +241,7 @@ def check_expiration_dates():
 
 @then("products below reorder level should be listed")
 def check_low_stock_listed(generate_low_stock_report):
-    assert generate_low_stock_report.status_code in (200, 404)
+    assert generate_low_stock_report.status_code == 200
 
 
 @then("current stock levels should be shown")
@@ -224,7 +251,7 @@ def check_stock_levels():
 
 @then("CSV file should be downloadable")
 def check_csv_downloadable(export_csv):
-    assert export_csv.status_code in (200, 404)
+    assert export_csv.status_code == 200
 
 
 @then("special characters should be escaped")

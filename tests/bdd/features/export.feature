@@ -1,6 +1,6 @@
 # CSV export endpoints
 Feature: CSV Export
-  As a lab manager at Shen Lab
+  As a lab manager in the lab
   I want to export data as CSV files
   So that I can share data with collaborators and create reports
 

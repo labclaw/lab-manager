@@ -1,6 +1,6 @@
 # Product CRUD, validation, and relationship management
 Feature: Product Management
-  As a lab manager at Shen Lab
+  As a lab manager in the lab
   I want to manage products through the full CRUD lifecycle
   So that I can track reagents, their vendors, and ordering history
 
