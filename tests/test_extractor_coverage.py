@@ -20,7 +20,7 @@ SAMPLE_OCR = "Sigma-Aldrich PO-999 Catalog A1234 Qty 2"
 
 def _make_mock_httpx(post_return=None, post_side_effect=None):
     """Create a mock httpx module for sys.modules patching.
-    
+
     Must include the real HTTPStatusError class since the source code
     does 'except httpx.HTTPStatusError as e:'.
     """
@@ -36,16 +36,19 @@ def _make_mock_httpx(post_return=None, post_side_effect=None):
 class TestIsNvidiaModel:
     def test_nvidia_prefix(self):
         from lab_manager.intake.extractor import _is_nvidia_model
+
         assert _is_nvidia_model("nvidia_nim/meta/llama-3.2-90b") is True
 
     def test_non_nvidia(self):
         from lab_manager.intake.extractor import _is_nvidia_model
+
         assert _is_nvidia_model("gemini-2.5-flash") is False
 
 
 class TestCallLlm:
     def test_gemini_success(self, monkeypatch):
         from lab_manager.intake.extractor import _call_llm
+
         monkeypatch.setenv("GEMINI_API_KEY", "test-key")
         mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = SAMPLE_EXTRACTED
@@ -67,6 +70,7 @@ class TestCallLlm:
 
     def test_gemini_no_api_key_returns_none(self, monkeypatch):
         from lab_manager.intake.extractor import _call_llm
+
         monkeypatch.delenv("GEMINI_API_KEY", raising=False)
         monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
         with patch("lab_manager.intake.extractor.get_settings") as mock_settings:
@@ -79,6 +83,7 @@ class TestCallLlm:
 
     def test_gemini_retry_on_connection_error(self, monkeypatch):
         from lab_manager.intake.extractor import _call_llm
+
         monkeypatch.setenv("GEMINI_API_KEY", "test-key")
         mock_client = MagicMock()
         mock_genai = MagicMock()
@@ -104,6 +109,7 @@ class TestCallLlm:
 
     def test_gemini_retry_exhausted_returns_none(self, monkeypatch):
         from lab_manager.intake.extractor import _call_llm
+
         monkeypatch.setenv("GEMINI_API_KEY", "test-key")
         mock_client = MagicMock()
         mock_genai = MagicMock()
@@ -126,6 +132,7 @@ class TestCallLlm:
     def test_gemini_api_error_falls_back_to_nvidia(self, monkeypatch):
         from lab_manager.intake.extractor import _call_llm
         from google.genai import errors as genai_errors
+
         monkeypatch.setenv("GEMINI_API_KEY", "test-key")
         mock_client = MagicMock()
         mock_genai = MagicMock()
@@ -151,6 +158,7 @@ class TestCallLlm:
     def test_gemini_api_error_no_nvidia_key_returns_none(self, monkeypatch):
         from lab_manager.intake.extractor import _call_llm
         from google.genai import errors as genai_errors
+
         monkeypatch.setenv("GEMINI_API_KEY", "test-key")
         monkeypatch.delenv("NVIDIA_BUILD_API_KEY", raising=False)
         mock_client = MagicMock()
@@ -174,6 +182,7 @@ class TestCallLlm:
 
     def test_generic_exception_falls_back_to_nvidia(self, monkeypatch):
         from lab_manager.intake.extractor import _call_llm
+
         monkeypatch.setenv("GEMINI_API_KEY", "test-key")
         mock_client = MagicMock()
         mock_genai = MagicMock()
@@ -196,6 +205,7 @@ class TestCallLlm:
 
     def test_nvidia_model_direct(self, monkeypatch):
         from lab_manager.intake.extractor import _call_llm
+
         with (
             patch("lab_manager.intake.extractor.get_settings") as mock_settings,
             patch("lab_manager.intake.extractor._extract_nvidia") as mock_nvidia,
@@ -216,6 +226,7 @@ class TestExtractNvidia:
 
     def test_success(self, monkeypatch):
         from lab_manager.intake.extractor import _extract_nvidia
+
         monkeypatch.delenv("NVIDIA_BUILD_API_KEY", raising=False)
         raw_json = json.dumps(SAMPLE_EXTRACTED.model_dump())
         mock_resp = MagicMock()
@@ -233,6 +244,7 @@ class TestExtractNvidia:
 
     def test_no_api_key_returns_none(self, monkeypatch):
         from lab_manager.intake.extractor import _extract_nvidia
+
         monkeypatch.delenv("NVIDIA_BUILD_API_KEY", raising=False)
         with patch("lab_manager.intake.extractor.get_settings") as mock_settings:
             mock_settings.return_value = MagicMock(nvidia_build_api_key="")
@@ -240,6 +252,7 @@ class TestExtractNvidia:
 
     def test_rate_limit_retry_then_success(self, monkeypatch):
         from lab_manager.intake.extractor import _extract_nvidia
+
         monkeypatch.delenv("NVIDIA_BUILD_API_KEY", raising=False)
         raw_json = json.dumps(SAMPLE_EXTRACTED.model_dump())
         resp_429 = MagicMock()
@@ -256,10 +269,13 @@ class TestExtractNvidia:
             patch("lab_manager.intake.extractor.time"),
         ):
             mock_settings.return_value = MagicMock(nvidia_build_api_key="nv-key")
-            assert _extract_nvidia(SAMPLE_OCR, "nvidia_nim/meta/llama-3.2-90b") is not None
+            assert (
+                _extract_nvidia(SAMPLE_OCR, "nvidia_nim/meta/llama-3.2-90b") is not None
+            )
 
     def test_rate_limit_all_retries_exhausted(self, monkeypatch):
         from lab_manager.intake.extractor import _extract_nvidia
+
         monkeypatch.delenv("NVIDIA_BUILD_API_KEY", raising=False)
         resp_429 = MagicMock()
         resp_429.status_code = 429
@@ -276,6 +292,7 @@ class TestExtractNvidia:
 
     def test_markdown_fence_stripped(self, monkeypatch):
         from lab_manager.intake.extractor import _extract_nvidia
+
         monkeypatch.delenv("NVIDIA_BUILD_API_KEY", raising=False)
         raw_json = "```json\n" + json.dumps(SAMPLE_EXTRACTED.model_dump()) + "\n```"
         mock_resp = MagicMock()
@@ -287,10 +304,13 @@ class TestExtractNvidia:
             patch("lab_manager.intake.extractor.get_settings") as mock_settings,
         ):
             mock_settings.return_value = MagicMock(nvidia_build_api_key="nv-key")
-            assert _extract_nvidia(SAMPLE_OCR, "nvidia_nim/meta/llama-3.2-90b") is not None
+            assert (
+                _extract_nvidia(SAMPLE_OCR, "nvidia_nim/meta/llama-3.2-90b") is not None
+            )
 
     def test_http_error_non_429_returns_none(self, monkeypatch):
         from lab_manager.intake.extractor import _extract_nvidia
+
         monkeypatch.delenv("NVIDIA_BUILD_API_KEY", raising=False)
         resp_500 = MagicMock()
         resp_500.status_code = 500
@@ -306,6 +326,7 @@ class TestExtractNvidia:
 
     def test_generic_exception_returns_none(self, monkeypatch):
         from lab_manager.intake.extractor import _extract_nvidia
+
         monkeypatch.delenv("NVIDIA_BUILD_API_KEY", raising=False)
         mock_httpx = _make_mock_httpx(post_side_effect=Exception("network error"))
         with (
@@ -317,10 +338,13 @@ class TestExtractNvidia:
 
     def test_invalid_json_returns_none(self, monkeypatch):
         from lab_manager.intake.extractor import _extract_nvidia
+
         monkeypatch.delenv("NVIDIA_BUILD_API_KEY", raising=False)
         mock_resp = MagicMock()
         mock_resp.status_code = 200
-        mock_resp.json.return_value = {"choices": [{"message": {"content": "not json"}}]}
+        mock_resp.json.return_value = {
+            "choices": [{"message": {"content": "not json"}}]
+        }
         mock_httpx = _make_mock_httpx(post_return=mock_resp)
         with (
             patch.dict("sys.modules", {"httpx": mock_httpx}),
@@ -333,10 +357,14 @@ class TestExtractNvidia:
 class TestExtractFromText:
     def test_delegates_to_call_llm(self):
         from lab_manager.intake.extractor import extract_from_text
-        with patch("lab_manager.intake.extractor._call_llm", return_value=SAMPLE_EXTRACTED):
+
+        with patch(
+            "lab_manager.intake.extractor._call_llm", return_value=SAMPLE_EXTRACTED
+        ):
             assert extract_from_text(SAMPLE_OCR) == SAMPLE_EXTRACTED
 
     def test_none_propagates(self):
         from lab_manager.intake.extractor import extract_from_text
+
         with patch("lab_manager.intake.extractor._call_llm", return_value=None):
             assert extract_from_text(SAMPLE_OCR) is None

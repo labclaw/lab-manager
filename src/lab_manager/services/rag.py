@@ -2,32 +2,17 @@
 
 from __future__ import annotations
 
-import functools
 import logging
 import re
-from typing import Any
 
-from litellm import completion
 from sqlalchemy import text
 from sqlmodel import Session
 
 from lab_manager.config import get_settings
+from lab_manager.services.litellm_client import create_completion, response_text
 from lab_manager.services.serialization import serialize_value as _serialize_value
 
 logger = logging.getLogger(__name__)
-
-
-def _has_value(value: Any) -> bool:
-    """Return True only for non-empty strings."""
-    return isinstance(value, str) and bool(value.strip())
-
-
-def _first_value(*values: Any) -> str:
-    """Return the first non-empty string value."""
-    for value in values:
-        if _has_value(value):
-            return value.strip()
-    return ""
 
 
 def _get_model() -> str:
@@ -305,117 +290,15 @@ _TABLE_REF_PATTERN = re.compile(
 )
 
 
-def _resolved_rag_model() -> str:
-    """Resolve the configured model to a LiteLLM model name."""
-    import os
-
+def _generate_completion(prompt: str) -> str:
+    """Generate text with LiteLLM using the centralized client."""
     model = _get_model()
-    if "/" in model:
-        return model
-
-    settings = get_settings()
-    if model.startswith("gemini-"):
-        return f"gemini/{model}"
-    if any(
-        _has_value(value)
-        for value in (
-            settings.rag_base_url,
-            settings.rag_api_key,
-            settings.openai_api_key,
-            os.environ.get("RAG_BASE_URL", ""),
-            os.environ.get("RAG_API_KEY", ""),
-            os.environ.get("OPENAI_API_KEY", ""),
-        )
-    ):
-        return f"openai/{model}"
-
-    if _has_value(settings.nvidia_build_api_key) or _has_value(
-        os.environ.get("NVIDIA_BUILD_API_KEY", "")
-    ):
-        return f"nvidia_nim/{model}"
-
-    return f"gemini/{model}"
-
-
-@functools.lru_cache(maxsize=1)
-def _get_client() -> dict[str, Any]:
-    """Create (and cache) LiteLLM completion parameters for RAG."""
-    settings = get_settings()
-    import os
-
-    resolved_model = _resolved_rag_model()
-
-    if resolved_model.startswith("nvidia_nim/"):
-        nvidia_api_key = _first_value(
-            settings.nvidia_build_api_key,
-            os.environ.get("NVIDIA_BUILD_API_KEY", ""),
-        )
-        if not nvidia_api_key:
-            raise RuntimeError(
-                "No NVIDIA Build API key found. Set NVIDIA_BUILD_API_KEY."
-            )
-        return {
-            "model": resolved_model,
-            "api_key": nvidia_api_key,
-            "api_base": _first_value(
-                settings.rag_base_url,
-                os.environ.get("RAG_BASE_URL", ""),
-                "https://integrate.api.nvidia.com/v1",
-            ),
-        }
-
-    if resolved_model.startswith("openai/"):
-        api_key = _first_value(
-            settings.rag_api_key,
-            settings.openai_api_key,
-            os.environ.get("RAG_API_KEY", ""),
-            os.environ.get("OPENAI_API_KEY", ""),
-        )
-        if not api_key:
-            raise RuntimeError(
-                "No RAG API key found. Set RAG_API_KEY, NVIDIA_BUILD_API_KEY, or OPENAI_API_KEY."
-            )
-        params: dict[str, Any] = {"model": resolved_model, "api_key": api_key}
-        base_url = _first_value(
-            settings.rag_base_url, os.environ.get("RAG_BASE_URL", "")
-        )
-        if base_url:
-            params["api_base"] = base_url
-        return params
-
-    api_key = settings.extraction_api_key or os.environ.get("GEMINI_API_KEY", "")
-    if not api_key:
-        raise RuntimeError(
-            "No Gemini API key found. Set GEMINI_API_KEY or EXTRACTION_API_KEY."
-        )
-    return {"model": resolved_model, "api_key": api_key}
-
-
-def _response_text(response: Any) -> str:
-    """Normalize text output from LiteLLM completion responses."""
-    choice = response.choices[0]
-    content = choice.message.content
-    if isinstance(content, str):
-        return content.strip()
-    if isinstance(content, list):
-        parts = []
-        for item in content:
-            if isinstance(item, dict) and item.get("type") == "text":
-                parts.append(item.get("text", ""))
-            elif hasattr(item, "text"):
-                parts.append(item.text)
-        return "\n".join(part for part in parts if part).strip()
-    return str(content).strip()
-
-
-def _generate_completion(client: Any, prompt: str) -> str:
-    """Generate text with LiteLLM using the cached RAG client parameters."""
-    response = completion(
+    resp = create_completion(
+        model=model,
         messages=[{"role": "user", "content": prompt}],
         temperature=0,
-        **client,
     )
-    return _response_text(response)
+    return response_text(resp)
 
 
 def _validate_sql(sql: str) -> str:
@@ -461,10 +344,10 @@ def _serialize_rows(rows: list[dict]) -> list[dict]:
     return [{k: _serialize_value(v) for k, v in row.items()} for row in rows]
 
 
-def _generate_sql(client: Any, question: str) -> str:
+def _generate_sql(question: str) -> str:
     """Ask the configured RAG model to translate a natural language question to SQL."""
     prompt = NL_TO_SQL_PROMPT.format(schema=DB_SCHEMA, question=question)
-    raw = _generate_completion(client, prompt)
+    raw = _generate_completion(prompt)
 
     # Some models wrap SQL in fenced markdown
     if raw.startswith("```"):
@@ -521,7 +404,7 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
             raise
 
 
-def _format_answer(client: Any, question: str, sql: str, results: list[dict]) -> str:
+def _format_answer(question: str, sql: str, results: list[dict]) -> str:
     """Ask the configured RAG model to format query results into a human-readable answer."""
     # Truncate results for the prompt if too many rows
     display_results = results[:50]
@@ -530,7 +413,7 @@ def _format_answer(client: Any, question: str, sql: str, results: list[dict]) ->
         sql=sql,
         results=display_results,
     )
-    return _generate_completion(client, prompt)
+    return _generate_completion(prompt)
 
 
 def _fallback_search(question: str) -> dict:
@@ -589,15 +472,9 @@ def ask(question: str, db: Session) -> dict:
     if len(question) > MAX_QUESTION_LENGTH:
         question = question[:MAX_QUESTION_LENGTH]
 
-    try:
-        client = _get_client()
-    except RuntimeError as e:
-        logger.error("RAG client init failed: %s", e)
-        return _fallback_search(question)
-
     # Step 1: NL -> SQL
     try:
-        sql = _generate_sql(client, question)
+        sql = _generate_sql(question)
         logger.info("Generated SQL for question '%s': %s", question[:80], sql)
     except Exception as e:
         logger.warning("SQL generation failed: %s — falling back to search", e)
@@ -613,7 +490,7 @@ def ask(question: str, db: Session) -> dict:
 
     # Step 3: Format answer
     try:
-        answer = _format_answer(client, question, sql, results)
+        answer = _format_answer(question, sql, results)
     except Exception as e:
         logger.warning("Answer formatting failed: %s", e)
         answer = f"Query returned {len(results)} results but answer formatting failed."
