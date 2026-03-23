@@ -1,6 +1,6 @@
 # Edge cases and additional scenarios for inventory management
 Feature: Inventory Edge Cases
-  As a lab scientist at Shen Lab
+  As a lab scientist in the lab
   I want robust error handling for inventory operations
   So that inventory data stays accurate under all conditions
 

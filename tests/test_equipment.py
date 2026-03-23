@@ -177,7 +177,7 @@ def test_extracted_data_traceability(client):
     extracted = {
         "source_model": "gemini-3.1-flash-preview",
         "extraction_timestamp": "2026-03-17T09:00:00Z",
-        "source_photo": "/shenlab-devices/IMG_3488.jpg",
+        "source_photo": "/data/devices/IMG_3488.jpg",
         "raw_fields": {"system_id": "#5010"},
         "confidence": 0.95,
     }
@@ -192,5 +192,5 @@ def test_extracted_data_traceability(client):
     assert r.status_code == 201
     data = r.json()["extracted_data"]
     assert data["source_model"] == "gemini-3.1-flash-preview"
-    assert data["source_photo"] == "/shenlab-devices/IMG_3488.jpg"
+    assert data["source_photo"] == "/data/devices/IMG_3488.jpg"
     assert data["extraction_timestamp"] is not None
