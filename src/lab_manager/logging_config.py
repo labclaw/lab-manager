@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextvars
 import logging
+import sys
 import uuid
 
 import structlog
@@ -71,7 +72,12 @@ def configure_logging() -> None:
         ],
     )
 
-    handler = logging.StreamHandler()
+    # Rebind to the current stderr each time we configure logging.
+    #
+    # Test suites create and tear down multiple capture streams; keeping a
+    # handler bound to an old closed stream causes noisy "I/O operation on
+    # closed file" logging failures in later requests.
+    handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(formatter)
 
     root = logging.getLogger()
