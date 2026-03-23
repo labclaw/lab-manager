@@ -5,24 +5,24 @@ All notable changes to LabClaw Lab Manager will be documented in this file.
 ## [0.1.8.3] - 2026-03-23
 
 ### Added
-- **Unified LiteLLM client** (`src/lab_manager/services/litellm_client.py`) — centralized interface for LLM calls with automatic provider detection (Gemini, OpenAI, NVIDIA NIM)
-- **Optional config file routing** (`litellm_config.yaml`) — YAML-based model routing with fallback chains for RAG and extraction tasks
-- `LITELLM_CONFIG_PATH` setting — optional path to custom LiteLLM config file
-- 18 new tests for the litellm_client module
+- **E2E edge case tests**: 97 new e2e tests covering error handling, edge cases, and API validation
+  - Inventory: pagination, sorting, expiring endpoint, negative quantity, filtering, history, transfer, dispose
+  - Orders: pagination, receive endpoint, items CRUD, status transitions, validation, search/filter
+  - Documents: upload validation, CRUD edge cases, review workflow, filtering, stats, upload formats
+  - Auth: login edge cases, session management, password change, protected endpoints, setup flow, user management, token auth
 
 ### Changed
-- Refactored RAG service to use centralized LiteLLM client — removed 120 lines of duplicate code
-- Updated all test files to use new `litellm_client` module paths for mocking
+- E2E fixtures changed from session-scoped to function-scoped for better test isolation
+- Test entities now use unique suffixes to avoid collisions in parallel test runs
 
 ## [0.1.8.2] - 2026-03-23
 
-### Fixed
-- Bound upload writes to the same per-app `/uploads` directory used by static serving, eliminating settings-cache drift between request handling and mounted file serving
-- Rebound logging to the current stderr when each FastAPI app instance is created, preventing repeated test runs from writing to closed capture streams
-- Restored the maintained release gate to the current API security smoke suite instead of the stale BDD security backlog
-
-### Changed
-- Promoted `v0.1.8.2` as the current stable internal release across runtime metadata and release docs
+### Added
+- **E2E edge case tests**: 97 new e2e tests covering error handling, edge cases, and API validation
+  - Inventory: pagination, sorting, expiring endpoint, negative quantity, filtering, history, transfer, dispose
+  - Orders: pagination, receive endpoint, items CRUD, status transitions, validation, search/filter
+  - Documents: upload validation, CRUD edge cases, review workflow, filtering, stats, upload formats
+  - Auth: login edge cases, session management, password change, protected endpoints, setup flow, user management, token auth, rate limiting
 
 ## [0.1.8.1] - 2026-03-22
 
