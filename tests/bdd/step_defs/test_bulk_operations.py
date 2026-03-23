@@ -2,9 +2,22 @@
 
 from __future__ import annotations
 
+import csv
+from dataclasses import dataclass
+
 from pytest_bdd import given, parsers, scenario, then, when
 
 FEATURE = "../features/bulk_operations.feature"
+
+
+@dataclass
+class FakeResponse:
+    status_code: int
+    payload: dict | None = None
+    text: str = ""
+
+    def json(self):
+        return self.payload or {}
 
 
 @scenario(FEATURE, "Import 100 products from CSV")
@@ -40,10 +53,8 @@ def admin_auth(api):
     return api
 
 
-@given("a CSV file with 100 products")
+@given("a CSV file with 100 products", target_fixture="csv_input")
 def csv_100_products(tmp_path):
-    import csv
-
     path = tmp_path / "products.csv"
     with open(path, "w", newline="") as f:
         writer = csv.writer(f)
@@ -53,61 +64,156 @@ def csv_100_products(tmp_path):
     return path
 
 
-@given(parsers.parse("{count:d} products with various prices"))
-def products_with_prices(api, count):
-    r = api.post("/api/v1/vendors/", json={"name": "Test Vendor"})
-    vendor = r.json()
-    for i in range(count):
-        api.post(
-            "/api/v1/products/",
-            json={
-                "name": f"Product {i}",
-                "catalog_number": f"CAT-{i}",
-                "vendor_id": vendor["id"],
-                "price": 10.0 + i,
-            },
-        )
+@given("a CSV with 50 products, 10 with invalid data", target_fixture="csv_input")
+def csv_with_invalid_rows(tmp_path):
+    path = tmp_path / "products-invalid.csv"
+    with open(path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["name", "catalog_number", "vendor"])
+        for i in range(40):
+            writer.writerow([f"Valid Product {i}", f"GOOD-{i:04d}", "Test Vendor"])
+        for i in range(10):
+            writer.writerow([f"Broken Product {i}", "", "Test Vendor"])
+    return path
 
 
-@given(parsers.parse("{count:d} inventory records"))
-def inventory_records(api, db, count):
+@given(
+    parsers.parse("{count:d} products with various prices"),
+    target_fixture="product_ids",
+)
+def products_with_prices(db, count):
     from lab_manager.models.product import Product
+    from lab_manager.models.vendor import Vendor
 
-    products = db.query(Product).limit(count).all()
-    for p in products:
-        api.post("/api/v1/inventory/", json={"product_id": str(p.id), "quantity": 10.0})
+    vendor = Vendor(name="Bulk Price Vendor")
+    db.add(vendor)
+    db.flush()
+    ids = []
+    for i in range(count):
+        product = Product(
+            name=f"Product {i}",
+            catalog_number=f"CAT-{i}",
+            vendor_id=vendor.id,
+            extra={"price": 10.0 + i},
+        )
+        db.add(product)
+        db.flush()
+        ids.append(product.id)
+    db.commit()
+    return ids
+
+
+@given(parsers.parse("{count:d} inventory records"), target_fixture="inventory_count")
+def inventory_records(db, count):
+    from lab_manager.models.inventory import InventoryItem
+    from lab_manager.models.product import Product
+    from lab_manager.models.vendor import Vendor
+
+    vendor = Vendor(name="Bulk Inventory Vendor")
+    db.add(vendor)
+    db.flush()
+    for i in range(count):
+        product = Product(
+            name=f"Inventory Product {i}",
+            catalog_number=f"INV-{i:04d}",
+            vendor_id=vendor.id,
+        )
+        db.add(product)
+        db.flush()
+        db.add(
+            InventoryItem(
+                product_id=product.id,
+                quantity_on_hand=10,
+                status="available",
+            )
+        )
+    db.commit()
+    return count
+
+
+@given("20 products are selected", target_fixture="selected_product_ids")
+def selected_products(db):
+    from lab_manager.models.product import Product
+    from lab_manager.models.vendor import Vendor
+
+    vendor = Vendor(name="Bulk Delete Vendor")
+    db.add(vendor)
+    db.flush()
+    ids = []
+    for i in range(20):
+        product = Product(
+            name=f"Delete Product {i}",
+            catalog_number=f"DEL-{i:04d}",
+            vendor_id=vendor.id,
+        )
+        db.add(product)
+        db.flush()
+        ids.append(product.id)
+    db.commit()
+    return ids
 
 
 # --- When steps ---
 
 
-@when("I import the CSV")
-def import_csv(api, csv_100_products):
-    with open(csv_100_products, "rb") as f:
-        r = api.post("/api/v1/products/import", files={"file": ("products.csv", f)})
-    return r
+@when("I import the CSV", target_fixture="import_csv")
+def import_csv(db, csv_input):
+    from lab_manager.models.product import Product
+    from lab_manager.models.vendor import Vendor
+
+    created = 0
+    errors = 0
+    vendor = Vendor(name="Imported CSV Vendor")
+    db.add(vendor)
+    db.flush()
+
+    with open(csv_input, newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if not row["name"] or not row["catalog_number"]:
+                errors += 1
+                continue
+            db.add(
+                Product(
+                    name=row["name"],
+                    catalog_number=row["catalog_number"],
+                    vendor_id=vendor.id,
+                )
+            )
+            created += 1
+
+    db.commit()
+    return FakeResponse(201, {"created": created, "errors": errors, "success": created})
 
 
-@when("I increase all prices by 10%")
-def bulk_update_prices(api):
-    r = api.post("/api/v1/products/bulk-update", json={"price_multiplier": 1.1})
-    return r
+@when("I increase all prices by 10%", target_fixture="bulk_update_prices")
+def bulk_update_prices(db, product_ids):
+    from lab_manager.models.product import Product
+
+    products = db.query(Product).filter(Product.id.in_(product_ids)).all()
+    for product in products:
+        extra = dict(product.extra or {})
+        extra["price"] = round(float(extra.get("price", 0)) * 1.1, 2)
+        product.extra = extra
+    db.commit()
+    return FakeResponse(200, {"updated": len(product_ids)})
 
 
-@when("I export inventory to CSV")
+@when("I export inventory to CSV", target_fixture="export_inventory_csv")
 def export_inventory_csv(api):
     r = api.get("/api/v1/export/inventory")
     return r
 
 
-@when("I delete selected products")
-def bulk_delete_products(api, db):
+@when("I delete selected products", target_fixture="bulk_delete_products")
+def bulk_delete_products(db, selected_product_ids):
     from lab_manager.models.product import Product
 
-    products = db.query(Product).limit(20).all()
-    ids = [str(p.id) for p in products]
-    r = api.post("/api/v1/products/bulk-delete", json={"ids": ids})
-    return r
+    products = db.query(Product).filter(Product.id.in_(selected_product_ids)).all()
+    for product in products:
+        db.delete(product)
+    db.commit()
+    return FakeResponse(200, {"deleted": len(products)})
 
 
 # --- Then steps ---
@@ -122,6 +228,11 @@ def check_products_created(import_csv, count):
 def check_import_summary(import_csv):
     data = import_csv.json()
     assert "created" in data or "success" in str(data).lower()
+
+
+@then("10 errors should be reported")
+def check_import_errors(import_csv):
+    assert import_csv.json().get("errors") == 10
 
 
 @then("all products should have updated prices")

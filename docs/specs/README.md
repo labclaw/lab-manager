@@ -55,7 +55,7 @@ Current count: **82 endpoints** across 14 route modules
 
 ## Release Gate
 
-Page specs describe intended behavior, but the maintained `v0.1.6` release gate is:
+Page specs describe intended behavior, but the maintained `v0.1.8.2` release gate is:
 - `uv run pytest tests --ignore=tests/bdd -q`
 - `bash scripts/run_release_gate.sh`
 

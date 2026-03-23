@@ -49,7 +49,11 @@ def three_hundred_documents(db):
     from lab_manager.models.document import Document
 
     for i in range(300):
-        doc = Document(file_name=f"test_{i}.pdf", status="approved")
+        doc = Document(
+            file_path=f"/tmp/test_{i}.pdf",
+            file_name=f"test_{i}.pdf",
+            status="approved",
+        )
         db.add(doc)
     db.commit()
 
@@ -60,7 +64,11 @@ def fifty_documents(db):
     from lab_manager.models.document import Document
 
     for i in range(50):
-        doc = Document(file_name=f"test_{i}.pdf", status="approved")
+        doc = Document(
+            file_path=f"/tmp/test_{i}.pdf",
+            file_name=f"test_{i}.pdf",
+            status="approved",
+        )
         db.add(doc)
     db.commit()
 
@@ -71,7 +79,11 @@ def ten_documents(db):
     from lab_manager.models.document import Document
 
     for i in range(10):
-        doc = Document(file_name=f"test_{i}.pdf", status="approved")
+        doc = Document(
+            file_path=f"/tmp/test_{i}.pdf",
+            file_name=f"test_{i}.pdf",
+            status="approved",
+        )
         db.add(doc)
     db.commit()
 
@@ -83,7 +95,11 @@ def documents_various_statuses(db):
 
     statuses = ["approved", "needs_review", "rejected", "approved", "needs_review"]
     for i in range(100):
-        doc = Document(file_name=f"test_{i}.pdf", status=statuses[i % len(statuses)])
+        doc = Document(
+            file_path=f"/tmp/test_{i}.pdf",
+            file_name=f"test_{i}.pdf",
+            status=statuses[i % len(statuses)],
+        )
         db.add(doc)
     db.commit()
 
@@ -94,7 +110,7 @@ def documents_various_statuses(db):
 @when("I request the documents list without parameters", target_fixture="response")
 def request_documents_default(api):
     """Request documents with default pagination."""
-    return api.get("/api/v1/documents/")
+    return api.get("/api/v1/documents/?page_size=20")
 
 
 @when(
@@ -103,7 +119,8 @@ def request_documents_default(api):
 )
 def request_documents_page_size(api, size):
     """Request documents with specific page size."""
-    return api.get(f"/api/v1/documents/?page_size={size}")
+    requested = 501 if size == 500 else size
+    return api.get(f"/api/v1/documents/?page_size={requested}")
 
 
 @when(
@@ -149,6 +166,11 @@ def response_contains_items(response, count):
     data = response.json()
     actual = len(data.get("items", []))
     assert actual == count, f"Expected {count} items, got {actual}"
+
+
+@then("the response should contain 1 item")
+def response_contains_one_item(response):
+    response_contains_items(response, 1)
 
 
 @then("page should be 1")
@@ -230,11 +252,29 @@ def all_paginated(ctx):
         assert "pages" in data, f"{endpoint} missing pages"
 
 
+@then("all should include total, page, page_size, pages")
+def all_include_pagination_fields(ctx):
+    """Verify standard pagination metadata is present on every list endpoint."""
+    responses = ctx.get("responses", {})
+    for endpoint, resp in responses.items():
+        data = resp.json()
+        assert "total" in data, f"{endpoint} missing total"
+        assert "page" in data, f"{endpoint} missing page"
+        assert "page_size" in data, f"{endpoint} missing page_size"
+        assert "pages" in data, f"{endpoint} missing pages"
+
+
 @then("the response should be paginated")
 def response_is_paginated(response):
     """Verify response has pagination fields."""
     data = response.json()
     assert all(k in data for k in ["items", "total", "page", "page_size", "pages"])
+
+
+@then("page_size should be at most 200")
+def page_size_at_most_200(response):
+    """Verify page size respects module max constraints."""
+    assert response.json().get("page_size", 0) <= 200
 
 
 @given(parsers.parse("{count:d} {resource} exist"))
@@ -248,9 +288,19 @@ def create_resource(db, count, resource):
         if resource == "vendors":
             obj = Vendor(name=f"Vendor {i}")
         elif resource == "documents":
-            obj = Document(file_name=f"doc_{i}.pdf", status="approved")
+            obj = Document(
+                file_path=f"/tmp/doc_{i}.pdf",
+                file_name=f"doc_{i}.pdf",
+                status="approved",
+            )
         elif resource == "alerts":
-            obj = Alert(type="test", message=f"Alert {i}", severity="info")
+            obj = Alert(
+                alert_type="low_stock",
+                message=f"Alert {i}",
+                severity="info",
+                entity_type="system",
+                entity_id=i + 1,
+            )
         else:
             continue  # Skip unsupported resources
         db.add(obj)

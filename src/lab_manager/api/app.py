@@ -30,7 +30,6 @@ from lab_manager.database import get_engine
 from lab_manager.exceptions import BusinessError
 from lab_manager.logging_config import configure_logging
 
-configure_logging()
 logger = logging.getLogger(__name__)
 
 access_logger = structlog.get_logger("lab_manager.api.access")
@@ -141,6 +140,10 @@ def _load_session_staff(session_cookie: str):
 
 
 def create_app() -> FastAPI:
+    # Rebind logging to the current stderr for each app instance. Test suites
+    # build many transient apps and capture streams; keeping the first stream
+    # handler around causes later requests to log into closed file objects.
+    configure_logging()
     settings = get_settings()
     # Ensure upload directory exists at startup (not per-request in health check)
     Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
@@ -155,7 +158,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="LabClaw Lab Manager",
         description="Lab inventory management with OCR document intake",
-        version="0.1.6",
+        version="0.1.8.2",
         **docs_kwargs,
     )
 
@@ -499,6 +502,7 @@ def create_app() -> FastAPI:
         return {
             "lab_name": cfg.lab_name,
             "lab_subtitle": cfg.lab_subtitle,
+            "version": app.version,
         }
 
     # --- First-run setup endpoints (no auth required) ---
@@ -675,9 +679,10 @@ def create_app() -> FastAPI:
     # Serve uploaded documents at /uploads/
     upload_path = Path(settings.upload_dir)
     upload_path.mkdir(parents=True, exist_ok=True)
+    app.state.upload_dir = upload_path.resolve()
     app.mount(
         "/uploads",
-        StaticFiles(directory=str(upload_path)),
+        StaticFiles(directory=str(app.state.upload_dir)),
         name="uploads",
     )
 
