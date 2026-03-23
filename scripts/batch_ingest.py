@@ -105,8 +105,16 @@ def _nvidia_call(payload: dict, timeout: int = 120) -> str:
     raise RuntimeError(f"NVIDIA API failed after {MAX_RETRIES} retries")
 
 
+MAX_IMAGE_SIZE_MB = 50
+
+
 def ocr_image(image_path: Path) -> str:
     """OCR a document image using NVIDIA vision model."""
+    file_size = image_path.stat().st_size
+    if file_size > MAX_IMAGE_SIZE_MB * 1024 * 1024:
+        raise RuntimeError(
+            f"Image too large: {file_size / 1024 / 1024:.0f}MB > {MAX_IMAGE_SIZE_MB}MB limit"
+        )
     b64 = base64.b64encode(image_path.read_bytes()).decode()
     suffix = image_path.suffix.lower().lstrip(".")
     mime = "image/jpeg" if suffix in ("jpg", "jpeg") else f"image/{suffix}"
@@ -197,7 +205,10 @@ OCR TEXT:
             start = text.find("{")
             end = text.rfind("}") + 1
             if start >= 0 and end > start:
-                return json.loads(text[start:end])
+                try:
+                    return json.loads(text[start:end])
+                except json.JSONDecodeError:
+                    pass
         log.warning("Failed to parse JSON from %s", model_id)
         return None
     except Exception as e:
@@ -334,7 +345,7 @@ def insert_document(
         status = (
             DocumentStatus.needs_review
             if (needs_human or has_issues)
-            else DocumentStatus.needs_review
+            else DocumentStatus.processed
         )
 
         # Clean merged data for storage (remove _ prefixed keys)
@@ -360,6 +371,7 @@ def insert_document(
         return doc_id
     except Exception as e:
         log.error("DB insert failed for %s: %s", image_path.name, e)
+        db.close()
         return None
 
 
