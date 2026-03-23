@@ -13,7 +13,7 @@ def test_rag_model_default_is_current():
         admin_secret_key="test",
         _env_file=None,
     )
-    assert s.rag_model in ("gemini-2.5-flash", "gemini-2.5-pro")
+    assert s.rag_model in ("gemini-2.5-flash", "gemini-2.5-pro", "nvidia_nim/z-ai/glm5")
 
 
 def test_secure_cookies_default_true(monkeypatch):
