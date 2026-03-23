@@ -24,6 +24,7 @@ path is unchanged.
 import os
 
 import pytest
+from sqlalchemy.exc import OperationalError
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -97,7 +98,12 @@ def db_connection(db_engine):
     else:
         conn.execute(text("BEGIN"))
         yield conn
-        conn.execute(text("ROLLBACK"))
+        try:
+            conn.execute(text("ROLLBACK"))
+        except OperationalError:
+            # Some legacy BDD scenarios fully consume the outer SQLite
+            # transaction. Treat missing active transaction as already-clean.
+            pass
     conn.close()
 
 
