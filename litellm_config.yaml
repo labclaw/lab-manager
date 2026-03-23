@@ -1,0 +1,79 @@
+# LiteLLM Configuration for Lab-Manager
+#
+# This config file enables:
+# - Model routing (one model name → multiple backend deployments)
+# - Fallbacks (if primary fails, try backup)
+# - Load balancing across providers
+#
+# Usage:
+#   Set LITELLM_CONFIG_PATH=/path/to/this/file
+#   Or place this file in the project root (auto-detected)
+#
+# See: https://docs.litellm.ai/docs/proxy/configs
+
+model_list:
+  # === RAG Models (NL-to-SQL) ===
+  - model_name: rag-primary
+    litellm_params:
+      model: gemini/gemini-2.5-flash
+      api_key: os.environ/GEMINI_API_KEY
+      temperature: 0
+      max_tokens: 4096
+
+  - model_name: rag-nvidia
+    litellm_params:
+      model: openai/moonshotai/kimi-k2-instruct
+      api_base: os.environ/NVIDIA_NIM_BASE_URL
+      api_key: os.environ/NVIDIA_BUILD_API_KEY
+      temperature: 0
+      max_tokens: 4096
+
+  - model_name: rag-openai
+    litellm_params:
+      model: openai/gpt-4.1-mini
+      api_key: os.environ/OPENAI_API_KEY
+      temperature: 0
+      max_tokens: 4096
+
+  # === Extraction Models (Document Parsing) ===
+  - model_name: extraction-primary
+    litellm_params:
+      model: gemini/gemini-2.5-flash
+      api_key: os.environ/GEMINI_API_KEY
+      temperature: 0
+
+  - model_name: extraction-nvidia
+    litellm_params:
+      model: openai/meta/llama-3.2-90b-vision-instruct
+      api_base: os.environ/NVIDIA_NIM_BASE_URL
+      api_key: os.environ/NVIDIA_BUILD_API_KEY
+      temperature: 0
+
+router_settings:
+  # Retry failed requests
+  num_retries: 3
+
+  # Fallback chain: try next model if current fails
+  fallbacks:
+    - rag-primary: [rag-nvidia, rag-openai]
+    - extraction-primary: [extraction-nvidia]
+
+  # Timeout settings
+  timeout: 60
+
+  # Model group aliases (map model names to configured deployments)
+  model_group_alias:
+    # Legacy model names → new deployments
+    "gemini-2.5-flash": "rag-primary"
+    "gemini/gemini-2.5-flash": "rag-primary"
+    "nvidia_nim/meta/llama-3.2-90b-vision-instruct": "extraction-nvidia"
+
+general_settings:
+  # Master key for proxy API (if using as a proxy server)
+  master_key: os.environ/LITELLM_MASTER_KEY
+
+  # Logging
+  log_level: INFO
+
+  # Database for tracking usage (optional)
+  # database_url: os.environ/DATABASE_URL
