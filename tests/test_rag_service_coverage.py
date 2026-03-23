@@ -46,6 +46,37 @@ class TestGenerateSql:
             assert sql == "SELECT * FROM vendors LIMIT 10"
 
 
+class TestGenerateCompletion:
+    def test_uses_centralized_litellm_client(self):
+        from lab_manager.services.rag import _generate_completion
+
+        mock_response = MagicMock()
+
+        with (
+            patch(
+                "lab_manager.services.rag.get_settings",
+                return_value=MagicMock(rag_model="rag-primary"),
+            ),
+            patch(
+                "lab_manager.services.rag.create_completion",
+                return_value=mock_response,
+            ) as mock_create,
+            patch(
+                "lab_manager.services.rag.response_text",
+                return_value="final answer",
+            ) as mock_text,
+        ):
+            result = _generate_completion("prompt text")
+
+        assert result == "final answer"
+        mock_create.assert_called_once_with(
+            model="rag-primary",
+            messages=[{"role": "user", "content": "prompt text"}],
+            temperature=0,
+        )
+        mock_text.assert_called_once_with(mock_response)
+
+
 class TestFallbackSearch:
     def test_fallback_returns_message(self):
         from lab_manager.services.rag import _fallback_search
@@ -76,10 +107,6 @@ class TestAsk:
         long_q = "A" * (MAX_QUESTION_LENGTH + 100)
         with (
             patch(
-                "lab_manager.services.litellm_client.get_client_params",
-                return_value={"model": "test"},
-            ),
-            patch(
                 "lab_manager.services.rag._generate_sql", return_value="SELECT 1"
             ) as mock_sql,
             patch("lab_manager.services.rag._execute_sql", return_value=[]),
@@ -91,31 +118,10 @@ class TestAsk:
             called_question = mock_sql.call_args[0][0]
             assert len(called_question) == MAX_QUESTION_LENGTH
 
-    def test_client_init_falls_back_to_search(self):
-        from lab_manager.services.rag import ask
-
-        with (
-            patch(
-                "lab_manager.services.litellm_client.get_client_params",
-                side_effect=RuntimeError("no key"),
-            ),
-            patch(
-                "lab_manager.services.rag._fallback_search",
-                return_value={"answer": "fallback"},
-            ) as mock_fb,
-        ):
-            result = ask("test", MagicMock())
-            assert result["answer"] == "fallback"
-            mock_fb.assert_called_once()
-
     def test_sql_gen_fails_falls_back(self):
         from lab_manager.services.rag import ask
 
         with (
-            patch(
-                "lab_manager.services.litellm_client.get_client_params",
-                return_value={"model": "test"},
-            ),
             patch(
                 "lab_manager.services.rag._generate_sql",
                 side_effect=Exception("gen fail"),
@@ -132,10 +138,6 @@ class TestAsk:
         from lab_manager.services.rag import ask
 
         with (
-            patch(
-                "lab_manager.services.litellm_client.get_client_params",
-                return_value={"model": "test"},
-            ),
             patch("lab_manager.services.rag._generate_sql", return_value="SELECT 1"),
             patch(
                 "lab_manager.services.rag._execute_sql",
@@ -153,10 +155,6 @@ class TestAsk:
         from lab_manager.services.rag import ask
 
         with (
-            patch(
-                "lab_manager.services.litellm_client.get_client_params",
-                return_value={"model": "test"},
-            ),
             patch("lab_manager.services.rag._generate_sql", return_value="SELECT 1"),
             patch("lab_manager.services.rag._execute_sql", return_value=[{"n": 1}]),
             patch(
@@ -171,10 +169,6 @@ class TestAsk:
         from lab_manager.services.rag import ask
 
         with (
-            patch(
-                "lab_manager.services.litellm_client.get_client_params",
-                return_value={"model": "test"},
-            ),
             patch(
                 "lab_manager.services.rag._generate_sql",
                 return_value="SELECT * FROM vendors",
