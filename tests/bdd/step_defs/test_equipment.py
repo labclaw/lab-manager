@@ -269,8 +269,8 @@ def update_photos(api, test_equipment):
         f"/api/v1/equipment/{test_equipment['id']}",
         json={
             "photos": [
-                "/shenlab-devices/IMG_3308.jpg",
-                "/shenlab-devices/IMG_3309.jpg",
+                "/data/devices/IMG_3308.jpg",
+                "/data/devices/IMG_3309.jpg",
             ]
         },
     )
@@ -292,7 +292,7 @@ def create_with_vlm_data(api, name):
             "extracted_data": {
                 "source_model": "gemini-3.1-flash-preview",
                 "extraction_timestamp": "2026-03-17T09:00:00Z",
-                "source_photo": "/shenlab-devices/IMG_3488.jpg",
+                "source_photo": "/data/devices/IMG_3488.jpg",
                 "raw_fields": {
                     "system_id": "#5010",
                     "manufacturer": "Bruker",

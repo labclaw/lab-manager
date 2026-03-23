@@ -1,7 +1,7 @@
 """End-to-end deployment smoke tests.
 
 Run against local TestClient (default) or live deployment:
-    APP_BASE_URL=https://shenlab-manager-8jpbh.ondigitalocean.app uv run pytest tests/test_e2e_deployment.py -v
+    APP_BASE_URL=https://demo.labclaw.org uv run pytest tests/test_e2e_deployment.py -v
 """
 
 from __future__ import annotations
@@ -97,7 +97,7 @@ def e2e_client():
 
 # ---- Admin credentials used across tests ----
 _ADMIN_NAME = "E2E Admin"
-_ADMIN_EMAIL = "e2e-admin@shenlab.org"
+_ADMIN_EMAIL = "e2e-admin@example.com"
 _ADMIN_PASSWORD = "e2e-test-password-12345"
 
 

@@ -1,6 +1,6 @@
 # Equipment full lifecycle + photo-based AI extraction
 Feature: Equipment Lifecycle
-  As a lab manager at Shen Lab
+  As a lab manager in the lab
   I want to manage lab equipment through their full lifecycle
   So that I know what devices we have, their status, and can track them from photos
 
