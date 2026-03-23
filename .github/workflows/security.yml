@@ -94,12 +94,12 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@4c4b01a41bc18a14cfd0187edb0b6859e20c3102 # v3.33.0
+        uses: github/codeql-action/init@603b797f8b14b413fe025cd935a91c16c4782713 # v3.33.0
         with:
           languages: python
 
       - name: Analyze
-        uses: github/codeql-action/analyze@4c4b01a41bc18a14cfd0187edb0b6859e20c3102 # v3.33.0
+        uses: github/codeql-action/analyze@603b797f8b14b413fe025cd935a91c16c4782713 # v3.33.0
 
   secrets-scan:
     name: secrets-scan
