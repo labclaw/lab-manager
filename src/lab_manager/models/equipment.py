@@ -17,6 +17,7 @@ class EquipmentStatus:
     active = "active"
     maintenance = "maintenance"
     broken = "broken"
+    retired = "retired"
     decommissioned = "decommissioned"
     deleted = "deleted"
 
@@ -25,6 +26,7 @@ VALID_EQUIPMENT_STATUSES = (
     EquipmentStatus.active,
     EquipmentStatus.maintenance,
     EquipmentStatus.broken,
+    EquipmentStatus.retired,
     EquipmentStatus.decommissioned,
     EquipmentStatus.deleted,
 )
