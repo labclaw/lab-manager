@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import logging
 import os
-from pathlib import Path
 from typing import Any
 
 from litellm import completion
@@ -46,41 +45,31 @@ def load_litellm_config() -> dict[str, Any] | None:
     Returns None if:
     - No config path is set and default doesn't exist
     - Config file doesn't exist
+    - YAML parsing fails
     """
     settings = get_settings()
-    config_path = settings.litellm_config_path
-
-    if not config_path:
-        # Check default location
-        default_path = Path("litellm_config.yaml")
-        if default_path.exists():
-            config_path = str(default_path)
-        else:
-            return None
-
-    path = Path(config_path)
-    if not path.exists():
-        logger.warning("LiteLLM config file not found: %s", config_path)
-        return None
+    config_path = settings.litellm_config_path or "litellm_config.yaml"
 
     try:
         import yaml
 
-        with open(path) as f:
+        with open(config_path) as f:
             config = yaml.safe_load(f)
             logger.info("Loaded LiteLLM config from %s", config_path)
             return config
+    except FileNotFoundError:
+        logger.debug("LiteLLM config file not found: %s", config_path)
+        return None
     except Exception as e:
         logger.error("Failed to load LiteLLM config: %s", e)
         return None
 
 
-def resolve_model_name(model: str, task: str = "rag") -> str:
+def resolve_model_name(model: str) -> str:
     """Resolve model name to LiteLLM format with provider prefix.
 
     Args:
         model: Model name (e.g., "gemini-2.5-flash", "gpt-4", "nvidia_nim/llama-3.2-90b")
-        task: Task type ("rag", "extraction", "ocr") for context
 
     Returns:
         LiteLLM-compatible model name with provider prefix
