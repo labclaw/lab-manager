@@ -21,8 +21,27 @@ class EquipmentStatus:
     deleted = "deleted"
 
 
+VALID_EQUIPMENT_STATUSES = (
+    EquipmentStatus.active,
+    EquipmentStatus.maintenance,
+    EquipmentStatus.broken,
+    EquipmentStatus.decommissioned,
+    EquipmentStatus.deleted,
+)
+
+
 class Equipment(AuditMixin, table=True):
     __tablename__ = "equipment"
+    __table_args__ = (
+        sa.CheckConstraint(
+            f"status IN ({','.join(repr(value) for value in VALID_EQUIPMENT_STATUSES)})",
+            name="ck_equipment_status",
+        ),
+        sa.CheckConstraint(
+            "estimated_value IS NULL OR estimated_value >= 0",
+            name="ck_equipment_estimated_value_nonneg",
+        ),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(max_length=500, index=True)
