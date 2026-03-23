@@ -1,6 +1,6 @@
 # Audit log query and record history endpoints
 Feature: Audit Log
-  As a lab manager at Shen Lab
+  As a lab manager in the lab
   I want to query audit logs and view change history
   So that I can track who changed what and when
 
