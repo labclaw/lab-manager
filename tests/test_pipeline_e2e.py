@@ -417,10 +417,6 @@ class TestAskAIReturnsSQLResults:
                 "lab_manager.services.rag._format_answer",
                 return_value="Found 2 products: Acetone and Sodium Chloride.",
             ),
-            patch(
-                "lab_manager.services.rag._get_client",
-                return_value=MagicMock(),
-            ),
         ):
             resp = client.post(
                 "/api/v1/ask",
@@ -789,10 +785,6 @@ class TestAskAIEdgeCases:
         """When SQL generation fails, Ask AI falls back to Meilisearch search."""
         with (
             patch(
-                "lab_manager.services.rag._get_client",
-                return_value=MagicMock(),
-            ),
-            patch(
                 "lab_manager.services.rag._generate_sql",
                 side_effect=RuntimeError("model overloaded"),
             ),
@@ -824,10 +816,6 @@ class TestAskAIEdgeCases:
     def test_ask_returns_search_source_on_fallback(self, client, db_session):
         """Fallback response has source='search' and sql=None."""
         with (
-            patch(
-                "lab_manager.services.rag._get_client",
-                return_value=MagicMock(),
-            ),
             patch(
                 "lab_manager.services.rag._generate_sql",
                 side_effect=RuntimeError("timeout"),
