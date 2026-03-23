@@ -20,6 +20,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     conn = op.get_bind()
+    # Normalise any negative estimated_value before adding the CHECK.
     conn.execute(
         sa.text("UPDATE equipment SET estimated_value = 0 WHERE estimated_value < 0")
     )
@@ -28,6 +29,13 @@ def upgrade() -> None:
         "equipment",
         "estimated_value IS NULL OR estimated_value >= 0",
     )
+    # Recreate status CHECK to include 'retired' (added in v0.1.8.x).
+    op.drop_constraint("ck_equipment_status", "equipment", type_="check")
+    op.create_check_constraint(
+        "ck_equipment_status",
+        "equipment",
+        "status IN ('active','maintenance','broken','retired','decommissioned','deleted')",
+    )
 
 
 def downgrade() -> None:
@@ -35,4 +43,10 @@ def downgrade() -> None:
         "ck_equipment_estimated_value_nonneg",
         "equipment",
         type_="check",
+    )
+    op.drop_constraint("ck_equipment_status", "equipment", type_="check")
+    op.create_check_constraint(
+        "ck_equipment_status",
+        "equipment",
+        "status IN ('active','maintenance','broken','decommissioned','deleted')",
     )
