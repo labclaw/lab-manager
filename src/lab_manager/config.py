@@ -57,16 +57,18 @@ class Settings(BaseSettings):
     # Document intake — OCR tiered detection
     # ocr_tier: "local" (vLLM only), "api" (cloud APIs), "auto" (local first, API fallback)
     ocr_tier: str = "auto"
-    ocr_model: str = "gemini-2.5-flash"
+    # OCR model: benchmark winner — llama-3.2-90b 100% success on 279 Shen Lab docs
+    ocr_model: str = "nvidia_nim/meta/llama-3.2-90b-vision-instruct"
     ocr_local_model: str = "deepseek_ocr"  # provider name from OCR_PROVIDERS registry
     ocr_local_url: str = "http://localhost:8000/v1"  # vLLM endpoint for local models
-    extraction_model: str = "gemini-2.5-flash"
+    # Extraction model: GLM-5 82.4% success, 0.92 avg confidence on 279 docs
+    extraction_model: str = "nvidia_nim/z-ai/glm5"
     extraction_api_key: str = ""
     mistral_api_key: str = ""
     openai_api_key: str = ""
 
-    # RAG
-    rag_model: str = "gemini-2.5-flash"
+    # RAG — uses NVIDIA API when nvidia_build_api_key is set
+    rag_model: str = "nvidia_nim/z-ai/glm5"
     rag_api_key: str = ""
     rag_base_url: str = ""
     nvidia_build_api_key: str = ""
