@@ -13,10 +13,10 @@ Stage 5: Human review queue (only unresolved conflicts)
 
 Usage:
     # Full pipeline on first 5 docs
-    python scripts/pipeline_v2.py shenlab-docs/ocr-output/all_scans_qwen3_vl_v2.json --end 5
+    python scripts/pipeline_v2.py data/ocr-output/all_scans.json --end 5
 
     # Skip cross-model review (faster)
-    python scripts/pipeline_v2.py shenlab-docs/ocr-output/all_scans_qwen3_vl_v2.json --no-review --end 10
+    python scripts/pipeline_v2.py data/ocr-output/all_scans.json --no-review --end 10
 
     # Use different VLM providers
     python scripts/pipeline_v2.py ... --vlms opus_4_6,gemini_3_1_pro
@@ -81,7 +81,7 @@ def process_one(
 
     file_name = entry["file"]
     ocr_text = entry.get("fullText", "")
-    image_path = str(PROJECT_ROOT / "shenlab-docs" / file_name)
+    image_path = str(PROJECT_ROOT / "data" / file_name)
 
     result = {
         "file_name": file_name,

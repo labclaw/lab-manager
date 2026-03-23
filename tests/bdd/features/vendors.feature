@@ -1,6 +1,6 @@
 # Vendor CRUD and relationship management
 Feature: Vendor Management
-  As a lab manager at Shen Lab
+  As a lab manager in the lab
   I want to manage vendors through the full CRUD lifecycle
   So that I can track our suppliers and their products/orders
 

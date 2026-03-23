@@ -87,7 +87,7 @@ Feature: Deployment Readiness
 
   Scenario: Completing setup creates admin account
     Given no admin user exists
-    When I complete setup with name "Dr. Shen" email "shen@mgh.harvard.edu" and password "labclaw2026"
+    When I complete setup with name "Dr. Smith" email "admin@example.com" and password "labclaw2026"
     Then the response status should be 200
     And the response JSON "status" should be "ok"
     And the setup status should indicate setup is no longer needed

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Batch ingest all Shenlab documents: OCR → 3-model extraction → consensus → DB.
+"""Batch ingest documents: OCR → 3-model extraction → consensus → DB.
 
 Usage:
     DATABASE_URL=... NVIDIA_BUILD_API_KEY=... uv run python scripts/batch_ingest.py
@@ -42,7 +42,11 @@ log = logging.getLogger("batch_ingest")
 # Config
 # ---------------------------------------------------------------------------
 
-DOCS_DIR = Path(__file__).resolve().parent.parent / "shenlab-docs" / "resized"
+DOCS_DIR = Path(
+    os.environ.get(
+        "DOCS_DIR", str(Path(__file__).resolve().parent.parent / "data" / "resized")
+    )
+)
 OUTPUT_DIR = Path(__file__).resolve().parent.parent / "benchmarks" / "batch_ingest"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 

@@ -1,6 +1,6 @@
 # Edge cases and additional scenarios for order management
 Feature: Order Edge Cases
-  As a lab manager at Shen Lab
+  As a lab manager in the lab
   I want robust error handling for order operations
   So that bad data never enters the system
 

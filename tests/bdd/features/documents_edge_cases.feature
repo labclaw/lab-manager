@@ -1,6 +1,6 @@
 # Edge cases for document management
 Feature: Document Edge Cases
-  As a lab manager at Shen Lab
+  As a lab manager in the lab
   I want robust error handling for document operations
   So that document data stays consistent and secure
 

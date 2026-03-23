@@ -1,6 +1,6 @@
 # Analytics and dashboard endpoints
 Feature: Analytics and Dashboard
-  As a lab manager at Shen Lab
+  As a lab manager in the lab
   I want to view dashboard statistics and analytics
   So that I can monitor lab operations and make data-driven decisions
 

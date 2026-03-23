@@ -2,7 +2,7 @@
 """Extract lab equipment info from device photos using VLM.
 
 Usage:
-    uv run python scripts/extract_equipment.py [--dry-run] [--photo-dir shenlab-devices/]
+    uv run python scripts/extract_equipment.py [--dry-run] [--photo-dir data/devices/]
 
 Workflow:
     1. Scan photo directory for device images
@@ -187,7 +187,7 @@ def insert_equipment(devices: list[dict], dry_run: bool = False):
     with Session(engine) as session:
         for dev in devices:
             data = dev["data"]
-            photo_paths = [f"/shenlab-devices/{p.name}" for p in dev["photos"]]
+            photo_paths = [f"/data/devices/{p.name}" for p in dev["photos"]]
 
             equip = Equipment(
                 name=data.get("name") or "Unknown Device",
@@ -224,7 +224,7 @@ def main():
         description="Extract equipment from device photos using VLM"
     )
     parser.add_argument(
-        "--photo-dir", default="shenlab-devices/", help="Directory with device photos"
+        "--photo-dir", default="data/devices/", help="Directory with device photos"
     )
     parser.add_argument(
         "--dry-run",
