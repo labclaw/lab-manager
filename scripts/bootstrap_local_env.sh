@@ -59,8 +59,10 @@ AUTH_ENABLED=true
 SECURE_COOKIES=false
 
 GEMINI_API_KEY=
-EXTRACTION_MODEL=gemini-3.1-flash-preview
-RAG_MODEL=gemini-2.5-flash
+NVIDIA_BUILD_API_KEY=
+OCR_MODEL=nvidia_nim/meta/llama-3.2-90b-vision-instruct
+EXTRACTION_MODEL=nvidia_nim/z-ai/glm5
+RAG_MODEL=nvidia_nim/z-ai/glm5
 
 UPLOAD_DIR=uploads
 SCANS_DIR=
