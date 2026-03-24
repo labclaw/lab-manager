@@ -448,6 +448,17 @@ def _fallback_search(question: str) -> dict:
         }
 
 
+def _is_simple_scalar(results: list[dict]) -> bool:
+    """Check if results contain a single row with a single value."""
+    return len(results) == 1 and len(results[0]) == 1
+
+
+def _extract_scalar(results: list[dict]) -> object:
+    """Extract the single value from a one-row, one-column result set."""
+    row = results[0]
+    return next(iter(row.values()))
+
+
 def ask(question: str, db: Session) -> dict:
     """Main RAG entry point: natural language question -> answer dict.
 
@@ -489,8 +500,13 @@ def ask(question: str, db: Session) -> dict:
         return _fallback_search(question)
 
     # Step 3: Format answer
+    # For simple scalar results (COUNT, SUM, etc.), skip the second LLM call
     try:
-        answer = _format_answer(question, sql, results)
+        if _is_simple_scalar(results):
+            value = _extract_scalar(results)
+            answer = f"Based on the database, the answer is: {value}"
+        else:
+            answer = _format_answer(question, sql, results)
     except Exception as e:
         logger.warning("Answer formatting failed: %s", e)
         answer = f"Query returned {len(results)} results but answer formatting failed."
