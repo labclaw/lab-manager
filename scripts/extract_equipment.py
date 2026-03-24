@@ -37,7 +37,7 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # VLM model for extraction (API-available)
-EXTRACTION_MODEL = os.environ.get("EXTRACTION_MODEL", "gemini-2.5-flash")
+EXTRACTION_MODEL = os.environ.get("EXTRACTION_MODEL", "nvidia_nim/z-ai/glm5")
 
 EXTRACTION_PROMPT = """Analyze this lab equipment photo. Extract structured information about the device.
 
