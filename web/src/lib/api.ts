@@ -309,7 +309,7 @@ export const search = {
   query: (q: string) =>
     apiFetch<ApiResponse<SearchResult>>(`/search?q=${encodeURIComponent(q)}`),
   suggest: (q: string) =>
-    apiFetch<{ suggestions: string[] }>(
+    apiFetch<{ suggestions: Array<{ type: string; text: string; id: number }> }>(
       `/search/suggest?q=${encodeURIComponent(q)}`,
     ),
 }
