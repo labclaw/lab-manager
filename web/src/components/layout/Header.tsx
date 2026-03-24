@@ -93,7 +93,8 @@ export function Header({ title, onSearch, showSearch = true, darkMode, onToggleD
           <Bell className="size-5" />
         </button>
         <button
-          onClick={onToggleDarkMode}
+          onClick={(e) => { e.stopPropagation(); e.preventDefault(); onToggleDarkMode() }}
+          type="button"
           aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           className="flex items-center justify-center rounded-lg size-10 bg-[var(--card)] text-[var(--foreground)] hover:bg-primary/20 transition-colors"
         >
