@@ -162,16 +162,18 @@ export default function App() {
           />
           <main className="flex-1 overflow-y-auto p-6">
             <Routes>
-              <Route path="/" element={<DashboardPage onError={setError} />} />
-              <Route path="/ask" element={<AskPage onError={setError} />} />
-              <Route path="/inventory" element={<InventoryPage onError={setError} />} />
-              <Route path="/orders" element={<OrdersPage onError={setError} />} />
-              <Route path="/documents" element={<DocumentsPage onError={setError} />} />
-              <Route path="/upload" element={<UploadPage />} />
-              <Route path="/review" element={<ReviewPage onError={setError} />} />
-              <Route path="/alerts" element={<AlertsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="/">
+                <Route index element={<DashboardPage onError={setError} />} />
+                <Route path="ask" element={<AskPage onError={setError} />} />
+                <Route path="inventory" element={<InventoryPage onError={setError} />} />
+                <Route path="orders" element={<OrdersPage onError={setError} />} />
+                <Route path="documents" element={<DocumentsPage onError={setError} />} />
+                <Route path="upload" element={<UploadPage />} />
+                <Route path="review" element={<ReviewPage onError={setError} />} />
+                <Route path="alerts" element={<AlertsPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Route>
             </Routes>
           </main>
         </div>
