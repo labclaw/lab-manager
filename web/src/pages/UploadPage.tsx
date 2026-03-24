@@ -228,7 +228,7 @@ export function UploadPage() {
         onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        className={`bg-[var(--card)] rounded-xl border-2 border-dashed p-12 text-center flex flex-col items-center justify-center transition-all group cursor-pointer ${
+        className={`bg-[var(--card)] rounded-xl border-2 border-dashed p-12 min-h-[60vh] text-center flex flex-col items-center justify-center transition-all group cursor-pointer ${
           dragOver ? 'border-primary bg-primary/5' : 'border-[var(--border)] hover:border-primary/50'
         }`}
         onClick={() => fileRef.current?.click()}
@@ -246,10 +246,10 @@ export function UploadPage() {
             <Upload className="size-5" />
             Browse Files
           </button>
-          <span className="text-[var(--muted-foreground)] text-sm font-medium">or</span>
+          <span className="md:hidden text-[var(--muted-foreground)] text-sm font-medium">or</span>
           <button
             onClick={(e) => { e.stopPropagation(); cameraRef.current?.click() }}
-            className="bg-transparent border border-[var(--border)] hover:border-primary text-[var(--foreground)] font-bold py-2.5 px-6 rounded-lg transition-all flex items-center gap-2"
+            className="md:hidden bg-transparent border border-[var(--border)] hover:border-primary text-[var(--foreground)] font-bold py-2.5 px-6 rounded-lg transition-all flex items-center gap-2"
           >
             <Camera className="size-5" />
             Take Photo
