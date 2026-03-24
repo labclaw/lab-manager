@@ -101,8 +101,8 @@ export function OrdersPage({ onError }: OrdersPageProps) {
         </div>
         <div className="flex justify-between items-end">
           <div>
-            <h2 className="text-4xl font-extrabold text-on-surface tracking-tight">Orders</h2>
-            <p className="text-on-surface-variant mt-2 text-sm">
+            <h2 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Orders</h2>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
               Tracking {total} active shipments and pending procurement requisitions.
             </p>
           </div>
