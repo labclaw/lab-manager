@@ -113,7 +113,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
         </div>
         <button
           onClick={() => navigate('/upload')}
-          className="flex items-center gap-2 bg-success hover:bg-success/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+          className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors"
         >
           <Upload />
           Upload Doc
@@ -211,10 +211,20 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
                     >
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
-                          <FileText className="text-slate-400 group-hover:text-primary transition-colors" />
-                          <span className="text-sm font-medium">
-                            {doc.file_name ?? `Doc #${doc.id}`}
-                          </span>
+                          <FileText className="text-slate-400 group-hover:text-primary transition-colors shrink-0" />
+                          <div className="min-w-0">
+                            <span
+                              className="text-sm font-medium block truncate max-w-[200px]"
+                              title={doc.file_name ?? `Doc #${doc.id}`}
+                            >
+                              {doc.vendor_name ?? doc.file_name ?? `Doc #${doc.id}`}
+                            </span>
+                            {doc.vendor_name && doc.file_name && (
+                              <span className="text-[11px] text-slate-400 block truncate max-w-[200px]" title={doc.file_name}>
+                                {doc.file_name}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-400">

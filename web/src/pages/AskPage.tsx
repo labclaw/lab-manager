@@ -75,8 +75,8 @@ function EmptyChatState() {
         <Bot className="size-7 text-primary" />
       </div>
       <div className="space-y-1 max-w-md">
-        <h3 className="text-lg font-bold text-slate-100">Ask the lab manager anything</h3>
-        <p className="text-sm text-slate-500 leading-6">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-slate-100">Ask the lab manager anything</h3>
+        <p className="text-sm text-gray-500 dark:text-slate-500 leading-6">
           Best for inventory, purchasing, and vendor operations questions grounded in live lab records.
         </p>
       </div>
@@ -87,7 +87,7 @@ function EmptyChatState() {
 function EvidenceList({ evidence, source }: Readonly<{ evidence: AskEvidenceRow[]; source?: string }>) {
   if (evidence.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-outline bg-surface-container-lowest/40 p-5 text-sm text-slate-500 leading-6">
+      <div className="rounded-2xl border border-dashed border-gray-200 dark:border-outline bg-gray-50 dark:bg-surface-container-lowest/40 p-5 text-sm text-gray-500 dark:text-slate-500 leading-6">
         {source === 'sql'
           ? 'This answer came from the SQL path. The backend currently summarizes SQL-backed answers instead of exposing raw rows.'
           : 'No evidence rows were returned for this answer.'}
@@ -100,21 +100,21 @@ function EvidenceList({ evidence, source }: Readonly<{ evidence: AskEvidenceRow[
       {evidence.slice(0, 3).map((row, idx) => (
         <div
           key={`${idx}-${Object.keys(row).join('-')}`}
-          className="rounded-2xl border border-outline bg-surface-container-lowest p-4"
+          className="rounded-2xl border border-gray-200 dark:border-outline bg-gray-50 dark:bg-surface-container-lowest p-4"
         >
           <div className="flex items-center justify-between gap-3 mb-3">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-slate-500">
               Evidence {idx + 1}
             </span>
-            <span className="text-[10px] text-slate-600">Row preview</span>
+            <span className="text-[10px] text-gray-400 dark:text-slate-600">Row preview</span>
           </div>
-          <pre className="whitespace-pre-wrap break-words text-xs leading-6 text-slate-300 overflow-x-auto">
+          <pre className="whitespace-pre-wrap break-words text-xs leading-6 text-gray-700 dark:text-slate-300 overflow-x-auto">
             {formatEvidenceRow(row)}
           </pre>
         </div>
       ))}
       {evidence.length > 3 && (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-gray-500 dark:text-slate-500">
           Showing 3 of {evidence.length} evidence rows.
         </p>
       )}
@@ -220,10 +220,10 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
           Ask AI
         </div>
         <div className="space-y-2">
-          <h2 className="text-3xl font-bold text-slate-100 tracking-tight">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">
             Ask the lab manager like a scientist
           </h2>
-          <p className="max-w-3xl text-sm leading-6 text-slate-500">
+          <p className="max-w-3xl text-sm leading-6 text-gray-500 dark:text-slate-500">
             Suggested prompts, in-page history, and grounded results for inventory, purchasing, and vendor workflows.
           </p>
         </div>
@@ -235,7 +235,7 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
             key={prompt}
             type="button"
             onClick={() => setQuestion(prompt)}
-            className="rounded-full border border-outline bg-card-dark px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:border-primary hover:text-primary"
+            className="rounded-full border border-gray-200 dark:border-outline bg-white dark:bg-card-dark px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-slate-300 transition-colors hover:border-primary hover:text-primary"
           >
             {prompt}
           </button>
@@ -243,9 +243,9 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 min-h-0 flex-1">
-        <section className="rounded-[28px] border border-outline bg-card-dark shadow-sm p-5 flex flex-col gap-4">
+        <section className="rounded-[28px] border border-gray-200 dark:border-outline bg-white dark:bg-card-dark shadow-sm p-5 flex flex-col gap-4">
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-slate-500 mb-2">
               New Question
             </div>
             <label className="block">
@@ -265,7 +265,7 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
                 placeholder="What orders from Sigma-Aldrich arrived this month?"
                 rows={8}
                 maxLength={MAX_QUESTION_LENGTH}
-                className="w-full rounded-2xl border border-outline bg-surface-container-lowest px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-primary focus:ring-1 focus:ring-primary resize-none"
+                className="w-full rounded-2xl border border-gray-200 dark:border-outline bg-gray-50 dark:bg-surface-container-lowest px-4 py-3 text-sm text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:border-primary focus:ring-1 focus:ring-primary resize-none"
               />
             </label>
           </div>
@@ -285,18 +285,18 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
               Ask AI
             </button>
             <div className="flex flex-col gap-1">
-              <span className="text-xs text-slate-500">{latestHint}</span>
-              <span className={`text-[11px] ${remainingChars < 200 ? 'text-amber-400' : 'text-slate-600'}`}>
+              <span className="text-xs text-gray-500 dark:text-slate-500">{latestHint}</span>
+              <span className={`text-[11px] ${remainingChars < 200 ? 'text-amber-400' : 'text-gray-400 dark:text-slate-600'}`}>
                 {remainingChars} characters remaining
               </span>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-outline bg-surface-container-lowest/50 p-4 space-y-2">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+          <div className="rounded-2xl border border-gray-200 dark:border-outline bg-gray-50 dark:bg-surface-container-lowest/50 p-4 space-y-2">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-slate-500">
               Grounding
             </div>
-            <p className="text-sm text-slate-400 leading-6">
+            <p className="text-sm text-gray-500 dark:text-slate-400 leading-6">
               Answers are sourced from the lab database through `/api/v1/ask`. This surface is intentionally read-only, and follow-up questions carry recent conversation context forward. Fallback search is narrower than the main SQL path, so operational questions work best.
             </p>
           </div>
@@ -308,17 +308,17 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
           )}
         </section>
 
-        <section className="rounded-[28px] border border-outline bg-card-dark shadow-sm flex flex-col min-h-0">
-          <div className="border-b border-outline px-5 py-4 flex items-center justify-between">
+        <section className="rounded-[28px] border border-gray-200 dark:border-outline bg-white dark:bg-card-dark shadow-sm flex flex-col min-h-0">
+          <div className="border-b border-gray-200 dark:border-outline px-5 py-4 flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-slate-100 uppercase tracking-widest">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100 uppercase tracking-widest">
                 Conversation
               </h3>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">
                 {turns.length} turn{turns.length === 1 ? '' : 's'} in this session
               </p>
             </div>
-            <span className="text-xs text-slate-600">Read only</span>
+            <span className="text-xs text-gray-400 dark:text-slate-600">Read only</span>
           </div>
 
           <div ref={transcriptRef} className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
@@ -331,23 +331,23 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
                     <div className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1">
                       You
                     </div>
-                    <p className="text-sm leading-6 text-slate-100">{turn.question}</p>
+                    <p className="text-sm leading-6 text-gray-900 dark:text-slate-100">{turn.question}</p>
                   </div>
 
-                  <div className="max-w-[92%] rounded-2xl border border-outline bg-surface-container-lowest p-4">
+                  <div className="max-w-[92%] rounded-2xl border border-gray-200 dark:border-outline bg-gray-50 dark:bg-surface-container-lowest p-4">
                     <div className="flex items-center justify-between gap-3 mb-3">
-                      <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-slate-500">
                         Lab manager
                       </div>
                       {turn.source && (
-                        <span className="rounded-full border border-outline bg-card-dark px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        <span className="rounded-full border border-gray-200 dark:border-outline bg-white dark:bg-card-dark px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-slate-400">
                           {turn.source}
                         </span>
                       )}
                     </div>
 
                     {turn.status === 'loading' && (
-                      <div className="flex items-center gap-3 text-sm text-slate-500">
+                      <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-slate-500">
                         <span className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
                         Searching the lab data...
                       </div>
@@ -363,25 +363,25 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
 
                     {turn.status === 'done' && (
                       <div className="space-y-4">
-                        <p className="text-sm leading-7 text-slate-100">
+                        <p className="text-sm leading-7 text-gray-900 dark:text-slate-100">
                           {turn.answer}
                         </p>
                         <div className="grid gap-3 md:grid-cols-[160px_1fr]">
-                          <div className="rounded-2xl border border-outline bg-card-dark px-4 py-3">
-                            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                          <div className="rounded-2xl border border-gray-200 dark:border-outline bg-white dark:bg-card-dark px-4 py-3">
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-slate-500">
                               {turn.source === 'search' ? 'Fallback hits' : 'Rows matched'}
                             </div>
-                            <div className="mt-1 text-2xl font-bold text-slate-100">
+                            <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-slate-100">
                               {turn.rowCount ?? (turn.evidence ?? []).length}
                             </div>
                           </div>
                           <div className="space-y-3">
                             {turn.sql && (
-                              <div className="rounded-2xl border border-outline bg-card-dark p-4">
-                                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">
+                              <div className="rounded-2xl border border-gray-200 dark:border-outline bg-white dark:bg-card-dark p-4">
+                                <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-slate-500 mb-2">
                                   SQL Query
                                 </div>
-                                <pre className="whitespace-pre-wrap break-words text-xs leading-6 text-slate-300 overflow-x-auto">
+                                <pre className="whitespace-pre-wrap break-words text-xs leading-6 text-gray-700 dark:text-slate-300 overflow-x-auto">
                                   {turn.sql}
                                 </pre>
                               </div>

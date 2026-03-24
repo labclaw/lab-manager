@@ -59,6 +59,8 @@ export function OrdersPage({ onError }: OrdersPageProps) {
   const allOrders = res?.items ?? []
   const total = res?.total ?? 0
 
+  const activeCount = allOrders.filter((o) => o.status !== 'received' && o.status !== 'cancelled').length
+
   // Filter by tab
   const orders = allOrders.filter((o) => {
     if (activeTab === 'active') return o.status !== 'received' && o.status !== 'cancelled'
@@ -101,9 +103,9 @@ export function OrdersPage({ onError }: OrdersPageProps) {
         </div>
         <div className="flex justify-between items-end">
           <div>
-            <h2 className="text-4xl font-extrabold text-on-surface tracking-tight">Orders</h2>
-            <p className="text-on-surface-variant mt-2 text-sm">
-              Tracking {total} active shipments and pending procurement requisitions.
+            <h2 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Orders</h2>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
+              Tracking {activeCount} active shipment{activeCount !== 1 ? 's' : ''} and pending procurement requisitions.
             </p>
           </div>
           <button disabled className="bg-gradient-to-br from-primary to-primary-container text-white px-6 py-3 rounded-xl font-bold flex items-center shadow-lg opacity-50 cursor-not-allowed" title="Coming soon">
