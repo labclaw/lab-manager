@@ -38,8 +38,8 @@ const mockOrders = {
 
 const mockInventory = {
   items: [
-    { id: 1, product_name: 'Sodium Chloride', lot_number: 'LOT-ABC', quantity: 5, unit: 'kg', status: 'available', expiry_date: '2027-01-15' },
-    { id: 2, product_name: 'Ethanol 95%', lot_number: 'LOT-DEF', quantity: 2, unit: 'L', status: 'opened', expiry_date: '2026-06-30' },
+    { id: 1, product_name: 'Sodium Chloride', lot_number: 'LOT-ABC', quantity_on_hand: 5, unit: 'kg', status: 'available', expiry_date: '2027-01-15' },
+    { id: 2, product_name: 'Ethanol 95%', lot_number: 'LOT-DEF', quantity_on_hand: 2, unit: 'L', status: 'opened', expiry_date: '2026-06-30' },
   ],
   total: 2, page: 1, page_size: 20, pages: 1,
 }
@@ -88,14 +88,14 @@ const mockSearchSuggestions = {
 
 const mockLowStock = {
   items: [
-    { id: 3, product_name: 'Potassium Chloride', lot_number: 'LOT-GHI', quantity: 1, unit: 'kg', status: 'available' },
+    { id: 3, product_name: 'Potassium Chloride', lot_number: 'LOT-GHI', quantity_on_hand: 1, unit: 'kg', status: 'available' },
   ],
   total: 1, page: 1, page_size: 20, pages: 1,
 }
 
 const mockExpiring = {
   items: [
-    { id: 2, product_name: 'Ethanol 95%', lot_number: 'LOT-DEF', quantity: 2, unit: 'L', status: 'opened', expiry_date: '2026-03-22' },
+    { id: 2, product_name: 'Ethanol 95%', lot_number: 'LOT-DEF', quantity_on_hand: 2, unit: 'L', status: 'opened', expiry_date: '2026-03-22' },
   ],
   total: 1, page: 1, page_size: 20, pages: 1,
 }

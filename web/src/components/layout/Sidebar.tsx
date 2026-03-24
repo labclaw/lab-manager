@@ -22,6 +22,8 @@ interface SidebarProps {
   readonly onToggle: () => void
   readonly alertCount?: number
   readonly reviewCount?: number
+  readonly mobileOpen?: boolean
+  readonly onMobileClose?: () => void
 }
 
 const navItems = [
@@ -40,6 +42,8 @@ export function Sidebar({
   onToggle,
   alertCount = 0,
   reviewCount = 0,
+  mobileOpen = false,
+  onMobileClose,
 }: SidebarProps) {
   const handleLogout = async () => {
     try {
@@ -52,10 +56,21 @@ export function Sidebar({
   }
 
   return (
+    <>
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={onMobileClose}
+        />
+      )}
     <aside
       className={cn(
-        'relative hidden md:flex flex-col bg-[var(--sidebar)] border-r border-primary/10 transition-all duration-300 shrink-0',
+        'flex flex-col bg-[var(--sidebar)] border-r border-primary/10 transition-all duration-300 shrink-0',
         collapsed ? 'w-16' : 'w-[240px]',
+        mobileOpen
+          ? 'fixed inset-y-0 left-0 z-50 md:relative md:z-auto'
+          : 'hidden md:flex relative',
       )}
     >
       {/* Logo */}
@@ -85,6 +100,7 @@ export function Sidebar({
             <Link
               key={item.path}
               to={item.path}
+              onClick={onMobileClose}
               className={cn(
                 'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors',
                 isActive
@@ -136,5 +152,6 @@ export function Sidebar({
         {collapsed ? <ChevronRight className="size-3" /> : <ChevronLeft className="size-3" />}
       </button>
     </aside>
+    </>
   )
 }

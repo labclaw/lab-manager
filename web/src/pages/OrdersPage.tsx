@@ -117,8 +117,9 @@ export function OrdersPage({ onError }: OrdersPageProps) {
       <div className="flex items-center space-x-8 border-b border-outline">
         {TABS.map((tab) => (
           <button
+            type="button"
             key={tab.value}
-            onClick={() => { setActiveTab(tab.value); setPage(1) }}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveTab(tab.value); setPage(1) }}
             className={`pb-4 border-b-2 text-sm tracking-wide transition-all ${
               activeTab === tab.value
                 ? 'text-primary font-bold border-primary'

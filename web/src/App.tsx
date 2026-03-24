@@ -60,6 +60,7 @@ export default function App() {
   const [alertCount, setAlertCount] = useState(0)
   const [reviewCount, setReviewCount] = useState(0)
   const [darkMode, setDarkMode] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const location = useLocation()
 
@@ -119,7 +120,7 @@ export default function App() {
     }).catch(() => {})
 
     documents.reviewQueue().then((res) => {
-      setReviewCount(res.items?.length ?? 0)
+      setReviewCount(res.total ?? res.items?.length ?? 0)
     }).catch(() => {})
   }, [user])
 
@@ -152,6 +153,8 @@ export default function App() {
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
           alertCount={alertCount}
           reviewCount={reviewCount}
+          mobileOpen={mobileMenuOpen}
+          onMobileClose={() => setMobileMenuOpen(false)}
         />
         <div className="flex-1 flex flex-col min-w-0">
           <Header
@@ -159,19 +162,22 @@ export default function App() {
             showSearch={location.pathname !== '/ask'}
             darkMode={darkMode}
             onToggleDarkMode={toggleDarkMode}
+            onMobileMenuToggle={() => setMobileMenuOpen(prev => !prev)}
           />
           <main className="flex-1 overflow-y-auto p-6">
             <Routes>
-              <Route path="/" element={<DashboardPage onError={setError} />} />
-              <Route path="/ask" element={<AskPage onError={setError} />} />
-              <Route path="/inventory" element={<InventoryPage onError={setError} />} />
-              <Route path="/orders" element={<OrdersPage onError={setError} />} />
-              <Route path="/documents" element={<DocumentsPage onError={setError} />} />
-              <Route path="/upload" element={<UploadPage />} />
-              <Route path="/review" element={<ReviewPage onError={setError} />} />
-              <Route path="/alerts" element={<AlertsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="/">
+                <Route index element={<DashboardPage onError={setError} />} />
+                <Route path="ask" element={<AskPage onError={setError} />} />
+                <Route path="inventory" element={<InventoryPage onError={setError} />} />
+                <Route path="orders" element={<OrdersPage onError={setError} />} />
+                <Route path="documents" element={<DocumentsPage onError={setError} />} />
+                <Route path="upload" element={<UploadPage />} />
+                <Route path="review" element={<ReviewPage onError={setError} />} />
+                <Route path="alerts" element={<AlertsPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Route>
             </Routes>
           </main>
         </div>
