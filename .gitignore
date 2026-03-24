@@ -36,6 +36,10 @@ ocr-benchmark/tmp/
 
 # Claude Code
 .claude/
+.stitch/
+
+# Internal planning docs (not for public release)
+docs/superpowers/
 
 # Data files (large, not tracked)
 shenlab-docs/
