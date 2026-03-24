@@ -189,7 +189,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                   }}
                   className={
                     isSelected
-                      ? 'p-4 rounded-xl border-2 border-primary bg-primary/5 cursor-pointer relative group'
+                      ? 'p-4 rounded-xl border border-[var(--border)] border-l-4 border-l-primary bg-purple-50 dark:bg-purple-900/20 cursor-pointer relative group'
                       : 'p-4 rounded-xl border border-[var(--border)] bg-[var(--card)]/50 hover:bg-[var(--card)] cursor-pointer transition-all'
                   }
                 >
@@ -599,7 +599,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                   <button
                     onClick={() => approveMutation.mutate(doc.id)}
                     disabled={actionLoading}
-                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-sm transition-all shadow-lg shadow-emerald-900/30 flex items-center gap-2 ring-1 ring-emerald-500/50 disabled:opacity-50"
+                    className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg text-sm transition-all shadow-lg shadow-primary/30 flex items-center gap-2 ring-1 ring-primary/50 disabled:opacity-50"
                   >
                     <CheckCircle className="size-5" />
                     {approveMutation.isPending ? 'Approving...' : 'Approve'}

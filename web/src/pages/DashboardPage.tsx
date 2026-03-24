@@ -169,23 +169,23 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
           <div className="text-[11px] text-[var(--muted-foreground)] font-medium">Total lab docs processed</div>
         </div>
 
-        {/* Approved - green left border */}
-        <div className="bg-[var(--card)] border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm border-l-4 border-l-accent-green">
+        {/* Approved */}
+        <div className="bg-[var(--card)] border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
           <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Approved</span>
-            <CheckCircle className="size-5 text-accent-green" />
+            <CheckCircle className="size-5 opacity-50" />
           </div>
-          <div className="text-3xl font-bold text-accent-green tracking-tight">{approved}</div>
+          <div className="text-3xl font-bold text-primary tracking-tight">{approved}</div>
           <div className="text-[11px] text-[var(--muted-foreground)] font-medium">{approvalPct}% automation accuracy</div>
         </div>
 
-        {/* Needs Review - amber left border */}
-        <div className="bg-[var(--card)] border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm border-l-4 border-l-amber-400">
+        {/* Needs Review */}
+        <div className="bg-[var(--card)] border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
           <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Needs Review</span>
-            <Clock className="size-5 text-amber-400" />
+            <Clock className="size-5 opacity-50" />
           </div>
-          <div className="text-3xl font-bold text-amber-400 tracking-tight">{needsReview}</div>
+          <div className="text-3xl font-bold text-primary tracking-tight">{needsReview}</div>
           <div className="text-[11px] text-[var(--muted-foreground)] font-medium">Awaiting lab verification</div>
         </div>
 
@@ -212,46 +212,29 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
         </div>
       </div>
 
-      {/* Alert Banners */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        {/* Critical Inventory Level */}
-        <div className="flex items-center gap-4 bg-amber-400/5 border border-amber-400/20 p-5 rounded-xl group hover:bg-amber-400/10 transition-colors">
-          <div className="size-12 rounded-full bg-amber-400/10 flex items-center justify-center text-amber-400 shrink-0">
-            <AlertTriangle className="size-6" />
-          </div>
-          <div className="flex-1">
-            <p className="text-amber-50 text-sm font-bold">Critical Inventory Level</p>
-            <p className="text-amber-400/70 text-xs mt-0.5">
-              {lowStockCount} item{lowStockCount !== 1 ? 's are' : ' is'} below minimum stock thresholds.
-            </p>
-          </div>
-          <button
-            onClick={() => navigate('/inventory')}
-            className="px-4 py-2 bg-amber-400 text-[var(--background)] rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-amber-300 transition-colors shadow-lg shadow-amber-400/10"
-          >
-            Reorder Now
-          </button>
+      {/* Inline Alerts */}
+      {(lowStockCount > 0 || expiringCount > 0) && (
+        <div className="flex flex-wrap gap-3 mb-8">
+          {lowStockCount > 0 && (
+            <button
+              onClick={() => navigate('/inventory')}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+            >
+              <AlertTriangle className="size-3.5" />
+              {lowStockCount} low stock item{lowStockCount !== 1 ? 's' : ''}
+            </button>
+          )}
+          {expiringCount > 0 && (
+            <button
+              onClick={() => navigate('/inventory')}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 transition-colors"
+            >
+              <Calendar className="size-3.5" />
+              {expiringCount} expiring item{expiringCount !== 1 ? 's' : ''}
+            </button>
+          )}
         </div>
-
-        {/* Expiring Reagents */}
-        <div className="flex items-center gap-4 bg-red-500/5 border border-red-500/20 p-5 rounded-xl group hover:bg-red-500/10 transition-colors">
-          <div className="size-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 shrink-0">
-            <Calendar className="size-6" />
-          </div>
-          <div className="flex-1">
-            <p className="text-red-50 text-sm font-bold">Expiring Reagents</p>
-            <p className="text-red-400/70 text-xs mt-0.5">
-              {expiringCount} vital item{expiringCount !== 1 ? 's' : ''} will expire within 30 days.
-            </p>
-          </div>
-          <button
-            onClick={() => navigate('/inventory')}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-red-400 transition-colors shadow-lg shadow-red-500/10"
-          >
-            View List
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

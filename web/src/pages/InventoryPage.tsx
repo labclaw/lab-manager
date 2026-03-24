@@ -39,16 +39,23 @@ export function InventoryPage({ onError }: InventoryPageProps) {
   const total = res?.total ?? 0
   const totalPages = res?.pages ?? Math.ceil(total / pageSize)
 
-  const stockBadge = (status?: string, qty?: number) => {
-    if (status === 'low_stock' || (qty != null && qty <= 3)) {
+  const stockBadge = (status?: string, quantity?: number) => {
+    if (quantity != null && quantity === 0) {
       return (
-        <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant text-[10px] font-bold w-fit uppercase">
+        <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 text-[10px] font-bold w-fit uppercase">
+          Out of Stock
+        </span>
+      )
+    }
+    if (status === 'low_stock' || (quantity != null && quantity <= 3)) {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[10px] font-bold w-fit uppercase">
           Low Stock
         </span>
       )
     }
     return (
-      <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded-full bg-secondary-container text-on-surface text-[10px] font-bold w-fit uppercase">
+      <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded-full bg-green-500/10 text-green-600 border border-green-500/20 text-[10px] font-bold w-fit uppercase">
         In Stock
       </span>
     )
