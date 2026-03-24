@@ -57,7 +57,6 @@ export function OrdersPage({ onError }: OrdersPageProps) {
   }, [error, onError])
 
   const allOrders = res?.items ?? []
-  const total = res?.total ?? 0
 
   const activeCount = allOrders.filter((o) => o.status !== 'received' && o.status !== 'cancelled').length
 
