@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Search, Bell, Sun, Moon } from 'lucide-react'
+import { Search, Bell, Sun, Moon, Menu } from 'lucide-react'
 import { search } from '@/lib/api'
 
 interface HeaderProps {
@@ -8,9 +8,10 @@ interface HeaderProps {
   readonly showSearch?: boolean
   readonly darkMode: boolean
   readonly onToggleDarkMode: () => void
+  readonly onMobileMenuToggle?: () => void
 }
 
-export function Header({ title, onSearch, showSearch = true, darkMode, onToggleDarkMode }: HeaderProps) {
+export function Header({ title, onSearch, showSearch = true, darkMode, onToggleDarkMode, onMobileMenuToggle }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [suggestions, setSuggestions] = useState<Array<{ type: string; text: string; id: number }>>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -44,7 +45,17 @@ export function Header({ title, onSearch, showSearch = true, darkMode, onToggleD
 
   return (
     <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-primary/10 px-6 py-4 lg:px-10 bg-[var(--background)]/80 backdrop-blur-md sticky top-0 z-50">
-      <div className="flex items-center gap-8 flex-1 min-w-0">
+      <div className="flex items-center gap-4 md:gap-8 flex-1 min-w-0">
+        {onMobileMenuToggle && (
+          <button
+            type="button"
+            onClick={onMobileMenuToggle}
+            aria-label="Open navigation menu"
+            className="flex md:hidden items-center justify-center rounded-lg size-10 bg-[var(--card)] text-[var(--foreground)] hover:bg-primary/20 transition-colors"
+          >
+            <Menu className="size-5" />
+          </button>
+        )}
         <div className="hidden xl:flex flex-col min-w-0">
           <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">Current View</span>
           <h1 className="text-lg font-bold text-[var(--foreground)] truncate">{title}</h1>

@@ -60,6 +60,7 @@ export default function App() {
   const [alertCount, setAlertCount] = useState(0)
   const [reviewCount, setReviewCount] = useState(0)
   const [darkMode, setDarkMode] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const location = useLocation()
 
@@ -152,6 +153,8 @@ export default function App() {
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
           alertCount={alertCount}
           reviewCount={reviewCount}
+          mobileOpen={mobileMenuOpen}
+          onMobileClose={() => setMobileMenuOpen(false)}
         />
         <div className="flex-1 flex flex-col min-w-0">
           <Header
@@ -159,6 +162,7 @@ export default function App() {
             showSearch={location.pathname !== '/ask'}
             darkMode={darkMode}
             onToggleDarkMode={toggleDarkMode}
+            onMobileMenuToggle={() => setMobileMenuOpen(prev => !prev)}
           />
           <main className="flex-1 overflow-y-auto p-6">
             <Routes>
