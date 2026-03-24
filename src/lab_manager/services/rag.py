@@ -448,6 +448,18 @@ def _fallback_search(question: str) -> dict:
         }
 
 
+# Simple TTL cache for identical questions (5-minute window)
+_CACHE: dict[str, tuple[float, dict]] = {}
+_CACHE_TTL_S = 300  # 5 minutes
+
+
+def _cache_key(question: str) -> str:
+    """Deterministic cache key from normalized question text."""
+    import hashlib
+
+    return hashlib.md5(question.lower().strip().encode()).hexdigest()
+
+
 def _is_simple_scalar(results: list[dict]) -> bool:
     """Check if results contain a single row with a single value."""
     return len(results) == 1 and len(results[0]) == 1
@@ -483,6 +495,18 @@ def ask(question: str, db: Session) -> dict:
     if len(question) > MAX_QUESTION_LENGTH:
         question = question[:MAX_QUESTION_LENGTH]
 
+    # Check cache for identical recent questions
+    import time
+
+    key = _cache_key(question)
+    if key in _CACHE:
+        cached_at, cached_result = _CACHE[key]
+        if time.time() - cached_at < _CACHE_TTL_S:
+            logger.info("Cache hit for question '%s'", question[:80])
+            return cached_result
+        else:
+            del _CACHE[key]
+
     # Step 1: NL -> SQL
     try:
         sql = _generate_sql(question)
@@ -511,7 +535,7 @@ def ask(question: str, db: Session) -> dict:
         logger.warning("Answer formatting failed: %s", e)
         answer = f"Query returned {len(results)} results but answer formatting failed."
 
-    return {
+    result = {
         "question": question,
         "answer": answer,
         "sql": sql,
@@ -519,3 +543,5 @@ def ask(question: str, db: Session) -> dict:
         "row_count": len(results),
         "source": "sql",
     }
+    _CACHE[key] = (time.time(), result)
+    return result
