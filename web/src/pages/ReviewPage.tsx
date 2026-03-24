@@ -189,7 +189,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                   }}
                   className={
                     isSelected
-                      ? 'p-4 rounded-xl border-2 border-primary bg-primary/5 cursor-pointer relative group'
+                      ? 'p-4 rounded-xl border border-[var(--border)] border-l-4 border-l-primary bg-purple-50 dark:bg-purple-900/20 cursor-pointer relative group'
                       : 'p-4 rounded-xl border border-[var(--border)] bg-[var(--card)]/50 hover:bg-[var(--card)] cursor-pointer transition-all'
                   }
                 >
