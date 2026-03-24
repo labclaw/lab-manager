@@ -12,7 +12,7 @@ interface HeaderProps {
 
 export function Header({ title, onSearch, showSearch = true, darkMode, onToggleDarkMode }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [suggestions, setSuggestions] = useState<Array<{ type: string; text: string; id: number }>>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
@@ -73,15 +73,15 @@ export function Header({ title, onSearch, showSearch = true, darkMode, onToggleD
             <ul role="listbox" className="absolute top-full left-0 right-0 mt-1 bg-card-dark border border-primary/20 rounded-lg shadow-xl z-50 overflow-hidden">
               {suggestions.map((s) => (
                 <li
-                  key={s}
+                  key={`${s.type}-${s.id}`}
                   role="option"
                   className="px-4 py-2 text-sm text-slate-200 hover:bg-primary/20 cursor-pointer"
                   onMouseDown={() => {
-                    setSearchQuery(s)
-                    handleSearchSubmit(s)
+                    setSearchQuery(s.text)
+                    handleSearchSubmit(s.text)
                   }}
                 >
-                  {s}
+                  {s.text}
                 </li>
               ))}
             </ul>
