@@ -87,6 +87,12 @@ class TestFallbackSearch:
 
 
 class TestAsk:
+    def setup_method(self):
+        """Clear RAG response cache before each test."""
+        from lab_manager.services.rag import _CACHE
+
+        _CACHE.clear()
+
     def test_empty_question(self):
         from lab_manager.services.rag import ask
 
@@ -156,7 +162,10 @@ class TestAsk:
 
         with (
             patch("lab_manager.services.rag._generate_sql", return_value="SELECT 1"),
-            patch("lab_manager.services.rag._execute_sql", return_value=[{"n": 1}]),
+            patch(
+                "lab_manager.services.rag._execute_sql",
+                return_value=[{"n": 1, "name": "Sigma"}],
+            ),
             patch(
                 "lab_manager.services.rag._format_answer",
                 side_effect=Exception("fmt fail"),
@@ -175,7 +184,7 @@ class TestAsk:
             ),
             patch(
                 "lab_manager.services.rag._execute_sql",
-                return_value=[{"name": "Sigma"}],
+                return_value=[{"name": "Sigma", "id": 1}],
             ),
             patch(
                 "lab_manager.services.rag._format_answer",

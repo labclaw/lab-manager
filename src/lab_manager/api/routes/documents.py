@@ -372,7 +372,7 @@ def document_stats(db: Session = Depends(get_db)):
 @router.get("/")
 def list_documents(
     page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=500),
+    page_size: int = Query(20, ge=1, le=500),
     status: Optional[str] = Query(None),
     document_type: Optional[str] = Query(None),
     vendor_name: Optional[str] = Query(None),
