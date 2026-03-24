@@ -56,7 +56,7 @@ export interface InventoryItem {
   location_id?: number
   location_name?: string
   lot_number?: string
-  quantity?: number
+  quantity_on_hand?: number
   unit?: string
   expiry_date?: string
   status?: string

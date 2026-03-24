@@ -39,8 +39,8 @@ export function InventoryPage({ onError }: InventoryPageProps) {
   const total = res?.total ?? 0
   const totalPages = res?.pages ?? Math.ceil(total / pageSize)
 
-  const stockBadge = (status?: string, quantity?: number) => {
-    if (status === 'low_stock' || (quantity != null && quantity <= 3)) {
+  const stockBadge = (status?: string, qty?: number) => {
+    if (status === 'low_stock' || (qty != null && qty <= 3)) {
       return (
         <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant text-[10px] font-bold w-fit uppercase">
           Low Stock
@@ -173,9 +173,9 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                   <td className="px-6 py-6">
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-on-surface">
-                        {item.quantity ?? 0} {item.unit ?? ''}
+                        {item.quantity_on_hand ?? 0} {item.unit ?? ''}
                       </span>
-                      {stockBadge(item.status, item.quantity)}
+                      {stockBadge(item.status, item.quantity_on_hand)}
                     </div>
                   </td>
                   <td className="px-6 py-6 text-right">
