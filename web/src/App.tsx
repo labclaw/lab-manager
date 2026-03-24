@@ -120,7 +120,7 @@ export default function App() {
     }).catch(() => {})
 
     documents.reviewQueue().then((res) => {
-      setReviewCount(res.items?.length ?? 0)
+      setReviewCount(res.total ?? res.items?.length ?? 0)
     }).catch(() => {})
   }, [user])
 
