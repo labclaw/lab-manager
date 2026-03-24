@@ -53,6 +53,12 @@ export interface InventoryItem {
   id: number
   product_id?: number
   product_name?: string
+  product?: {
+    id: number
+    name: string
+    vendor_id?: number
+    vendor?: { id: number; name: string }
+  }
   location_id?: number
   location_name?: string
   lot_number?: string

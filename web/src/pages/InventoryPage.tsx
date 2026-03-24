@@ -158,7 +158,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                     {item.lot_number ?? '\u2014'}
                   </td>
                   <td className="px-6 py-6 text-sm font-medium">
-                    {'\u2014'}
+                    {item.product?.vendor?.name ?? '\u2014'}
                   </td>
                   <td className="px-6 py-6">
                     {item.location_name ? (
