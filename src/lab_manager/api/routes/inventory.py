@@ -225,3 +225,21 @@ def dispose_item(item_id: int, body: DisposeBody, db: Session = Depends(get_db))
 @router.post("/{item_id}/open")
 def open_item(item_id: int, body: OpenBody, db: Session = Depends(get_db)):
     return inv_svc.open_item(item_id, body.opened_by, db)
+
+
+@router.get("/{item_id}/reorder-url")
+def get_reorder_url_endpoint(item_id: int, db: Session = Depends(get_db)):
+    """Generate a vendor website URL for reordering this item's product."""
+    from lab_manager.services.vendor_urls import get_reorder_url
+
+    item = get_or_404(db, InventoryItem, item_id, "Inventory item")
+    product = item.product
+    vendor_name = getattr(product, "vendor", None)
+    vendor_name = getattr(vendor_name, "name", None) if vendor_name else None
+    catalog = getattr(product, "catalog_number", None) if product else None
+    url = get_reorder_url(vendor_name or "", catalog or "")
+    return {
+        "url": url,
+        "vendor": vendor_name,
+        "catalog_number": catalog,
+    }
