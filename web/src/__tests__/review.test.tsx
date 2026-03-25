@@ -40,10 +40,10 @@ describe('ReviewPage', () => {
       renderReview()
 
       await waitFor(() => {
-        // Sigma-Aldrich appears as queue text; Fisher Scientific as queue text
-        expect(screen.getByText('Sigma-Aldrich')).toBeInTheDocument()
+        // Vendor names appear in queue headings as "VendorName — DocType"
+        expect(screen.getByText(/Sigma-Aldrich/)).toBeInTheDocument()
       })
-      expect(screen.getByText('Fisher Scientific')).toBeInTheDocument()
+      expect(screen.getByText(/Fisher Scientific/)).toBeInTheDocument()
     })
   })
 

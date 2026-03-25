@@ -77,11 +77,23 @@ describe('InventoryPage', () => {
     })
 
     it('shows stock status badges', async () => {
+      // Override to include a low_stock item
+      server.use(
+        http.get('/api/v1/inventory', () =>
+          HttpResponse.json({
+            items: [
+              { id: 1, product_name: 'Sodium Chloride', lot_number: 'LOT-ABC', quantity_on_hand: 5, unit: 'kg', status: 'available', expiry_date: '2027-01-15' },
+              { id: 2, product_name: 'Ethanol 95%', lot_number: 'LOT-DEF', quantity_on_hand: 2, unit: 'L', status: 'low_stock', expiry_date: '2026-06-30' },
+            ],
+            total: 2, page: 1, page_size: 15, pages: 1,
+          }),
+        ),
+      )
+
       renderWithProviders(<InventoryPage onError={onError} />)
 
-      // quantity 5 > 3 => In Stock, quantity 2 <= 3 => Low Stock
+      // Only low_stock/out_of_stock items get badges; normal items don't
       await waitFor(() => {
-        expect(screen.getByText('In Stock')).toBeInTheDocument()
         expect(screen.getByText('Low Stock')).toBeInTheDocument()
       })
     })
@@ -134,7 +146,7 @@ describe('InventoryPage', () => {
         expect(screen.getByText('Inventory is empty')).toBeInTheDocument()
       })
       expect(
-        screen.getByText('Process documents through the review queue to populate inventory.'),
+        screen.getByText('Review and approve documents to populate inventory.'),
       ).toBeInTheDocument()
     })
 
