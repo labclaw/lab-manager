@@ -21,7 +21,7 @@ dependencies = [
   "itsdangerous>=2.2.0",
   "structlog>=24.0.0",
   "slowapi>=0.1.9",
-  "litellm>=1.82.4",
+  "litellm>=1.82.4,<=1.82.6",  # SECURITY: 1.82.7+ compromised (supply chain attack 2026-03-24)
 ]
 
 [build-system]
