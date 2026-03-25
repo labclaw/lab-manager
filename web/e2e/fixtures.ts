@@ -143,6 +143,11 @@ export async function mockAllAPIs(page: Page) {
     route.fulfill(json({ items: MOCK_INVENTORY, total: 3, pages: 1 })),
   )
 
+  // Inventory reorder URL
+  await page.route(/\/api\/v1\/inventory\/\d+\/reorder-url/, (route) =>
+    route.fulfill(json({ url: 'https://www.sigmaaldrich.com/product/D5796' })),
+  )
+
   // Orders list
   await page.route(/\/api\/v1\/orders\/?\?/, (route) =>
     route.fulfill(json({ items: MOCK_ORDERS, total: 3, pages: 1 })),
