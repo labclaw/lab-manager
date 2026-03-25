@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import PurePosixPath
 from typing import Literal, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, UploadFile
@@ -16,6 +17,7 @@ from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.document import Document, DocumentStatus
 from lab_manager.models.order import Order, OrderItem, OrderStatus
 from lab_manager.models.vendor import Vendor
+from lab_manager.services.vendor_normalize import normalize_vendor
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +50,6 @@ _BLOCKED_PREFIXES = ("/etc/", "/proc/", "/sys/", "/var/", "/root/", "/home/")
 
 def _validate_file_path(v: str) -> str:
     """Check for path traversal and blocked system directories."""
-    from pathlib import PurePosixPath
-
     parts = PurePosixPath(v).parts
     if ".." in parts:
         raise ValueError("Path traversal not allowed")
@@ -163,8 +163,6 @@ def _run_extraction(doc_id: int) -> None:
             from lab_manager.config import get_settings
 
             settings = get_settings()
-            from lab_manager.services.vendor_normalize import normalize_vendor
-
             extracted = extract_from_text(ocr_text)
             doc.document_type = extracted.document_type
             doc.vendor_name = normalize_vendor(extracted.vendor_name)
@@ -188,9 +186,10 @@ def _run_extraction(doc_id: int) -> None:
 
 def _index_approved_doc(doc_id: int) -> None:
     """Background task: index an approved document and all related records in Meilisearch."""
+    from sqlalchemy.orm import selectinload
+
     from lab_manager.database import get_session_factory
     from lab_manager.models.inventory import InventoryItem
-    from lab_manager.models.product import Product
     from lab_manager.services.search import (
         index_document_record,
         index_inventory_record,
@@ -211,50 +210,54 @@ def _index_approved_doc(doc_id: int) -> None:
         except Exception:
             logger.exception("Failed to index document %d", doc_id)
 
-        order = db.scalars(select(Order).where(Order.document_id == doc.id)).first()
+        # Eager-load order with vendor and items (+ products) in one query
+        order = db.scalars(
+            select(Order)
+            .where(Order.document_id == doc.id)
+            .options(
+                selectinload(Order.vendor),
+                selectinload(Order.items).selectinload(OrderItem.product),
+            )
+        ).first()
         if not order:
             return
 
-        if order.vendor_id:
-            vendor = db.scalars(
-                select(Vendor).where(Vendor.id == order.vendor_id)
-            ).first()
-            if vendor:
-                try:
-                    index_vendor_record(vendor)
-                except Exception:
-                    logger.exception("Failed to index vendor %d", vendor.id)
+        if order.vendor:
+            try:
+                index_vendor_record(order.vendor)
+            except Exception:
+                logger.exception("Failed to index vendor %d", order.vendor.id)
 
         try:
             index_order_record(order)
         except Exception:
             logger.exception("Failed to index order %d", order.id)
 
-        items = db.scalars(
-            select(OrderItem).where(OrderItem.order_id == order.id)
-        ).all()
-        for oi in items:
+        # Batch-fetch all inventory items for these order items
+        oi_ids = [oi.id for oi in order.items]
+        inv_items_by_oi: dict[int, list] = {}
+        if oi_ids:
+            all_inv = db.scalars(
+                select(InventoryItem).where(InventoryItem.order_item_id.in_(oi_ids))
+            ).all()
+            for inv in all_inv:
+                inv_items_by_oi.setdefault(inv.order_item_id, []).append(inv)
+
+        for oi in order.items:
             try:
                 index_order_item_record(oi)
             except Exception:
                 logger.exception("Failed to index order_item %d", oi.id)
-            if oi.product_id:
-                product = db.scalars(
-                    select(Product).where(Product.id == oi.product_id)
-                ).first()
-                if product:
-                    try:
-                        index_product_record(product)
-                    except Exception:
-                        logger.exception("Failed to index product %d", product.id)
-                inv_items = db.scalars(
-                    select(InventoryItem).where(InventoryItem.order_item_id == oi.id)
-                ).all()
-                for inv in inv_items:
-                    try:
-                        index_inventory_record(inv)
-                    except Exception:
-                        logger.exception("Failed to index inventory %d", inv.id)
+            if oi.product:
+                try:
+                    index_product_record(oi.product)
+                except Exception:
+                    logger.exception("Failed to index product %d", oi.product.id)
+            for inv in inv_items_by_oi.get(oi.id, []):
+                try:
+                    index_inventory_record(inv)
+                except Exception:
+                    logger.exception("Failed to index inventory %d", inv.id)
 
         logger.info("Indexed approved doc %d and related records", doc_id)
     except Exception:
@@ -421,8 +424,6 @@ def update_document(
     document_id: int, body: DocumentUpdate, db: Session = Depends(get_db)
 ):
     """Partial update any document fields."""
-    from lab_manager.services.vendor_normalize import normalize_vendor
-
     doc = get_or_404(db, Document, document_id, "Document")
     updates = body.model_dump(exclude_unset=True)
     if "vendor_name" in updates and updates["vendor_name"]:
