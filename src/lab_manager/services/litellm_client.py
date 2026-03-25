@@ -211,6 +211,7 @@ def create_completion(
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
+        "timeout": kwargs.pop("timeout", 60),  # Default 60s timeout
         **kwargs,
     }
 

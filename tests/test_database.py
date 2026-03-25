@@ -40,6 +40,7 @@ class TestGetEngine:
             pool_size=10,
             max_overflow=20,
             pool_pre_ping=True,
+            pool_recycle=1800,
             connect_args={"options": "-c search_path=labmanager,public"},
         )
         assert engine is mock_create.return_value

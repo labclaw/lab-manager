@@ -402,7 +402,7 @@ class TestRagService:
             patch("lab_manager.services.rag._format_answer") as mock_fmt,
         ):
             mock_gen.return_value = "SELECT 1"
-            mock_exec.return_value = [{"col": 1}]
+            mock_exec.return_value = [{"col": 1, "col2": 2}]  # Multi-column to bypass scalar shortcut
             mock_fmt.side_effect = Exception("format error")
             result = ask("How many?", db_session)
             assert "formatting failed" in result["answer"]
@@ -422,7 +422,8 @@ class TestRagService:
             mock_exec.return_value = [{"count": 5}]
             mock_fmt.return_value = "There are 5 vendors."
             result = ask("How many vendors?", db_session)
-            assert result["answer"] == "There are 5 vendors."
+            # Single scalar result uses fast path without _format_answer
+            assert "5" in result["answer"]
             assert result["source"] == "sql"
 
     def test_ask_truncates_long_question(self, db_session):

@@ -33,7 +33,7 @@ class TestGenerateSql:
             return_value="SELECT * FROM vendors",
         ):
             sql = _generate_sql("list all vendors")
-            assert sql == "SELECT * FROM vendors"
+            assert sql.startswith("SELECT * FROM vendors")
 
     def test_markdown_fence_stripped(self):
         from lab_manager.services.rag import _generate_sql

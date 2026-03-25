@@ -316,7 +316,7 @@ def create_app() -> FastAPI:
                 )
         elif not settings.auth_enabled:
             raw = request.headers.get("X-User", "system")
-            user = _CONTROL_CHARS.sub("", raw)[:_MAX_USER_LEN]
+            user = _CONTROL_CHARS.sub("", raw)[:_MAX_USER_LEN].strip() or "system"
 
         request.state.user = user
         return await call_next(request)

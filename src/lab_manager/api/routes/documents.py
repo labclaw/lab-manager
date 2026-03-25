@@ -50,11 +50,16 @@ _BLOCKED_PREFIXES = ("/etc/", "/proc/", "/sys/", "/var/", "/root/", "/home/")
 
 def _validate_file_path(v: str) -> str:
     """Check for path traversal and blocked system directories."""
+
+    if not v or not v.strip():
+        raise ValueError("File path must not be empty")
     parts = PurePosixPath(v).parts
     if ".." in parts:
         raise ValueError("Path traversal not allowed")
     if any(v.startswith(b) for b in _BLOCKED_PREFIXES):
         raise ValueError("Path traversal not allowed")
+    if "\x00" in v:
+        raise ValueError("Path contains null byte")
     return v
 
 
@@ -179,7 +184,18 @@ def _run_extraction(doc_id: int) -> None:
         logger.info("Extraction complete for doc %d, status=%s", doc_id, doc.status)
     except Exception:
         logger.exception("Unexpected error in extraction for doc %d", doc_id)
-        db.rollback()
+        try:
+            db.rollback()
+            # Mark document as needs_review so it doesn't stay stuck in processing
+            doc = db.scalars(select(Document).where(Document.id == doc_id)).first()
+            if doc and doc.status == DocumentStatus.processing:
+                doc.status = DocumentStatus.needs_review
+                doc.review_notes = "Extraction failed unexpectedly"
+                db.commit()
+        except Exception:
+            logger.exception(
+                "Failed to mark doc %d as needs_review after error", doc_id
+            )
     finally:
         db.close()
 
@@ -233,31 +249,44 @@ def _index_approved_doc(doc_id: int) -> None:
         except Exception:
             logger.exception("Failed to index order %d", order.id)
 
-        # Batch-fetch all inventory items for these order items
-        oi_ids = [oi.id for oi in order.items]
-        inv_items_by_oi: dict[int, list] = {}
-        if oi_ids:
+        items = db.scalars(
+            select(OrderItem).where(OrderItem.order_id == order.id)
+        ).all()
+
+        # Batch-fetch products and inventory to avoid N+1 queries
+        product_ids = [oi.product_id for oi in items if oi.product_id]
+        item_ids = [oi.id for oi in items]
+        products_by_id: dict[int, Product] = {}
+        if product_ids:
+            products = db.scalars(
+                select(Product).where(Product.id.in_(product_ids))
+            ).all()
+            products_by_id = {p.id: p for p in products}
+        inv_by_oi: dict[int, list] = {}
+        if item_ids:
             all_inv = db.scalars(
-                select(InventoryItem).where(InventoryItem.order_item_id.in_(oi_ids))
+                select(InventoryItem).where(InventoryItem.order_item_id.in_(item_ids))
             ).all()
             for inv in all_inv:
-                inv_items_by_oi.setdefault(inv.order_item_id, []).append(inv)
+                inv_by_oi.setdefault(inv.order_item_id, []).append(inv)
 
-        for oi in order.items:
+        for oi in items:
             try:
                 index_order_item_record(oi)
             except Exception:
                 logger.exception("Failed to index order_item %d", oi.id)
-            if oi.product:
-                try:
-                    index_product_record(oi.product)
-                except Exception:
-                    logger.exception("Failed to index product %d", oi.product.id)
-            for inv in inv_items_by_oi.get(oi.id, []):
-                try:
-                    index_inventory_record(inv)
-                except Exception:
-                    logger.exception("Failed to index inventory %d", inv.id)
+            if oi.product_id:
+                product = products_by_id.get(oi.product_id)
+                if product:
+                    try:
+                        index_product_record(product)
+                    except Exception:
+                        logger.exception("Failed to index product %d", product.id)
+                for inv in inv_by_oi.get(oi.id, []):
+                    try:
+                        index_inventory_record(inv)
+                    except Exception:
+                        logger.exception("Failed to index inventory %d", inv.id)
 
         logger.info("Indexed approved doc %d and related records", doc_id)
     except Exception:

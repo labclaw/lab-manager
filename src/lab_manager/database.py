@@ -28,7 +28,12 @@ def get_engine():
                 if settings.database_url.startswith("sqlite"):
                     pass
                 else:
-                    kwargs.update(pool_size=10, max_overflow=20, pool_pre_ping=True)
+                    kwargs.update(
+                        pool_size=10,
+                        max_overflow=20,
+                        pool_pre_ping=True,
+                        pool_recycle=1800,  # Recycle connections every 30 min
+                    )
                 # On managed PG (e.g. DO App Platform) the app user may lack
                 # CREATE on the 'public' schema. Use a custom schema to avoid
                 # this PG 15+ restriction. Set search_path via connect_args.

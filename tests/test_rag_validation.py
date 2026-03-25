@@ -14,12 +14,15 @@ from lab_manager.services.rag import _validate_sql
 
 def test_valid_simple_select():
     sql = "SELECT id, name FROM vendors"
-    assert _validate_sql(sql) == sql.strip()
+    result = _validate_sql(sql)
+    assert result.startswith(sql.strip())
+    assert "LIMIT" in result
 
 
 def test_valid_select_with_join():
     sql = "SELECT p.name, v.name FROM products p JOIN vendors v ON p.vendor_id = v.id"
-    assert _validate_sql(sql) == sql.strip()
+    result = _validate_sql(sql)
+    assert result.startswith(sql.strip())
 
 
 def test_valid_select_with_cte():
@@ -28,7 +31,8 @@ def test_valid_select_with_cte():
         "WITH orders AS (SELECT * FROM orders WHERE order_date > '2025-01-01') "
         "SELECT * FROM orders"
     )
-    assert _validate_sql(sql) == sql
+    result = _validate_sql(sql)
+    assert result.startswith(sql)
 
 
 @pytest.mark.parametrize(
@@ -50,7 +54,8 @@ def test_valid_select_allowed_table(table):
 
 def test_valid_aggregate_query():
     sql = "SELECT vendor_id, COUNT(*) FROM products GROUP BY vendor_id"
-    assert _validate_sql(sql) == sql.strip()
+    result = _validate_sql(sql)
+    assert result.startswith(sql.strip())
 
 
 def test_valid_subquery_in_where():
@@ -58,7 +63,8 @@ def test_valid_subquery_in_where():
         "SELECT * FROM products WHERE vendor_id IN "
         "(SELECT id FROM vendors WHERE name ILIKE '%fisher%')"
     )
-    assert _validate_sql(sql) == sql.strip()
+    result = _validate_sql(sql)
+    assert result.startswith(sql.strip())
 
 
 def test_valid_multiline_select():
@@ -67,7 +73,8 @@ def test_valid_multiline_select():
 
 
 def test_valid_trailing_semicolon_stripped():
-    assert _validate_sql("SELECT 1 FROM vendors;") == "SELECT 1 FROM vendors"
+    result = _validate_sql("SELECT 1 FROM vendors;")
+    assert result.startswith("SELECT 1 FROM vendors")
 
 
 # --- Forbidden keywords that SHOULD be rejected ---
@@ -269,4 +276,18 @@ def test_whitespace_only_rejected():
 def test_mixed_case_table_name_passes():
     """Allowed tables should match case-insensitively."""
     sql = "SELECT * FROM VENDORS"
+    result = _validate_sql(sql)
+    assert result.startswith(sql.strip())
+
+
+def test_limit_preserved_when_present():
+    """Queries with LIMIT should not get a second LIMIT appended."""
+    sql = "SELECT * FROM vendors LIMIT 10"
     assert _validate_sql(sql) == sql.strip()
+
+
+def test_limit_injected_when_missing():
+    """Queries without LIMIT get a safety cap appended."""
+    sql = "SELECT * FROM vendors"
+    result = _validate_sql(sql)
+    assert "LIMIT 200" in result
