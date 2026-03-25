@@ -183,3 +183,144 @@ function _fmtSize(bytes) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+// --- Bulk CSV Import ---
+
+let _importType = 'products';
+
+function switchUploadTab(tab) {
+  const docSection = document.getElementById('upload-doc-section');
+  const csvSection = document.getElementById('upload-csv-section');
+  const tabDoc = document.getElementById('tab-upload-doc');
+  const tabCsv = document.getElementById('tab-upload-csv');
+
+  if (tab === 'csv') {
+    docSection.classList.add('hidden');
+    csvSection.classList.remove('hidden');
+    tabDoc.classList.remove('bg-primary', 'text-white');
+    tabDoc.classList.add('text-slate-400', 'hover:text-slate-300');
+    tabCsv.classList.add('bg-primary', 'text-white');
+    tabCsv.classList.remove('text-slate-400', 'hover:text-slate-300');
+    _bindCsvZone();
+  } else {
+    docSection.classList.remove('hidden');
+    csvSection.classList.add('hidden');
+    tabDoc.classList.add('bg-primary', 'text-white');
+    tabDoc.classList.remove('text-slate-400', 'hover:text-slate-300');
+    tabCsv.classList.remove('bg-primary', 'text-white');
+    tabCsv.classList.add('text-slate-400', 'hover:text-slate-300');
+  }
+}
+
+function setImportType(type) {
+  _importType = type;
+  const productsBtn = document.getElementById('import-type-products');
+  const vendorsBtn = document.getElementById('import-type-vendors');
+  const info = document.getElementById('import-columns-info');
+
+  if (type === 'products') {
+    productsBtn.classList.add('border-primary', 'bg-primary/10', 'text-primary');
+    productsBtn.classList.remove('border-border-dark', 'text-slate-400');
+    vendorsBtn.classList.remove('border-primary', 'bg-primary/10', 'text-primary');
+    vendorsBtn.classList.add('border-border-dark', 'text-slate-400');
+    info.innerHTML = `
+      <div class="text-xs font-medium text-slate-400 mb-1">Expected columns for Products:</div>
+      <div class="text-xs text-slate-500">catalog_number (or sku, cat#) &bull; name (or product, description) &bull; vendor (optional) &bull; category (optional) &bull; cas_number (optional) &bull; unit (optional)</div>`;
+  } else {
+    vendorsBtn.classList.add('border-primary', 'bg-primary/10', 'text-primary');
+    vendorsBtn.classList.remove('border-border-dark', 'text-slate-400');
+    productsBtn.classList.remove('border-primary', 'bg-primary/10', 'text-primary');
+    productsBtn.classList.add('border-border-dark', 'text-slate-400');
+    info.innerHTML = `
+      <div class="text-xs font-medium text-slate-400 mb-1">Expected columns for Vendors:</div>
+      <div class="text-xs text-slate-500">name (or vendor, supplier) &bull; website (optional) &bull; email (optional) &bull; phone (optional)</div>`;
+  }
+}
+
+function _bindCsvZone() {
+  const zone = document.getElementById('csv-drop-zone');
+  const fileInput = document.getElementById('csv-file-input');
+  if (!zone || !fileInput) return;
+
+  zone.onclick = () => fileInput.click();
+
+  fileInput.onchange = () => {
+    if (fileInput.files[0]) _handleCsvImport(fileInput.files[0]);
+    fileInput.value = '';
+  };
+
+  zone.ondragover = e => { e.preventDefault(); zone.classList.add('border-primary'); };
+  zone.ondragleave = () => zone.classList.remove('border-primary');
+  zone.ondrop = e => {
+    e.preventDefault();
+    zone.classList.remove('border-primary');
+    if (e.dataTransfer.files[0]) _handleCsvImport(e.dataTransfer.files[0]);
+  };
+}
+
+async function _handleCsvImport(file) {
+  const resultEl = document.getElementById('import-result');
+  resultEl.classList.remove('hidden');
+  resultEl.innerHTML = `
+    <div class="flex items-center gap-2 text-sm text-slate-400">
+      <svg class="animate-spin h-4 w-4 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+      </svg>
+      Importing ${escapeHtml(file.name)}...
+    </div>`;
+
+  const form = new FormData();
+  form.append('file', file);
+
+  try {
+    const r = await apiFetch(`/api/v1/import/${_importType}`, { method: 'POST', body: form });
+    if (r.ok) {
+      const data = await r.json();
+      let errorsHtml = '';
+      if (data.errors && data.errors.length > 0) {
+        errorsHtml = `<div class="mt-2 text-xs text-red-400">${data.errors.slice(0, 5).map(e => escapeHtml(e)).join('<br>')}${data.errors.length > 5 ? `<br>...and ${data.errors.length - 5} more` : ''}</div>`;
+      }
+      resultEl.innerHTML = `
+        <div class="p-4 rounded-lg bg-accent-green/5 border border-accent-green/20">
+          <div class="flex items-center gap-2 text-sm text-accent-green mb-2">
+            <span class="material-symbols-outlined text-lg">check_circle</span>
+            Import complete
+          </div>
+          <div class="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <div class="text-2xl font-bold text-accent-green">${data.created}</div>
+              <div class="text-xs text-slate-500">Created</div>
+            </div>
+            <div>
+              <div class="text-2xl font-bold text-slate-400">${data.skipped}</div>
+              <div class="text-xs text-slate-500">Skipped (duplicates)</div>
+            </div>
+            <div>
+              <div class="text-2xl font-bold ${data.errors.length > 0 ? 'text-red-400' : 'text-slate-400'}">${data.errors.length}</div>
+              <div class="text-xs text-slate-500">Errors</div>
+            </div>
+          </div>
+          ${errorsHtml}
+        </div>`;
+      if (data.created > 0) {
+        showToast(`Imported ${data.created} ${_importType} successfully!`, 'success');
+      }
+    } else {
+      const err = await r.json().catch(() => ({ detail: 'Import failed' }));
+      resultEl.innerHTML = `
+        <div class="p-3 rounded-lg bg-red-500/5 border border-red-500/20 text-sm text-red-400">
+          <span class="material-symbols-outlined text-base align-middle mr-1">error</span>
+          ${escapeHtml(err.detail || 'Import failed. Please check your file format.')}
+        </div>`;
+    }
+  } catch (err) {
+    if (err.message !== 'Unauthorized') {
+      resultEl.innerHTML = `
+        <div class="p-3 rounded-lg bg-red-500/5 border border-red-500/20 text-sm text-red-400">
+          <span class="material-symbols-outlined text-base align-middle mr-1">error</span>
+          Connection error. Please try again.
+        </div>`;
+    }
+  }
+}
