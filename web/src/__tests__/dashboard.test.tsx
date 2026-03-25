@@ -79,15 +79,12 @@ describe('DashboardPage', () => {
   })
 
   describe('AC3: Shows low stock alerts from GET /inventory/low-stock', () => {
-    it('displays critical inventory alert with low stock count', async () => {
+    it('displays low stock inline alert button', async () => {
       renderDashboard()
-      await waitFor(() => {
-        expect(screen.getByText('Critical Inventory Level')).toBeInTheDocument()
-      })
-      // mockLowStock has 1 item — text is split across JSX nodes
+      // mockLowStock has 1 item — shown as inline alert button
       await waitFor(() => {
         expect(
-          screen.getByText(/1 item is below minimum stock thresholds/),
+          screen.getByText(/1 low stock item/),
         ).toBeInTheDocument()
       })
     })
@@ -110,22 +107,19 @@ describe('DashboardPage', () => {
       renderDashboard()
       await waitFor(() => {
         expect(
-          screen.getByText(/2 items are below minimum stock thresholds/),
+          screen.getByText(/2 low stock items/),
         ).toBeInTheDocument()
       })
     })
   })
 
   describe('AC4: Shows expiring items from GET /inventory/expiring', () => {
-    it('displays expiring reagents alert with count', async () => {
+    it('displays expiring items inline alert button', async () => {
       renderDashboard()
-      await waitFor(() => {
-        expect(screen.getByText('Expiring Reagents')).toBeInTheDocument()
-      })
-      // mockExpiring has 1 item — text is split across JSX nodes
+      // mockExpiring has 1 item — shown as inline alert button
       await waitFor(() => {
         expect(
-          screen.getByText(/1 vital item will expire within 30 days/),
+          screen.getByText(/1 expiring item$/),
         ).toBeInTheDocument()
       })
     })
@@ -149,7 +143,7 @@ describe('DashboardPage', () => {
       renderDashboard()
       await waitFor(() => {
         expect(
-          screen.getByText(/3 vital items will expire within 30 days/),
+          screen.getByText(/3 expiring items/),
         ).toBeInTheDocument()
       })
     })

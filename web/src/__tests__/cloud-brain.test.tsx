@@ -64,9 +64,7 @@ describe('CloudBrainPage', () => {
       initialEntries: ['/cloud-brain'],
     })
 
-    await waitFor(() => {
-      expect(screen.getByText('Not Connected')).toBeInTheDocument()
-    })
+    expect(await screen.findByText('Not Connected')).toBeInTheDocument()
   })
 
   it('shows offline notice with labclaw command when not connected', async () => {
@@ -76,10 +74,8 @@ describe('CloudBrainPage', () => {
       initialEntries: ['/cloud-brain'],
     })
 
-    await waitFor(() => {
-      expect(screen.getByText('Cloud Brain is not running')).toBeInTheDocument()
-      expect(screen.getByText('labclaw brain --port 18802')).toBeInTheDocument()
-    })
+    expect(await screen.findByText('Cloud Brain is not running')).toBeInTheDocument()
+    expect(screen.getByText('labclaw brain --port 18802')).toBeInTheDocument()
   })
 
   it('shows connected status when Cloud Brain is running', async () => {
@@ -163,9 +159,7 @@ describe('CloudBrainPage', () => {
       initialEntries: ['/cloud-brain'],
     })
 
-    await waitFor(() => {
-      expect(screen.getByText('Not Connected')).toBeInTheDocument()
-    })
+    expect(await screen.findByText('Not Connected')).toBeInTheDocument()
     expect(
       screen.queryByPlaceholderText('Ask Cloud Brain a scientific question...'),
     ).not.toBeInTheDocument()
@@ -228,6 +222,9 @@ describe('CloudBrainPage', () => {
     renderWithProviders(<CloudBrainPage onError={onError} />, {
       initialEntries: ['/cloud-brain'],
     })
+
+    // Wait for component to settle (fetch rejection resolves)
+    await screen.findByText('Not Connected')
 
     // Initially no example text visible
     expect(
