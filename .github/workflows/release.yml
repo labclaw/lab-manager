@@ -1,0 +1,189 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      dry_run:
+        description: "Dry run (no tag/push)"
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  # ─── Gate: verify all checks passed on main ────────────────────
+  gate:
+    name: release-gate
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v5.4.1
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Sync dependencies
+        run: uv sync --dev --frozen
+
+      - name: Run release gate tests
+        env:
+          DATABASE_URL: ""
+          MEILISEARCH_URL: ""
+          AUTH_ENABLED: "false"
+        run: uv run pytest tests/test_release_gate.py -q
+
+      - name: Verify on main branch
+        run: |
+          BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          if [ "$BRANCH" != "main" ]; then
+            echo "::error::Release must be triggered from main branch (current: $BRANCH)"
+            exit 1
+          fi
+
+  # ─── Bump version, changelog, tag ──────────────────────────────
+  release:
+    name: create-release
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 15
+    needs: [gate]
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      tag: ${{ steps.bump.outputs.tag }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v5.4.1
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Read current version
+        id: current
+        run: |
+          VERSION=$(grep '^version' pyproject.toml | head -1 | sed 's/.*= *"\(.*\)"/\1/')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Current version: $VERSION"
+
+      - name: Compute next version
+        id: bump
+        run: |
+          CURRENT="${{ steps.current.outputs.version }}"
+          BUMP="${{ inputs.bump }}"
+          # Split version into parts (supports 3 or 4 segments)
+          IFS='.' read -ra PARTS <<< "$CURRENT"
+          MAJOR=${PARTS[0]}
+          MINOR=${PARTS[1]}
+          PATCH=${PARTS[2]}
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+          NEXT="${MAJOR}.${MINOR}.${PATCH}"
+          echo "version=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "tag=v$NEXT" >> "$GITHUB_OUTPUT"
+          echo "Bump: $CURRENT -> $NEXT"
+
+      - name: Update version in pyproject.toml
+        if: ${{ !inputs.dry_run }}
+        run: |
+          sed -i "s/^version = \".*\"/version = \"${{ steps.bump.outputs.version }}\"/" pyproject.toml
+          grep '^version' pyproject.toml
+
+      - name: Generate changelog entry
+        id: changelog
+        run: |
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            RANGE="HEAD"
+          else
+            RANGE="${LAST_TAG}..HEAD"
+          fi
+          {
+            echo "## v${{ steps.bump.outputs.version }}"
+            echo ""
+            git log "$RANGE" --format="- %s (%h)" --no-merges | head -50
+            echo ""
+          } > /tmp/changelog-entry.md
+          cat /tmp/changelog-entry.md
+          # Save for release body
+          {
+            echo "body<<CHANGELOG_EOF"
+            cat /tmp/changelog-entry.md
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Prepend to CHANGELOG.md
+        if: ${{ !inputs.dry_run }}
+        run: |
+          if [ -f CHANGELOG.md ]; then
+            cat /tmp/changelog-entry.md CHANGELOG.md > /tmp/changelog-merged.md
+            mv /tmp/changelog-merged.md CHANGELOG.md
+          else
+            cp /tmp/changelog-entry.md CHANGELOG.md
+          fi
+
+      - name: Commit version bump
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml CHANGELOG.md
+          git commit -m "chore(release): v${{ steps.bump.outputs.version }}"
+
+      - name: Create tag
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git tag -a "v${{ steps.bump.outputs.version }}" -m "Release v${{ steps.bump.outputs.version }}"
+
+      - name: Push
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git push origin main --follow-tags
+
+      - name: Create GitHub Release
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${{ steps.bump.outputs.version }}" \
+            --title "v${{ steps.bump.outputs.version }}" \
+            --notes-file /tmp/changelog-entry.md
+
+      - name: Dry run summary
+        if: ${{ inputs.dry_run }}
+        run: |
+          echo "::notice::DRY RUN: Would release v${{ steps.bump.outputs.version }}"
+          echo "Changelog entry:"
+          cat /tmp/changelog-entry.md

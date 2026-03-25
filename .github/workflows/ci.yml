@@ -15,37 +15,35 @@ permissions:
   contents: read
 
 jobs:
-  frontend:
-    name: Frontend (lint, build, test)
+  # ─── Stage 1: Code Quality ─────────────────────────────────────
+  conventional-commits:
+    name: conventional-commits
     runs-on: [self-hosted, Linux, X64]
-    timeout-minutes: 15
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
 
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: web/package-lock.json
+          fetch-depth: 0
 
-      - name: Install dependencies
-        working-directory: web/
-        run: npm ci
-
-      - name: Type check
-        working-directory: web/
-        run: npx tsc --noEmit
-
-      - name: Build
-        working-directory: web/
-        run: npm run build
-
-      - name: Test
-        working-directory: web/
-        run: npm test
+      - name: Check commit messages
+        run: |
+          set -euo pipefail
+          PATTERN='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .+'
+          BAD=0
+          while IFS= read -r msg; do
+            if ! echo "$msg" | grep -qE "$PATTERN"; then
+              echo "::error::Non-conventional commit: $msg"
+              BAD=1
+            fi
+          done < <(git log --format='%s' origin/main..HEAD)
+          if [ "$BAD" -eq 1 ]; then
+            echo "::error::All commits must follow Conventional Commits (https://www.conventionalcommits.org)"
+            exit 1
+          fi
+          echo "All commits follow Conventional Commits format."
 
   lint:
     name: lint
@@ -98,6 +96,43 @@ jobs:
 
       - name: Mypy type check
         run: uv run mypy src/lab_manager/
+
+  # ─── Stage 2: Tests ────────────────────────────────────────────
+  frontend:
+    name: frontend (lint, type-check, build, test)
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: web/
+        run: npm ci
+
+      - name: ESLint
+        working-directory: web/
+        run: npm run lint
+
+      - name: Type check
+        working-directory: web/
+        run: npx tsc --noEmit
+
+      - name: Build
+        working-directory: web/
+        run: npm run build
+
+      - name: Test
+        working-directory: web/
+        run: npm test
 
   test:
     name: test (py${{ matrix.python-version }})
@@ -167,6 +202,7 @@ jobs:
           name: coverage-report
           path: coverage.xml
 
+  # ─── Stage 3: Package ──────────────────────────────────────────
   package:
     name: package
     runs-on: [self-hosted, Linux, X64]
@@ -175,6 +211,7 @@ jobs:
       - lint
       - typecheck
       - test
+      - frontend
 
     steps:
       - name: Checkout
