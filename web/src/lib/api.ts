@@ -278,9 +278,9 @@ export const inventory = {
 
 // Documents
 export const documents = {
-  list: (page = 1, pageSize = 20, status?: string) =>
+  list: (page = 1, pageSize = 20, status?: string, vendorName?: string) =>
     apiFetch<ApiResponse<Document>>(
-      `/documents?page=${page}&page_size=${pageSize}${status ? `&status=${status}` : ''}`,
+      `/documents?page=${page}&page_size=${pageSize}${status ? `&status=${status}` : ''}${vendorName ? `&vendor_name=${encodeURIComponent(vendorName)}` : ''}`,
     ),
   get: (id: number) => apiFetch<Document>(`/documents/${id}`),
   reviewQueue: () =>

@@ -163,9 +163,11 @@ def _run_extraction(doc_id: int) -> None:
             from lab_manager.config import get_settings
 
             settings = get_settings()
+            from lab_manager.services.vendor_normalize import normalize_vendor
+
             extracted = extract_from_text(ocr_text)
             doc.document_type = extracted.document_type
-            doc.vendor_name = extracted.vendor_name
+            doc.vendor_name = normalize_vendor(extracted.vendor_name)
             doc.extracted_data = extracted.model_dump()
             doc.extraction_model = settings.extraction_model
             doc.extraction_confidence = extracted.confidence
@@ -419,8 +421,13 @@ def update_document(
     document_id: int, body: DocumentUpdate, db: Session = Depends(get_db)
 ):
     """Partial update any document fields."""
+    from lab_manager.services.vendor_normalize import normalize_vendor
+
     doc = get_or_404(db, Document, document_id, "Document")
-    for key, value in body.model_dump(exclude_unset=True).items():
+    updates = body.model_dump(exclude_unset=True)
+    if "vendor_name" in updates and updates["vendor_name"]:
+        updates["vendor_name"] = normalize_vendor(updates["vendor_name"])
+    for key, value in updates.items():
         setattr(doc, key, value)
     db.flush()
     db.refresh(doc)
