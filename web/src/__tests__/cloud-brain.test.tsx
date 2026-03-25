@@ -6,10 +6,12 @@ import { server } from '@/test/mocks/server'
 import { renderWithProviders } from '@/test/utils'
 import { CloudBrainPage } from '@/pages/CloudBrainPage'
 
-// Helper to mock Cloud Brain as offline (network error)
+// Helper to mock Cloud Brain as offline (returns 502 Bad Gateway)
 function mockBrainOffline() {
   server.use(
-    http.get('/brain/health', () => HttpResponse.error()),
+    http.get('/brain/health', () =>
+      new HttpResponse(null, { status: 502, statusText: 'Bad Gateway' }),
+    ),
   )
 }
 

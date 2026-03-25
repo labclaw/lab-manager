@@ -135,7 +135,6 @@ jobs:
 
       - name: Test
         working-directory: web/
-        continue-on-error: true  # TODO: fix flaky CloudBrain tests on CI runners
         run: npm test
 
   test:
