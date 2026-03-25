@@ -11,9 +11,9 @@ interface DocumentsPageProps {
 
 const STATUS_FILTERS = [
   { key: 'all', label: 'All', dotClass: null },
-  { key: 'approved', label: 'Approved', dotClass: 'bg-success' },
-  { key: 'needs_review', label: 'Needs Review', dotClass: 'bg-warning' },
-  { key: 'rejected', label: 'Rejected', dotClass: 'bg-danger' },
+  { key: 'approved', label: 'Approved', dotClass: 'bg-emerald-500' },
+  { key: 'needs_review', label: 'Needs Review', dotClass: 'bg-amber-500' },
+  { key: 'rejected', label: 'Rejected', dotClass: 'bg-red-500' },
 ] as const
 
 function statusBadgeClasses(status?: string): { wrapperClass: string; label: string } {
@@ -21,34 +21,34 @@ function statusBadgeClasses(status?: string): { wrapperClass: string; label: str
     case 'approved':
       return {
         wrapperClass:
-          'px-2.5 py-1 rounded-full text-[11px] font-bold bg-success/10 text-success border border-success/20 uppercase tracking-wide',
+          'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap',
         label: 'Approved',
       }
     case 'needs_review':
       return {
         wrapperClass:
-          'px-2.5 py-1 rounded-full text-[11px] font-bold bg-warning/10 text-warning border border-warning/20 uppercase tracking-wide whitespace-nowrap',
+          'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap',
         label: 'Needs Review',
       }
     case 'rejected':
       return {
         wrapperClass:
-          'px-2.5 py-1 rounded-full text-[11px] font-bold bg-danger/10 text-danger border border-danger/20 uppercase tracking-wide',
+          'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200 whitespace-nowrap',
         label: 'Rejected',
       }
     default:
       return {
         wrapperClass:
-          'px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-500/10 text-slate-500 border border-slate-500/20 uppercase tracking-wide',
+          'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-50 text-slate-600 border border-slate-200 whitespace-nowrap',
         label: status ? formatEnum(status) : 'Unknown',
       }
   }
 }
 
 function confidenceBarColor(c: number): string {
-  if (c >= 0.8) return 'bg-success'
-  if (c >= 0.6) return 'bg-warning'
-  return 'bg-danger'
+  if (c >= 0.8) return 'bg-emerald-500'
+  if (c >= 0.6) return 'bg-amber-500'
+  return 'bg-red-500'
 }
 
 function formatShortDate(dateStr?: string): string {
@@ -98,7 +98,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
   return (
     <div className="space-y-0 -m-6 flex flex-col h-[calc(100vh-4rem)]">
       {/* Top Bar */}
-      <header className="h-16 border-b border-slate-200 dark:border-slate-800 px-8 flex items-center justify-between sticky top-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md z-10 shrink-0">
+      <header className="h-16 border-b border-slate-200 dark:border-slate-800 px-8 flex items-center justify-between sticky top-0 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md z-10 shrink-0">
         <h2 className="text-xl font-bold">Documents</h2>
         <div className="flex items-center gap-4 flex-1 max-w-2xl px-8">
           <div className="relative w-full">
@@ -108,7 +108,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
               placeholder="Search vendor or filename..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-slate-100 dark:bg-card-dark border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary transition-all"
+              className="w-full bg-slate-50 dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary transition-all"
             />
           </div>
         </div>
@@ -177,22 +177,22 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-                  <th className="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Document
                   </th>
-                  <th className="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Vendor
                   </th>
-                  <th className="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Type
                   </th>
-                  <th className="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Confidence
                   </th>
-                  <th className="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">
+                  <th className="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">
                     Date
                   </th>
                 </tr>
@@ -205,56 +205,56 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
                   return (
                     <tr
                       key={doc.id}
-                      className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer group ${
-                        idx % 2 === 1 ? 'bg-slate-50/30 dark:bg-white/[0.01]' : ''
+                      className={`hover:bg-primary/[0.03] dark:hover:bg-slate-800/30 transition-colors duration-150 cursor-pointer group ${
+                        idx % 2 === 1 ? 'bg-slate-50/40 dark:bg-white/[0.01]' : 'bg-white'
                       }`}
                       onClick={() => navigate(`/review?id=${doc.id}`)}
                     >
-                      <td className="px-4 py-4">
+                      <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <FileText className="text-slate-400 group-hover:text-primary transition-colors shrink-0" />
+                          <div className="size-9 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:bg-primary/5 group-hover:border-primary/20 transition-colors shrink-0">
+                            <FileText className="size-4 text-slate-400 group-hover:text-primary transition-colors" />
+                          </div>
                           <div className="min-w-0">
                             <span
-                              className="text-sm font-medium block truncate max-w-[200px]"
-                              title={doc.file_name ?? `Doc #${doc.id}`}
+                              className="text-sm font-medium text-slate-900 block truncate max-w-[240px]"
+                              title={doc.vendor_name ?? doc.file_name ?? `Doc #${doc.id}`}
                             >
-                              {doc.vendor_name ?? doc.file_name ?? `Doc #${doc.id}`}
+                              {doc.vendor_name ?? 'Unknown'}
                             </span>
-                            {doc.vendor_name && doc.file_name && (
-                              <span className="text-[11px] text-slate-400 block truncate max-w-[200px]" title={doc.file_name}>
-                                {doc.file_name}
-                              </span>
-                            )}
+                            <span className="text-[11px] text-slate-400 block truncate max-w-[240px]" title={doc.file_name ?? ''}>
+                              {doc.file_name ?? `Doc #${doc.id}`}
+                            </span>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-400">
-                        {doc.vendor_name ?? '--'}
+                      <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-400">
+                        {doc.vendor_name ?? 'Unknown'}
                       </td>
-                      <td className="px-4 py-4 text-xs text-slate-600 dark:text-slate-400 max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis">
+                      <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-400 max-w-[140px] whitespace-nowrap overflow-hidden text-ellipsis">
                         {doc.document_type ? formatEnum(doc.document_type) : '--'}
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-5 py-4">
                         <span className={badge.wrapperClass}>{badge.label}</span>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-5 py-4">
                         {doc.extraction_confidence != null ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-12 bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                          <div className="flex items-center gap-3">
+                            <div className="w-20 bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
                               <div
-                                className={`${confidenceBarColor(conf)} h-full`}
+                                className={`${confidenceBarColor(conf)} h-full rounded-full transition-all`}
                                 style={{ width: `${confPct}%` }}
                               />
                             </div>
-                            <span className="text-xs font-medium text-slate-500">
-                              {conf.toFixed(2)}
+                            <span className="text-xs font-semibold text-slate-600 tabular-nums">
+                              {confPct}%
                             </span>
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-500">--</span>
+                          <span className="text-xs text-slate-400">--</span>
                         )}
                       </td>
-                      <td className="px-4 py-4 text-sm text-slate-500 text-right">
+                      <td className="px-5 py-4 text-sm text-slate-500 text-right">
                         {formatShortDate(doc.created_at)}
                       </td>
                     </tr>
