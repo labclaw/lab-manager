@@ -78,7 +78,6 @@ _AUTH_ALLOWLIST = {
     "/api/v1/setup/status",
     "/api/v1/setup/complete",
     "/api/v1/config",
-    "/metrics",
     "/docs",
     "/openapi.json",
     "/redoc",
@@ -164,10 +163,10 @@ def create_app() -> FastAPI:
         **docs_kwargs,
     )
 
-    # --- Scalability: GZip compression ---
-    from lab_manager.middleware.compression import add_compression
+    # --- GZip compression for API responses ---
+    from starlette.middleware.gzip import GZipMiddleware
 
-    add_compression(app, minimum_size=500)
+    app.add_middleware(GZipMiddleware, minimum_size=500)
 
     # Trust X-Forwarded-* headers only from loopback (reverse proxy on same host)
     app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["127.0.0.1", "::1"])
@@ -330,88 +329,8 @@ def create_app() -> FastAPI:
         )
         return response
 
-    # --- Scalability: Connection limiter middleware ---
-    from lab_manager.middleware.connection_limit import get_connection_limiter
-
-    conn_limiter = get_connection_limiter(settings.max_concurrent_requests)
-    app.middleware("http")(conn_limiter)
-
-    # --- Scalability: Metrics collection middleware ---
-    if settings.metrics_enabled:
-        from lab_manager.middleware.metrics import metrics_endpoint, metrics_middleware
-
-        app.middleware("http")(metrics_middleware)
-
-    # --- Scalability: Cache-Control headers middleware ---
-    from lab_manager.middleware.cache_control import cache_control_middleware
-
-    app.middleware("http")(cache_control_middleware)
-
-    # --- Scalability: Initialize background task system ---
-    @app.on_event("startup")
-    def _start_scalability_services():
-        try:
-            from lab_manager.tasks.registry import register_builtin_tasks
-            from lab_manager.tasks.worker import get_task_manager
-
-            register_builtin_tasks()
-            tm = get_task_manager()
-            tm.start()
-            logger.info("Background task system started")
-        except Exception:
-            logger.warning("Background task system unavailable", exc_info=True)
-
-        # Enable Redis event broadcasting
-        try:
-            from lab_manager.events import get_event_bus
-
-            bus = get_event_bus()
-            bus.enable_redis_broadcast()
-            logger.info("Event bus Redis broadcasting enabled")
-        except Exception:
-            logger.debug("Event bus Redis broadcasting unavailable")
-
-        # Wire up event-driven cache invalidation
-        try:
-            from lab_manager.cache import cache_invalidate_prefix
-            from lab_manager.events import (
-                INVENTORY_CHANGED,
-                ORDER_RECEIVED,
-                PRODUCT_UPDATED,
-                VENDOR_UPDATED,
-                subscribe,
-            )
-
-            def _on_vendor_change(event):
-                cache_invalidate_prefix("vendors")
-
-            def _on_product_change(event):
-                cache_invalidate_prefix("products")
-
-            def _on_inventory_change(event):
-                cache_invalidate_prefix("inventory")
-                cache_invalidate_prefix("analytics")
-
-            def _on_order_change(event):
-                cache_invalidate_prefix("orders")
-                cache_invalidate_prefix("analytics")
-
-            subscribe(VENDOR_UPDATED, _on_vendor_change)
-            subscribe(PRODUCT_UPDATED, _on_product_change)
-            subscribe(INVENTORY_CHANGED, _on_inventory_change)
-            subscribe(ORDER_RECEIVED, _on_order_change)
-            logger.info("Event-driven cache invalidation wired up")
-        except Exception:
-            logger.debug("Event-driven cache invalidation unavailable")
-
     @app.on_event("shutdown")
-    def _stop_scalability_services():
-        try:
-            from lab_manager.tasks.worker import get_task_manager
-
-            get_task_manager().stop()
-        except Exception:
-            pass
+    def _cleanup_redis():
         try:
             from lab_manager.cache import reset_redis
 
@@ -764,34 +683,6 @@ def create_app() -> FastAPI:
         telemetry.router, prefix="/api/v1/telemetry", tags=["telemetry"]
     )
     app.include_router(api_router)
-
-    # --- Scalability: Metrics endpoint ---
-    if settings.metrics_enabled:
-        from lab_manager.middleware.metrics import metrics_endpoint
-
-        app.add_api_route("/metrics", metrics_endpoint, methods=["GET"], include_in_schema=False)
-
-    # --- Scalability: Task status endpoint ---
-    @app.get("/api/v1/tasks/{task_id}", tags=["tasks"])
-    def task_status(task_id: str):
-        """Get background task status by ID."""
-        try:
-            from lab_manager.tasks.worker import get_task_manager
-
-            result = get_task_manager().get_status(task_id)
-            if result is None:
-                return JSONResponse(status_code=404, content={"detail": "Task not found"})
-            return {
-                "task_id": result.task_id,
-                "status": result.status.value,
-                "result": result.result,
-                "error": result.error,
-                "started_at": result.started_at,
-                "completed_at": result.completed_at,
-                "retries": result.retries,
-            }
-        except Exception:
-            return JSONResponse(status_code=503, content={"detail": "Task system unavailable"})
 
     # --- Apply rate limiting decorators to GET /api/v1/ask endpoint ---
     # Rate limit: 10 requests per minute (same as POST)
