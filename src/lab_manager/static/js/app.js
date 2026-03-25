@@ -104,8 +104,19 @@ function showApp() {
   document.getElementById("user-display-name").textContent = currentUser
     ? currentUser.name
     : "";
+  // Check if onboarding was dismissed
+  if (localStorage.getItem("labclaw_onboarding_dismissed")) {
+    const ob = document.getElementById("onboarding-banner");
+    if (ob) ob.classList.add("hidden");
+  }
   loadStats();
   navigateTo("dashboard");
+}
+
+function dismissOnboarding() {
+  localStorage.setItem("labclaw_onboarding_dismissed", "1");
+  const ob = document.getElementById("onboarding-banner");
+  if (ob) ob.classList.add("hidden");
 }
 
 // --- Hash-based router ---
@@ -179,9 +190,38 @@ async function init() {
 // Keyboard shortcuts
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
+    if (chatOpen) {
+      toggleChat();
+      return;
+    }
     closeDetail();
     closeRejectModal();
   }
+  // ? key shows keyboard shortcut hint (only when not in input)
+  if (e.key === "?" && !e.target.closest("input, textarea, select")) {
+    showShortcutHint();
+  }
 });
+
+// Keyboard shortcut hint overlay
+function showShortcutHint() {
+  const existing = document.getElementById("shortcut-hint");
+  if (existing) { existing.remove(); return; }
+  const el = document.createElement("div");
+  el.id = "shortcut-hint";
+  el.className = "fixed inset-0 z-[500] bg-black/60 flex items-center justify-center";
+  el.onclick = () => el.remove();
+  el.innerHTML = `
+    <div class="bg-surface-dark border border-border-dark rounded-2xl p-6 w-[360px] shadow-2xl" onclick="event.stopPropagation()">
+      <h3 class="text-lg font-semibold text-white mb-4">Keyboard Shortcuts</h3>
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between"><span class="text-slate-400">Open AI Assistant</span><kbd class="px-2 py-0.5 bg-background-dark rounded text-xs text-slate-300 font-mono">Ctrl+K</kbd></div>
+        <div class="flex justify-between"><span class="text-slate-400">Close panel / dialog</span><kbd class="px-2 py-0.5 bg-background-dark rounded text-xs text-slate-300 font-mono">Esc</kbd></div>
+        <div class="flex justify-between"><span class="text-slate-400">Show shortcuts</span><kbd class="px-2 py-0.5 bg-background-dark rounded text-xs text-slate-300 font-mono">?</kbd></div>
+      </div>
+      <p class="text-xs text-slate-600 mt-4">Press Esc or click outside to close</p>
+    </div>`;
+  document.body.appendChild(el);
+}
 
 init();
