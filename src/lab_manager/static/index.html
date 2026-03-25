@@ -159,6 +159,7 @@ tailwind.config = {
         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-primary/5 text-slate-400">
         <span class="material-symbols-outlined text-xl">fact_check</span>
         Review Queue
+        <span id="review-badge" class="hidden ml-auto px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white min-w-[20px] text-center"></span>
       </a>
       <a href="#inventory" data-nav="inventory"
         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-primary/5 text-slate-400">
@@ -196,11 +197,19 @@ tailwind.config = {
 
     <!-- Sticky header -->
     <header class="sticky top-0 z-50 bg-surface-dark/80 backdrop-blur-sm border-b border-border-dark px-6 py-3 flex items-center gap-4">
-      <div class="flex-1 relative">
+      <div class="flex-1 relative" id="search-wrapper">
         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xl">search</span>
-        <input type="text" placeholder="Search documents, vendors, orders..."
+        <input type="text" placeholder="Search products, vendors, orders, documents..."
           class="w-full max-w-md pl-10 pr-4 py-2 bg-background-dark border border-border-dark rounded-lg text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-          id="global-search" oninput="handleGlobalSearch(this.value)">
+          id="global-search" oninput="handleGlobalSearch(this.value)" onfocus="showSearchDropdown()" autocomplete="off">
+        <div id="search-dropdown" class="hidden absolute top-full left-0 mt-1 w-full max-w-md bg-surface-dark border border-border-dark rounded-lg shadow-2xl overflow-hidden z-100 max-h-80 overflow-y-auto">
+          <div id="search-results" class="divide-y divide-border-dark/50"></div>
+          <div id="search-footer" class="p-2 border-t border-border-dark text-center">
+            <button onclick="askAIFromSearch()" class="text-xs text-primary hover:text-primary/80 transition-colors">
+              <span class="material-symbols-outlined text-sm align-middle mr-1">smart_toy</span>Ask AI instead
+            </button>
+          </div>
+        </div>
       </div>
       <button onclick="toggleChat()"
         class="flex items-center gap-2 px-4 py-2 bg-accent-green/10 text-accent-green border border-accent-green/20 rounded-lg text-sm font-medium hover:bg-accent-green/20 transition-colors" id="chat-toggle-btn">
@@ -219,6 +228,33 @@ tailwind.config = {
 
       <!-- ===== DASHBOARD VIEW ===== -->
       <div id="view-dashboard">
+        <!-- Onboarding tips (dismissible) -->
+        <div id="onboarding-banner" class="mb-6 bg-primary/5 border border-primary/20 rounded-xl p-5">
+          <div class="flex items-start gap-4">
+            <span class="material-symbols-outlined text-primary text-2xl mt-0.5">lightbulb</span>
+            <div class="flex-1">
+              <h3 class="text-sm font-semibold text-white mb-2">Getting Started</h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-400">
+                <div class="flex items-start gap-2">
+                  <span class="material-symbols-outlined text-primary text-sm mt-0.5">smart_toy</span>
+                  <span>Press <kbd class="px-1 py-0.5 bg-background-dark rounded text-[10px] text-slate-300 font-mono">Ctrl+K</kbd> to ask AI anything about your lab</span>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="material-symbols-outlined text-primary text-sm mt-0.5">upload</span>
+                  <span>Upload packing lists or invoices — AI extracts the data automatically</span>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="material-symbols-outlined text-primary text-sm mt-0.5">table_view</span>
+                  <span>Import existing data from Excel/CSV via the Upload tab</span>
+                </div>
+              </div>
+            </div>
+            <button onclick="dismissOnboarding()" class="text-slate-500 hover:text-white transition-colors p-1 rounded hover:bg-border-dark flex-shrink-0" title="Dismiss">
+              <span class="material-symbols-outlined text-lg">close</span>
+            </button>
+          </div>
+        </div>
+
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6" id="stats-grid"></div>
         <div id="alert-banners" class="mb-4 space-y-2"></div>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -516,16 +552,106 @@ tailwind.config = {
 <script src="/static/js/chat.js"></script>
 <script src="/static/js/app.js"></script>
 <script>
-// Global search handler (navigates to documents view with search)
+// Global search — cross-index Meilisearch with dropdown results
+let _searchTimer = null;
+let _searchOpen = false;
+
 function handleGlobalSearch(value) {
-  if (value.length > 0) {
-    navigateTo('documents');
-    document.getElementById('search-input').value = value;
-    currentSearch = value;
-    currentPage = 0;
-    loadDocuments();
+  clearTimeout(_searchTimer);
+  if (!value || value.length < 2) {
+    hideSearchDropdown();
+    return;
+  }
+  _searchTimer = setTimeout(() => _doGlobalSearch(value), 200);
+}
+
+async function _doGlobalSearch(query) {
+  try {
+    const r = await apiFetch(`/api/v1/search?q=${encodeURIComponent(query)}&limit=8`);
+    if (!r.ok) return;
+    const data = await r.json();
+    _renderSearchResults(data, query);
+  } catch {}
+}
+
+function _renderSearchResults(data, query) {
+  const container = document.getElementById('search-results');
+  const dropdown = document.getElementById('search-dropdown');
+  const results = data.results || {};
+  let html = '';
+  let totalHits = 0;
+
+  const iconMap = {
+    products: 'science', vendors: 'store', orders: 'shopping_cart',
+    documents: 'description', inventory: 'inventory_2', order_items: 'list'
+  };
+  const labelMap = {
+    products: 'Products', vendors: 'Vendors', orders: 'Orders',
+    documents: 'Documents', inventory: 'Inventory', order_items: 'Order Items'
+  };
+  const navMap = {
+    products: 'inventory', vendors: 'orders', orders: 'orders',
+    documents: 'documents', inventory: 'inventory', order_items: 'orders'
+  };
+
+  for (const [index, hits] of Object.entries(results)) {
+    if (!hits || hits.length === 0) continue;
+    totalHits += hits.length;
+    html += `<div class="px-3 py-1.5 bg-background-dark/50">
+      <span class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">${escapeHtml(labelMap[index] || index)}</span>
+    </div>`;
+    for (const hit of hits.slice(0, 4)) {
+      const title = hit.name || hit.file_name || hit.vendor_name || hit.po_number || hit.catalog_number || hit.description || `#${hit.id}`;
+      const sub = hit.catalog_number || hit.vendor_name || hit.status || hit.category || '';
+      html += `<div class="px-3 py-2 hover:bg-primary/5 cursor-pointer flex items-center gap-2 transition-colors" onclick="navigateTo('${navMap[index] || 'dashboard'}'); hideSearchDropdown();">
+        <span class="material-symbols-outlined text-slate-500 text-base">${iconMap[index] || 'search'}</span>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm text-slate-300 truncate">${escapeHtml(title)}</div>
+          ${sub ? `<div class="text-xs text-slate-500 truncate">${escapeHtml(sub)}</div>` : ''}
+        </div>
+      </div>`;
+    }
+  }
+
+  if (totalHits === 0) {
+    html = `<div class="px-3 py-4 text-center text-sm text-slate-500">No results for "${escapeHtml(query)}"</div>`;
+  }
+
+  container.innerHTML = html;
+  showSearchDropdown();
+}
+
+function showSearchDropdown() {
+  const dropdown = document.getElementById('search-dropdown');
+  const input = document.getElementById('global-search');
+  if (input.value.length >= 2) {
+    dropdown.classList.remove('hidden');
+    _searchOpen = true;
   }
 }
+
+function hideSearchDropdown() {
+  document.getElementById('search-dropdown').classList.add('hidden');
+  _searchOpen = false;
+}
+
+function askAIFromSearch() {
+  const q = document.getElementById('global-search').value;
+  hideSearchDropdown();
+  if (q) {
+    toggleChat();
+    document.getElementById('chat-input').value = q;
+    sendChat(new Event('submit'));
+    document.getElementById('global-search').value = '';
+  }
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', (e) => {
+  if (_searchOpen && !e.target.closest('#search-wrapper')) {
+    hideSearchDropdown();
+  }
+});
 </script>
 </body>
 </html>
