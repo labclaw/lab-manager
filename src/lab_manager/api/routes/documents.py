@@ -206,6 +206,8 @@ def _index_approved_doc(doc_id: int) -> None:
 
     from lab_manager.database import get_session_factory
     from lab_manager.models.inventory import InventoryItem
+    from lab_manager.models.order import OrderItem
+    from lab_manager.models.product import Product
     from lab_manager.services.search import (
         index_document_record,
         index_inventory_record,
