@@ -106,6 +106,33 @@ class OpenBody(BaseModel):
     opened_by: str = Field(max_length=200)
 
 
+class BatchConsumeItem(BaseModel):
+    item_id: int
+    quantity: Decimal = Field(gt=0)
+    purpose: Optional[str] = Field(default=None, max_length=500)
+
+
+class BatchConsumeBody(BaseModel):
+    items: list[BatchConsumeItem] = Field(min_length=1, max_length=100)
+    consumed_by: str = Field(max_length=200)
+
+
+class BatchDisposeItem(BaseModel):
+    item_id: int
+    reason: str = Field(max_length=500)
+
+
+class BatchDisposeBody(BaseModel):
+    items: list[BatchDisposeItem] = Field(min_length=1, max_length=100)
+    disposed_by: str = Field(max_length=200)
+
+
+class BatchResult(BaseModel):
+    succeeded: int = 0
+    failed: int = 0
+    errors: list[str] = []
+
+
 # ---------------------------------------------------------------------------
 # Fixed-path routes MUST come before /{item_id} parameter routes
 # ---------------------------------------------------------------------------
@@ -151,6 +178,44 @@ def create_inventory_item(body: InventoryItemCreate, db: Session = Depends(get_d
     db.flush()
     db.refresh(item)
     return item
+
+
+@router.post("/batch/consume")
+def batch_consume(body: BatchConsumeBody, db: Session = Depends(get_db)):
+    """Consume multiple inventory items in one request.
+
+    Scientists often need to log consumption for several items at once
+    (e.g., after completing an experiment). Each item is processed
+    independently — failures don't roll back successful items.
+    """
+    result = BatchResult()
+    for item in body.items:
+        try:
+            inv_svc.consume(
+                item.item_id, item.quantity, body.consumed_by, item.purpose, db
+            )
+            result.succeeded += 1
+        except Exception as e:
+            result.failed += 1
+            result.errors.append(f"Item {item.item_id}: {e}")
+    return result
+
+
+@router.post("/batch/dispose")
+def batch_dispose(body: BatchDisposeBody, db: Session = Depends(get_db)):
+    """Dispose multiple inventory items in one request.
+
+    Useful for bulk cleanup of expired or contaminated items.
+    """
+    result = BatchResult()
+    for item in body.items:
+        try:
+            inv_svc.dispose(item.item_id, item.reason, body.disposed_by, db)
+            result.succeeded += 1
+        except Exception as e:
+            result.failed += 1
+            result.errors.append(f"Item {item.item_id}: {e}")
+    return result
 
 
 @router.get("/low-stock")
