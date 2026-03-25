@@ -405,9 +405,9 @@ def _validate_sql(sql: str) -> str:
         if table_name not in _ALLOWED_TABLES:
             raise ValueError(f"Table '{ref}' is not allowed")
 
-    # Enforce a LIMIT clause to prevent full-table scans from LLM-generated SQL.
-    # The model prompt asks for LIMIT 50, but if missing we inject a safety cap.
-    if not re.search(r"\bLIMIT\s+\d+", sql, re.IGNORECASE):
+    # Enforce a LIMIT clause on the *outer* query to prevent full-table scans.
+    # Anchor to end-of-string so a LIMIT inside a subquery doesn't count.
+    if not re.search(r"\bLIMIT\s+(\d+|ALL)\s*$", sql, re.IGNORECASE):
         sql = f"{sql}\nLIMIT {MAX_RESULT_ROWS}"
 
     return sql

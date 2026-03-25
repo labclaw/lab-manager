@@ -53,13 +53,13 @@ def _validate_file_path(v: str) -> str:
 
     if not v or not v.strip():
         raise ValueError("File path must not be empty")
+    if "\x00" in v:
+        raise ValueError("Path contains null byte")
     parts = PurePosixPath(v).parts
     if ".." in parts:
         raise ValueError("Path traversal not allowed")
     if any(v.startswith(b) for b in _BLOCKED_PREFIXES):
         raise ValueError("Path traversal not allowed")
-    if "\x00" in v:
-        raise ValueError("Path contains null byte")
     return v
 
 
