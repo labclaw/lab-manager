@@ -17,7 +17,7 @@ permissions:
 jobs:
   python-package:
     name: python-package
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
@@ -55,7 +55,7 @@ jobs:
 
   frontend-build:
     name: frontend-build
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
@@ -92,7 +92,7 @@ jobs:
 
   docker-build:
     name: docker-build
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
@@ -124,7 +124,7 @@ jobs:
 
   docker-compose-validate:
     name: docker-compose-validate
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:

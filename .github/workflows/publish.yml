@@ -21,7 +21,7 @@ concurrency:
 jobs:
   publish:
     name: Build and push to GHCR
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 30
 
     steps:
