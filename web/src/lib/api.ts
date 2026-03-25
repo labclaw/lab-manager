@@ -125,6 +125,13 @@ export interface DashboardStats {
   total_vendors: number
 }
 
+export interface DocumentStats {
+  total_documents: number
+  by_type: Record<string, number>
+  by_status: Record<string, number>
+  avg_confidence?: number
+}
+
 export interface Alert {
   id: number
   type: string
@@ -229,6 +236,8 @@ export const analytics = {
     apiFetch<{ monthly: Array<{ month: string; total: number }> }>(
       `/analytics/spending${months ? `?months=${months}` : ''}`,
     ),
+  documentStats: () =>
+    apiFetch<DocumentStats>('/analytics/documents/stats'),
 }
 
 // Vendors
