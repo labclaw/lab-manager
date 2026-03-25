@@ -89,6 +89,15 @@ class Settings(BaseSettings):
     # LiteLLM — optional config file for model routing/fallbacks
     litellm_config_path: str = ""  # Path to litellm_config.yaml (empty = disabled)
 
+    # Document routing — cost-aware model selection (inspired by OpenClaw)
+    # "auto" = score-based routing, "low"/"medium"/"high" = force tier
+    routing_strategy: str = "auto"
+
+    # Proactive notifications — push alerts to external channels
+    slack_webhook_url: str = ""  # Slack incoming webhook URL
+    notification_webhook_url: str = ""  # Generic HTTP webhook URL
+    notification_severities: str = "critical,warning"  # Comma-separated
+
     # Logging
     log_format: str = "console"  # "console" or "json"
 
