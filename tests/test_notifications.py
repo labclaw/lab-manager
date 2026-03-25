@@ -60,7 +60,9 @@ class TestLogChannel:
         import logging
 
         ch = LogChannel()
-        with caplog.at_level(logging.CRITICAL, logger="lab_manager.alerts.notifications"):
+        with caplog.at_level(
+            logging.CRITICAL, logger="lab_manager.alerts.notifications"
+        ):
             result = ch.send(_make_alert("critical", "expired"))
         assert result is True
 
@@ -100,7 +102,10 @@ class TestSlackChannel:
         payload = mock_post.call_args.kwargs["json"]
         assert payload["channel"] == "#lab-alerts"
 
-    @patch("lab_manager.services.notifications.httpx.post", side_effect=Exception("network"))
+    @patch(
+        "lab_manager.services.notifications.httpx.post",
+        side_effect=Exception("network"),
+    )
     def test_send_failure_returns_false(self, mock_post):
         ch = SlackChannel(webhook_url="https://hooks.slack.com/test")
         result = ch.send(_make_alert())
@@ -134,7 +139,9 @@ class TestWebhookChannel:
         assert call_args.kwargs["headers"]["Content-Type"] == "application/json"
         assert call_args.kwargs["headers"]["Authorization"] == "Bearer tok"
 
-    @patch("lab_manager.services.notifications.httpx.post", side_effect=Exception("fail"))
+    @patch(
+        "lab_manager.services.notifications.httpx.post", side_effect=Exception("fail")
+    )
     def test_send_failure(self, mock_post):
         ch = WebhookChannel(url="https://example.com/hook")
         assert ch.send(_make_alert()) is False

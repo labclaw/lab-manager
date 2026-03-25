@@ -1,6 +1,5 @@
 """Tests for cost-aware document routing."""
 
-
 from lab_manager.intake.routing import (
     DocumentComplexity,
     route_document,
@@ -77,8 +76,8 @@ class TestRouteDocument:
         ]
         for i in range(20):
             lines.append(
-                f"Cat# A{i:04d}  Qty: {i+1}  Lot Number: L{i:03d}  "
-                f"Unit Price: ${10*i:.2f}  CAS Number: 123-45-{i}"
+                f"Cat# A{i:04d}  Qty: {i + 1}  Lot Number: L{i:03d}  "
+                f"Unit Price: ${10 * i:.2f}  CAS Number: 123-45-{i}"
             )
         lines.append("Subtotal: $5000.00")
         lines.append("Total: $5250.00")
@@ -96,7 +95,10 @@ class TestRouteDocument:
             "Item 2: Catalog DEF-456, Qty 1, Lot L002\n"
         )
         decision = route_document(ocr_text=text, document_type="quote")
-        assert decision.complexity in (DocumentComplexity.low, DocumentComplexity.medium)
+        assert decision.complexity in (
+            DocumentComplexity.low,
+            DocumentComplexity.medium,
+        )
         assert decision.num_models <= 2
 
     def test_force_complexity_overrides(self):
@@ -147,7 +149,9 @@ class TestRoutingEdgeCases:
             "Heavy metals: <5 ppm\n"
             "Iron: <0.4 ppm\n"
         )
-        decision = route_document(ocr_text=text, document_type="certificate_of_analysis")
+        decision = route_document(
+            ocr_text=text, document_type="certificate_of_analysis"
+        )
         assert decision.complexity == DocumentComplexity.high
 
     def test_receipt_is_simple(self):

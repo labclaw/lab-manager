@@ -41,7 +41,9 @@ class TestPipelineHooks:
         order = []
 
         hooks.register(PipelineEvent.after_consensus, lambda ctx: order.append("first"))
-        hooks.register(PipelineEvent.after_consensus, lambda ctx: order.append("second"))
+        hooks.register(
+            PipelineEvent.after_consensus, lambda ctx: order.append("second")
+        )
 
         hooks.emit(PipelineEvent.after_consensus)
         assert order == ["first", "second"]
@@ -122,9 +124,13 @@ class TestBuiltinHooks:
 
         with caplog.at_level(logging.INFO):
             structured_logging_hook({"event": "after_ocr", "document_id": 42})
-            structured_logging_hook({"event": "routing_decision", "complexity": "high", "num_models": 3})
+            structured_logging_hook(
+                {"event": "routing_decision", "complexity": "high", "num_models": 3}
+            )
             structured_logging_hook({"event": "pipeline_error", "error": "timeout"})
-            structured_logging_hook({"event": "after_consensus", "needs_human": True, "duration_ms": 150})
+            structured_logging_hook(
+                {"event": "after_consensus", "needs_human": True, "duration_ms": 150}
+            )
             structured_logging_hook({})  # minimal context
 
     def test_create_default_hooks(self):

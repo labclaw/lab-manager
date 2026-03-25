@@ -62,9 +62,11 @@ class SlackChannel(NotificationChannel):
 
     def send(self, alert: dict[str, Any]) -> bool:
         severity = alert.get("severity", "info")
-        emoji = {"critical": ":red_circle:", "warning": ":warning:", "info": ":information_source:"}.get(
-            severity, ":grey_question:"
-        )
+        emoji = {
+            "critical": ":red_circle:",
+            "warning": ":warning:",
+            "info": ":information_source:",
+        }.get(severity, ":grey_question:")
         text = self.format_message(alert)
 
         payload: dict[str, Any] = {
@@ -107,7 +109,9 @@ class WebhookChannel(NotificationChannel):
             resp.raise_for_status()
             return True
         except Exception:
-            log.exception("Webhook notification failed for alert: %s", alert.get("type"))
+            log.exception(
+                "Webhook notification failed for alert: %s", alert.get("type")
+            )
             return False
 
 
@@ -121,9 +125,11 @@ class LogChannel(NotificationChannel):
     def send(self, alert: dict[str, Any]) -> bool:
         logger = logging.getLogger(self.logger_name)
         severity = alert.get("severity", "info")
-        level = {"critical": logging.CRITICAL, "warning": logging.WARNING, "info": logging.INFO}.get(
-            severity, logging.INFO
-        )
+        level = {
+            "critical": logging.CRITICAL,
+            "warning": logging.WARNING,
+            "info": logging.INFO,
+        }.get(severity, logging.INFO)
         logger.log(level, self.format_message(alert))
         return True
 
