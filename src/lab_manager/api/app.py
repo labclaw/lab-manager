@@ -129,7 +129,12 @@ def _load_session_staff(session_cookie: str):
         staff = db.get(Staff, staff_id)
         if staff and staff.is_active:
             # Eagerly read attributes while session is open
-            return {"id": staff.id, "name": staff.name}
+            return {
+                "id": staff.id,
+                "name": staff.name,
+                "email": staff.email,
+                "role": staff.role,
+            }
 
     logger.warning(
         "Session for inactive/missing staff_id=%s name=%s",
@@ -471,7 +476,9 @@ def create_app() -> FastAPI:
         """Return current user info from session cookie. Used by frontend to check auth state."""
         settings = get_settings()
         if not settings.auth_enabled:
-            return {"user": {"id": 0, "name": "Lab User"}}
+            return {
+                "user": {"id": 0, "name": "Lab User", "email": None, "role": "admin"}
+            }
         session_cookie = request.cookies.get(_SESSION_COOKIE)
         if not session_cookie:
             return JSONResponse(
@@ -485,7 +492,14 @@ def create_app() -> FastAPI:
             return JSONResponse(
                 status_code=401, content={"detail": "Not authenticated"}
             )
-        return {"user": {"id": staff["id"], "name": staff["name"]}}
+        return {
+            "user": {
+                "id": staff["id"],
+                "name": staff["name"],
+                "email": staff.get("email"),
+                "role": staff.get("role", "member"),
+            }
+        }
 
     @app.post("/api/auth/logout", include_in_schema=False)
     @app.post("/api/v1/auth/logout")
@@ -504,6 +518,10 @@ def create_app() -> FastAPI:
             "lab_name": cfg.lab_name,
             "lab_subtitle": cfg.lab_subtitle,
             "version": app.version,
+            "ocr_model": cfg.ocr_model,
+            "extraction_model": cfg.extraction_model,
+            "rag_model": cfg.rag_model,
+            "ocr_tier": cfg.ocr_tier,
         }
 
     # --- First-run setup endpoints (no auth required) ---
