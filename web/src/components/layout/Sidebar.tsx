@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import {
   LayoutDashboard,
   Bot,
+  BarChart3,
   FileText,
   ClipboardCheck,
   Package,
@@ -28,6 +29,7 @@ interface SidebarProps {
 
 const navItems = [
   { path: '/', label: 'Dashboard', Icon: LayoutDashboard },
+  { path: '/analytics', label: 'Analytics', Icon: BarChart3 },
   { path: '/ask', label: 'Ask AI', Icon: Bot },
   { path: '/documents', label: 'Documents', Icon: FileText },
   { path: '/review', label: 'Review Queue', Icon: ClipboardCheck },
