@@ -133,7 +133,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
       {orders.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
           <div className="w-12 h-12 rounded-2xl bg-surface-container-high flex items-center justify-center">
-            <ShoppingCart className="text-on-surface-variant" />
+            <ShoppingCart className="size-5 text-[var(--muted-foreground)]" />
           </div>
           <div className="space-y-1">
             <h3 className="text-base font-semibold text-on-surface">No orders found</h3>
@@ -165,8 +165,8 @@ export function OrdersPage({ onError }: OrdersPageProps) {
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="text-primary text-sm font-semibold hover:underline cursor-pointer">View Invoice</span>
-                  <button className="bg-surface-container-high text-primary px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-surface-container-highest transition-colors">
-                    Track Package
+                  <button disabled className="bg-surface-container-high text-[var(--muted-foreground)] px-5 py-2.5 rounded-xl font-bold text-sm opacity-50 cursor-not-allowed" title="No tracking info available">
+                    No Tracking Info
                   </button>
                 </div>
               </div>

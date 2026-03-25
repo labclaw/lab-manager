@@ -230,7 +230,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
         {/* Detail Panel (60%) */}
         <section className="flex-1 flex flex-col bg-[var(--background)] overflow-hidden relative">
           {/* Document Preview Area */}
-          <div className="h-[35%] min-h-[300px] p-6 bg-slate-50 dark:bg-slate-900 flex flex-col border-b border-[var(--border)]">
+          <div className="h-[35%] min-h-[300px] p-6 bg-gray-50 flex flex-col border-b border-[var(--border)]">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <span className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest">
@@ -278,7 +278,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                 </button>
               </div>
             </div>
-            <div className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 flex items-center justify-center overflow-hidden relative group shadow-sm">
+            <div className="flex-1 rounded-lg border border-gray-200 bg-white flex items-center justify-center overflow-hidden relative group shadow-sm">
               {docDetail.file_name && /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(docDetail.file_name) ? (
                 <img
                   src={`/uploads/${docDetail.file_name}`}
