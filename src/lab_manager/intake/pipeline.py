@@ -25,9 +25,7 @@ def _find_vendor(vendor_name: str, db: Session) -> Vendor | None:
     normalized = vendor_name.strip()
     key = normalized.lower()
     # Exact match (case-insensitive)
-    vendor = db.scalars(
-        select(Vendor).where(func.lower(Vendor.name) == key)
-    ).first()
+    vendor = db.scalars(select(Vendor).where(func.lower(Vendor.name) == key)).first()
     if vendor:
         return vendor
     # Substring match (either direction: query in vendor name, or vendor name in query)
