@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { orders as ordApi } from '@/lib/api'
+import { formatEnum } from '@/lib/utils'
 import {
   Check,
   Truck,
   Building2,
   PackageCheck,
-  ChevronRight,
   ShoppingCart,
   FlaskConical,
   ClipboardCheck,
@@ -93,18 +93,15 @@ export function OrdersPage({ onError }: OrdersPageProps) {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      {/* Breadcrumbs & Header */}
+      {/* Header */}
       <div>
-        <div className="flex items-center text-xs text-on-surface-variant font-medium uppercase tracking-wider mb-2">
-          <span>Procurement</span>
-          <ChevronRight className="size-2.5 mx-2" />
-          <span className="text-primary font-bold">Supply Chains</span>
-        </div>
         <div className="flex justify-between items-end">
           <div>
-            <h2 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Orders</h2>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Orders</h2>
             <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
-              Tracking {activeCount} active shipment{activeCount !== 1 ? 's' : ''} and pending procurement requisitions.
+              {allOrders.length > 0
+                ? `${activeCount} active, ${allOrders.length - activeCount} completed across ${allOrders.length} total orders.`
+                : 'No orders yet. Orders are created when documents are processed.'}
             </p>
           </div>
           <button disabled className="bg-gradient-to-br from-primary to-primary-container text-white px-6 py-3 rounded-xl font-bold flex items-center shadow-lg opacity-50 cursor-not-allowed" title="Coming soon">
@@ -158,7 +155,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
                       Order #{featured.po_number ?? featured.id}
                     </h3>
                     <span className="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">
-                      {featured.status ?? 'unknown'}
+                      {featured.status ? formatEnum(featured.status) : 'Unknown'}
                     </span>
                   </div>
                   <p className="text-sm font-medium text-on-surface-variant flex items-center">

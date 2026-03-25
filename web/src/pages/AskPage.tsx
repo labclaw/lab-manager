@@ -68,6 +68,51 @@ function formatEvidenceRow(row: AskEvidenceRow): string {
   return JSON.stringify(row, null, 2)
 }
 
+/** Render simple markdown: **bold**, *italic*, and `- list items` */
+function SimpleMarkdown({ text }: Readonly<{ text: string }>) {
+  const lines = text.split('\n')
+  const elements: React.ReactNode[] = []
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!
+    const trimmed = line.trim()
+
+    // Render list items
+    if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || /^\d+\.\s/.test(trimmed)) {
+      const content = trimmed.replace(/^[-*]\s|^\d+\.\s/, '')
+      elements.push(
+        <li key={i} className="ml-4 list-disc text-sm leading-7 text-gray-900 dark:text-slate-100">
+          {renderInline(content)}
+        </li>
+      )
+    } else if (trimmed === '') {
+      elements.push(<br key={i} />)
+    } else {
+      elements.push(
+        <p key={i} className="text-sm leading-7 text-gray-900 dark:text-slate-100">
+          {renderInline(trimmed)}
+        </p>
+      )
+    }
+  }
+
+  return <div className="space-y-1">{elements}</div>
+}
+
+function renderInline(text: string): React.ReactNode {
+  // Replace **bold** and *italic*
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/)
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>
+    }
+    if (part.startsWith('*') && part.endsWith('*')) {
+      return <em key={i}>{part.slice(1, -1)}</em>
+    }
+    return part
+  })
+}
+
 function EmptyChatState() {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
@@ -229,13 +274,13 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-3">
         {SUGGESTED_PROMPTS.map((prompt) => (
           <button
             key={prompt}
             type="button"
             onClick={() => setQuestion(prompt)}
-            className="rounded-full border border-gray-200 dark:border-outline bg-white dark:bg-card-dark px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-slate-300 transition-colors hover:border-primary hover:text-primary"
+            className="rounded-xl border border-gray-200 dark:border-outline bg-white dark:bg-card-dark px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-300 transition-all hover:border-primary hover:text-primary hover:shadow-md hover:bg-primary/5 dark:hover:bg-primary/10"
           >
             {prompt}
           </button>
@@ -243,7 +288,7 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 min-h-0 flex-1">
-        <section className="rounded-[28px] border border-gray-200 dark:border-outline bg-white dark:bg-card-dark shadow-sm p-5 flex flex-col gap-4">
+        <section className="rounded-2xl border border-gray-200 dark:border-outline bg-white dark:bg-card-dark shadow-sm p-5 flex flex-col gap-4">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-slate-500 mb-2">
               New Question
@@ -308,20 +353,23 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
           )}
         </section>
 
-        <section className="rounded-[28px] border border-gray-200 dark:border-outline bg-white dark:bg-card-dark shadow-sm flex flex-col min-h-0">
+        <section className="rounded-2xl border border-gray-200 dark:border-outline bg-white dark:bg-card-dark shadow-sm flex flex-col min-h-0">
           <div className="border-b border-gray-200 dark:border-outline px-5 py-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100 uppercase tracking-widest">
-                Conversation
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">
-                {turns.length} turn{turns.length === 1 ? '' : 's'} in this session
-              </p>
+            <div className="flex items-center gap-3">
+              <Bot className="size-5 text-primary" />
+              <div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-slate-100">
+                  Conversation
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-slate-500 mt-0.5">
+                  {turns.length} turn{turns.length === 1 ? '' : 's'} in this session
+                </p>
+              </div>
             </div>
-            <span className="text-xs text-gray-400 dark:text-slate-600">Read only</span>
+            <span className="text-xs text-gray-400 dark:text-slate-600 bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded">Read only</span>
           </div>
 
-          <div ref={transcriptRef} className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
+          <div ref={transcriptRef} className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4 max-w-3xl mx-auto w-full">
             {turns.length === 0 ? (
               <EmptyChatState />
             ) : (
@@ -363,9 +411,7 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
 
                     {turn.status === 'done' && (
                       <div className="space-y-4">
-                        <p className="text-sm leading-7 text-gray-900 dark:text-slate-100">
-                          {turn.answer}
-                        </p>
+                        <SimpleMarkdown text={turn.answer ?? ''} />
                         <div className="grid gap-3 md:grid-cols-[160px_1fr]">
                           <div className="rounded-2xl border border-gray-200 dark:border-outline bg-white dark:bg-card-dark px-4 py-3">
                             <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-slate-500">

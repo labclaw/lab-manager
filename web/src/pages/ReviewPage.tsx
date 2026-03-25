@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { documents as docApi } from '@/lib/api'
+import { formatEnum } from '@/lib/utils'
 import { SkeletonTable } from '@/components/ui/SkeletonTable'
 import {
   CheckCircle,
@@ -33,16 +34,16 @@ function confBadgeClasses(confidence?: number): {
   if (c >= 0.8)
     return {
       wrapperClass:
-        'bg-emerald-500/20 text-emerald-400 text-xs font-bold px-2 py-1 rounded border border-emerald-500/30',
+        'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold px-2 py-1 rounded border border-emerald-200 dark:border-emerald-500/30',
     }
   if (c >= 0.6)
     return {
       wrapperClass:
-        'bg-amber-500/20 text-amber-500 text-xs font-bold px-2 py-1 rounded border border-amber-500/30',
+        'bg-amber-50 dark:bg-amber-500/20 text-amber-600 dark:text-amber-500 text-xs font-bold px-2 py-1 rounded border border-amber-200 dark:border-amber-500/30',
     }
   return {
     wrapperClass:
-      'bg-red-500/20 text-red-500 text-xs font-bold px-2 py-1 rounded border border-red-500/30',
+      'bg-red-50 dark:bg-red-500/20 text-red-600 dark:text-red-500 text-xs font-bold px-2 py-1 rounded border border-red-200 dark:border-red-500/30',
   }
 }
 
@@ -198,8 +199,10 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                       className={`text-sm font-bold truncate w-4/5 ${
                         isSelected ? 'text-[var(--foreground)]' : 'text-[var(--foreground)]'
                       }`}
+                      title={item.file_name ?? `Doc #${item.id}`}
                     >
-                      {item.file_name ?? `Doc #${item.id}`}
+                      {item.vendor_name ?? 'Pending extraction'}
+                      {item.document_type ? ` — ${formatEnum(item.document_type)}` : ''}
                     </h3>
                     <span className={badgeInfo.wrapperClass}>
                       {confLabel(item.extraction_confidence)}
@@ -207,11 +210,11 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                   </div>
                   <div className="flex justify-between items-end">
                     <div className="space-y-0.5">
-                      <p className="text-xs text-[var(--muted-foreground)] font-medium">
-                        {item.vendor_name ?? 'Unknown vendor'}
+                      <p className="text-xs text-[var(--muted-foreground)] font-medium truncate max-w-[200px]" title={item.file_name ?? ''}>
+                        {item.file_name ?? `Doc #${item.id}`}
                       </p>
                       <p className="text-[10px] text-[var(--muted-foreground)] italic">
-                        Extracted: {formatDate(item.created_at)}
+                        Uploaded: {formatDate(item.created_at)}
                       </p>
                     </div>
                     {isSelected && (
@@ -227,7 +230,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
         {/* Detail Panel (60%) */}
         <section className="flex-1 flex flex-col bg-[var(--background)] overflow-hidden relative">
           {/* Document Preview Area */}
-          <div className="h-[35%] min-h-[300px] p-6 bg-black flex flex-col border-b border-[var(--border)]/50">
+          <div className="h-[35%] min-h-[300px] p-6 bg-slate-50 dark:bg-slate-900 flex flex-col border-b border-[var(--border)]">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <span className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest">
@@ -275,7 +278,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                 </button>
               </div>
             </div>
-            <div className="flex-1 rounded-lg border border-slate-800 bg-[var(--card)]/20 flex items-center justify-center overflow-hidden relative group">
+            <div className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 flex items-center justify-center overflow-hidden relative group shadow-sm">
               {docDetail.file_name && /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(docDetail.file_name) ? (
                 <img
                   src={`/uploads/${docDetail.file_name}`}
@@ -312,9 +315,9 @@ export function ReviewPage({ onError }: ReviewPageProps) {
             <div className="flex-1 p-6 pb-28">
               {/* Extracted Data Grid */}
               <div className="mb-8">
-                <h4 className="text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-widest mb-4 flex items-center gap-2">
+                <h4 className="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-4 flex items-center gap-2">
                   <LayoutGrid className="size-4" />
-                  Extracted Header Data
+                  Document Details
                 </h4>
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
                   <div className="space-y-1.5">

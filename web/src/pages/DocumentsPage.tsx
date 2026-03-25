@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { documents as docApi } from '@/lib/api'
 import { Search, Upload, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
+import { formatEnum } from '@/lib/utils'
 
 interface DocumentsPageProps {
   readonly onError: (msg: string) => void
@@ -39,7 +40,7 @@ function statusBadgeClasses(status?: string): { wrapperClass: string; label: str
       return {
         wrapperClass:
           'px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-500/10 text-slate-500 border border-slate-500/20 uppercase tracking-wide',
-        label: status ?? 'Unknown',
+        label: status ? formatEnum(status) : 'Unknown',
       }
   }
 }
@@ -177,7 +178,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
                   <th className="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Filename
+                    Document
                   </th>
                   <th className="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Vendor
@@ -230,8 +231,8 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
                       <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-400">
                         {doc.vendor_name ?? '--'}
                       </td>
-                      <td className="px-4 py-4 text-xs font-mono text-slate-500 max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis">
-                        {doc.document_type ?? '--'}
+                      <td className="px-4 py-4 text-xs text-slate-600 dark:text-slate-400 max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis">
+                        {doc.document_type ? formatEnum(doc.document_type) : '--'}
                       </td>
                       <td className="px-4 py-4">
                         <span className={badge.wrapperClass}>{badge.label}</span>
