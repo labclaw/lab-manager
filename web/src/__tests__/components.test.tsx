@@ -138,6 +138,7 @@ describe('Sidebar', () => {
     expect(screen.getByText('Inventory')).toBeInTheDocument()
     expect(screen.getByText('Orders')).toBeInTheDocument()
     expect(screen.getByText('Upload')).toBeInTheDocument()
+    expect(screen.getByText('Settings')).toBeInTheDocument()
   })
 
   it('highlights the current route', () => {
@@ -159,6 +160,13 @@ describe('Sidebar', () => {
     renderWithProviders(<Sidebar {...defaultProps} reviewCount={0} />)
     // No badge numbers should be rendered
     expect(screen.queryByText('0')).not.toBeInTheDocument()
+  })
+
+  it('highlights settings link when on /settings', () => {
+    renderWithProviders(<Sidebar {...defaultProps} current="/settings" />)
+    const settingsLink = screen.getByText('Settings').closest('a')!
+    expect(settingsLink.className).toContain('bg-primary/10')
+    expect(settingsLink.className).toContain('font-semibold')
   })
 
   it('hides labels when collapsed', () => {
