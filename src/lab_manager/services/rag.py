@@ -457,7 +457,9 @@ def _cache_key(question: str) -> str:
     """Deterministic cache key from normalized question text."""
     import hashlib
 
-    return hashlib.md5(question.lower().strip().encode()).hexdigest()
+    return hashlib.md5(
+        question.lower().strip().encode(), usedforsecurity=False
+    ).hexdigest()
 
 
 def _is_simple_scalar(results: list[dict]) -> bool:

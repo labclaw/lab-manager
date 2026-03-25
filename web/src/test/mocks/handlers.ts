@@ -83,7 +83,11 @@ const mockSearchResults = {
 }
 
 const mockSearchSuggestions = {
-  suggestions: ['Sodium Chloride', 'Sodium Hydroxide', 'Sodium Bicarbonate'],
+  suggestions: [
+    { type: 'product', text: 'Sodium Chloride', id: 1 },
+    { type: 'product', text: 'Sodium Hydroxide', id: 2 },
+    { type: 'product', text: 'Sodium Bicarbonate', id: 3 },
+  ],
 }
 
 const mockLowStock = {

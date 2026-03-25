@@ -68,7 +68,7 @@ describe('DocumentsPage', () => {
       await waitFor(() => {
         expect(screen.getByText('invoice_001.pdf')).toBeInTheDocument()
       })
-      expect(screen.getByText('Filename')).toBeInTheDocument()
+      expect(screen.getByText('Document')).toBeInTheDocument()
       expect(screen.getByText('Vendor')).toBeInTheDocument()
       expect(screen.getByText('Type')).toBeInTheDocument()
       expect(screen.getByText('Status')).toBeInTheDocument()
@@ -85,18 +85,20 @@ describe('DocumentsPage', () => {
 
     it('displays vendor name', async () => {
       renderDocuments()
+      // Vendor name appears in both Document column and Vendor column
       await waitFor(() => {
-        expect(screen.getByText('Sigma-Aldrich')).toBeInTheDocument()
+        expect(screen.getAllByText('Sigma-Aldrich').length).toBeGreaterThanOrEqual(1)
       })
-      expect(screen.getByText('Fisher Scientific')).toBeInTheDocument()
+      expect(screen.getAllByText('Fisher Scientific').length).toBeGreaterThanOrEqual(1)
     })
 
     it('displays document type', async () => {
       renderDocuments()
+      // formatEnum converts 'invoice' -> 'Invoice', 'packing_list' -> 'Packing List'
       await waitFor(() => {
-        expect(screen.getByText('invoice')).toBeInTheDocument()
+        expect(screen.getByText('Invoice')).toBeInTheDocument()
       })
-      expect(screen.getByText('packing_list')).toBeInTheDocument()
+      expect(screen.getByText('Packing List')).toBeInTheDocument()
     })
 
     it('displays status badges', async () => {
@@ -124,10 +126,11 @@ describe('DocumentsPage', () => {
 
     it('displays confidence values', async () => {
       renderDocuments()
+      // Confidence is rendered as percentage (Math.round(conf * 100) + '%')
       await waitFor(() => {
-        expect(screen.getByText('0.95')).toBeInTheDocument()
+        expect(screen.getByText('95%')).toBeInTheDocument()
       })
-      expect(screen.getByText('0.72')).toBeInTheDocument()
+      expect(screen.getByText('72%')).toBeInTheDocument()
     })
   })
 
