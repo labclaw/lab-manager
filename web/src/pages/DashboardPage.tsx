@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { analytics, inventory, vendors, documents } from '@/lib/api'
 import type { Vendor, DashboardStats } from '@/lib/api'
+import { formatEnum } from '@/lib/utils'
 
 interface DashboardPageProps {
   readonly onError: (msg: string) => void
@@ -22,10 +23,10 @@ const VENDOR_BAR_CLASSES = [
 ]
 
 const DOC_BAR_CLASSES = [
+  'h-full bg-primary rounded-full transition-all duration-500',
   'h-full bg-accent-green rounded-full transition-all duration-500',
-  'h-full bg-accent-green/80 rounded-full transition-all duration-500',
-  'h-full bg-accent-green/60 rounded-full transition-all duration-500',
-  'h-full bg-accent-green/40 rounded-full transition-all duration-500',
+  'h-full bg-amber-500 rounded-full transition-all duration-500',
+  'h-full bg-sky-500 rounded-full transition-all duration-500',
 ]
 
 export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
@@ -64,21 +65,41 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
     }
   }, [statsErr, lowStockErr, expiringErr, vendorErr, docErr, onError])
 
-  // Compute vendor order counts (top 5)
+  // Compute vendor counts (top 5) — prefer order counts, fall back to document counts
   const vendorChart = useMemo(() => {
     const list = vendorData?.items ?? []
-    const sorted = [...list]
-      .sort((a, b) => (b.order_count ?? 0) - (a.order_count ?? 0))
-      .slice(0, 5)
-    const max = sorted.length > 0 ? (sorted[0]?.order_count ?? 1) : 1
+    const docs = docData?.items ?? []
     const totalOrders = list.reduce((s: number, v: Vendor) => s + (v.order_count ?? 0), 0)
-    return sorted.map((v) => ({
-      name: v.name,
-      count: v.order_count ?? 0,
-      pct: totalOrders > 0 ? Math.round(((v.order_count ?? 0) / totalOrders) * 100) : 0,
-      width: max > 0 ? Math.round(((v.order_count ?? 0) / max) * 100) : 0,
-    }))
-  }, [vendorData])
+    const useDocCounts = totalOrders === 0
+
+    // Count docs per vendor name
+    const docCountByVendor: Record<string, number> = {}
+    if (useDocCounts) {
+      for (const d of docs) {
+        const vn = d.vendor_name
+        if (vn) docCountByVendor[vn] = (docCountByVendor[vn] ?? 0) + 1
+      }
+    }
+
+    const sorted = [...list]
+      .map((v) => ({
+        ...v,
+        effectiveCount: useDocCounts ? (docCountByVendor[v.name] ?? 0) : (v.order_count ?? 0),
+      }))
+      .sort((a, b) => b.effectiveCount - a.effectiveCount)
+      .slice(0, 5)
+    const max = sorted.length > 0 ? (sorted[0]?.effectiveCount ?? 1) : 1
+    const totalEffective = sorted.reduce((s, v) => s + v.effectiveCount, 0)
+    return {
+      label: useDocCounts ? 'documents' : 'orders',
+      items: sorted.map((v) => ({
+        name: v.name,
+        count: v.effectiveCount,
+        pct: totalEffective > 0 ? Math.round((v.effectiveCount / totalEffective) * 100) : 0,
+        width: max > 0 ? Math.round((v.effectiveCount / max) * 100) : 0,
+      })),
+    }
+  }, [vendorData, docData])
 
   // Compute document type distribution (top 4)
   const docChart = useMemo(() => {
@@ -218,7 +239,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
           {lowStockCount > 0 && (
             <button
               onClick={() => navigate('/inventory')}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors"
             >
               <AlertTriangle className="size-3.5" />
               {lowStockCount} low stock item{lowStockCount !== 1 ? 's' : ''}
@@ -227,7 +248,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
           {expiringCount > 0 && (
             <button
               onClick={() => navigate('/inventory')}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium bg-orange-50 dark:bg-red-500/10 text-orange-700 dark:text-red-400 border border-orange-200 dark:border-red-500/20 hover:bg-orange-100 dark:hover:bg-red-500/20 transition-colors"
             >
               <Calendar className="size-3.5" />
               {expiringCount} expiring item{expiringCount !== 1 ? 's' : ''}
@@ -250,8 +271,8 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
             </span>
           </div>
           <div className="space-y-6">
-            {vendorChart.length > 0 ? (
-              vendorChart.map((v, i) => (
+            {vendorChart.items.length > 0 ? (
+              vendorChart.items.map((v, i) => (
                 <div key={v.name} className="space-y-2 group">
                   <div className="flex justify-between items-end">
                     <div className="flex items-center gap-2">
@@ -263,7 +284,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
                       )}
                     </div>
                     <span className="text-xs text-[var(--muted-foreground)] font-mono">
-                      {v.count} orders ({v.pct}%)
+                      {v.count} {vendorChart.label} ({v.pct}%)
                     </span>
                   </div>
                   <div className="h-2.5 w-full bg-[var(--card)] rounded-full overflow-hidden">
@@ -300,7 +321,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
                 <div key={d.type} className="space-y-2 group">
                   <div className="flex justify-between items-end">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-[var(--foreground)] font-mono">{d.type}</span>
+                      <span className="text-sm text-[var(--foreground)] font-semibold">{formatEnum(d.type)}</span>
                       {i === 0 && totalDocs > 0 && (
                         <span className="hidden group-hover:block text-[10px] bg-accent-green/20 text-accent-green px-1.5 py-0.5 rounded font-bold">
                           {Math.round((d.count / totalDocs) * 100)}% of docs
