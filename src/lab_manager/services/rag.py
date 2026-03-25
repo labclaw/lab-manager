@@ -224,6 +224,23 @@ RULES:
 QUESTION: {question}
 """
 
+QUERY_PLAN_PROMPT = """\
+You are a SQL query planner for a lab inventory management system. Given a natural \
+language question, produce a structured query plan — do NOT write SQL yet.
+
+DATABASE SCHEMA:
+{schema}
+
+Output a plan in this exact format (no markdown, no extra text):
+TABLES: <comma-separated list of tables needed>
+JOINS: <comma-separated list of join conditions, or "none">
+FILTERS: <comma-separated list of WHERE conditions in plain English, or "none">
+AGGREGATION: <SUM/COUNT/AVG/GROUP BY description, or "none">
+RESULT: <description of expected result shape — e.g., "single count", "list of vendor names with order counts">
+
+QUESTION: {question}
+"""
+
 FORMAT_ANSWER_PROMPT = """\
 You are a helpful lab assistant. A scientist asked a question about lab inventory, and \
 a database query was executed to get the answer.
@@ -301,6 +318,58 @@ def _generate_completion(prompt: str) -> str:
     return response_text(resp)
 
 
+def _generate_plan(question: str) -> dict:
+    """Generate a query plan before writing SQL.
+
+    Returns a dict with keys: tables, joins, filters, aggregation, result.
+    Raises ValueError if the plan references invalid tables.
+    """
+    prompt = QUERY_PLAN_PROMPT.format(schema=DB_SCHEMA, question=question)
+    raw = _generate_completion(prompt)
+    return _parse_plan(raw)
+
+
+def _parse_plan(raw: str) -> dict:
+    """Parse structured plan text into a dict."""
+    plan: dict = {
+        "tables": [],
+        "joins": "",
+        "filters": "",
+        "aggregation": "",
+        "result": "",
+        "raw": raw,
+    }
+    for line in raw.strip().splitlines():
+        line = line.strip()
+        upper = line.upper()
+        if upper.startswith("TABLES:"):
+            tables_str = line.split(":", 1)[1].strip()
+            plan["tables"] = [
+                t.strip().lower() for t in tables_str.split(",") if t.strip()
+            ]
+        elif upper.startswith("JOINS:"):
+            plan["joins"] = line.split(":", 1)[1].strip()
+        elif upper.startswith("FILTERS:"):
+            plan["filters"] = line.split(":", 1)[1].strip()
+        elif upper.startswith("AGGREGATION:"):
+            plan["aggregation"] = line.split(":", 1)[1].strip()
+        elif upper.startswith("RESULT:"):
+            plan["result"] = line.split(":", 1)[1].strip()
+    return plan
+
+
+def _validate_plan(plan: dict) -> list[str]:
+    """Validate a query plan. Returns list of issues (empty = valid)."""
+    issues = []
+    if not plan.get("tables"):
+        issues.append("Plan specifies no tables")
+    else:
+        for table in plan["tables"]:
+            if table not in _ALLOWED_TABLES:
+                issues.append(f"Plan references disallowed table: {table}")
+    return issues
+
+
 def _validate_sql(sql: str) -> str:
     """Validate that the SQL is a read-only SELECT. Raises ValueError if not."""
     import unicodedata
@@ -344,9 +413,29 @@ def _serialize_rows(rows: list[dict]) -> list[dict]:
     return [{k: _serialize_value(v) for k, v in row.items()} for row in rows]
 
 
-def _generate_sql(question: str) -> str:
-    """Ask the configured RAG model to translate a natural language question to SQL."""
-    prompt = NL_TO_SQL_PROMPT.format(schema=DB_SCHEMA, question=question)
+def _generate_sql(question: str, plan: dict | None = None) -> str:
+    """Ask the configured RAG model to translate a natural language question to SQL.
+
+    When a query plan is provided, it's included in the prompt to guide SQL generation.
+    """
+    if plan:
+        plan_context = (
+            f"\nQUERY PLAN (follow this plan):\n"
+            f"Tables: {', '.join(plan.get('tables', []))}\n"
+            f"Joins: {plan.get('joins', 'none')}\n"
+            f"Filters: {plan.get('filters', 'none')}\n"
+            f"Aggregation: {plan.get('aggregation', 'none')}\n"
+            f"Expected result: {plan.get('result', '')}\n"
+        )
+        prompt = NL_TO_SQL_PROMPT.format(schema=DB_SCHEMA, question=question)
+        # Insert plan before the QUESTION line
+        prompt = prompt.replace(
+            f"QUESTION: {question}",
+            f"{plan_context}\nQUESTION: {question}",
+        )
+    else:
+        prompt = NL_TO_SQL_PROMPT.format(schema=DB_SCHEMA, question=question)
+
     raw = _generate_completion(prompt)
 
     # Some models wrap SQL in fenced markdown
@@ -509,9 +598,31 @@ def ask(question: str, db: Session) -> dict:
         else:
             del _CACHE[key]
 
-    # Step 1: NL -> SQL
+    # Step 0: Generate query plan (intent validation before SQL)
+    plan = None
     try:
-        sql = _generate_sql(question)
+        plan = _generate_plan(question)
+        plan_issues = _validate_plan(plan)
+        if plan_issues:
+            logger.warning(
+                "Query plan issues for '%s': %s — skipping plan",
+                question[:80],
+                plan_issues,
+            )
+            plan = None
+        else:
+            logger.info(
+                "Query plan for '%s': tables=%s, agg=%s",
+                question[:80],
+                plan.get("tables"),
+                plan.get("aggregation"),
+            )
+    except Exception as e:
+        logger.warning("Query planning failed: %s — proceeding without plan", e)
+
+    # Step 1: NL -> SQL (guided by plan when available)
+    try:
+        sql = _generate_sql(question, plan=plan)
         logger.info("Generated SQL for question '%s': %s", question[:80], sql)
     except Exception as e:
         logger.warning("SQL generation failed: %s — falling back to search", e)
@@ -545,5 +656,11 @@ def ask(question: str, db: Session) -> dict:
         "row_count": len(results),
         "source": "sql",
     }
+    if plan:
+        result["query_plan"] = {
+            "tables": plan.get("tables", []),
+            "aggregation": plan.get("aggregation", ""),
+            "result_shape": plan.get("result", ""),
+        }
     _CACHE[key] = (time.time(), result)
     return result
