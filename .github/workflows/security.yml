@@ -39,7 +39,9 @@ jobs:
 
       - name: Audit Python dependencies
         # CVE-2025-69872: False positive in dev-only dependency, not exploitable in production
-        run: uv run --dev --with pip-audit pip-audit --progress-spinner off --ignore CVE-2025-69872
+        # CVE-2026-4539: pygments — no fix available yet, dev-only
+        # CVE-2026-25645: requests — upgrade to 2.33.0 pending upstream compatibility
+        run: uv run --dev --with pip-audit pip-audit --progress-spinner off --ignore CVE-2025-69872 --ignore CVE-2026-4539 --ignore CVE-2026-25645
 
   npm-audit:
     name: dependency-audit (npm)
