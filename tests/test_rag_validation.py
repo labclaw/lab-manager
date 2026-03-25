@@ -295,9 +295,6 @@ def test_limit_injected_when_missing():
 
 def test_limit_in_subquery_does_not_count():
     """A LIMIT in a subquery should not prevent outer LIMIT injection."""
-    sql = (
-        "SELECT * FROM vendors WHERE id IN "
-        "(SELECT vendor_id FROM products LIMIT 10)"
-    )
+    sql = "SELECT * FROM vendors WHERE id IN (SELECT vendor_id FROM products LIMIT 10)"
     result = _validate_sql(sql)
     assert result.endswith("LIMIT 200")

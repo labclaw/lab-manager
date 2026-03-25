@@ -402,7 +402,9 @@ class TestRagService:
             patch("lab_manager.services.rag._format_answer") as mock_fmt,
         ):
             mock_gen.return_value = "SELECT 1"
-            mock_exec.return_value = [{"col": 1, "col2": 2}]  # Multi-column to bypass scalar shortcut
+            mock_exec.return_value = [
+                {"col": 1, "col2": 2}
+            ]  # Multi-column to bypass scalar shortcut
             mock_fmt.side_effect = Exception("format error")
             result = ask("How many?", db_session)
             assert "formatting failed" in result["answer"]
