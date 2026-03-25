@@ -24,9 +24,8 @@ test.describe('Settings Page', () => {
   })
 
   test('shows user name', async ({ authedPage: page }) => {
-    // The user name "Admin" is shown in an input field
-    const adminInputs = page.locator('input[value="Admin"]')
-    await expect(adminInputs.first()).toBeVisible()
+    // The user name "Admin" is shown as heading text in the redesigned page
+    await expect(page.getByText('Admin', { exact: true }).first()).toBeVisible()
   })
 
   test('shows Change Password section', async ({ authedPage: page }) => {
@@ -37,16 +36,16 @@ test.describe('Settings Page', () => {
     await expect(page.getByText('AI Configuration')).toBeVisible()
   })
 
-  test('shows OCR Model dropdown', async ({ authedPage: page }) => {
-    await expect(page.getByLabel('OCR Model')).toBeVisible()
+  test('shows OCR Model card', async ({ authedPage: page }) => {
+    await expect(page.getByText('OCR Model')).toBeVisible()
   })
 
-  test('shows Extraction Model dropdown', async ({ authedPage: page }) => {
-    await expect(page.getByLabel('Extraction Model')).toBeVisible()
+  test('shows Extraction Model card', async ({ authedPage: page }) => {
+    await expect(page.getByText('Extraction Model')).toBeVisible()
   })
 
-  test('shows RAG Model dropdown', async ({ authedPage: page }) => {
-    await expect(page.getByLabel('RAG Model')).toBeVisible()
+  test('shows RAG Model card', async ({ authedPage: page }) => {
+    await expect(page.getByText('RAG Model')).toBeVisible()
   })
 
   test('shows Notifications section', async ({ authedPage: page }) => {
