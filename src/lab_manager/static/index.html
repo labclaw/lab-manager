@@ -160,6 +160,11 @@ tailwind.config = {
         <span class="material-symbols-outlined text-xl">shopping_cart</span>
         Orders
       </a>
+      <a href="#hardware" data-nav="hardware"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-primary/5 text-slate-400">
+        <span class="material-symbols-outlined text-xl">precision_manufacturing</span>
+        Hardware
+      </a>
       <a href="#upload" data-nav="upload"
         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-primary/5 text-slate-400">
         <span class="material-symbols-outlined text-xl">upload_file</span>
@@ -321,6 +326,33 @@ tailwind.config = {
         <div id="ord-pagination" class="flex items-center justify-between mt-4 text-sm text-slate-400"></div>
       </div>
 
+      <!-- ===== HARDWARE VIEW ===== -->
+      <div id="view-hardware" class="hidden">
+        <div class="mb-5">
+          <h2 class="text-lg font-semibold text-white mb-1">Lab Hardware</h2>
+          <p class="text-sm text-slate-500">All equipment in your lab — microscopes, centrifuges, freezers, and more.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3 mb-4">
+          <select id="hw-status-filter" onchange="hwFilterChanged()" class="bg-surface-dark border border-border-dark rounded-lg px-3 py-2 text-sm text-slate-300">
+            <option value="">All statuses</option>
+            <option value="active">Working</option>
+            <option value="maintenance">In Maintenance</option>
+            <option value="broken">Needs Repair</option>
+            <option value="retired">Retired</option>
+          </select>
+          <select id="hw-category-filter" onchange="hwFilterChanged()" class="bg-surface-dark border border-border-dark rounded-lg px-3 py-2 text-sm text-slate-300">
+            <option value="">All categories</option>
+          </select>
+          <input type="text" id="hw-search-input" placeholder="Search by name, manufacturer, serial #..."
+            class="w-72 px-3 py-2 bg-background-dark border border-border-dark rounded-lg text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            oninput="hwSearchDebounce()">
+          <span id="hw-total" class="ml-auto text-sm text-slate-500"></span>
+        </div>
+        <div id="hw-status-summary" class="flex flex-wrap gap-2 mb-4"></div>
+        <div id="hw-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        <div id="hw-pagination" class="flex items-center justify-between mt-4 text-sm text-slate-400"></div>
+      </div>
+
       <!-- ===== UPLOAD VIEW ===== -->
       <div id="view-upload" class="hidden">
         <div class="max-w-2xl mx-auto">
@@ -389,6 +421,7 @@ tailwind.config = {
 <script src="/static/js/review.js"></script>
 <script src="/static/js/inventory.js"></script>
 <script src="/static/js/orders.js"></script>
+<script src="/static/js/hardware.js"></script>
 <script src="/static/js/upload.js"></script>
 <script src="/static/js/app.js"></script>
 <script>
