@@ -9,6 +9,7 @@ import {
   ShoppingCart,
   Upload,
   Brain,
+  Settings,
   User,
   LogOut,
   ChevronLeft,
@@ -135,6 +136,20 @@ export function Sidebar({
             </div>
           )}
         </div>
+        <Link
+          to="/settings"
+          onClick={onMobileClose}
+          className={cn(
+            'flex items-center gap-3 w-full px-4 py-2 rounded-lg transition-colors text-sm font-medium',
+            current === '/settings'
+              ? 'bg-primary/10 text-primary font-semibold'
+              : 'text-[var(--muted-foreground)] hover:bg-primary/5 hover:text-[var(--foreground)]',
+          )}
+          title={collapsed ? 'Settings' : undefined}
+        >
+          <Settings className="size-4 shrink-0" />
+          {!collapsed && <span>Settings</span>}
+        </Link>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 w-full px-4 py-2 text-[var(--muted-foreground)] hover:text-red-400 transition-colors text-sm font-medium"
