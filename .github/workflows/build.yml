@@ -1,0 +1,147 @@
+name: Build Verification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  python-package:
+    name: python-package
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v5.4.1
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Build wheel + sdist
+        run: |
+          rm -rf dist
+          uv build --sdist --wheel
+
+      - name: Verify package metadata
+        run: uvx twine check dist/*
+
+      - name: Verify wheel installs cleanly
+        run: |
+          uv venv /tmp/install-test --python 3.12
+          VIRTUAL_ENV=/tmp/install-test /tmp/install-test/bin/pip install dist/*.whl
+          /tmp/install-test/bin/python -c "import lab_manager; print(f'lab-manager {lab_manager.__version__} OK')"
+          rm -rf /tmp/install-test
+
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: dist
+          path: dist/*
+
+  frontend-build:
+    name: frontend-build
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: web/
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: web/
+        run: npm run build
+
+      - name: Verify build output exists
+        run: |
+          if [ ! -d "src/lab_manager/static/dist" ]; then
+            echo "::error::Frontend build output not found at src/lab_manager/static/dist"
+            exit 1
+          fi
+          FILE_COUNT=$(find src/lab_manager/static/dist -type f | wc -l)
+          echo "Build produced $FILE_COUNT files"
+          if [ "$FILE_COUNT" -lt 1 ]; then
+            echo "::error::Frontend build produced no files"
+            exit 1
+          fi
+
+  docker-build:
+    name: docker-build
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+
+      - name: Build Docker image (no push)
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198571cfb76f00 # v6.13.0
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          load: true
+          tags: lab-manager:ci-test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify image runs
+        run: |
+          docker run --rm --entrypoint /app/.venv/bin/python lab-manager:ci-test \
+            -c "import lab_manager; print(f'lab-manager {lab_manager.__version__} OK')"
+
+      - name: Cleanup
+        if: always()
+        run: docker rmi lab-manager:ci-test 2>/dev/null || true
+
+  docker-compose-validate:
+    name: docker-compose-validate
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Validate production compose
+        run: |
+          # Create minimal .env for validation (compose needs required vars)
+          cat > /tmp/ci-compose-env <<'ENVFILE'
+          POSTGRES_PASSWORD=ci-test
+          POSTGRES_RO_PASSWORD=ci-test
+          MEILI_MASTER_KEY=ci-test
+          ADMIN_SECRET_KEY=ci-test
+          ADMIN_PASSWORD=ci-test
+          ENVFILE
+          docker compose --env-file /tmp/ci-compose-env config -q
+
+      - name: Validate test compose
+        run: docker compose -f docker-compose.test.yml config -q
