@@ -194,7 +194,7 @@ class TestAskWithPlanning:
                 return_value="Found vendors.",
             ),
         ):
-            result = ask("list vendors", MagicMock())
+            _result = ask("list vendors", MagicMock())
 
         # Plan was invalid, so SQL gen should get plan=None
         assert mock_sql.call_args[1]["plan"] is None
@@ -215,7 +215,7 @@ class TestGenerateSqlWithPlan:
             "lab_manager.services.rag._generate_completion",
             return_value="SELECT v.name, COUNT(*) FROM vendors v JOIN orders o ON o.vendor_id = v.id GROUP BY v.name",
         ) as mock_completion:
-            sql = _generate_sql("orders per vendor this month", plan=plan)
+            _sql = _generate_sql("orders per vendor this month", plan=plan)
 
         prompt = mock_completion.call_args[0][0]
         assert "QUERY PLAN" in prompt
@@ -228,7 +228,7 @@ class TestGenerateSqlWithPlan:
             "lab_manager.services.rag._generate_completion",
             return_value="SELECT * FROM vendors",
         ) as mock_completion:
-            sql = _generate_sql("list vendors", plan=None)
+            _sql = _generate_sql("list vendors", plan=None)
 
         prompt = mock_completion.call_args[0][0]
         assert "QUERY PLAN" not in prompt

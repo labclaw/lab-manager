@@ -290,7 +290,7 @@ class TestPipelineRefinement:
                 return_value=fixed_extraction,
             ) as mock_refine,
         ):
-            doc = process_document(img, db_session)
+            _doc = process_document(img, db_session)
 
         # Refinement triggered because vendor_name looks like an address
         mock_refine.assert_called_once()
