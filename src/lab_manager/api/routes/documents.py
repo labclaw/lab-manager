@@ -306,8 +306,13 @@ def upload_document(
     timestamp = now.strftime("%Y%m%d_%H%M%S")
     usec = f"{now.microsecond:06d}"
     raw_name = file.filename or "unnamed"
-    # Strip directory separators and null bytes to prevent path traversal
+    # Sanitize filename: strip path separators, null bytes, and restrict to safe chars
+    import re
+
     safe_name = raw_name.replace("/", "_").replace("\\", "_").replace("\x00", "")
+    safe_name = re.sub(r"[^a-zA-Z0-9._-]", "_", safe_name)
+    if not safe_name or safe_name.startswith("."):
+        safe_name = "upload" + safe_name
     saved_name = f"{timestamp}_{usec}_{safe_name}"
 
     # Save to disk
