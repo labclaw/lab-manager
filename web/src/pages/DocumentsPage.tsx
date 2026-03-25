@@ -100,7 +100,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
   return (
     <div className="space-y-0 -m-6 flex flex-col h-[calc(100vh-4rem)]">
       {/* Top Bar */}
-      <header className="h-16 border-b border-slate-200 dark:border-slate-800 px-8 flex items-center justify-between sticky top-0 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md z-10 shrink-0">
+      <header className="h-16 border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-10 shrink-0">
         <h2 className="text-xl font-bold">Documents</h2>
         <div className="flex items-center gap-4 flex-1 max-w-2xl px-8">
           <div className="relative w-full">
@@ -110,7 +110,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
               placeholder="Search vendor or filename..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary transition-all"
             />
           </div>
         </div>
@@ -137,7 +137,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
               className={
                 isActive
                   ? 'px-4 py-1.5 rounded-full text-sm font-medium bg-primary text-white shadow-lg shadow-primary/20'
-                  : 'px-4 py-1.5 rounded-full text-sm font-medium bg-slate-100 dark:bg-card-dark text-slate-600 dark:text-slate-300 flex items-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors border border-transparent'
+                  : 'px-4 py-1.5 rounded-full text-sm font-medium bg-slate-100 text-slate-600 flex items-center gap-2 hover:bg-slate-200 transition-colors border border-transparent'
               }
             >
               {f.dotClass && !isActive && (
@@ -167,7 +167,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
 
       {/* Table Container */}
       <div className="px-8 pb-8 flex-1 min-h-0 flex flex-col">
-        <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm flex-1 min-h-0">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm flex-1 min-h-0">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-64 space-y-3">
               <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
@@ -194,7 +194,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                <tr className="bg-slate-50 border-b border-slate-200">
                   <th className="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Document
                   </th>
@@ -215,7 +215,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-slate-100">
                 {filteredDocs.map((doc, idx) => {
                   const badge = statusBadgeClasses(doc.status)
                   const conf = doc.extraction_confidence ?? 0
@@ -223,8 +223,8 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
                   return (
                     <tr
                       key={doc.id}
-                      className={`hover:bg-primary/[0.03] dark:hover:bg-slate-800/30 transition-colors duration-150 cursor-pointer group ${
-                        idx % 2 === 1 ? 'bg-slate-50/40 dark:bg-white/[0.01]' : 'bg-white'
+                      className={`hover:bg-primary/[0.03] transition-colors duration-150 cursor-pointer group ${
+                        idx % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'
                       }`}
                       onClick={() => navigate(`/review?id=${doc.id}`)}
                     >
@@ -246,10 +246,10 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-400">
+                      <td className="px-5 py-4 text-sm text-slate-600">
                         {doc.vendor_name ?? 'Unknown'}
                       </td>
-                      <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-400 max-w-[140px] whitespace-nowrap overflow-hidden text-ellipsis">
+                      <td className="px-5 py-4 text-sm text-slate-600 max-w-[140px] whitespace-nowrap overflow-hidden text-ellipsis">
                         {doc.document_type ? formatEnum(doc.document_type) : '--'}
                       </td>
                       <td className="px-5 py-4">
@@ -258,7 +258,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
                       <td className="px-5 py-4">
                         {doc.extraction_confidence != null ? (
                           <div className="flex items-center gap-3">
-                            <div className="w-20 bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                            <div className="w-20 bg-slate-100 h-2 rounded-full overflow-hidden">
                               <div
                                 className={`${confidenceBarColor(conf)} h-full rounded-full transition-all`}
                                 style={{ width: `${confPct}%` }}
@@ -288,15 +288,15 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
           <div className="mt-6 flex items-center justify-between">
             <p className="text-sm text-slate-500">
               Showing{' '}
-              <span className="font-semibold text-slate-900 dark:text-slate-200">
+              <span className="font-semibold text-slate-900">
                 {startItem}
               </span>{' '}
               to{' '}
-              <span className="font-semibold text-slate-900 dark:text-slate-200">
+              <span className="font-semibold text-slate-900">
                 {endItem}
               </span>{' '}
               of{' '}
-              <span className="font-semibold text-slate-900 dark:text-slate-200">
+              <span className="font-semibold text-slate-900">
                 {total}
               </span>{' '}
               documents
@@ -305,7 +305,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="flex items-center justify-center w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-card-dark text-slate-400 hover:text-primary hover:border-primary/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center w-10 h-10 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-primary hover:border-primary/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Previous page"
               >
                 <ChevronLeft />
@@ -313,7 +313,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="flex items-center justify-center w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-card-dark text-slate-400 hover:text-primary hover:border-primary/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center w-10 h-10 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-primary hover:border-primary/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Next page"
               >
                 <ChevronRight />

@@ -25,9 +25,9 @@ class ErrorBoundary extends Component<{ readonly children: ReactNode }, ErrorBou
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-8">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-900 p-8">
           <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
-          <p className="text-slate-400 mb-6 text-center max-w-md">
+          <p className="text-gray-500 mb-6 text-center max-w-md">
             {this.state.error?.message ?? 'An unexpected error occurred'}
           </p>
           <button

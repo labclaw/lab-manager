@@ -5,33 +5,28 @@
 @theme {
   --color-primary: #6C5CE7;
   --color-background-light: #f6f5f8;
-  --color-background-dark: #0B0B14;
-  --color-card-dark: #12121E;
-  --color-sidebar-dark: #12121E;
   --color-accent-green: #00D4AA;
-  --color-surface-dark: #1A1A2E;
-  --color-border-dark: #2A2A3E;
   --color-success: #00D4AA;
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
 
-  /* Stitch Material-3 semantic tokens */
-  --color-on-surface: #F0F0F5;
-  --color-on-surface-variant: #A1A1B5;
-  --color-on-background: #F0F0F5;
-  --color-outline: #2A2A3E;
-  --color-surface-container: #242438;
-  --color-surface-container-high: #2A2A44;
-  --color-surface-container-low: #1E1E36;
-  --color-surface-container-lowest: #16162A;
-  --color-surface-container-highest: #33334D;
-  --color-secondary-container: #4E3B7F;
-  --color-on-secondary-container: #E9DDFF;
+  /* Light-mode semantic tokens */
+  --color-on-surface: #1a1a2e;
+  --color-on-surface-variant: #6b7280;
+  --color-on-background: #1a1a2e;
+  --color-outline: #e5e7eb;
+  --color-surface-container: #f1f3f8;
+  --color-surface-container-high: #e8eaf0;
+  --color-surface-container-low: #f4f5f9;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-highest: #e0e2ea;
+  --color-secondary-container: #ede9ff;
+  --color-on-secondary-container: #4E3B7F;
   --color-primary-container: #6C5CE7;
   --color-tertiary-fixed: #FFDCBE;
   --color-on-tertiary-fixed-variant: #693C00;
-  --color-error-container: #441A1A;
-  --color-error: #FF5555;
+  --color-error-container: #fde8e8;
+  --color-error: #ef4444;
 }
 
 :root {
@@ -72,41 +67,6 @@
   --sidebar-foreground: #1a1a2e;
   --sidebar-border: #e5e7eb;
   --sidebar-accent: #f1f3f8;
-  --sidebar-ring: #6C5CE7;
-}
-
-.dark {
-  --background: #0B0B14;
-  --card: #12121E;
-  --popover: #12121E;
-  --muted: #1A1A2E;
-
-  --foreground: #F0F0F5;
-  --muted-foreground: #8e8ea0;
-
-  --primary: #6C5CE7;
-  --primary-foreground: #ffffff;
-
-  --accent: #00D4AA;
-  --accent-foreground: #ffffff;
-
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-
-  --warning: #f59e0b;
-  --warning-foreground: #0B0B14;
-
-  --info: #5b8def;
-  --info-foreground: #ffffff;
-
-  --border: #2A2A3E;
-  --input: #2A2A3E;
-  --ring: #6C5CE7;
-
-  --sidebar: #12121E;
-  --sidebar-foreground: #F0F0F5;
-  --sidebar-border: #2A2A3E;
-  --sidebar-accent: #1A1A2E;
   --sidebar-ring: #6C5CE7;
 }
 

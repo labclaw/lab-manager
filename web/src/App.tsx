@@ -61,7 +61,6 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [alertCount, setAlertCount] = useState(0)
   const [reviewCount, setReviewCount] = useState(0)
-  const [darkMode, setDarkMode] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const location = useLocation()
@@ -88,21 +87,7 @@ export default function App() {
   useEffect(() => {
     localStorage.removeItem('darkMode')
     document.documentElement.classList.remove('dark')
-    setDarkMode(false)
   }, [])
-
-  const toggleDarkMode = () => {
-    setDarkMode(prev => {
-      const next = !prev
-      localStorage.setItem('darkMode', String(next))
-      if (next) {
-        document.documentElement.classList.add('dark')
-      } else {
-        document.documentElement.classList.remove('dark')
-      }
-      return next
-    })
-  }
 
   useEffect(() => {
     checkAuth()
@@ -157,8 +142,6 @@ export default function App() {
           <Header
             title={PAGE_TITLES[location.pathname] ?? 'Lab Manager'}
             showSearch={location.pathname !== '/ask'}
-            darkMode={darkMode}
-            onToggleDarkMode={toggleDarkMode}
             onMobileMenuToggle={() => setMobileMenuOpen(prev => !prev)}
           />
           <main className="flex-1 overflow-y-auto p-6">
