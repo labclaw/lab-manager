@@ -1,9 +1,9 @@
 #!/bin/sh
-# Bulk upload all shenlab-docs to the API
+# Bulk upload all lab documents to the API
 # Run inside the app container: docker compose exec app sh /app/scripts/bulk_upload.sh
 
 API_URL="http://localhost:8000/api/v1/documents/upload"
-DOCS_DIR="/app/shenlab-docs/resized"
+DOCS_DIR="${LAB_DOCS_DIR:-/app/lab-docs/resized}"
 UPLOAD_DELAY="${UPLOAD_DELAY_SECONDS:-10}"
 AUTH_HEADER=""
 

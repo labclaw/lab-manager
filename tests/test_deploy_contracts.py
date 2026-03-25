@@ -114,10 +114,10 @@ def test_entrypoint_uses_built_virtualenv_binaries():
 
 
 def test_compose_defaults_to_empty_asset_mounts():
-    """Default compose config should not bind sample Shen Lab assets."""
+    """Default compose config should not bind sample lab assets."""
     compose = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
-    assert "./shenlab-docs" not in compose
-    assert "./shenlab-devices" not in compose
+    assert "shenlab-docs" not in compose
+    assert "shenlab-devices" not in compose
     assert "./docker/empty/scans" in compose
     assert "./docker/empty/devices" in compose
     assert "SCANS_DIR: ${SCANS_DIR:+/app/scans}" in compose
