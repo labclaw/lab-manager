@@ -235,6 +235,133 @@ OCR TEXT:
     return None
 
 
+REFINEMENT_PROMPT = """You are re-extracting structured data from OCR text of a lab supply document.
+
+A previous extraction attempt had these issues:
+{feedback}
+
+Previous extraction result:
+{previous_json}
+
+Please re-extract carefully, paying special attention to the fields mentioned above.
+Use exact text from the document. Do NOT guess or hallucinate.
+
+Rules:
+- vendor_name: the supplier company (e.g., "Sigma-Aldrich", "EMD Millipore Corporation")
+- document_type: one of packing_list, invoice, certificate_of_analysis, shipping_label, quote, receipt, mta, other
+- dates: convert to ISO format (YYYY-MM-DD) when possible
+- catalog_number: exact product ID as printed
+- lot_number / batch_number: exact as printed
+- quantity: numeric value
+- confidence: your overall confidence (0.0-1.0) that the extraction is correct.
+"""
+
+# Max refinement rounds to control API costs
+MAX_REFINEMENT_ROUNDS = 2
+
+# Confidence threshold below which refinement is triggered
+REFINEMENT_CONFIDENCE_THRESHOLD = 0.7
+
+
+def extract_with_feedback(
+    ocr_text: str,
+    previous: ExtractedDocument,
+    feedback: str,
+) -> ExtractedDocument | None:
+    """Re-extract with feedback about previous attempt's issues.
+
+    Args:
+        ocr_text: Original OCR text.
+        previous: Previous extraction result.
+        feedback: Description of issues found in previous extraction.
+
+    Returns:
+        Improved ExtractedDocument, or None on failure.
+    """
+    previous_json = json.dumps(previous.model_dump(), indent=2, default=str)
+    prompt = REFINEMENT_PROMPT.format(
+        feedback=feedback,
+        previous_json=previous_json,
+    )
+    full_prompt = f"{prompt}\n\n---\nOCR TEXT:\n{ocr_text}"
+
+    settings = get_settings()
+    model = settings.extraction_model
+
+    try:
+        if _is_nvidia_model(model):
+            # Use NVIDIA path with refinement prompt
+            return _extract_nvidia_with_prompt(ocr_text, model, full_prompt)
+
+        api_key = (
+            settings.extraction_api_key
+            or os.environ.get("GEMINI_API_KEY", "")
+            or os.environ.get("GOOGLE_API_KEY", "")
+        )
+        if not api_key:
+            return None
+
+        client = genai.Client(api_key=api_key)
+        client = instructor.from_genai(client)
+        return client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": full_prompt}],
+            response_model=ExtractedDocument,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+    except Exception as e:
+        logger.warning("Refinement extraction failed: %s", e)
+        return None
+
+
+def _extract_nvidia_with_prompt(
+    ocr_text: str, model: str, prompt: str
+) -> ExtractedDocument | None:
+    """NVIDIA extraction with a custom prompt (used for refinement)."""
+    import httpx
+
+    settings = get_settings()
+    api_key = settings.nvidia_build_api_key or os.environ.get(
+        "NVIDIA_BUILD_API_KEY", ""
+    )
+    if not api_key:
+        return None
+
+    full_prompt = (
+        f"{prompt}\n\n"
+        f"Return ONLY valid JSON matching this schema (no markdown, no extra text):\n"
+        f"{json.dumps(EXTRACTION_JSON_SCHEMA, indent=2)}"
+    )
+
+    try:
+        resp = httpx.post(
+            "https://integrate.api.nvidia.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model.removeprefix("nvidia_nim/"),
+                "messages": [{"role": "user", "content": full_prompt}],
+                "max_tokens": 4096,
+                "temperature": 0.1,
+            },
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        resp.raise_for_status()
+        raw = resp.json()["choices"][0]["message"]["content"].strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+            if raw.endswith("```"):
+                raw = raw[:-3]
+            raw = raw.strip()
+        parsed = json.loads(raw)
+        return ExtractedDocument(**parsed)
+    except Exception as e:
+        logger.warning("NVIDIA refinement failed: %s", e)
+        return None
+
+
 def extract_from_text(ocr_text: str) -> ExtractedDocument | None:
     """Extract structured fields from OCR text.
 
