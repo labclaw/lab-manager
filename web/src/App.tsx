@@ -15,6 +15,7 @@ import { ReviewPage } from '@/pages/ReviewPage'
 import { UploadPage } from '@/pages/UploadPage'
 import { AnalyticsPage } from '@/pages/AnalyticsPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { CloudBrainPage } from '@/pages/CloudBrainPage'
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -27,6 +28,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/analytics': 'Analytics',
   '/alerts': 'Alerts',
   '/settings': 'Settings',
+  '/cloud-brain': 'Cloud Brain',
 }
 
 function AlertsPage() {
@@ -145,6 +147,7 @@ export default function App() {
                 <Route path="review" element={<ReviewPage onError={setError} />} />
                 <Route path="alerts" element={<AlertsPage />} />
                 <Route path="settings" element={<SettingsPage onError={setError} />} />
+                <Route path="cloud-brain" element={<CloudBrainPage onError={setError} />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>
