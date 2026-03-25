@@ -16,7 +16,7 @@ async function loadStats() {
   }
 }
 
-function renderStats() {
+async function renderStats() {
   const s = stats;
   if (!s) {
     const grid = document.getElementById("stats-grid");
@@ -80,22 +80,87 @@ function renderStats() {
     )
     .join("");
 
-  // Alert banners
+  // Proactive alert banners — fetch real alerts from backend
   const alertContainer = document.getElementById("alert-banners");
-  const alerts = [];
-  if ((s.by_status.needs_review || 0) > 10) {
-    alerts.push({
-      icon: "warning",
+  const banners = [];
+
+  // Document review backlog
+  const reviewCount = s.by_status.needs_review || 0;
+  if (reviewCount > 0) {
+    banners.push({
+      icon: "fact_check",
       cls: "border-amber-500/30 bg-amber-500/5",
-      text: `${s.by_status.needs_review} documents awaiting review`,
+      iconCls: "text-amber-400",
+      text: `${reviewCount} document${reviewCount !== 1 ? "s" : ""} awaiting your review`,
+      action: "review",
+      actionLabel: "Review now",
     });
   }
-  alertContainer.innerHTML = alerts
+
+  // Fetch inventory alerts (expiring + low stock) in parallel
+  try {
+    const [expiringR, lowStockR, alertSummaryR] = await Promise.all([
+      apiFetch("/api/v1/inventory/expiring?days=7&page_size=1").catch(() => null),
+      apiFetch("/api/v1/inventory/low-stock?page_size=1").catch(() => null),
+      apiFetch("/api/v1/alerts/summary").catch(() => null),
+    ]);
+
+    if (expiringR && expiringR.ok) {
+      const expData = await expiringR.json();
+      const expCount = expData.total || 0;
+      if (expCount > 0) {
+        banners.push({
+          icon: "schedule",
+          cls: "border-red-500/30 bg-red-500/5",
+          iconCls: "text-red-400",
+          text: `${expCount} item${expCount !== 1 ? "s" : ""} expiring within 7 days`,
+          action: "inventory",
+          actionLabel: "View items",
+        });
+      }
+    }
+
+    if (lowStockR && lowStockR.ok) {
+      const lsData = await lowStockR.json();
+      const lsItems = lsData.items || lsData;
+      const lsCount = Array.isArray(lsItems) ? lsItems.length : 0;
+      if (lsCount > 0) {
+        banners.push({
+          icon: "inventory_2",
+          cls: "border-orange-500/30 bg-orange-500/5",
+          iconCls: "text-orange-400",
+          text: `${lsCount} product${lsCount !== 1 ? "s" : ""} below reorder level`,
+          action: "inventory",
+          actionLabel: "Check stock",
+        });
+      }
+    }
+
+    if (alertSummaryR && alertSummaryR.ok) {
+      const summary = await alertSummaryR.json();
+      const criticalCount = (summary.by_severity || {}).critical || 0;
+      if (criticalCount > 0) {
+        banners.push({
+          icon: "error",
+          cls: "border-red-500/30 bg-red-500/5",
+          iconCls: "text-red-400",
+          text: `${criticalCount} critical alert${criticalCount !== 1 ? "s" : ""} require attention`,
+          action: null,
+          actionLabel: null,
+        });
+      }
+    }
+  } catch {
+    // Non-blocking: alerts are optional
+  }
+
+  alertContainer.innerHTML = banners
     .map(
       (a) => `
     <div class="flex items-center gap-3 p-3 rounded-lg border ${escapeHtml(a.cls)}">
-      <span class="material-symbols-outlined text-amber-400">${escapeHtml(a.icon)}</span>
-      <span class="text-sm text-slate-300">${escapeHtml(a.text)}</span>
+      <span class="material-symbols-outlined ${escapeHtml(a.iconCls)}">${escapeHtml(a.icon)}</span>
+      <span class="text-sm text-slate-300 flex-1">${escapeHtml(a.text)}</span>
+      ${a.action ? `<button onclick="navigateTo('${escapeHtml(a.action)}')" class="text-xs font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap">${escapeHtml(a.actionLabel)} &rarr;</button>` : ""}
     </div>`
     )
     .join("");
