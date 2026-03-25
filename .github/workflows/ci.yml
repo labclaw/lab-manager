@@ -18,7 +18,7 @@ jobs:
   # ─── Stage 1: Code Quality ─────────────────────────────────────
   conventional-commits:
     name: conventional-commits
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     if: github.event_name == 'pull_request'
 
@@ -47,7 +47,7 @@ jobs:
 
   lint:
     name: lint
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
@@ -73,7 +73,7 @@ jobs:
 
   typecheck:
     name: typecheck
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
@@ -100,7 +100,7 @@ jobs:
   # ─── Stage 2: Tests ────────────────────────────────────────────
   frontend:
     name: frontend (lint, type-check, build, test)
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
@@ -136,11 +136,10 @@ jobs:
 
   test:
     name: test (py${{ matrix.python-version }})
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
       fail-fast: false
-      max-parallel: 1
       matrix:
         python-version: ["3.12", "3.13"]
 
@@ -205,7 +204,7 @@ jobs:
   # ─── Stage 3: Package ──────────────────────────────────────────
   package:
     name: package
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     needs:
       - lint
