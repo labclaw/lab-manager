@@ -47,18 +47,14 @@ export function InventoryPage({ onError }: InventoryPageProps) {
         </span>
       )
     }
-    if (status === 'low_stock' || (quantity != null && quantity <= 3)) {
+    if (status === 'low_stock') {
       return (
         <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[10px] font-bold w-fit uppercase">
           Low Stock
         </span>
       )
     }
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded-full bg-green-500/10 text-green-600 border border-green-500/20 text-[10px] font-bold w-fit uppercase">
-        In Stock
-      </span>
-    )
+    return null
   }
 
   const itemIcon = (status?: string) => {
@@ -153,9 +149,11 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                       {itemIcon(item.status)}
                       <div>
                         <p className="font-bold text-on-surface">
-                          {item.product_name ?? `Product #${item.product_id}`}
+                          {item.product_name ?? item.product?.name ?? item.product?.catalog_number ?? `Item #${item.id}`}
                         </p>
                         <p className="text-[11px] text-[var(--muted-foreground)]">
+                          {item.product?.catalog_number ? item.product.catalog_number : ''}
+                          {item.product?.catalog_number && item.lot_number ? ' \u00B7 ' : ''}
                           {item.lot_number ? `Lot ${item.lot_number}` : (item.unit ?? '')}
                         </p>
                       </div>
