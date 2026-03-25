@@ -11,11 +11,12 @@ from sqlalchemy import func, literal, select
 from sqlalchemy.orm import Session
 
 from lab_manager.config import get_settings
-from lab_manager.intake.extractor import extract_from_text
+from lab_manager.intake.extractor import (
+    extract_from_text,
+)
 from lab_manager.intake.ocr import extract_text_from_image
 from lab_manager.models.document import Document, DocumentStatus
 from lab_manager.models.vendor import Vendor
-from lab_manager.services.vendor_normalize import normalize_vendor
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +112,11 @@ def process_document(image_path: Path, db: Session) -> Document:
         return doc
 
     # Extract structured data
+    from lab_manager.intake.extractor import (
+        MAX_REFINEMENT_ROUNDS,
+        REFINEMENT_CONFIDENCE_THRESHOLD,
+        extract_with_feedback,
+    )
     from lab_manager.intake.validator import validate
 
     try:
@@ -120,6 +126,65 @@ def process_document(image_path: Path, db: Session) -> Document:
             doc.status = DocumentStatus.needs_review
             doc.review_notes = "Extraction failed: no result returned"
         else:
+            from lab_manager.services.vendor_normalize import normalize_vendor
+
+            # Run validation on extracted data
+            validation_issues = validate(extracted.model_dump())
+
+            # Iterative refinement: retry if low confidence or validation issues
+            confidence = getattr(extracted, "confidence", None) or 0.0
+            refinement_notes = []
+            for round_num in range(MAX_REFINEMENT_ROUNDS):
+                needs_refinement = (
+                    confidence < REFINEMENT_CONFIDENCE_THRESHOLD or validation_issues
+                )
+                if not needs_refinement:
+                    break
+
+                feedback_parts = []
+                if confidence < REFINEMENT_CONFIDENCE_THRESHOLD:
+                    feedback_parts.append(
+                        f"Low confidence ({confidence:.2f}). "
+                        "Re-examine the document carefully."
+                    )
+                if validation_issues:
+                    for issue in validation_issues:
+                        feedback_parts.append(
+                            f"Field '{issue['field']}': {issue['issue']}"
+                        )
+                feedback = "\n".join(feedback_parts)
+
+                logger.info(
+                    "Refinement round %d/%d for %s: %s",
+                    round_num + 1,
+                    MAX_REFINEMENT_ROUNDS,
+                    image_path.name,
+                    feedback,
+                )
+
+                refined = extract_with_feedback(ocr_text, extracted, feedback)
+                if refined is None:
+                    refinement_notes.append(
+                        f"Round {round_num + 1}: refinement call failed"
+                    )
+                    break
+
+                refined_confidence = getattr(refined, "confidence", None) or 0.0
+                if refined_confidence > confidence:
+                    refinement_notes.append(
+                        f"Round {round_num + 1}: confidence "
+                        f"{confidence:.2f} -> {refined_confidence:.2f}"
+                    )
+                    extracted = refined
+                    confidence = refined_confidence
+                    validation_issues = validate(extracted.model_dump())
+                else:
+                    refinement_notes.append(
+                        f"Round {round_num + 1}: no improvement "
+                        f"({refined_confidence:.2f} <= {confidence:.2f})"
+                    )
+                    break
+
             doc.document_type = extracted.document_type
             doc.vendor_name = normalize_vendor(extracted.vendor_name)
             doc.extracted_data = extracted.model_dump()
@@ -127,16 +192,17 @@ def process_document(image_path: Path, db: Session) -> Document:
             doc.extraction_confidence = extracted.confidence
             doc.status = DocumentStatus.needs_review
 
-            # Run validation on extracted data
-            validation_issues = validate(extracted.model_dump())
+            # Collect all notes
+            notes_parts = []
             if validation_issues:
-                logger.warning(
-                    "Validation issues for %s: %s", image_path.name, validation_issues
-                )
                 issues_str = "; ".join(
                     f"{i['field']}: {i['issue']}" for i in validation_issues
                 )
-                doc.review_notes = f"Validation issues: {issues_str}"
+                notes_parts.append(f"Validation issues: {issues_str}")
+            if refinement_notes:
+                notes_parts.append(f"Refinement: {'; '.join(refinement_notes)}")
+            if notes_parts:
+                doc.review_notes = " | ".join(notes_parts)
     except Exception as e:
         logger.error("Extraction failed for %s: %s", image_path.name, e)
         doc.status = DocumentStatus.needs_review

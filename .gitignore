@@ -46,7 +46,9 @@ lab-docs/
 lab-docs.zip
 lab-devices/
 pipeline_v2_output/
-benchmarks/
+benchmarks/*.json
+benchmarks/*/results/
+benchmarks/*/ground_truth.json
 ocr-benchmark/data/scans/
 ocr-benchmark/reports/
 .gstack/
