@@ -30,9 +30,12 @@ class TestGetEngine:
     @patch("lab_manager.database.get_settings")
     @patch("lab_manager.database.create_engine")
     def test_get_engine_postgres(self, mock_create, mock_settings):
-        mock_settings.return_value.database_url = (
-            "postgresql+psycopg://user:pw@localhost/db"
-        )
+        settings = mock_settings.return_value
+        settings.database_url = "postgresql+psycopg://user:pw@localhost/db"
+        settings.db_pool_size = 10
+        settings.db_pool_max_overflow = 20
+        settings.db_pool_timeout = 30
+        settings.db_pool_recycle = 1800
         engine = db_mod.get_engine()
         mock_create.assert_called_once_with(
             "postgresql+psycopg://user:pw@localhost/db",
@@ -40,6 +43,8 @@ class TestGetEngine:
             pool_size=10,
             max_overflow=20,
             pool_pre_ping=True,
+            pool_timeout=30,
+            pool_recycle=1800,
             connect_args={"options": "-c search_path=labmanager,public"},
         )
         assert engine is mock_create.return_value

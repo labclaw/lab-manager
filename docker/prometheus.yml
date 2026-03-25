@@ -1,0 +1,26 @@
+# Prometheus configuration for Lab Manager monitoring
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "labmanager"
+    static_configs:
+      - targets: ["app:8000"]
+    metrics_path: "/metrics"
+    scrape_interval: 10s
+
+  # Scrape multiple app instances when scaled
+  - job_name: "labmanager-scaled"
+    dns_sd_configs:
+      - names: ["app"]
+        type: A
+        port: 8000
+    metrics_path: "/metrics"
+    scrape_interval: 10s
+
+  - job_name: "redis"
+    static_configs:
+      - targets: ["redis:6379"]
+    # Requires redis_exporter sidecar (optional)
+    scrape_interval: 30s

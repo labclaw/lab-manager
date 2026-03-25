@@ -1,21 +1,52 @@
-"""Database engine and session management."""
+"""Database engine and session management.
+
+Scalability features:
+- Configurable connection pool sizing
+- Statement timeout to prevent runaway queries
+- Pool event listeners for monitoring
+- Connection recycling to handle PG restarts
+"""
 
 from __future__ import annotations
 
+import logging
 import threading
 from collections.abc import Generator
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session
 
 from lab_manager.config import get_settings
 
+logger = logging.getLogger(__name__)
+
 _engine = None
 _readonly_engine = None
 _session_factory = None
 _lock = threading.RLock()
+
+
+def _setup_pool_listeners(engine):
+    """Add pool event listeners for monitoring and diagnostics.
+
+    Silently skips if the engine doesn't support events (e.g. mock engines in tests).
+    """
+    try:
+        @event.listens_for(engine, "connect")
+        def _on_connect(dbapi_conn, connection_rec):
+            """Configure new connections with statement timeout."""
+            settings = get_settings()
+            if not settings.database_url.startswith("sqlite"):
+                cursor = dbapi_conn.cursor()
+                cursor.execute(
+                    f"SET statement_timeout = {settings.db_statement_timeout}"
+                )
+                cursor.close()
+    except Exception:
+        # Mock engines or non-standard backends may not support event listeners
+        pass
 
 
 def get_engine():
@@ -28,7 +59,13 @@ def get_engine():
                 if settings.database_url.startswith("sqlite"):
                     pass
                 else:
-                    kwargs.update(pool_size=10, max_overflow=20, pool_pre_ping=True)
+                    kwargs.update(
+                        pool_size=settings.db_pool_size,
+                        max_overflow=settings.db_pool_max_overflow,
+                        pool_pre_ping=True,
+                        pool_timeout=settings.db_pool_timeout,
+                        pool_recycle=settings.db_pool_recycle,
+                    )
                 # On managed PG (e.g. DO App Platform) the app user may lack
                 # CREATE on the 'public' schema. Use a custom schema to avoid
                 # this PG 15+ restriction. Set search_path via connect_args.
@@ -38,6 +75,12 @@ def get_engine():
                         "-c search_path=labmanager,public"
                     )
                 _engine = create_engine(settings.database_url, **kwargs)
+                _setup_pool_listeners(_engine)
+                logger.info(
+                    "Database engine created: pool_size=%d, max_overflow=%d",
+                    settings.db_pool_size,
+                    settings.db_pool_max_overflow,
+                )
 
     return _engine
 

@@ -1,0 +1,133 @@
+# docker-compose.scalable.yml — Scalable deployment overlay
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.scalable.yml up -d
+#   docker compose -f docker-compose.yml -f docker-compose.scalable.yml up -d --scale app=3
+#
+# Adds:
+#   - Redis (caching, task queue, event bus, distributed locks)
+#   - PgBouncer (connection pooling proxy for multi-worker scaling)
+#   - Worker process (background task consumer)
+#   - Prometheus (optional metrics scraping)
+#
+# The base docker-compose.yml provides: db, search, app, caddy, tunnel
+
+services:
+  # --- Redis: caching, task queue, event bus ---
+  redis:
+    image: redis:7-alpine
+    command: >
+      redis-server
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --appendfsync everysec
+      --tcp-keepalive 60
+      --timeout 300
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 768m
+    restart: unless-stopped
+
+  # --- PgBouncer: connection pooling for horizontal scaling ---
+  pgbouncer:
+    image: edoburu/pgbouncer:1.23.1-p2
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-labmanager}:${POSTGRES_PASSWORD:?err}@db:5432/${POSTGRES_DB:-labmanager}
+      POOL_MODE: transaction
+      DEFAULT_POOL_SIZE: 20
+      MAX_CLIENT_CONN: 200
+      MIN_POOL_SIZE: 5
+      RESERVE_POOL_SIZE: 5
+      RESERVE_POOL_TIMEOUT: 3
+      SERVER_LIFETIME: 3600
+      SERVER_IDLE_TIMEOUT: 600
+      SERVER_CONNECT_TIMEOUT: 5
+      QUERY_TIMEOUT: 30
+      CLIENT_IDLE_TIMEOUT: 600
+      LOG_CONNECTIONS: 0
+      LOG_DISCONNECTIONS: 0
+      STATS_PERIOD: 60
+      AUTH_TYPE: scram-sha-256
+    ports:
+      - "127.0.0.1:6432:6432"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 6432"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 256m
+    restart: unless-stopped
+
+  # --- Override app to use Redis and PgBouncer ---
+  app:
+    environment:
+      # Point app at PgBouncer instead of direct PG
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-labmanager}:${POSTGRES_PASSWORD:?err}@pgbouncer:6432/${POSTGRES_DB:-labmanager}
+      REDIS_URL: redis://redis:6379/0
+      TASK_WORKERS: ${TASK_WORKERS:-4}
+      MAX_CONCURRENT_REQUESTS: ${MAX_CONCURRENT_REQUESTS:-200}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+      DB_POOL_MAX_OVERFLOW: ${DB_POOL_MAX_OVERFLOW:-20}
+      METRICS_ENABLED: "true"
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+
+  # --- Background worker (same image, different entrypoint) ---
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python -m lab_manager.tasks.run_worker
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-labmanager}:${POSTGRES_PASSWORD:?err}@pgbouncer:6432/${POSTGRES_DB:-labmanager}
+      REDIS_URL: redis://redis:6379/0
+      TASK_WORKERS: ${TASK_WORKERS:-4}
+      MEILISEARCH_URL: http://search:7700
+      MEILISEARCH_API_KEY: ${MEILI_MASTER_KEY:?err}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+      search:
+        condition: service_healthy
+    mem_limit: 1g
+    restart: unless-stopped
+    deploy:
+      replicas: ${WORKER_REPLICAS:-1}
+
+  # --- Prometheus (optional, for monitoring) ---
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-lifecycle"
+    mem_limit: 512m
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+volumes:
+  redis_data:
+  prometheus_data:

@@ -97,6 +97,33 @@ class Settings(BaseSettings):
     scans_dir: str = ""
     devices_dir: str = ""
 
+    # --- Scalability settings ---
+
+    # Redis (caching, task queue, event bus, distributed locks)
+    redis_url: str = "redis://localhost:6379/0"
+    redis_max_connections: int = 20
+
+    # Background task workers
+    task_workers: int = 4  # Thread pool size per process
+
+    # Connection limits
+    max_concurrent_requests: int = 200  # Per-process concurrent request limit
+
+    # Database pool tuning (override defaults in database.py)
+    db_pool_size: int = 10  # Base pool size
+    db_pool_max_overflow: int = 20  # Extra connections under load
+    db_pool_timeout: int = 30  # Seconds to wait for a connection
+    db_pool_recycle: int = 1800  # Recycle connections after 30 min
+    db_statement_timeout: int = 30000  # Kill queries after 30s (ms)
+
+    # Cache TTLs (seconds)
+    cache_default_ttl: int = 300  # 5 min
+    cache_analytics_ttl: int = 900  # 15 min
+    cache_search_ttl: int = 60  # 1 min
+
+    # Metrics
+    metrics_enabled: bool = True
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
