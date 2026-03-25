@@ -80,13 +80,15 @@ describe('CloudBrainPage', () => {
   it('shows not connected status when Cloud Brain is offline', () => {
     renderOffline()
 
-    expect(screen.getByText('Not Connected')).toBeInTheDocument()
+    // main branch uses "Setup Required" for offline status
+    expect(screen.getByText('Setup Required')).toBeInTheDocument()
   })
 
   it('shows offline notice with labclaw command when not connected', () => {
     renderOffline()
 
-    expect(screen.getByText('Cloud Brain is not running')).toBeInTheDocument()
+    // main branch uses "Cloud Brain is offline" for offline notice
+    expect(screen.getByText('Cloud Brain is offline')).toBeInTheDocument()
     expect(screen.getByText('labclaw brain --port 18802')).toBeInTheDocument()
   })
 
@@ -116,7 +118,7 @@ describe('CloudBrainPage', () => {
   it('does not show query input when offline', () => {
     renderOffline()
 
-    expect(screen.getByText('Not Connected')).toBeInTheDocument()
+    expect(screen.getByText('Setup Required')).toBeInTheDocument()
     expect(
       screen.queryByPlaceholderText('Ask Cloud Brain a scientific question...'),
     ).not.toBeInTheDocument()
@@ -156,22 +158,22 @@ describe('CloudBrainPage', () => {
     )
   })
 
-  it('expands skill card to show examples on click', async () => {
+  it('expands skill card to show more examples on click', async () => {
     const user = userEvent.setup()
     renderOffline()
 
-    // Initially no example text visible
+    // Second example is hidden initially (first example shown in preview)
     expect(
-      screen.queryByText('Look up protein P04637 in UniProt'),
+      screen.queryByText('Search PubChem for aspirin compound data'),
     ).not.toBeInTheDocument()
 
-    // Click first "Try examples" button
-    const buttons = screen.getAllByText('Try examples')
+    // Click first "More examples" button (main uses "More examples" / "Less")
+    const buttons = screen.getAllByText('More examples')
     await user.click(buttons[0])
 
-    // Now example is visible
+    // Now additional examples are visible
     expect(
-      screen.getByText('Look up protein P04637 in UniProt'),
+      screen.getByText('Search PubChem for aspirin compound data'),
     ).toBeInTheDocument()
   })
 

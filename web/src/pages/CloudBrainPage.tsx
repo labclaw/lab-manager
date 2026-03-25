@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   Brain, Dna, FlaskConical, Search, Microscope,
   Pill, Activity, Zap, ExternalLink, Send, Loader2,
-  CheckCircle2, XCircle, ChevronDown, ChevronUp, PenLine,
+  ChevronDown, ChevronUp, PenLine,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -21,6 +21,8 @@ interface SkillDef {
   readonly name: string
   readonly icon: React.ElementType
   readonly color: string
+  readonly bg: string
+  readonly tagBg: string
   readonly description: string
   readonly tools: number
   readonly source: string
@@ -54,6 +56,8 @@ const SKILLS: readonly SkillDef[] = [
     name: 'ToolUniverse',
     icon: Dna,
     color: 'text-emerald-600',
+    bg: 'bg-emerald-50',
+    tagBg: 'bg-emerald-50 text-emerald-700',
     description:
       '2,000+ scientific tools across 58 research skills. Covers UniProt, ChEMBL, PubChem, OpenTargets, FAERS, ClinicalTrials, and 440+ more databases.',
     tools: 2124,
@@ -75,6 +79,8 @@ const SKILLS: readonly SkillDef[] = [
     name: 'K-Dense AI',
     icon: Brain,
     color: 'text-violet-600',
+    bg: 'bg-violet-50',
+    tagBg: 'bg-violet-50 text-violet-700',
     description:
       '170+ AI skill recipes with access to 250+ scientific databases and 500k+ Python packages. Covers bioinformatics, cheminformatics, clinical research, and lab automation.',
     tools: 170,
@@ -96,6 +102,8 @@ const SKILLS: readonly SkillDef[] = [
     name: 'Biomni',
     icon: Microscope,
     color: 'text-blue-600',
+    bg: 'bg-blue-50',
+    tagBg: 'bg-blue-50 text-blue-700',
     description:
       '150+ tools across 59 biomedical databases. Autonomous biomedical AI agent for multi-step reasoning across scientific domains.',
     tools: 150,
@@ -116,6 +124,8 @@ const SKILLS: readonly SkillDef[] = [
     name: 'Life Science Reasoning',
     icon: FlaskConical,
     color: 'text-amber-600',
+    bg: 'bg-amber-50',
+    tagBg: 'bg-amber-50 text-amber-700',
     description:
       'Domain-expert AI reasoning for biology and medicine. Provides scientifically rigorous analysis and experiment design with confidence levels.',
     tools: 2,
@@ -136,6 +146,8 @@ const SKILLS: readonly SkillDef[] = [
     name: 'LifeSci MCP',
     icon: Search,
     color: 'text-cyan-600',
+    bg: 'bg-cyan-50',
+    tagBg: 'bg-cyan-50 text-cyan-700',
     description:
       '5 specialized MCP servers for literature and drug research. Direct access to PubMed, bioRxiv, ChEMBL, OpenTargets, and ClinicalTrials.gov.',
     tools: 5,
@@ -156,6 +168,8 @@ const SKILLS: readonly SkillDef[] = [
     name: 'Scientific Writing',
     icon: PenLine,
     color: 'text-rose-600',
+    bg: 'bg-rose-50',
+    tagBg: 'bg-rose-50 text-rose-700',
     description:
       'AI-powered scientific writing: generate Methods, Results, Discussion sections and format citations in APA or other styles.',
     tools: 2,
@@ -175,12 +189,12 @@ const CLOUD_BRAIN_URL = '/brain'
 /* ---------- quick actions ---------- */
 
 const QUICK_ACTIONS = [
-  { label: 'Search PubMed', icon: Search, query: 'Search PubMed for recent papers on...', skill: 'lifesci-mcp' },
-  { label: 'Protein Lookup', icon: Dna, query: 'Look up protein in UniProt by accession...', skill: 'tooluniverse' },
-  { label: 'Drug Info', icon: Pill, query: 'Find drug information and targets for...', skill: 'tooluniverse' },
-  { label: 'Experiment Design', icon: FlaskConical, query: 'Design an experiment to test...', skill: 'lifesci' },
-  { label: 'Write Section', icon: PenLine, query: 'Write a Methods section for...', skill: 'write' },
-  { label: 'Gene Analysis', icon: Activity, query: 'Analyze gene expression for...', skill: 'kdense' },
+  { label: 'Search PubMed', icon: Search, query: 'Search PubMed for recent papers on...', skill: 'lifesci-mcp', color: 'text-cyan-600', bg: 'bg-cyan-50' },
+  { label: 'Protein Lookup', icon: Dna, query: 'Look up protein in UniProt by accession...', skill: 'tooluniverse', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+  { label: 'Drug Info', icon: Pill, query: 'Find drug information and targets for...', skill: 'tooluniverse', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+  { label: 'Experiment Design', icon: FlaskConical, query: 'Design an experiment to test...', skill: 'lifesci', color: 'text-amber-600', bg: 'bg-amber-50' },
+  { label: 'Write Section', icon: PenLine, query: 'Write a Methods section for...', skill: 'write', color: 'text-rose-600', bg: 'bg-rose-50' },
+  { label: 'Gene Analysis', icon: Activity, query: 'Analyze gene expression for...', skill: 'kdense', color: 'text-violet-600', bg: 'bg-violet-50' },
 ] as const
 
 /* ---------- skill card ---------- */
@@ -203,7 +217,7 @@ function SkillCard({
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className={cn('size-10 flex items-center justify-center rounded-lg bg-gray-50', skill.color)}>
+            <div className={cn('size-10 flex items-center justify-center rounded-lg', skill.bg, skill.color)}>
               <Icon className="size-5" />
             </div>
             <div>
@@ -215,9 +229,9 @@ function SkillCard({
             <div className={cn('flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full',
               healthy
                 ? 'bg-emerald-50 text-emerald-600'
-                : 'bg-gray-100 text-gray-400',
+                : 'bg-gray-100 text-gray-500',
             )}>
-              {healthy ? <CheckCircle2 className="size-3" /> : <XCircle className="size-3" />}
+              <span className={cn('size-2 rounded-full', healthy ? 'bg-emerald-500' : 'bg-gray-400')} />
               {healthy ? 'Active' : 'Offline'}
             </div>
           )}
@@ -229,7 +243,7 @@ function SkillCard({
         {/* Categories */}
         <div className="flex flex-wrap gap-1.5 mb-3">
           {skill.categories.slice(0, expanded ? undefined : 4).map((cat) => (
-            <span key={cat} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+            <span key={cat} className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full', skill.tagBg)}>
               {cat}
             </span>
           ))}
@@ -240,37 +254,44 @@ function SkillCard({
           )}
         </div>
 
-        {/* Source */}
-        {skill.sourceUrl && (
-          <a
-            href={skill.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline mb-3"
-          >
-            <ExternalLink className="size-3" />
-            {skill.source}
-          </a>
-        )}
-        {!skill.sourceUrl && skill.source && (
-          <p className="text-[11px] text-gray-400 mb-3">{skill.source}</p>
-        )}
+        {/* Example preview */}
+        <div className={cn('rounded-lg px-3 py-2 mb-3', skill.bg)}>
+          <p className="text-[11px] text-gray-500 font-medium mb-1">Example</p>
+          <p className="text-xs text-gray-700 italic">&ldquo;{skill.examples[0]}&rdquo;</p>
+        </div>
 
-        {/* Expand toggle */}
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-1 text-xs text-primary font-medium hover:underline"
-        >
-          {expanded ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-          {expanded ? 'Hide examples' : 'Try examples'}
-        </button>
+        {/* Source + Expand row */}
+        <div className="flex items-center justify-between">
+          <div>
+            {skill.sourceUrl ? (
+              <a
+                href={skill.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+              >
+                <ExternalLink className="size-3" />
+                {skill.source}
+              </a>
+            ) : skill.source ? (
+              <p className="text-[11px] text-gray-400">{skill.source}</p>
+            ) : null}
+          </div>
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="flex items-center gap-1 text-xs text-primary font-medium hover:underline"
+          >
+            {expanded ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+            {expanded ? 'Less' : 'More examples'}
+          </button>
+        </div>
       </div>
 
-      {/* Examples */}
+      {/* Expanded examples */}
       {expanded && (
         <div className="border-t border-gray-100 px-5 py-3 bg-gray-50/50 rounded-b-xl">
-          <div className="space-y-2">
-            {skill.examples.map((ex) => (
+          <div className="space-y-1.5">
+            {skill.examples.slice(1).map((ex) => (
               <button
                 key={ex}
                 onClick={() => onTryExample(ex)}
@@ -409,11 +430,15 @@ export function CloudBrainPage({ onError: _onError, __testConnected, __testHealt
                 : 'bg-gray-50 text-gray-500 border border-gray-200',
           )}>
             {connected === null && <Loader2 className="size-4 animate-spin" />}
-            {connected === true && <CheckCircle2 className="size-4" />}
-            {connected === false && <XCircle className="size-4" />}
+            {connected === true && (
+              <span className="size-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            )}
+            {connected === false && (
+              <span className="size-2.5 rounded-full bg-amber-500" />
+            )}
             {connected === null && 'Checking...'}
             {connected === true && `Connected (${health?.tool_count?.toLocaleString() ?? '?'} tools)`}
-            {connected === false && 'Not Connected'}
+            {connected === false && 'Setup Required'}
           </div>
         </div>
 
@@ -443,11 +468,14 @@ export function CloudBrainPage({ onError: _onError, __testConnected, __testHealt
 
         {/* Offline notice */}
         {connected === false && (
-          <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
-            <p className="font-medium">Cloud Brain is not running</p>
-            <p className="text-xs text-amber-600 mt-1">
-              Start it with <code className="bg-amber-100 px-1.5 py-0.5 rounded text-[11px] font-mono">labclaw brain --port 18802</code> to
-              enable live tool execution. The skill catalog below shows what is available when connected.
+          <div className="mt-4 bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-700">
+            <p className="font-semibold text-gray-900">Cloud Brain is offline</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Start it with{' '}
+              <code className="bg-gray-100 px-1.5 py-0.5 rounded text-[11px] font-mono text-gray-700">
+                labclaw brain --port 18802
+              </code>{' '}
+              to enable live tool execution. Browse the skill catalog below to see all available capabilities.
             </p>
           </div>
         )}
@@ -465,8 +493,8 @@ export function CloudBrainPage({ onError: _onError, __testConnected, __testHealt
                 onClick={() => handleTryExample(action.query)}
                 className="flex flex-col items-center gap-2 p-3 bg-white border border-gray-200 rounded-xl hover:border-primary/30 hover:shadow-sm transition-all text-center group"
               >
-                <div className="size-8 flex items-center justify-center rounded-lg bg-gray-50 group-hover:bg-primary/10 transition-colors">
-                  <Icon className="size-4 text-gray-500 group-hover:text-primary transition-colors" />
+                <div className={cn('size-8 flex items-center justify-center rounded-lg transition-colors', action.bg, action.color)}>
+                  <Icon className="size-4" />
                 </div>
                 <span className="text-[11px] font-medium text-gray-700 group-hover:text-primary leading-tight">{action.label}</span>
               </button>
