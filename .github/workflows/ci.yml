@@ -34,6 +34,8 @@ jobs:
           PATTERN='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .+'
           BAD=0
           while IFS= read -r msg; do
+            # Skip merge commits (created by GitHub PR merges)
+            echo "$msg" | grep -qE '^Merge ' && continue
             if ! echo "$msg" | grep -qE "$PATTERN"; then
               echo "::error::Non-conventional commit: $msg"
               BAD=1
