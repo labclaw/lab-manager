@@ -114,7 +114,7 @@ export const handlers = [
   http.get('/api/v1/setup/status', () => HttpResponse.json({ needs_setup: false })),
 
   // Config
-  http.get('/api/v1/config', () => HttpResponse.json({ lab_name: 'Shen Lab', lab_subtitle: 'Neuroscience Research', version: '0.1.9' })),
+  http.get('/api/v1/config', () => HttpResponse.json({ lab_name: 'Research Lab', lab_subtitle: 'Neuroscience Department', version: '0.1.9' })),
 
   // Analytics
   http.get('/api/v1/analytics/dashboard', () => HttpResponse.json(mockDashboard)),

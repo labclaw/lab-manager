@@ -11,12 +11,12 @@ test.describe('Settings Page', () => {
   })
 
   test('shows lab name from config', async ({ authedPage: page }) => {
-    // Mock returns lab_name: 'Shen Lab' — shown in an input field
-    await expect(page.locator('input[value="Shen Lab"]')).toBeVisible()
+    // Mock returns lab_name: 'Research Lab' — shown in an input field
+    await expect(page.locator('input[value="Research Lab"]')).toBeVisible()
   })
 
   test('shows lab subtitle from config', async ({ authedPage: page }) => {
-    await expect(page.locator('input[value="MGH Neuroscience"]')).toBeVisible()
+    await expect(page.locator('input[value="Neuroscience Department"]')).toBeVisible()
   })
 
   test('shows User Account section', async ({ authedPage: page }) => {
@@ -69,7 +69,7 @@ test.describe('Settings Page', () => {
   })
 
   test('Lab Profile fields are disabled', async ({ authedPage: page }) => {
-    const labNameInput = page.locator('input[value="Shen Lab"]')
+    const labNameInput = page.locator('input[value="Research Lab"]')
     await expect(labNameInput).toBeDisabled()
   })
 })
