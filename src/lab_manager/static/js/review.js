@@ -68,10 +68,20 @@ function renderReviewQueue() {
 
 function confidenceBadge(conf) {
   if (conf == null) return "";
-  if (conf >= 0.9) return "";
+  if (conf >= 0.9) return '<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-accent-green/10 text-accent-green border border-accent-green/20">HIGH</span>';
   if (conf >= 0.7)
     return '<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">MEDIUM</span>';
   return '<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-500/10 text-red-400 border border-red-500/20">LOW</span>';
+}
+
+function confidenceExplanation(conf) {
+  if (conf == null) return "Confidence data not available.";
+  const pct = (conf * 100).toFixed(0);
+  if (conf >= 0.9)
+    return `High confidence (${pct}%): All AI models agreed on the extracted data. Quick review recommended.`;
+  if (conf >= 0.7)
+    return `Medium confidence (${pct}%): Most AI models agreed, but some fields may need verification. Please check highlighted fields.`;
+  return `Low confidence (${pct}%): The AI models disagreed on several fields. Careful review needed \u2014 please verify each field against the original document.`;
 }
 
 async function selectReviewDoc(idx) {
@@ -125,13 +135,35 @@ async function selectReviewDoc(idx) {
         </div>`;
     }
 
+    // Build approve preview text
+    const itemCount = (data.items || []).length;
+    const approvePreview = itemCount > 0
+      ? `Approving will create: 1 order from <strong>${escapeHtml(data.vendor_name || "unknown vendor")}</strong> with ${itemCount} line item${itemCount !== 1 ? "s" : ""}${data.items ? ", and add them to your inventory" : ""}.`
+      : `Approving will create an order record from <strong>${escapeHtml(data.vendor_name || "unknown vendor")}</strong>.`;
+
+    // Build image preview if file looks like an image
+    const fileName = (doc.file_name || "").toLowerCase();
+    const isImage = fileName.endsWith(".png") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") || fileName.endsWith(".tiff") || fileName.endsWith(".tif");
+    const filePreviewHtml = doc.file_path
+      ? (isImage
+        ? `<img src="/uploads/${encodeURIComponent(doc.file_name || "")}" alt="Document scan" class="max-h-48 rounded border border-border-dark object-contain" onerror="this.style.display='none'">`
+        : `<span class="material-symbols-outlined text-4xl text-primary">picture_as_pdf</span>`)
+      : `<span class="material-symbols-outlined text-4xl text-primary">description</span>`;
+
     preview.innerHTML = `
-      <!-- Document preview -->
-      <div class="flex items-center gap-3 p-4 bg-background-dark rounded-lg border border-border-dark mb-4">
-        <span class="material-symbols-outlined text-4xl text-primary">picture_as_pdf</span>
-        <div>
-          <div class="text-sm font-medium text-slate-300">${escapeHtml(doc.file_name || "")}</div>
-          <div class="text-xs text-slate-500">Document #${doc.id}</div>
+      <!-- Document preview with image -->
+      <div class="p-4 bg-background-dark rounded-lg border border-border-dark mb-4">
+        <div class="flex items-start gap-4">
+          <div class="flex-shrink-0">${filePreviewHtml}</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium text-slate-300 mb-1">${escapeHtml(doc.file_name || "")}</div>
+            <div class="text-xs text-slate-500 mb-2">Document #${doc.id} ${doc.extraction_model ? " \u00b7 Extracted by " + escapeHtml(doc.extraction_model) : ""}</div>
+            <!-- Confidence explanation -->
+            <div class="flex items-start gap-2 p-2 rounded-md ${doc.extraction_confidence >= 0.9 ? "bg-accent-green/5 border border-accent-green/20" : doc.extraction_confidence >= 0.7 ? "bg-amber-500/5 border border-amber-500/20" : "bg-red-500/5 border border-red-500/20"}">
+              <span class="material-symbols-outlined text-sm mt-0.5 ${doc.extraction_confidence >= 0.9 ? "text-accent-green" : doc.extraction_confidence >= 0.7 ? "text-amber-400" : "text-red-400"}">info</span>
+              <span class="text-xs ${doc.extraction_confidence >= 0.9 ? "text-accent-green/80" : doc.extraction_confidence >= 0.7 ? "text-amber-400/80" : "text-red-400/80"}">${confidenceExplanation(doc.extraction_confidence)}</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -149,6 +181,14 @@ async function selectReviewDoc(idx) {
       </div>
 
       ${itemsHtml}
+
+      <!-- Approve preview -->
+      <div class="mt-4 p-3 rounded-lg bg-accent-green/5 border border-accent-green/20">
+        <div class="flex items-start gap-2">
+          <span class="material-symbols-outlined text-accent-green text-sm mt-0.5">preview</span>
+          <div class="text-xs text-slate-400"><strong class="text-slate-300">What happens when you approve:</strong><br>${approvePreview}</div>
+        </div>
+      </div>
     `;
 
     // Action bar
