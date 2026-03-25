@@ -1,19 +1,41 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { http, HttpResponse } from 'msw'
+import { server } from '@/test/mocks/server'
 import { renderWithProviders } from '@/test/utils'
 import { CloudBrainPage } from '@/pages/CloudBrainPage'
+
+// Helper to mock Cloud Brain as offline (network error)
+function mockBrainOffline() {
+  server.use(
+    http.get('/brain/health', () => HttpResponse.error()),
+  )
+}
+
+// Helper to mock Cloud Brain as online with health data
+function mockBrainOnline(overrides?: Record<string, unknown>) {
+  const healthData = {
+    status: 'ok',
+    skills: { tooluniverse: true, lifesci: true, write: true },
+    tool_count: 2400,
+    version: '0.0.1',
+    ...overrides,
+  }
+  server.use(
+    http.get('/brain/health', () => HttpResponse.json(healthData)),
+  )
+}
 
 describe('CloudBrainPage', () => {
   const onError = vi.fn()
 
   beforeEach(() => {
-    vi.restoreAllMocks()
     onError.mockClear()
   })
 
   it('renders the Cloud Brain heading and description', () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'))
+    mockBrainOffline()
 
     renderWithProviders(<CloudBrainPage onError={onError} />, {
       initialEntries: ['/cloud-brain'],
@@ -24,7 +46,7 @@ describe('CloudBrainPage', () => {
   })
 
   it('renders all six skill cards', () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'))
+    mockBrainOffline()
 
     renderWithProviders(<CloudBrainPage onError={onError} />, {
       initialEntries: ['/cloud-brain'],
@@ -39,7 +61,7 @@ describe('CloudBrainPage', () => {
   })
 
   it('renders quick action buttons', () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'))
+    mockBrainOffline()
 
     renderWithProviders(<CloudBrainPage onError={onError} />, {
       initialEntries: ['/cloud-brain'],
@@ -58,7 +80,7 @@ describe('CloudBrainPage', () => {
   })
 
   it('shows not connected status when Cloud Brain is offline', async () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'))
+    mockBrainOffline()
 
     renderWithProviders(<CloudBrainPage onError={onError} />, {
       initialEntries: ['/cloud-brain'],
@@ -68,7 +90,7 @@ describe('CloudBrainPage', () => {
   })
 
   it('shows offline notice with labclaw command when not connected', async () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'))
+    mockBrainOffline()
 
     renderWithProviders(<CloudBrainPage onError={onError} />, {
       initialEntries: ['/cloud-brain'],
@@ -79,18 +101,7 @@ describe('CloudBrainPage', () => {
   })
 
   it('shows connected status when Cloud Brain is running', async () => {
-    const healthData = {
-      status: 'ok',
-      skills: { tooluniverse: true, lifesci: true, write: true },
-      tool_count: 2400,
-      version: '0.0.1',
-    }
-    vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
-      Promise.resolve(new Response(JSON.stringify(healthData), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })),
-    )
+    mockBrainOnline()
 
     renderWithProviders(<CloudBrainPage onError={onError} />, {
       initialEntries: ['/cloud-brain'],
@@ -102,18 +113,7 @@ describe('CloudBrainPage', () => {
   })
 
   it('shows stats row when connected', async () => {
-    const healthData = {
-      status: 'ok',
-      skills: { tooluniverse: true, lifesci: true, write: true },
-      tool_count: 2400,
-      version: '0.0.1',
-    }
-    vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
-      Promise.resolve(new Response(JSON.stringify(healthData), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })),
-    )
+    mockBrainOnline()
 
     renderWithProviders(<CloudBrainPage onError={onError} />, {
       initialEntries: ['/cloud-brain'],
@@ -128,18 +128,7 @@ describe('CloudBrainPage', () => {
   })
 
   it('shows query input when connected', async () => {
-    const healthData = {
-      status: 'ok',
-      skills: { tooluniverse: true },
-      tool_count: 100,
-      version: '0.0.1',
-    }
-    vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
-      Promise.resolve(new Response(JSON.stringify(healthData), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })),
-    )
+    mockBrainOnline({ tool_count: 100 })
 
     renderWithProviders(<CloudBrainPage onError={onError} />, {
       initialEntries: ['/cloud-brain'],
@@ -153,7 +142,7 @@ describe('CloudBrainPage', () => {
   })
 
   it('does not show query input when offline', async () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'))
+    mockBrainOffline()
 
     renderWithProviders(<CloudBrainPage onError={onError} />, {
       initialEntries: ['/cloud-brain'],
@@ -166,7 +155,7 @@ describe('CloudBrainPage', () => {
   })
 
   it('renders API reference section', () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'))
+    mockBrainOffline()
 
     renderWithProviders(<CloudBrainPage onError={onError} />, {
       initialEntries: ['/cloud-brain'],
@@ -179,7 +168,7 @@ describe('CloudBrainPage', () => {
   })
 
   it('renders total tool count in the description', () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'))
+    mockBrainOffline()
 
     renderWithProviders(<CloudBrainPage onError={onError} />, {
       initialEntries: ['/cloud-brain'],
@@ -191,7 +180,7 @@ describe('CloudBrainPage', () => {
   })
 
   it('shows skill categories on a card', () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'))
+    mockBrainOffline()
 
     renderWithProviders(<CloudBrainPage onError={onError} />, {
       initialEntries: ['/cloud-brain'],
@@ -202,7 +191,7 @@ describe('CloudBrainPage', () => {
   })
 
   it('shows source link for ToolUniverse', () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'))
+    mockBrainOffline()
 
     renderWithProviders(<CloudBrainPage onError={onError} />, {
       initialEntries: ['/cloud-brain'],
@@ -216,7 +205,7 @@ describe('CloudBrainPage', () => {
   })
 
   it('expands skill card to show examples on click', async () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'))
+    mockBrainOffline()
     const user = userEvent.setup()
 
     renderWithProviders(<CloudBrainPage onError={onError} />, {
@@ -242,7 +231,7 @@ describe('CloudBrainPage', () => {
   })
 
   it('displays tool count per skill card', () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'))
+    mockBrainOffline()
 
     renderWithProviders(<CloudBrainPage onError={onError} />, {
       initialEntries: ['/cloud-brain'],
