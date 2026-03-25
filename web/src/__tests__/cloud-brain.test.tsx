@@ -6,53 +6,53 @@ import { server } from '@/test/mocks/server'
 import { renderWithProviders } from '@/test/utils'
 import { CloudBrainPage } from '@/pages/CloudBrainPage'
 
-// Helper to mock Cloud Brain as offline (returns 502 Bad Gateway)
-function mockBrainOffline() {
-  server.use(
-    http.get('/brain/health', () =>
-      new HttpResponse(null, { status: 502, statusText: 'Bad Gateway' }),
-    ),
+const onError = vi.fn()
+
+// Render with explicit offline state (bypasses async health check)
+function renderOffline() {
+  return renderWithProviders(
+    <CloudBrainPage onError={onError} __testConnected={false} />,
+    { initialEntries: ['/cloud-brain'] },
   )
 }
 
-// Helper to mock Cloud Brain as online with health data
-function mockBrainOnline(overrides?: Record<string, unknown>) {
-  const healthData = {
+// Render with explicit online state (bypasses async health check)
+function renderOnline(overrides?: Record<string, unknown>) {
+  const health = {
     status: 'ok',
     skills: { tooluniverse: true, lifesci: true, write: true },
     tool_count: 2400,
     version: '0.0.1',
     ...overrides,
   }
-  server.use(
-    http.get('/brain/health', () => HttpResponse.json(healthData)),
+  return renderWithProviders(
+    <CloudBrainPage onError={onError} __testConnected={true} __testHealth={health} />,
+    { initialEntries: ['/cloud-brain'] },
+  )
+}
+
+// Render with default props (will attempt async health check via MSW)
+function renderDefault() {
+  return renderWithProviders(
+    <CloudBrainPage onError={onError} />,
+    { initialEntries: ['/cloud-brain'] },
   )
 }
 
 describe('CloudBrainPage', () => {
-  const onError = vi.fn()
-
   beforeEach(() => {
     onError.mockClear()
   })
 
   it('renders the Cloud Brain heading and description', () => {
-    mockBrainOffline()
-
-    renderWithProviders(<CloudBrainPage onError={onError} />, {
-      initialEntries: ['/cloud-brain'],
-    })
+    renderOffline()
 
     expect(screen.getByText('Cloud Brain')).toBeInTheDocument()
     expect(screen.getByText('Unified scientific AI gateway')).toBeInTheDocument()
   })
 
   it('renders all six skill cards', () => {
-    mockBrainOffline()
-
-    renderWithProviders(<CloudBrainPage onError={onError} />, {
-      initialEntries: ['/cloud-brain'],
-    })
+    renderOffline()
 
     expect(screen.getByText('ToolUniverse')).toBeInTheDocument()
     expect(screen.getByText('K-Dense AI')).toBeInTheDocument()
@@ -63,11 +63,7 @@ describe('CloudBrainPage', () => {
   })
 
   it('renders quick action buttons', () => {
-    mockBrainOffline()
-
-    renderWithProviders(<CloudBrainPage onError={onError} />, {
-      initialEntries: ['/cloud-brain'],
-    })
+    renderOffline()
 
     expect(screen.getByText('Search PubMed')).toBeInTheDocument()
     expect(screen.getByText('Protein Lookup')).toBeInTheDocument()
@@ -81,87 +77,53 @@ describe('CloudBrainPage', () => {
     expect(buttons.length).toBe(6)
   })
 
-  it('shows not connected status when Cloud Brain is offline', async () => {
-    mockBrainOffline()
+  it('shows not connected status when Cloud Brain is offline', () => {
+    renderOffline()
 
-    renderWithProviders(<CloudBrainPage onError={onError} />, {
-      initialEntries: ['/cloud-brain'],
-    })
-
-    expect(await screen.findByText('Not Connected')).toBeInTheDocument()
+    expect(screen.getByText('Not Connected')).toBeInTheDocument()
   })
 
-  it('shows offline notice with labclaw command when not connected', async () => {
-    mockBrainOffline()
+  it('shows offline notice with labclaw command when not connected', () => {
+    renderOffline()
 
-    renderWithProviders(<CloudBrainPage onError={onError} />, {
-      initialEntries: ['/cloud-brain'],
-    })
-
-    expect(await screen.findByText('Cloud Brain is not running')).toBeInTheDocument()
+    expect(screen.getByText('Cloud Brain is not running')).toBeInTheDocument()
     expect(screen.getByText('labclaw brain --port 18802')).toBeInTheDocument()
   })
 
-  it('shows connected status when Cloud Brain is running', async () => {
-    mockBrainOnline()
+  it('shows connected status when Cloud Brain is running', () => {
+    renderOnline()
 
-    renderWithProviders(<CloudBrainPage onError={onError} />, {
-      initialEntries: ['/cloud-brain'],
-    })
-
-    await waitFor(() => {
-      expect(screen.getByText(/Connected.*2,?400 tools/)).toBeInTheDocument()
-    })
+    expect(screen.getByText(/Connected.*2,?400 tools/)).toBeInTheDocument()
   })
 
-  it('shows stats row when connected', async () => {
-    mockBrainOnline()
+  it('shows stats row when connected', () => {
+    renderOnline()
 
-    renderWithProviders(<CloudBrainPage onError={onError} />, {
-      initialEntries: ['/cloud-brain'],
-    })
-
-    await waitFor(() => {
-      expect(screen.getByText('Tools Available')).toBeInTheDocument()
-      expect(screen.getByText('Active Skills')).toBeInTheDocument()
-      expect(screen.getByText('Skills Healthy')).toBeInTheDocument()
-      expect(screen.getByText('Version')).toBeInTheDocument()
-    })
+    expect(screen.getByText('Tools Available')).toBeInTheDocument()
+    expect(screen.getByText('Active Skills')).toBeInTheDocument()
+    expect(screen.getByText('Skills Healthy')).toBeInTheDocument()
+    expect(screen.getByText('Version')).toBeInTheDocument()
   })
 
-  it('shows query input when connected', async () => {
-    mockBrainOnline({ tool_count: 100 })
+  it('shows query input when connected', () => {
+    renderOnline({ tool_count: 100 })
 
-    renderWithProviders(<CloudBrainPage onError={onError} />, {
-      initialEntries: ['/cloud-brain'],
-    })
-
-    await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText('Ask Cloud Brain a scientific question...'),
-      ).toBeInTheDocument()
-    })
+    expect(
+      screen.getByPlaceholderText('Ask Cloud Brain a scientific question...'),
+    ).toBeInTheDocument()
   })
 
-  it('does not show query input when offline', async () => {
-    mockBrainOffline()
+  it('does not show query input when offline', () => {
+    renderOffline()
 
-    renderWithProviders(<CloudBrainPage onError={onError} />, {
-      initialEntries: ['/cloud-brain'],
-    })
-
-    expect(await screen.findByText('Not Connected')).toBeInTheDocument()
+    expect(screen.getByText('Not Connected')).toBeInTheDocument()
     expect(
       screen.queryByPlaceholderText('Ask Cloud Brain a scientific question...'),
     ).not.toBeInTheDocument()
   })
 
   it('renders API reference section', () => {
-    mockBrainOffline()
-
-    renderWithProviders(<CloudBrainPage onError={onError} />, {
-      initialEntries: ['/cloud-brain'],
-    })
+    renderOffline()
 
     expect(screen.getByText('POST /brain/execute')).toBeInTheDocument()
     expect(screen.getByText('POST /brain/reason')).toBeInTheDocument()
@@ -170,11 +132,7 @@ describe('CloudBrainPage', () => {
   })
 
   it('renders total tool count in the description', () => {
-    mockBrainOffline()
-
-    renderWithProviders(<CloudBrainPage onError={onError} />, {
-      initialEntries: ['/cloud-brain'],
-    })
+    renderOffline()
 
     // The count appears in both the hero description and footer summary
     const matches = screen.getAllByText(/2,453\+/)
@@ -182,22 +140,14 @@ describe('CloudBrainPage', () => {
   })
 
   it('shows skill categories on a card', () => {
-    mockBrainOffline()
-
-    renderWithProviders(<CloudBrainPage onError={onError} />, {
-      initialEntries: ['/cloud-brain'],
-    })
+    renderOffline()
 
     expect(screen.getByText('Genomics')).toBeInTheDocument()
     expect(screen.getByText('Drug Discovery')).toBeInTheDocument()
   })
 
   it('shows source link for ToolUniverse', () => {
-    mockBrainOffline()
-
-    renderWithProviders(<CloudBrainPage onError={onError} />, {
-      initialEntries: ['/cloud-brain'],
-    })
+    renderOffline()
 
     const tuLink = screen.getByText('mims-harvard/ToolUniverse')
     expect(tuLink.closest('a')).toHaveAttribute(
@@ -207,15 +157,8 @@ describe('CloudBrainPage', () => {
   })
 
   it('expands skill card to show examples on click', async () => {
-    mockBrainOffline()
     const user = userEvent.setup()
-
-    renderWithProviders(<CloudBrainPage onError={onError} />, {
-      initialEntries: ['/cloud-brain'],
-    })
-
-    // Wait for component to settle (fetch rejection resolves)
-    await screen.findByText('Not Connected')
+    renderOffline()
 
     // Initially no example text visible
     expect(
@@ -233,14 +176,29 @@ describe('CloudBrainPage', () => {
   })
 
   it('displays tool count per skill card', () => {
-    mockBrainOffline()
-
-    renderWithProviders(<CloudBrainPage onError={onError} />, {
-      initialEntries: ['/cloud-brain'],
-    })
+    renderOffline()
 
     expect(screen.getByText('2,124 tools')).toBeInTheDocument()
     expect(screen.getByText('170 tools')).toBeInTheDocument()
     expect(screen.getByText('150 tools')).toBeInTheDocument()
+  })
+
+  it('fetches health from /brain/health on mount and shows connected', async () => {
+    server.use(
+      http.get('/brain/health', () =>
+        HttpResponse.json({
+          status: 'ok',
+          skills: { tooluniverse: true },
+          tool_count: 999,
+          version: '0.0.2',
+        }),
+      ),
+    )
+
+    renderDefault()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Connected.*999 tools/)).toBeInTheDocument()
+    })
   })
 })
