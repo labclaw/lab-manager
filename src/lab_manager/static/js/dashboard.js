@@ -80,12 +80,23 @@ async function renderStats() {
     )
     .join("");
 
+  // Update sidebar review badge
+  const reviewBadge = document.getElementById("review-badge");
+  const reviewCount = s.by_status.needs_review || 0;
+  if (reviewBadge) {
+    if (reviewCount > 0) {
+      reviewBadge.textContent = reviewCount > 99 ? "99+" : String(reviewCount);
+      reviewBadge.classList.remove("hidden");
+    } else {
+      reviewBadge.classList.add("hidden");
+    }
+  }
+
   // Proactive alert banners — fetch real alerts from backend
   const alertContainer = document.getElementById("alert-banners");
   const banners = [];
 
   // Document review backlog
-  const reviewCount = s.by_status.needs_review || 0;
   if (reviewCount > 0) {
     banners.push({
       icon: "fact_check",
