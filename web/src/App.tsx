@@ -14,6 +14,7 @@ import { DocumentsPage } from '@/pages/DocumentsPage'
 import { ReviewPage } from '@/pages/ReviewPage'
 import { UploadPage } from '@/pages/UploadPage'
 import { AnalyticsPage } from '@/pages/AnalyticsPage'
+import { SettingsPage } from '@/pages/SettingsPage'
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -36,19 +37,6 @@ function AlertsPage() {
       </h3>
       <p className="text-sm text-[var(--muted-foreground)]">
         Alerts page
-      </p>
-    </div>
-  )
-}
-
-function SettingsPage() {
-  return (
-    <div className="text-center py-16 space-y-3">
-      <h3 className="text-lg font-display font-semibold text-[var(--foreground)]">
-        Settings
-      </h3>
-      <p className="text-sm text-[var(--muted-foreground)]">
-        Settings page coming soon
       </p>
     </div>
   )
@@ -173,7 +161,7 @@ export default function App() {
                 <Route path="upload" element={<UploadPage />} />
                 <Route path="review" element={<ReviewPage onError={setError} />} />
                 <Route path="alerts" element={<AlertsPage />} />
-                <Route path="settings" element={<SettingsPage />} />
+                <Route path="settings" element={<SettingsPage onError={setError} />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>
