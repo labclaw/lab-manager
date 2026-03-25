@@ -15,11 +15,47 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  ExternalLink,
 } from 'lucide-react'
 import { inventory as invApi } from '@/lib/api'
 
 interface InventoryPageProps {
   readonly onError: (msg: string) => void
+}
+
+const VENDOR_SEARCH_URLS: Record<string, string> = {
+  'sigma-aldrich': 'https://www.sigmaaldrich.com/US/en/search/{catalog}',
+  'milliporesigma': 'https://www.sigmaaldrich.com/US/en/search/{catalog}',
+  'thermo fisher': 'https://www.thermofisher.com/search/results?query={catalog}',
+  'fisher scientific': 'https://www.fishersci.com/us/en/search/{catalog}',
+  'bio-rad': 'https://www.bio-rad.com/en-us/search?query={catalog}',
+  'addgene': 'https://www.addgene.org/search/all/?q={catalog}',
+  'abcam': 'https://www.abcam.com/search?q={catalog}',
+  'cell signaling': 'https://www.cellsignal.com/search?q={catalog}',
+  'atcc': 'https://www.atcc.org/search#q={catalog}',
+  'vwr': 'https://us.vwr.com/store/search?query={catalog}',
+  'goldbio': 'https://www.goldbio.com/search?q={catalog}',
+  'biolegend': 'https://www.biolegend.com/en-us/search-results?query={catalog}',
+  'mcmaster-carr': 'https://www.mcmaster.com/{catalog}',
+  'genesee scientific': 'https://gfrsa.com/?s={catalog}',
+  'miltenyi': 'https://www.miltenyibiotec.com/search?query={catalog}',
+  'eppendorf': 'https://www.eppendorf.com/us-en/search/?query={catalog}',
+  'takara bio': 'https://www.takarabio.com/search?q={catalog}',
+  'qiagen': 'https://www.qiagen.com/us/search?query={catalog}',
+  'proteintech': 'https://www.ptglab.com/search?query={catalog}',
+  'santa cruz': 'https://www.scbt.com/search?q={catalog}',
+  'invitrogen': 'https://www.thermofisher.com/search/results?query={catalog}',
+}
+
+function getReorderUrl(vendorName?: string, catalogNumber?: string): string | null {
+  if (!vendorName || !catalogNumber) return null
+  const key = vendorName.toLowerCase().trim()
+  for (const [vendorKey, urlPattern] of Object.entries(VENDOR_SEARCH_URLS)) {
+    if (vendorKey.includes(key) || key.includes(vendorKey)) {
+      return urlPattern.replace('{catalog}', catalogNumber)
+    }
+  }
+  return `https://www.google.com/search?q=${encodeURIComponent(vendorName)}+${encodeURIComponent(catalogNumber)}+order`
 }
 
 export function InventoryPage({ onError }: InventoryPageProps) {
@@ -186,9 +222,25 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                   </td>
                   <td className="px-6 py-6 text-right">
                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="p-2 hover:bg-primary/20 text-primary rounded-lg transition-colors" title="Order More">
-                        <ShoppingCart className="size-5" />
-                      </button>
+                      {(() => {
+                        const reorderUrl = getReorderUrl(item.product?.vendor?.name, item.product?.catalog_number)
+                        return reorderUrl ? (
+                          <a
+                            href={reorderUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 hover:bg-primary/20 text-primary rounded-lg transition-colors inline-flex items-center"
+                            title={`Reorder from ${item.product?.vendor?.name ?? 'vendor'}`}
+                          >
+                            <ShoppingCart className="size-5" />
+                            <ExternalLink className="size-3 ml-0.5 opacity-60" />
+                          </a>
+                        ) : (
+                          <button className="p-2 hover:bg-primary/20 text-primary rounded-lg transition-colors opacity-30 cursor-not-allowed" title="No vendor info available" disabled>
+                            <ShoppingCart className="size-5" />
+                          </button>
+                        )
+                      })()}
                       <button className="p-2 hover:bg-surface-container-highest text-[var(--muted-foreground)] rounded-lg transition-colors" title="Edit Item">
                         <Pencil className="size-5" />
                       </button>

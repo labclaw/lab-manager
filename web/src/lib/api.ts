@@ -56,6 +56,7 @@ export interface InventoryItem {
   product?: {
     id: number
     name: string
+    catalog_number?: string
     vendor_id?: number
     vendor?: { id: number; name: string }
   }
