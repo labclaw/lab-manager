@@ -1,0 +1,12 @@
+# Default owners
+* @labclaw/core-team
+
+# Frontend
+/web/ @labclaw/frontend
+
+# CI/CD
+/.github/ @labclaw/devops
+
+# Security-sensitive
+/src/lab_manager/api/app.py @labclaw/security
+/src/lab_manager/config.py @labclaw/security

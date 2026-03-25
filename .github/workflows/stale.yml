@@ -1,0 +1,26 @@
+name: Stale
+
+on:
+  schedule:
+    - cron: "0 0 * * 0" # weekly on Sunday
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/stale@v9
+        with:
+          stale-issue-message: >
+            This issue has been automatically marked as stale because it has not
+            had recent activity. It will be closed in 14 days if no further
+            activity occurs.
+          stale-pr-message: >
+            This PR has been automatically marked as stale because it has not
+            had recent activity.
+          days-before-stale: 30
+          days-before-close: 14
+          stale-issue-label: stale
+          stale-pr-label: stale
