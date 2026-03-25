@@ -392,8 +392,10 @@ class TestRagService:
             assert result["source"] == "search"
 
     def test_ask_format_fails(self, db_session):
+        from lab_manager.services import rag
         from lab_manager.services.rag import ask
 
+        rag._CACHE.clear()  # clear cache to avoid cross-test contamination
         with (
             patch("lab_manager.services.rag._generate_sql") as mock_gen,
             patch("lab_manager.services.rag._execute_sql") as mock_exec,
@@ -407,8 +409,10 @@ class TestRagService:
             assert result["source"] == "sql"
 
     def test_ask_success(self, db_session):
+        from lab_manager.services import rag
         from lab_manager.services.rag import ask
 
+        rag._CACHE.clear()  # clear cache to avoid cross-test contamination
         with (
             patch("lab_manager.services.rag._generate_sql") as mock_gen,
             patch("lab_manager.services.rag._execute_sql") as mock_exec,
