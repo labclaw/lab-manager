@@ -8,14 +8,11 @@ import { Header } from '@/components/layout/Header'
 
 const defaultProps = {
   title: 'Dashboard',
-  darkMode: true,
-  onToggleDarkMode: vi.fn(),
   onSearch: vi.fn(),
 }
 
 describe('Header', () => {
   beforeEach(() => {
-    defaultProps.onToggleDarkMode.mockClear()
     defaultProps.onSearch.mockClear()
     vi.useFakeTimers({ shouldAdvanceTime: true })
   })
@@ -104,24 +101,6 @@ describe('Header', () => {
       await vi.advanceTimersByTimeAsync(350)
 
       expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
-    })
-  })
-
-  describe('AC4: Dark mode toggle works', () => {
-    it('calls onToggleDarkMode when dark mode button is clicked', async () => {
-      vi.useRealTimers()
-      const user = userEvent.setup()
-
-      renderWithProviders(<Header {...defaultProps} />)
-      const toggle = screen.getByLabelText(/switch to light mode/i)
-      await user.click(toggle)
-
-      expect(defaultProps.onToggleDarkMode).toHaveBeenCalledTimes(1)
-    })
-
-    it('shows correct aria-label for light mode state', () => {
-      renderWithProviders(<Header {...defaultProps} darkMode={false} />)
-      expect(screen.getByLabelText(/switch to dark mode/i)).toBeInTheDocument()
     })
   })
 

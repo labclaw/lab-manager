@@ -67,9 +67,9 @@ const CONFIDENCE_BUCKETS = [
 function Insight({ text, variant = 'info' }: { text: string; variant?: 'info' | 'warn' | 'good' | 'bad' }) {
   const colors = {
     info: 'bg-primary/5 border-primary/20 text-primary',
-    warn: 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400',
-    good: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400',
-    bad: 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400',
+    warn: 'bg-amber-50 border-amber-200 text-amber-700',
+    good: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+    bad: 'bg-red-50 border-red-200 text-red-700',
   }
   return (
     <div className={`text-sm font-semibold px-4 py-2.5 rounded-lg border ${colors[variant]}`}>
