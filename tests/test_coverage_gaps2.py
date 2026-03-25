@@ -184,55 +184,39 @@ class TestPipeline:
 
 
 class TestRagInternals:
-    @patch("lab_manager.services.litellm_client.completion")
+    @patch("lab_manager.services.rag.create_completion")
     def test_generate_sql_strips_markdown(self, mock_completion):
         from lab_manager.services.rag import _generate_sql
 
-        mock_response = MagicMock()
-        mock_response.choices = [
-            MagicMock(message=MagicMock(content="```sql\nSELECT * FROM vendors\n```"))
-        ]
-        mock_completion.return_value = mock_response
+        mock_completion.return_value = "```sql\nSELECT * FROM vendors\n```"
 
         sql = _generate_sql("List vendors")
         assert "SELECT" in sql
         assert "```" not in sql
 
-    @patch("lab_manager.services.litellm_client.completion")
+    @patch("lab_manager.services.rag.create_completion")
     def test_format_answer(self, mock_completion):
         from lab_manager.services.rag import _format_answer
 
-        mock_response = MagicMock()
-        mock_response.choices = [
-            MagicMock(message=MagicMock(content="There are 5 vendors in the database."))
-        ]
-        mock_completion.return_value = mock_response
+        mock_completion.return_value = "There are 5 vendors in the database."
 
         result = _format_answer("How many?", "SELECT 1", [{"c": 5}])
         assert "5 vendors" in result
 
-    @patch("lab_manager.services.litellm_client.completion")
+    @patch("lab_manager.services.rag.create_completion")
     def test_generate_sql_openai_compatible_client(self, mock_completion):
         from lab_manager.services.rag import _generate_sql
 
-        mock_response = MagicMock()
-        mock_response.choices = [
-            MagicMock(message=MagicMock(content="SELECT * FROM vendors"))
-        ]
-        mock_completion.return_value = mock_response
+        mock_completion.return_value = "SELECT * FROM vendors"
 
         sql = _generate_sql("List vendors")
         assert sql == "SELECT * FROM vendors"
 
-    @patch("lab_manager.services.litellm_client.completion")
+    @patch("lab_manager.services.rag.create_completion")
     def test_format_answer_openai_compatible_client(self, mock_completion):
         from lab_manager.services.rag import _format_answer
 
-        mock_response = MagicMock()
-        mock_response.choices = [
-            MagicMock(message=MagicMock(content="There are 2 matching orders."))
-        ]
-        mock_completion.return_value = mock_response
+        mock_completion.return_value = "There are 2 matching orders."
 
         result = _format_answer("How many?", "SELECT 1", [{"c": 2}])
         assert "2 matching orders" in result

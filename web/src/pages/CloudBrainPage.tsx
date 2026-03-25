@@ -8,6 +8,10 @@ import { cn } from '@/lib/utils'
 
 interface CloudBrainPageProps {
   readonly onError: (msg: string) => void
+  /** @internal test-only: bypass async health check */
+  readonly __testConnected?: boolean | null
+  /** @internal test-only: bypass async health check */
+  readonly __testHealth?: HealthStatus | null
 }
 
 /* ---------- types ---------- */
@@ -306,14 +310,15 @@ function SkillCard({
 
 /* ---------- main page ---------- */
 
-export function CloudBrainPage({ onError: _onError }: CloudBrainPageProps) {
-  const [health, setHealth] = useState<HealthStatus | null>(null)
-  const [connected, setConnected] = useState<boolean | null>(null)
+export function CloudBrainPage({ onError: _onError, __testConnected, __testHealth }: CloudBrainPageProps) {
+  const [health, setHealth] = useState<HealthStatus | null>(__testHealth ?? null)
+  const [connected, setConnected] = useState<boolean | null>(__testConnected ?? null)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<QueryResult[]>([])
 
-  // Check Cloud Brain health on mount
+  // Check Cloud Brain health on mount (skip if test props provided)
   useEffect(() => {
+    if (__testConnected !== undefined) return
     let cancelled = false
 
     async function checkHealth() {
@@ -334,7 +339,7 @@ export function CloudBrainPage({ onError: _onError }: CloudBrainPageProps) {
 
     checkHealth()
     return () => { cancelled = true }
-  }, [])
+  }, [__testConnected])
 
   const handleSubmit = async (text: string) => {
     const trimmed = text.trim()
