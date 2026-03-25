@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
   BarChart3, FileText, Package, Store, Clock,
@@ -328,7 +329,7 @@ function OverviewTab({ docs, docStats }: {
 // ================================================================
 // VENDORS TAB — enhanced with diversity insight
 // ================================================================
-function VendorsTab({ docs }: { docs: Document[] }) {
+function VendorsTab({ docs, navigate }: { docs: Document[]; navigate: ReturnType<typeof useNavigate> }) {
   const [filter, setFilter] = useState<'all' | 'reagents' | 'equipment' | 'supplies'>('all')
 
   const vendorData = useMemo(() => {
@@ -457,13 +458,14 @@ function VendorsTab({ docs }: { docs: Document[] }) {
         </div>
         <div className="flex flex-wrap gap-2">
           {filteredVendors.map(v => (
-            <span
+            <button
               key={v.name}
-              className="inline-block px-2.5 py-1 rounded-md bg-primary/5 text-primary text-[13px] font-medium"
-              title={`${v.count} document${v.count > 1 ? 's' : ''}`}
+              onClick={() => navigate(`/documents?vendor=${encodeURIComponent(v.name)}`)}
+              className="inline-block px-2.5 py-1 rounded-md bg-primary/5 text-primary text-[13px] font-medium hover:bg-primary/10 hover:underline cursor-pointer transition-colors"
+              title={`${v.count} document${v.count > 1 ? 's' : ''} — click to view`}
             >
               {v.name} <span className="text-primary/50 ml-1">{v.count}</span>
-            </span>
+            </button>
           ))}
           {filteredVendors.length === 0 && (
             <p className="text-sm text-[var(--muted-foreground)] py-4">No vendors in this category</p>
@@ -825,6 +827,7 @@ function InventoryTab({ stats, lowStock, expiring }: {
 // MAIN PAGE
 // ================================================================
 export function AnalyticsPage({ onError }: AnalyticsPageProps) {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<TabValue>('overview')
 
   // Fetch all data
@@ -913,7 +916,7 @@ export function AnalyticsPage({ onError }: AnalyticsPageProps) {
         <OverviewTab docs={docs} docStats={docStats} />
       )}
       {activeTab === 'vendors' && (
-        <VendorsTab docs={docs} />
+        <VendorsTab docs={docs} navigate={navigate} />
       )}
       {activeTab === 'documents' && (
         <DocumentsTab docs={docs} />

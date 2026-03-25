@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { documents as docApi } from '@/lib/api'
 import { Search, Upload, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -59,6 +59,8 @@ function formatShortDate(dateStr?: string): string {
 
 export function DocumentsPage({ onError }: DocumentsPageProps) {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const vendorFilter = searchParams.get('vendor') ?? undefined
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -69,9 +71,9 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['documents', page, statusFilter],
+    queryKey: ['documents', page, statusFilter, vendorFilter],
     queryFn: () =>
-      docApi.list(page, pageSize, statusFilter !== 'all' ? statusFilter : undefined),
+      docApi.list(page, pageSize, statusFilter !== 'all' ? statusFilter : undefined, vendorFilter),
   })
 
   useEffect(() => {
@@ -145,6 +147,22 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
             </button>
           )
         })}
+        {vendorFilter && (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200">
+            Vendor: {vendorFilter}
+            <button
+              onClick={() => {
+                searchParams.delete('vendor')
+                setSearchParams(searchParams)
+                setPage(1)
+              }}
+              className="ml-1 text-blue-400 hover:text-blue-700"
+              aria-label="Clear vendor filter"
+            >
+              &times;
+            </button>
+          </span>
+        )}
       </div>
 
       {/* Table Container */}
