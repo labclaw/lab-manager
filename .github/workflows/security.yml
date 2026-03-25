@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   dependency-audit:
-    name: dependency-audit
+    name: dependency-audit (python)
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 20
 
@@ -37,9 +37,33 @@ jobs:
       - name: Sync dependencies
         run: uv sync --dev --frozen
 
-      - name: Audit dependencies
+      - name: Audit Python dependencies
         # CVE-2025-69872: False positive in dev-only dependency, not exploitable in production
         run: uv run --dev --with pip-audit pip-audit --progress-spinner off --ignore CVE-2025-69872
+
+  npm-audit:
+    name: dependency-audit (npm)
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: web/
+        run: npm ci
+
+      - name: Audit npm dependencies
+        working-directory: web/
+        run: npm audit --audit-level=high
 
   bandit:
     name: bandit-sast
@@ -77,6 +101,33 @@ jobs:
         with:
           name: bandit-report
           path: bandit-report.json
+
+  license-check:
+    name: license-check
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v5.4.1
+        with:
+          enable-cache: false
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Sync dependencies
+        run: uv sync --dev --frozen
+
+      - name: Check licenses
+        run: |
+          uv run pip install pip-licenses
+          uv run pip-licenses --order=license --fail-on="GNU General Public License v3 (GPLv3);GNU General Public License v2 (GPLv2)" \
+            --allow-only="MIT License;BSD License;Apache Software License;ISC License (ISCL);Python Software Foundation License;Mozilla Public License 2.0 (MPL 2.0);BSD-2-Clause;BSD-3-Clause;Apache-2.0;MIT;ISC;PSF;HPND;Zlib;Public Domain;The Unlicense (Unlicense)" \
+            || echo "::warning::Some dependencies have non-permissive licenses. Review the output above."
 
   codeql:
     name: codeql
