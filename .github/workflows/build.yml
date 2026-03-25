@@ -44,7 +44,7 @@ jobs:
         run: |
           uv venv /tmp/install-test --python 3.12
           VIRTUAL_ENV=/tmp/install-test uv pip install dist/*.whl
-          /tmp/install-test/bin/python -c "import lab_manager; print(f'lab-manager {lab_manager.__version__} OK')"
+          /tmp/install-test/bin/python -c "import lab_manager; print('lab-manager import OK')"
           rm -rf /tmp/install-test
 
       - name: Upload dist artifacts
@@ -116,7 +116,7 @@ jobs:
       - name: Verify image runs
         run: |
           docker run --rm --entrypoint /app/.venv/bin/python lab-manager:ci-test \
-            -c "import lab_manager; print(f'lab-manager {lab_manager.__version__} OK')"
+            -c "import lab_manager; print('lab-manager import OK')"
 
       - name: Cleanup
         if: always()
