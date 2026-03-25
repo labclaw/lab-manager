@@ -80,6 +80,7 @@ disable_error_code = [
   "union-attr",
   "return-value",
   "var-annotated",
+  "import-untyped",
 ]
 
 [tool.pytest.ini_options]

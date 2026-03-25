@@ -111,6 +111,7 @@ function OverviewTab({ docs, docStats }: {
   docs: Document[]
   docStats: DocumentStats | undefined
 }) {
+  const [now] = useState(() => Date.now())
   const confidences = useMemo(
     () => docs.filter(d => d.extraction_confidence != null).map(d => d.extraction_confidence!),
     [docs],
@@ -161,9 +162,10 @@ function OverviewTab({ docs, docStats }: {
     return pending[0]
   }, [docs])
 
-  const oldestDaysAgo = oldestPending?.created_at
-    ? Math.floor((Date.now() - new Date(oldestPending.created_at).getTime()) / (1000 * 60 * 60 * 24))
-    : 0
+  const oldestDaysAgo = useMemo(() => {
+    if (!oldestPending?.created_at) return 0
+    return Math.floor((now - new Date(oldestPending.created_at).getTime()) / (1000 * 60 * 60 * 24))
+  }, [oldestPending, now])
 
   // Confidence sparkline — mini histogram for inline display
   const sparkline = useMemo(() => {
@@ -667,6 +669,7 @@ function InventoryTab({ stats, lowStock, expiring }: {
   lowStock: InventoryItem[]
   expiring: InventoryItem[]
 }) {
+  const [now] = useState(() => Date.now())
   // Find soonest expiry
   const soonestExpiry = useMemo(() => {
     if (expiring.length === 0) return null
@@ -676,9 +679,10 @@ function InventoryTab({ stats, lowStock, expiring }: {
     return sorted[0] ?? null
   }, [expiring])
 
-  const soonestDays = soonestExpiry?.expiry_date
-    ? Math.max(0, Math.floor((new Date(soonestExpiry.expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-    : null
+  const soonestDays = useMemo(() => {
+    if (!soonestExpiry?.expiry_date) return null
+    return Math.max(0, Math.floor((new Date(soonestExpiry.expiry_date).getTime() - now) / (1000 * 60 * 60 * 24)))
+  }, [soonestExpiry, now])
 
   return (
     <div className="space-y-6">

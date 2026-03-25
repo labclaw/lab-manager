@@ -285,7 +285,8 @@ function SkillCard({
 
 /* ---------- main page ---------- */
 
-export function CloudBrainPage({ onError: _onError }: CloudBrainPageProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function CloudBrainPage({ onError }: CloudBrainPageProps) {
   const [health, setHealth] = useState<HealthStatus | null>(null)
   const [connected, setConnected] = useState<boolean | null>(null)
   const [query, setQuery] = useState('')

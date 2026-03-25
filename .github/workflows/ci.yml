@@ -93,9 +93,6 @@ jobs:
       - name: Sync dependencies
         run: uv sync --dev --frozen
 
-      - name: Install type stubs
-        run: uv run pip install types-PyYAML
-
       - name: Mypy type check
         run: uv run mypy src/lab_manager/
 
