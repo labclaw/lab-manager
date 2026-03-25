@@ -468,7 +468,10 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
         # Defense-in-depth: also set READ ONLY at transaction level
         with readonly_engine.connect() as conn, conn.begin():
             conn.execute(text("SET TRANSACTION READ ONLY"))
-            conn.execute(text("SET LOCAL statement_timeout = :timeout"), {"timeout": f"{int(SQL_TIMEOUT_S)}s"})
+            conn.execute(
+                text("SET LOCAL statement_timeout = :timeout"),
+                {"timeout": f"{int(SQL_TIMEOUT_S)}s"},
+            )
             result = conn.execute(text(sql))
             columns = list(result.keys())
             rows = [
@@ -478,7 +481,10 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
     else:
         # Fallback: main engine with application-level READ ONLY
         db.execute(text("SET TRANSACTION READ ONLY"))
-        db.execute(text("SET LOCAL statement_timeout = :timeout"), {"timeout": f"{int(SQL_TIMEOUT_S)}s"})
+        db.execute(
+            text("SET LOCAL statement_timeout = :timeout"),
+            {"timeout": f"{int(SQL_TIMEOUT_S)}s"},
+        )
         nested = db.begin_nested()
         try:
             result = db.execute(text(sql))
