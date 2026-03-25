@@ -7,7 +7,7 @@ import logging
 import shutil
 from pathlib import Path
 
-from sqlalchemy import func, select
+from sqlalchemy import func, literal, select
 from sqlalchemy.orm import Session
 
 from lab_manager.config import get_settings
@@ -15,6 +15,7 @@ from lab_manager.intake.extractor import extract_from_text
 from lab_manager.intake.ocr import extract_text_from_image
 from lab_manager.models.document import Document, DocumentStatus
 from lab_manager.models.vendor import Vendor
+from lab_manager.services.vendor_normalize import normalize_vendor
 
 logger = logging.getLogger(__name__)
 
@@ -22,27 +23,27 @@ logger = logging.getLogger(__name__)
 def _find_vendor(vendor_name: str, db: Session) -> Vendor | None:
     """Find vendor by name or alias, case-insensitive."""
     normalized = vendor_name.strip()
-    # Try exact match first (case-insensitive)
+    key = normalized.lower()
+    # Exact match (case-insensitive)
     vendor = db.scalars(
-        select(Vendor).where(func.lower(Vendor.name) == func.lower(normalized))
+        select(Vendor).where(func.lower(Vendor.name) == key)
     ).first()
     if vendor:
         return vendor
-    # Try partial match
+    # Substring match (either direction: query in vendor name, or vendor name in query)
     vendor = db.scalars(
-        select(Vendor).where(func.lower(Vendor.name).contains(func.lower(normalized)))
+        select(Vendor).where(
+            func.lower(Vendor.name).contains(key)
+            | literal(key).like(func.concat("%", func.lower(Vendor.name), "%"))
+        )
     ).first()
     if vendor:
         return vendor
-    # Try reverse partial (vendor name in extracted name) and alias check
-    for v in db.scalars(select(Vendor)).all():
-        if v.name.lower() in normalized.lower() or normalized.lower() in v.name.lower():
-            return v
+    # Alias check — requires scanning JSON column
+    for v in db.scalars(select(Vendor).where(Vendor.aliases.isnot(None))).all():
         for alias in v.aliases or []:
-            if (
-                alias.lower() in normalized.lower()
-                or normalized.lower() in alias.lower()
-            ):
+            alias_lower = alias.lower()
+            if alias_lower in key or key in alias_lower:
                 return v
     return None
 
@@ -121,8 +122,6 @@ def process_document(image_path: Path, db: Session) -> Document:
             doc.status = DocumentStatus.needs_review
             doc.review_notes = "Extraction failed: no result returned"
         else:
-            from lab_manager.services.vendor_normalize import normalize_vendor
-
             doc.document_type = extracted.document_type
             doc.vendor_name = normalize_vendor(extracted.vendor_name)
             doc.extracted_data = extracted.model_dump()

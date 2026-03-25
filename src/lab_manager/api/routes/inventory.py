@@ -16,6 +16,7 @@ from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.inventory import InventoryItem, InventoryStatus
 from lab_manager.models.product import Product
 from lab_manager.services import inventory as inv_svc
+from lab_manager.services.vendor_urls import get_reorder_url
 
 router = APIRouter()
 
@@ -230,8 +231,6 @@ def open_item(item_id: int, body: OpenBody, db: Session = Depends(get_db)):
 @router.get("/{item_id}/reorder-url")
 def get_reorder_url_endpoint(item_id: int, db: Session = Depends(get_db)):
     """Generate a vendor website URL for reordering this item's product."""
-    from lab_manager.services.vendor_urls import get_reorder_url
-
     item = get_or_404(db, InventoryItem, item_id, "Inventory item")
     product = item.product
     vendor_name = getattr(product, "vendor", None)
