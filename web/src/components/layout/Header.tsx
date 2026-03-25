@@ -81,12 +81,12 @@ export function Header({ title, onSearch, showSearch = true, darkMode, onToggleD
             />
           </div>
           {showSuggestions && suggestions.length > 0 && (
-            <ul role="listbox" className="absolute top-full left-0 right-0 mt-1 bg-card-dark border border-primary/20 rounded-lg shadow-xl z-50 overflow-hidden">
+            <ul role="listbox" className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
               {suggestions.map((s) => (
                 <li
                   key={`${s.type}-${s.id}`}
                   role="option"
-                  className="px-4 py-2 text-sm text-slate-200 hover:bg-primary/20 cursor-pointer"
+                  className="px-4 py-2 text-sm text-[var(--foreground)] hover:bg-primary/10 cursor-pointer"
                   onMouseDown={() => {
                     setSearchQuery(s.text)
                     handleSearchSubmit(s.text)
