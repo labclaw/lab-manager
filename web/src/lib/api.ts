@@ -271,6 +271,10 @@ export const inventory = {
       `/inventory?page=${page}&page_size=${pageSize}`,
     ),
   get: (id: number) => apiFetch<InventoryItem>(`/inventory/${id}`),
+  reorderUrl: (id: number) =>
+    apiFetch<{ url: string | null; vendor: string | null; catalog_number: string | null }>(
+      `/inventory/${id}/reorder-url`,
+    ),
   lowStock: () =>
     apiFetch<ApiResponse<InventoryItem>>('/inventory/low-stock'),
   expiring: () =>
