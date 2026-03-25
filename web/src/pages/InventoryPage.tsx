@@ -149,11 +149,9 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                       {itemIcon(item.status)}
                       <div>
                         <p className="font-bold text-on-surface">
-                          {item.product_name ?? item.product?.name ?? item.product?.catalog_number ?? `Item #${item.id}`}
+                          {item.product_name ?? item.product?.name ?? `Item #${item.id}`}
                         </p>
                         <p className="text-[11px] text-[var(--muted-foreground)]">
-                          {item.product?.catalog_number ? item.product.catalog_number : ''}
-                          {item.product?.catalog_number && item.lot_number ? ' \u00B7 ' : ''}
                           {item.lot_number ? `Lot ${item.lot_number}` : (item.unit ?? '')}
                         </p>
                       </div>
