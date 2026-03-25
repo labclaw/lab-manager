@@ -42,9 +42,9 @@ ocr-benchmark/tmp/
 docs/superpowers/
 
 # Data files (large, not tracked)
-shenlab-docs/
-shenlab-docs.zip
-shenlab-devices/
+lab-docs/
+lab-docs.zip
+lab-devices/
 pipeline_v2_output/
 benchmarks/
 ocr-benchmark/data/scans/

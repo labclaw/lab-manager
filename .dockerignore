@@ -4,8 +4,8 @@ web/node_modules/
 web/.vite/
 .git/
 .github/
-shenlab-docs/
-shenlab-docs.zip
+lab-docs/
+lab-docs.zip
 benchmarks/
 ocr-benchmark/
 pipeline_v2_output/
