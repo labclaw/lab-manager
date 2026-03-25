@@ -29,7 +29,7 @@ jobs:
   # ─── Gate: verify all checks passed on main ────────────────────
   gate:
     name: release-gate
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
@@ -67,7 +67,7 @@ jobs:
   # ─── Bump version, changelog, tag ──────────────────────────────
   release:
     name: create-release
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [gate]
     outputs:
