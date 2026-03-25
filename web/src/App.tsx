@@ -86,14 +86,9 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    const stored = localStorage.getItem('darkMode')
-    const isDark = stored === 'true'
-    setDarkMode(isDark)
-    if (isDark) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
+    localStorage.removeItem('darkMode')
+    document.documentElement.classList.remove('dark')
+    setDarkMode(false)
   }, [])
 
   const toggleDarkMode = () => {
