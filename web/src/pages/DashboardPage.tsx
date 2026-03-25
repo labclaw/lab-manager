@@ -239,7 +239,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
           {lowStockCount > 0 && (
             <button
               onClick={() => navigate('/inventory')}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors"
             >
               <AlertTriangle className="size-3.5" />
               {lowStockCount} low stock item{lowStockCount !== 1 ? 's' : ''}
@@ -248,7 +248,7 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
           {expiringCount > 0 && (
             <button
               onClick={() => navigate('/inventory')}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium bg-orange-50 dark:bg-red-500/10 text-orange-700 dark:text-red-400 border border-orange-200 dark:border-red-500/20 hover:bg-orange-100 dark:hover:bg-red-500/20 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 transition-colors"
             >
               <Calendar className="size-3.5" />
               {expiringCount} expiring item{expiringCount !== 1 ? 's' : ''}

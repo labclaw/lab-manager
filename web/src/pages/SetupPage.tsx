@@ -28,18 +28,18 @@ export function SetupPage({ onComplete }: Readonly_SetupPageProps) {
   }
 
   return (
-    <div className="bg-background-light dark:bg-background-dark font-[Inter,sans-serif] antialiased flex items-center justify-center min-h-screen p-4">
+    <div className="bg-background-light font-[Inter,sans-serif] antialiased flex items-center justify-center min-h-screen p-4">
       {/* Setup Wizard Card */}
-      <div className="w-full max-w-[440px] bg-white dark:bg-card-dark border border-slate-200 dark:border-[#2d2d44] rounded-xl shadow-2xl p-8 md:p-10">
+      <div className="w-full max-w-[440px] bg-white border border-slate-200 rounded-xl shadow-2xl p-8 md:p-10">
         {/* Icon Header */}
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mb-6">
             <FlaskConical className="text-primary size-10" />
           </div>
-          <h1 className="text-slate-900 dark:text-slate-100 text-3xl font-bold tracking-tight text-center mb-2">
+          <h1 className="text-slate-900 text-3xl font-bold tracking-tight text-center mb-2">
             Welcome to LabClaw
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium text-center">
+          <p className="text-slate-500 text-sm font-medium text-center">
             Set up your lab in 30 seconds
           </p>
         </div>
@@ -55,7 +55,7 @@ export function SetupPage({ onComplete }: Readonly_SetupPageProps) {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Name Input */}
           <div className="space-y-2">
-            <label htmlFor="setup-name" className="text-slate-700 dark:text-slate-300 text-sm font-semibold ml-1">Your Name</label>
+            <label htmlFor="setup-name" className="text-slate-700 text-sm font-semibold ml-1">Your Name</label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 size-5" />
               <input
@@ -63,7 +63,7 @@ export function SetupPage({ onComplete }: Readonly_SetupPageProps) {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-background-dark/50 border border-slate-200 dark:border-[#2d2d44] rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
+                className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
                 placeholder="John Doe"
                 required
                 autoFocus
@@ -73,7 +73,7 @@ export function SetupPage({ onComplete }: Readonly_SetupPageProps) {
 
           {/* Email Input */}
           <div className="space-y-2">
-            <label htmlFor="setup-email" className="text-slate-700 dark:text-slate-300 text-sm font-semibold ml-1">Email</label>
+            <label htmlFor="setup-email" className="text-slate-700 text-sm font-semibold ml-1">Email</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 size-5" />
               <input
@@ -81,7 +81,7 @@ export function SetupPage({ onComplete }: Readonly_SetupPageProps) {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-background-dark/50 border border-slate-200 dark:border-[#2d2d44] rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
+                className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
                 placeholder="name@lab.com"
                 required
               />
@@ -90,7 +90,7 @@ export function SetupPage({ onComplete }: Readonly_SetupPageProps) {
 
           {/* Password Input */}
           <div className="space-y-2">
-            <label htmlFor="setup-password" className="text-slate-700 dark:text-slate-300 text-sm font-semibold ml-1">Password</label>
+            <label htmlFor="setup-password" className="text-slate-700 text-sm font-semibold ml-1">Password</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 size-5" />
               <input
@@ -98,7 +98,7 @@ export function SetupPage({ onComplete }: Readonly_SetupPageProps) {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-background-dark/50 border border-slate-200 dark:border-[#2d2d44] rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
+                className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
                 placeholder="........"
                 required
               />
@@ -110,7 +110,7 @@ export function SetupPage({ onComplete }: Readonly_SetupPageProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 bg-accent-green hover:bg-[#05c491] text-background-dark font-bold rounded-lg shadow-lg shadow-accent-green/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-60"
+              className="w-full py-4 bg-accent-green hover:bg-[#05c491] text-white font-bold rounded-lg shadow-lg shadow-accent-green/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-60"
             >
               {loading ? (
                 <>
@@ -128,9 +128,9 @@ export function SetupPage({ onComplete }: Readonly_SetupPageProps) {
         </form>
 
         {/* Footer Info */}
-        <div className="mt-8 pt-6 border-t border-slate-200 dark:border-[#2d2d44] flex items-center justify-center gap-2">
+        <div className="mt-8 pt-6 border-t border-slate-200 flex items-center justify-center gap-2">
           <Info className="text-slate-400 size-5" />
-          <p className="text-slate-500 dark:text-slate-400 text-[11px] uppercase tracking-wider font-semibold">
+          <p className="text-slate-500 text-[11px] uppercase tracking-wider font-semibold">
             You can add more team members after setup
           </p>
         </div>

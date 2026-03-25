@@ -1,17 +1,15 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Search, Bell, Sun, Moon, Menu } from 'lucide-react'
+import { Search, Bell, Menu } from 'lucide-react'
 import { search } from '@/lib/api'
 
 interface HeaderProps {
   readonly title: string
   readonly onSearch?: (query: string) => void
   readonly showSearch?: boolean
-  readonly darkMode: boolean
-  readonly onToggleDarkMode: () => void
   readonly onMobileMenuToggle?: () => void
 }
 
-export function Header({ title, onSearch, showSearch = true, darkMode, onToggleDarkMode, onMobileMenuToggle }: HeaderProps) {
+export function Header({ title, onSearch, showSearch = true, onMobileMenuToggle }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [suggestions, setSuggestions] = useState<Array<{ type: string; text: string; id: number }>>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -102,14 +100,6 @@ export function Header({ title, onSearch, showSearch = true, darkMode, onToggleD
       <div className="flex items-center gap-4">
         <button className="flex items-center justify-center rounded-lg size-10 bg-[var(--card)] text-[var(--foreground)] hover:bg-primary/20 transition-colors">
           <Bell className="size-5" />
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); e.preventDefault(); onToggleDarkMode() }}
-          type="button"
-          aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-          className="flex items-center justify-center rounded-lg size-10 bg-[var(--card)] text-[var(--foreground)] hover:bg-primary/20 transition-colors"
-        >
-          {darkMode ? <Sun className="size-5" /> : <Moon className="size-5" />}
         </button>
         <div className="flex items-center gap-3 pl-4 border-l border-primary/10">
           <span className="text-sm font-medium text-[var(--muted-foreground)]">Admin</span>

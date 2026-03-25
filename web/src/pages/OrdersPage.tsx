@@ -97,8 +97,8 @@ export function OrdersPage({ onError }: OrdersPageProps) {
       <div>
         <div className="flex justify-between items-end">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Orders</h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
+            <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Orders</h2>
+            <p className="text-gray-500 mt-2 text-sm">
               {allOrders.length > 0
                 ? `${activeCount} active, ${allOrders.length - activeCount} completed across ${allOrders.length} total orders.`
                 : 'No orders yet. Orders are created when documents are processed.'}
