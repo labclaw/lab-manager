@@ -26,9 +26,10 @@ describe('OrdersPage', () => {
     it('shows total count in header', async () => {
       renderWithProviders(<OrdersPage onError={onError} />)
 
+      // Header text: "X active, Y completed across Z total orders."
       await waitFor(() => {
         expect(
-          screen.getByText(/Tracking 2 active shipments/),
+          screen.getByText(/1 active, 1 completed across 2 total orders/),
         ).toBeInTheDocument()
       })
     })
@@ -72,8 +73,9 @@ describe('OrdersPage', () => {
     it('shows status badge on the featured order', async () => {
       renderWithProviders(<OrdersPage onError={onError} />)
 
+      // formatEnum converts 'pending' -> 'Pending'
       await waitFor(() => {
-        expect(screen.getByText('pending')).toBeInTheDocument()
+        expect(screen.getByText('Pending')).toBeInTheDocument()
       })
     })
 
@@ -120,8 +122,9 @@ describe('OrdersPage', () => {
 
       await user.click(screen.getByText('Past Orders'))
 
+      // formatEnum converts 'received' -> 'Received' (may appear in badge + tracker)
       await waitFor(() => {
-        expect(screen.getByText('received')).toBeInTheDocument()
+        expect(screen.getAllByText('Received').length).toBeGreaterThanOrEqual(1)
       })
     })
 
@@ -139,14 +142,14 @@ describe('OrdersPage', () => {
 
       renderWithProviders(<OrdersPage onError={onError} />)
 
+      // formatEnum converts 'shipped' -> 'Shipped' (appears in badge + tracker)
       await waitFor(() => {
-        expect(screen.getByText('shipped')).toBeInTheDocument()
+        expect(screen.getAllByText('Shipped').length).toBeGreaterThanOrEqual(1)
       })
       // Progress tracker steps should be visible
-      expect(screen.getByText('Ordered')).toBeInTheDocument()
-      expect(screen.getByText('Shipped')).toBeInTheDocument()
-      expect(screen.getByText('Out for Delivery')).toBeInTheDocument()
-      expect(screen.getByText('Received')).toBeInTheDocument()
+      expect(screen.getAllByText('Ordered').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getAllByText(/Out for Delivery/).length).toBeGreaterThanOrEqual(1)
+      expect(screen.getAllByText('Received').length).toBeGreaterThanOrEqual(1)
     })
   })
 

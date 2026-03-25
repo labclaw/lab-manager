@@ -72,7 +72,10 @@ describe('Header', () => {
       server.use(
         http.get('/api/v1/search/suggest', () =>
           HttpResponse.json({
-            suggestions: ['Sodium Chloride', 'Sodium Hydroxide'],
+            suggestions: [
+              { type: 'product', text: 'Sodium Chloride', id: 1 },
+              { type: 'product', text: 'Sodium Hydroxide', id: 2 },
+            ],
           }),
         ),
       )
@@ -109,7 +112,10 @@ describe('Header', () => {
       server.use(
         http.get('/api/v1/search/suggest', () =>
           HttpResponse.json({
-            suggestions: ['Ethanol 95%', 'Ethanol Absolute'],
+            suggestions: [
+              { type: 'product', text: 'Ethanol 95%', id: 1 },
+              { type: 'product', text: 'Ethanol Absolute', id: 2 },
+            ],
           }),
         ),
       )
@@ -134,7 +140,7 @@ describe('Header', () => {
       server.use(
         http.get('/api/v1/search/suggest', () =>
           HttpResponse.json({
-            suggestions: ['Test suggestion'],
+            suggestions: [{ type: 'product', text: 'Test suggestion', id: 1 }],
           }),
         ),
       )
