@@ -117,6 +117,70 @@ def delete_vendor(vendor_id: int, db: Session = Depends(get_db)):
     return None
 
 
+class VendorMergeBody(BaseModel):
+    """Merge one vendor into another. All references (products, orders) move to target."""
+
+    source_vendor_id: int
+    target_vendor_id: int
+    add_as_alias: bool = True
+
+
+@router.post("/merge")
+def merge_vendors(body: VendorMergeBody, db: Session = Depends(get_db)):
+    """Merge source vendor into target. Moves all products and orders.
+
+    Scientists often end up with duplicate vendors from OCR variations
+    ("Sigma-Aldrich" vs "Sigma Aldrich"). This merges them into one.
+    """
+    if body.source_vendor_id == body.target_vendor_id:
+        raise ConflictError("Cannot merge a vendor with itself")
+
+    source = get_or_404(db, Vendor, body.source_vendor_id, "Source vendor")
+    target = get_or_404(db, Vendor, body.target_vendor_id, "Target vendor")
+
+    # Move all products from source to target
+    products_moved = 0
+    source_products = db.scalars(
+        select(Product).where(Product.vendor_id == source.id)
+    ).all()
+    for p in source_products:
+        p.vendor_id = target.id
+        products_moved += 1
+
+    # Move all orders from source to target
+    orders_moved = 0
+    source_orders = db.scalars(
+        select(Order).where(Order.vendor_id == source.id)
+    ).all()
+    for o in source_orders:
+        o.vendor_id = target.id
+        orders_moved += 1
+
+    # Add source name as alias on target
+    if body.add_as_alias:
+        aliases = list(target.aliases or [])
+        if source.name not in aliases and source.name != target.name:
+            aliases.append(source.name)
+        # Also carry over source's aliases
+        for alias in source.aliases or []:
+            if alias not in aliases and alias != target.name:
+                aliases.append(alias)
+        target.aliases = aliases
+
+    # Delete the source vendor
+    db.delete(source)
+    db.flush()
+    db.refresh(target)
+
+    return {
+        "merged_into": target.id,
+        "target_name": target.name,
+        "products_moved": products_moved,
+        "orders_moved": orders_moved,
+        "aliases": target.aliases,
+    }
+
+
 @router.get("/{vendor_id}/products")
 def list_vendor_products(
     vendor_id: int,
