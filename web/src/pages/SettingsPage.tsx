@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Building2, User, Brain, Bell, Database, Info,
@@ -269,9 +269,9 @@ export function SettingsPage({ onError }: Readonly<SettingsPageProps>) {
     queryFn: () => analytics.dashboard() as Promise<DashboardStats>,
   })
 
-  if (statsErr) {
-    onError(statsErr instanceof Error ? statsErr.message : 'Failed to load stats')
-  }
+  useEffect(() => {
+    if (statsErr) onError(statsErr instanceof Error ? statsErr.message : 'Failed to load stats')
+  }, [statsErr, onError])
 
   const labName = config?.lab_name ?? 'My Lab'
   const labSubtitle = config?.lab_subtitle ?? ''
