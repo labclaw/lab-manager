@@ -1,6 +1,6 @@
 [project]
 name = "lab-manager"
-version = "0.1.8.2"
+version = "0.1.9"
 description = "Lab inventory management with OCR document intake"
 requires-python = ">=3.12"
 dependencies = [
@@ -103,7 +103,7 @@ filterwarnings = [
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.1.8.2"
+version = "0.1.9"
 version_files = ["pyproject.toml:version"]
 tag_format = "v$version"
 changelog_file = "CHANGELOG.md"

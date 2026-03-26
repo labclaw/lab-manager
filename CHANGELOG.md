@@ -2,6 +2,64 @@
 
 All notable changes to LabClaw Lab Manager will be documented in this file.
 
+## [0.1.9] - 2026-03-26
+
+Consolidates all development since v0.1.7 (354 commits). The 0.1.8.x series was never formally tagged — this release captures everything.
+
+### Added
+- **Tiered OCR detection** with local models: DeepSeek-OCR, PaddleOCR-VL, Mistral OCR 3 (#162)
+- **Unified LLM client** with LiteLLM config file support (#176)
+- **Analytics page** with tabbed vendor, document, and inventory insights (#188)
+- **Vendor name normalization** to reduce duplicates (#192)
+- **One-click reorder** with vendor website integration for 17+ vendors (#194)
+- **Settings page** with lab profile, AI config, notifications (#196)
+- **Persistent chat history** with conversation management (#197)
+- **Cloud Brain page** for scientific AI skills integration (#198)
+- **Extraction eval harness**, query planning, iterative refinement (#205)
+- **Cost-aware routing**, pipeline hooks, proactive notifications (#212)
+- **Comprehensive E2E test suite**: 160 Playwright tests (#206)
+- **GitHub automation**: dependabot, templates, labels, stale bot (#201)
+- **GHCR Docker image publish** workflow (#177)
+- 190 new unit tests for 5 low-coverage modules (93% to 98%) (#170)
+
+### Fixed
+- **Security**: address critical and high-severity vulnerabilities (#208)
+- **Security**: remove competitive market research from public repo (#235)
+- **Security**: pin litellm<=1.82.6 against supply chain attack (#186)
+- CI port conflicts and BDD test isolation (#161)
+- Deploy readiness: serialize CI, visible loading, TestClient lifecycle (#163)
+- Defensive OCR parsing, injection prevention, status logic (#164)
+- Default models switched to NVIDIA (benchmark-backed) (#167)
+- Production readiness: Decimal types, Equipment constraints, infra scripts
+- 8 critical+high UI bugs: search crash, routing, mobile nav (#182)
+- 10 visual design fixes: unified colors, theme, layout (#183)
+- Comprehensive visual polish for VC demo (#187)
+- Light backgrounds everywhere, inventory guidance, orders UX (#189)
+- Documents page polish: badges, confidence bars, vendor names (#191)
+- Generalize deployment-specific references in configs and scripts (#193)
+- Remove dark mode entirely, force light theme (#195)
+- Settings page with real data (#204)
+- Normalize API URLs with trailing slash to prevent 307 redirects
+
+### Performance
+- Ask AI cache + scalar shortcut, indexes, redirect fix (#184)
+
+### CI/CD
+- Production-grade CI/CD pipeline (#199)
+- Switch to GitHub-hosted runners (#200, #203)
+- Bump actions/checkout, setup-node, setup-uv, upload-artifact, codeql-action (#171-#175)
+- Bump docker/metadata-action 5.7.0 to 6.0.0 (#222)
+- Bump docker/login-action 3.4.0 to 4.0.0 (#218)
+- Bump github/codeql-action 3.33.0 to 4.34.1 (#221)
+
+### Refactored
+- Simplify code quality: imports, N+1, DRY (#213)
+- Differentiate Analytics from Dashboard: insights not duplication (#190)
+
+### Other
+- Remove all deployment-specific data and references (#166)
+- Prepare lab-manager for open-source release (#185)
+
 ## [0.1.8.3] - 2026-03-23
 
 ### Added

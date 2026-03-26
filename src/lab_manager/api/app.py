@@ -163,7 +163,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="LabClaw Lab Manager",
         description="Lab inventory management with OCR document intake",
-        version="0.1.8.2",
+        version="0.1.9",
         redirect_slashes=False,
         **docs_kwargs,
     )
