@@ -153,7 +153,7 @@ def get_current_staff(request: Request) -> dict[str, Any]:
     Raises 401 if the staff dict is missing or has no ``id``.
     """
     staff: dict[str, Any] | None = getattr(request.state, "staff", None)
-    if not staff or not staff.get("id"):
+    if not staff or staff.get("id") is None:
         raise HTTPException(status_code=401, detail="Authentication required")
     return staff
 
