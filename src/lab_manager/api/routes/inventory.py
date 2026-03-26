@@ -190,6 +190,14 @@ def update_inventory_item(
     item_id: int, body: InventoryItemUpdate, db: Session = Depends(get_db)
 ):
     item = get_or_404(db, InventoryItem, item_id, "Inventory item")
+    if item.status in (
+        InventoryStatus.deleted,
+        InventoryStatus.disposed,
+        InventoryStatus.depleted,
+    ):
+        raise ValidationError(
+            f"Cannot modify inventory item with status '{item.status.value}'"
+        )
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
     db.flush()
