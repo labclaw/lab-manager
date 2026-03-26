@@ -73,5 +73,12 @@ jobs:
 
       - name: Verify image
         run: |
-          docker pull ghcr.io/${{ github.repository }}:${{ steps.version.outputs.tag }}
+          # GHCR needs time to propagate the manifest after push
+          for i in 1 2 3; do
+            if docker pull ghcr.io/${{ github.repository }}:${{ steps.version.outputs.tag }}; then
+              break
+            fi
+            echo "Attempt $i: manifest not ready, waiting 10s..."
+            sleep 10
+          done
           docker run --rm --entrypoint /app/.venv/bin/python ghcr.io/${{ github.repository }}:${{ steps.version.outputs.tag }} -c "import lab_manager; print('OK')"
