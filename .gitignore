@@ -41,6 +41,13 @@ ocr-benchmark/tmp/
 
 # Internal planning docs (not for public release)
 docs/superpowers/
+docs/research/
+docs/features/
+docs/release-plan*.md
+docs/lims-market-research*.md
+docs/competitor*.md
+docs/deployment-saas*.md
+docs/platform-support*.md
 
 # Data files (large, not tracked)
 lab-docs/
