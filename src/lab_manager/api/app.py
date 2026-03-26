@@ -772,6 +772,7 @@ def create_app() -> FastAPI:
         export,
         import_routes,
         inventory,
+        order_requests,
         orders,
         products,
         search,
@@ -789,6 +790,11 @@ def create_app() -> FastAPI:
         products.router, prefix="/api/v1/products", tags=["products"]
     )
     api_router.include_router(orders.router, prefix="/api/v1/orders", tags=["orders"])
+    api_router.include_router(
+        order_requests.router,
+        prefix="/api/v1/requests",
+        tags=["requests"],
+    )
     api_router.include_router(
         equipment.router, prefix="/api/v1/equipment", tags=["equipment"]
     )

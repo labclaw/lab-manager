@@ -495,3 +495,73 @@ export const team = {
       method: 'DELETE',
     }),
 }
+
+// Order Requests (Supply Requests)
+export interface OrderRequest {
+  id: number
+  requested_by: number
+  product_id?: number
+  vendor_id?: number
+  catalog_number?: string
+  description?: string
+  quantity: number
+  unit?: string
+  estimated_price?: number
+  justification?: string
+  urgency: 'normal' | 'urgent'
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  reviewed_by?: number
+  review_note?: string
+  order_id?: number
+  created_at?: string
+  updated_at?: string
+  reviewed_at?: string
+}
+
+export interface RequestStats {
+  pending: number
+  approved: number
+  rejected: number
+  cancelled: number
+  total: number
+}
+
+export const orderRequests = {
+  list: (page = 1, pageSize = 20, status?: string, urgency?: string) => {
+    let qs = `?page=${page}&page_size=${pageSize}`
+    if (status) qs += `&status=${status}`
+    if (urgency) qs += `&urgency=${urgency}`
+    return apiFetch<ApiResponse<OrderRequest>>(`/requests${qs}`)
+  },
+  get: (id: number) => apiFetch<OrderRequest>(`/requests/${id}`),
+  create: (data: {
+    description?: string
+    catalog_number?: string
+    quantity?: number
+    unit?: string
+    estimated_price?: number
+    justification?: string
+    urgency?: string
+    product_id?: number
+    vendor_id?: number
+  }) =>
+    apiFetch<OrderRequest>('/requests', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  approve: (id: number, note?: string) =>
+    apiFetch<OrderRequest>(`/requests/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ note }),
+    }),
+  reject: (id: number, note?: string) =>
+    apiFetch<OrderRequest>(`/requests/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ note }),
+    }),
+  cancel: (id: number) =>
+    apiFetch<OrderRequest>(`/requests/${id}/cancel`, {
+      method: 'POST',
+    }),
+  stats: () => apiFetch<RequestStats>('/requests/stats'),
+}

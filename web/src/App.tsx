@@ -21,7 +21,8 @@ import { ProductsPage } from '@/pages/ProductsPage'
 import { ScanPage } from '@/pages/ScanPage'
 import { TeamPage } from '@/pages/TeamPage'
 import { ImportPage } from '@/pages/ImportPage'
-import { AlertsPage } from '@/pages/AlertsPage' 
+import { AlertsPage } from '@/pages/AlertsPage'
+import { RequestsPage } from '@/pages/RequestsPage'
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -40,6 +41,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/settings': 'Settings',
   '/cloud-brain': 'Cloud Brain',
   '/team': 'Team',
+  '/requests': 'Supply Requests',
 }
 
 export default function App() {
@@ -152,6 +154,7 @@ export default function App() {
                 <Route path="review" element={<ReviewPage onError={setError} />} />
                 <Route path="alerts" element={<AlertsPage onError={setError} />} />
                 <Route path="settings" element={<SettingsPage onError={setError} />} />
+                <Route path="requests" element={<RequestsPage onError={setError} />} />
                 <Route path="cloud-brain" element={<CloudBrainPage onError={setError} />} />
                 <Route path="team" element={<TeamPage onError={setError} />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
