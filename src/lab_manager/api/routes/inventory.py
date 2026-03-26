@@ -109,6 +109,26 @@ class OpenBody(BaseModel):
     opened_by: str = Field(max_length=200)
 
 
+class InventoryItemResponse(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: int
+    product_id: int
+    location_id: Optional[int] = None
+    lot_number: Optional[str] = None
+    quantity_on_hand: Decimal
+    unit: Optional[str] = None
+    expiry_date: Optional[date] = None
+    opened_date: Optional[date] = None
+    status: str
+    notes: Optional[str] = None
+    received_by: Optional[str] = None
+    order_item_id: Optional[int] = None
+    extra: dict = {}
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
 # ---------------------------------------------------------------------------
 # Fixed-path routes MUST come before /{item_id} parameter routes
 # ---------------------------------------------------------------------------
@@ -178,7 +198,7 @@ def expiring(days: int = Query(30, ge=1), db: Session = Depends(get_db)):
 # ---------------------------------------------------------------------------
 
 
-@router.get("/{item_id}")
+@router.get("/{item_id}", response_model=InventoryItemResponse)
 def get_inventory_item(item_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, InventoryItem, item_id, "Inventory item")
 
