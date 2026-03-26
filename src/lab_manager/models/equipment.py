@@ -43,6 +43,9 @@ class Equipment(AuditMixin, table=True):
             "estimated_value IS NULL OR estimated_value >= 0",
             name="ck_equipment_estimated_value_nonneg",
         ),
+        sa.UniqueConstraint(
+            "manufacturer", "serial_number", name="uq_equipment_manufacturer_serial"
+        ),
     )
 
     id: Optional[int] = Field(default=None, primary_key=True)
