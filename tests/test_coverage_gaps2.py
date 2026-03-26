@@ -188,7 +188,9 @@ class TestRagInternals:
     def test_generate_sql_strips_markdown(self, mock_completion):
         from lab_manager.services.rag import _generate_sql
 
-        mock_completion.return_value = "```sql\nSELECT * FROM vendors\n```"
+        mock_resp = MagicMock()
+        mock_resp.choices[0].message.content = "```sql\nSELECT * FROM vendors\n```"
+        mock_completion.return_value = mock_resp
 
         sql = _generate_sql("List vendors")
         assert "SELECT" in sql
@@ -198,7 +200,9 @@ class TestRagInternals:
     def test_format_answer(self, mock_completion):
         from lab_manager.services.rag import _format_answer
 
-        mock_completion.return_value = "There are 5 vendors in the database."
+        mock_resp = MagicMock()
+        mock_resp.choices[0].message.content = "There are 5 vendors in the database."
+        mock_completion.return_value = mock_resp
 
         result = _format_answer("How many?", "SELECT 1", [{"c": 5}])
         assert "5 vendors" in result
@@ -207,7 +211,9 @@ class TestRagInternals:
     def test_generate_sql_openai_compatible_client(self, mock_completion):
         from lab_manager.services.rag import _generate_sql
 
-        mock_completion.return_value = "SELECT * FROM vendors"
+        mock_resp = MagicMock()
+        mock_resp.choices[0].message.content = "SELECT * FROM vendors"
+        mock_completion.return_value = mock_resp
 
         sql = _generate_sql("List vendors")
         assert sql == "SELECT * FROM vendors"
@@ -216,7 +222,9 @@ class TestRagInternals:
     def test_format_answer_openai_compatible_client(self, mock_completion):
         from lab_manager.services.rag import _format_answer
 
-        mock_completion.return_value = "There are 2 matching orders."
+        mock_resp = MagicMock()
+        mock_resp.choices[0].message.content = "There are 2 matching orders."
+        mock_completion.return_value = mock_resp
 
         result = _format_answer("How many?", "SELECT 1", [{"c": 2}])
         assert "2 matching orders" in result
