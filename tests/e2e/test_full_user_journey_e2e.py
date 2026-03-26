@@ -249,7 +249,7 @@ class TestFullUserJourney:
     def test_11_create_vendor(self, journey_client):
         """POST /api/v1/vendors/ creates a new vendor."""
         resp = journey_client.post(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             json={
                 "name": f"Sigma-Aldrich {_SUFFIX}",
                 "email": f"orders-{_SUFFIX}@sigma.com",
@@ -279,7 +279,7 @@ class TestFullUserJourney:
 
     def test_13_list_vendors(self, journey_client):
         """GET /api/v1/vendors/ returns paginated vendor list."""
-        resp = journey_client.get("/api/v1/vendors/")
+        resp = journey_client.get("/api/v1/vendors")
         assert resp.status_code == 200, f"List vendors failed: {resp.text}"
         data = resp.json()
         assert "items" in data, f"Missing items in paginated response: {data}"
@@ -303,7 +303,7 @@ class TestFullUserJourney:
         assert vid is not None, "Vendor not created"
 
         resp = journey_client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "catalog_number": f"A1234-{_SUFFIX}",
                 "name": f"Acetonitrile HPLC Grade {_SUFFIX}",
@@ -325,7 +325,7 @@ class TestFullUserJourney:
         """POST /api/v1/products/ creates second product."""
         vid = TestFullUserJourney.vendor_id
         resp = journey_client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "catalog_number": f"T2345-{_SUFFIX}",
                 "name": f"TRIzol Reagent {_SUFFIX}",
@@ -346,7 +346,7 @@ class TestFullUserJourney:
         """POST /api/v1/products/ creates third product."""
         vid = TestFullUserJourney.vendor_id
         resp = journey_client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "catalog_number": f"P3456-{_SUFFIX}",
                 "name": f"PBS Buffer 10X {_SUFFIX}",
@@ -362,7 +362,7 @@ class TestFullUserJourney:
         """POST /api/v1/products/ with duplicate catalog_number+vendor returns 409."""
         vid = TestFullUserJourney.vendor_id
         resp = journey_client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "catalog_number": f"A1234-{_SUFFIX}",
                 "name": "Duplicate Product",
@@ -374,9 +374,9 @@ class TestFullUserJourney:
         )
 
     def test_19_list_products_by_vendor(self, journey_client):
-        """GET /api/v1/products/?vendor_id=... filters by vendor."""
+        """GET /api/v1/products?vendor_id=... filters by vendor."""
         vid = TestFullUserJourney.vendor_id
-        resp = journey_client.get("/api/v1/products/", params={"vendor_id": vid})
+        resp = journey_client.get("/api/v1/products", params={"vendor_id": vid})
         assert resp.status_code == 200, f"List products failed: {resp.text}"
         data = resp.json()
         assert data["total"] >= 3, f"Expected at least 3 products: {data}"
@@ -400,7 +400,7 @@ class TestFullUserJourney:
         """POST /api/v1/orders/ creates a new order."""
         vid = TestFullUserJourney.vendor_id
         resp = journey_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "po_number": f"PO-{_SUFFIX}",
                 "vendor_id": vid,
@@ -648,7 +648,7 @@ class TestFullUserJourney:
 
     def test_37_list_inventory(self, journey_client):
         """GET /api/v1/inventory/ returns paginated inventory list."""
-        resp = journey_client.get("/api/v1/inventory/")
+        resp = journey_client.get("/api/v1/inventory")
         assert resp.status_code == 200, f"List inventory failed: {resp.text}"
         data = resp.json()
         assert "items" in data
@@ -657,8 +657,8 @@ class TestFullUserJourney:
         assert data["total"] >= 2, f"Expected at least 2 inventory items: {data}"
 
     def test_38_inventory_filter_by_status(self, journey_client):
-        """GET /api/v1/inventory/?status=opened filters correctly."""
-        resp = journey_client.get("/api/v1/inventory/", params={"status": "opened"})
+        """GET /api/v1/inventory?status=opened filters correctly."""
+        resp = journey_client.get("/api/v1/inventory", params={"status": "opened"})
         assert resp.status_code == 200, f"Filter inventory failed: {resp.text}"
         data = resp.json()
         for item in data["items"]:
@@ -669,12 +669,12 @@ class TestFullUserJourney:
     # -----------------------------------------------------------------------
 
     def test_39_search(self, journey_client):
-        """GET /api/v1/search/?q=... searches across indexes.
+        """GET /api/v1/search?q=... searches across indexes.
 
         Meilisearch is typically not running in unit test environments, so
         we accept connection errors gracefully.
         """
-        resp = journey_client.get("/api/v1/search/", params={"q": f"Sigma {_SUFFIX}"})
+        resp = journey_client.get("/api/v1/search", params={"q": f"Sigma {_SUFFIX}"})
         if resp.status_code == 200:
             data = resp.json()
             assert "query" in data
@@ -771,7 +771,7 @@ class TestFullUserJourney:
 
     def test_49_audit_log_has_entries(self, journey_client):
         """GET /api/v1/audit/ returns audit log entries for our operations."""
-        resp = journey_client.get("/api/v1/audit/")
+        resp = journey_client.get("/api/v1/audit")
         assert resp.status_code == 200, f"Audit log failed: {resp.text}"
         data = resp.json()
         assert "items" in data, f"Missing items in audit response: {data}"
@@ -896,25 +896,25 @@ class TestFullUserJourney:
     # -----------------------------------------------------------------------
 
     def test_61_filter_orders_by_status(self, journey_client):
-        """GET /api/v1/orders/?status=received filters correctly."""
-        resp = journey_client.get("/api/v1/orders/", params={"status": "received"})
+        """GET /api/v1/orders?status=received filters correctly."""
+        resp = journey_client.get("/api/v1/orders", params={"status": "received"})
         assert resp.status_code == 200, f"Filter orders failed: {resp.text}"
         data = resp.json()
         for item in data["items"]:
             assert item["status"] == "received"
 
     def test_62_filter_orders_by_vendor(self, journey_client):
-        """GET /api/v1/orders/?vendor_id=... filters by vendor."""
+        """GET /api/v1/orders?vendor_id=... filters by vendor."""
         vid = TestFullUserJourney.vendor_id
-        resp = journey_client.get("/api/v1/orders/", params={"vendor_id": vid})
+        resp = journey_client.get("/api/v1/orders", params={"vendor_id": vid})
         assert resp.status_code == 200, f"Filter orders by vendor failed: {resp.text}"
         data = resp.json()
         assert data["total"] >= 1
 
     def test_63_filter_orders_by_po_number(self, journey_client):
-        """GET /api/v1/orders/?po_number=... searches by PO number."""
+        """GET /api/v1/orders?po_number=... searches by PO number."""
         resp = journey_client.get(
-            "/api/v1/orders/", params={"po_number": f"PO-{_SUFFIX}"}
+            "/api/v1/orders", params={"po_number": f"PO-{_SUFFIX}"}
         )
         assert resp.status_code == 200, f"Filter by PO number failed: {resp.text}"
         data = resp.json()
@@ -972,7 +972,7 @@ class TestFullUserJourney:
         """POST /api/v1/inventory/ creates inventory item without an order."""
         pid = TestFullUserJourney.product_ids[2]
         resp = journey_client.post(
-            "/api/v1/inventory/",
+            "/api/v1/inventory",
             json={
                 "product_id": pid,
                 "quantity_on_hand": 50,
@@ -994,7 +994,7 @@ class TestFullUserJourney:
     def test_68_pagination_works(self, journey_client):
         """Paginated endpoints return correct structure."""
         resp = journey_client.get(
-            "/api/v1/products/", params={"page": 1, "page_size": 2}
+            "/api/v1/products", params={"page": 1, "page_size": 2}
         )
         assert resp.status_code == 200, f"Pagination failed: {resp.text}"
         data = resp.json()
@@ -1010,7 +1010,7 @@ class TestFullUserJourney:
     def test_69_sorting_works(self, journey_client):
         """Products can be sorted by name descending."""
         resp = journey_client.get(
-            "/api/v1/products/",
+            "/api/v1/products",
             params={"sort_by": "name", "sort_dir": "desc"},
         )
         assert resp.status_code == 200, f"Sorting failed: {resp.text}"
@@ -1032,7 +1032,7 @@ class TestFullUserJourney:
         assert resp.status_code == 200, f"Logout failed: {resp.text}"
 
         # Attempt to access protected endpoint.
-        resp = journey_client.get("/api/v1/vendors/")
+        resp = journey_client.get("/api/v1/vendors")
         assert resp.status_code == 401, f"Expected 401 without auth: {resp.text}"
 
         # But public endpoints still work.
@@ -1060,14 +1060,14 @@ class TestFullUserJourney:
 
         # Access with API key header.
         resp = journey_client.get(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             headers={"X-Api-Key": "journey-test-api-key"},
         )
         assert resp.status_code == 200, f"API key auth failed: {resp.text}"
 
         # Wrong API key should fail.
         resp = journey_client.get(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             headers={"X-Api-Key": "wrong-key"},
         )
         assert resp.status_code == 401, f"Expected 401 with wrong API key: {resp.text}"
@@ -1092,7 +1092,7 @@ class TestFullUserJourney:
 
     def test_73_session_cleared_after_logout(self, journey_client):
         """After logout, protected endpoints return 401."""
-        resp = journey_client.get("/api/v1/vendors/")
+        resp = journey_client.get("/api/v1/vendors")
         assert resp.status_code == 401, f"Expected 401 after logout: {resp.text}"
 
         # Auth/me should also indicate not authenticated.

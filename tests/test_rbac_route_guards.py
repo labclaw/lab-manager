@@ -213,11 +213,11 @@ def _seed_equipment(session: Session) -> int:
 
 class TestOrderGuards:
     def test_visitor_cannot_create_order(self, visitor_client):
-        resp = visitor_client.post("/api/v1/orders/", json={"status": "pending"})
+        resp = visitor_client.post("/api/v1/orders", json={"status": "pending"})
         assert resp.status_code == 403
 
     def test_pi_can_create_order(self, pi_client):
-        resp = pi_client.post("/api/v1/orders/", json={"status": "pending"})
+        resp = pi_client.post("/api/v1/orders", json={"status": "pending"})
         assert resp.status_code == 201
 
     def test_visitor_cannot_update_order(self, visitor_client, _session):
@@ -242,7 +242,7 @@ class TestOrderGuards:
 
     def test_visitor_can_list_orders(self, visitor_client):
         """GET /orders/ has no guard -- read is allowed for all authenticated users."""
-        resp = visitor_client.get("/api/v1/orders/")
+        resp = visitor_client.get("/api/v1/orders")
         assert resp.status_code == 200
 
 
@@ -271,7 +271,7 @@ class TestDocumentGuards:
         assert resp.status_code == 403
 
     def test_visitor_can_list_documents(self, visitor_client):
-        resp = visitor_client.get("/api/v1/documents/")
+        resp = visitor_client.get("/api/v1/documents")
         assert resp.status_code == 200
 
 
@@ -285,7 +285,7 @@ class TestInventoryGuards:
         vid = _seed_vendor(_session)
         pid = _seed_product(_session, vid)
         resp = visitor_client.post(
-            "/api/v1/inventory/",
+            "/api/v1/inventory",
             json={"product_id": pid, "quantity_on_hand": 5, "status": "available"},
         )
         assert resp.status_code == 403
@@ -294,7 +294,7 @@ class TestInventoryGuards:
         vid = _seed_vendor(_session)
         pid = _seed_product(_session, vid)
         resp = pi_client.post(
-            "/api/v1/inventory/",
+            "/api/v1/inventory",
             json={"product_id": pid, "quantity_on_hand": 5, "status": "available"},
         )
         assert resp.status_code == 201
@@ -339,11 +339,11 @@ class TestAnalyticsGuards:
 
 class TestAuditGuards:
     def test_visitor_cannot_view_audit(self, visitor_client):
-        resp = visitor_client.get("/api/v1/audit/")
+        resp = visitor_client.get("/api/v1/audit")
         assert resp.status_code == 403
 
     def test_pi_can_view_audit(self, pi_client):
-        resp = pi_client.get("/api/v1/audit/")
+        resp = pi_client.get("/api/v1/audit")
         assert resp.status_code == 200
 
 
@@ -369,11 +369,11 @@ class TestExportGuards:
 
 class TestEquipmentGuards:
     def test_visitor_cannot_create_equipment(self, visitor_client):
-        resp = visitor_client.post("/api/v1/equipment/", json={"name": "Microscope"})
+        resp = visitor_client.post("/api/v1/equipment", json={"name": "Microscope"})
         assert resp.status_code == 403
 
     def test_pi_can_create_equipment(self, pi_client):
-        resp = pi_client.post("/api/v1/equipment/", json={"name": "Microscope"})
+        resp = pi_client.post("/api/v1/equipment", json={"name": "Microscope"})
         assert resp.status_code == 201
 
     def test_visitor_cannot_delete_equipment(self, visitor_client, _session):
@@ -389,11 +389,11 @@ class TestEquipmentGuards:
 
 class TestVendorGuards:
     def test_visitor_cannot_create_vendor(self, visitor_client):
-        resp = visitor_client.post("/api/v1/vendors/", json={"name": "NewVendor"})
+        resp = visitor_client.post("/api/v1/vendors", json={"name": "NewVendor"})
         assert resp.status_code == 403
 
     def test_pi_can_create_vendor(self, pi_client):
-        resp = pi_client.post("/api/v1/vendors/", json={"name": "NewVendor"})
+        resp = pi_client.post("/api/v1/vendors", json={"name": "NewVendor"})
         assert resp.status_code == 201
 
     def test_visitor_cannot_update_vendor(self, visitor_client, _session):
@@ -415,14 +415,14 @@ class TestVendorGuards:
 class TestProductGuards:
     def test_visitor_cannot_create_product(self, visitor_client):
         resp = visitor_client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={"catalog_number": "X-1", "name": "Product X"},
         )
         assert resp.status_code == 403
 
     def test_pi_can_create_product(self, pi_client):
         resp = pi_client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={"catalog_number": "X-1", "name": "Product X"},
         )
         assert resp.status_code == 201

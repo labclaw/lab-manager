@@ -116,7 +116,7 @@ def index_table_data(api, datatable):
     # First pass: create vendors
     for row in rows:
         if row["type"] == "vendor":
-            r = api.post("/api/v1/vendors/", json={"name": row["name"]})
+            r = api.post("/api/v1/vendors", json={"name": row["name"]})
             assert r.status_code in (200, 201), r.text
             vendor = r.json()
             vendor_ids[row["name"]] = vendor["id"]
@@ -124,7 +124,7 @@ def index_table_data(api, datatable):
 
     # Ensure we have at least one vendor for products
     if not vendor_ids:
-        r = api.post("/api/v1/vendors/", json={"name": "Test Vendor"})
+        r = api.post("/api/v1/vendors", json={"name": "Test Vendor"})
         assert r.status_code in (200, 201), r.text
         vendor = r.json()
         vendor_ids["Test Vendor"] = vendor["id"]
@@ -135,7 +135,7 @@ def index_table_data(api, datatable):
     for row in rows:
         if row["type"] == "product":
             r = api.post(
-                "/api/v1/products/",
+                "/api/v1/products",
                 json={
                     "name": row["name"],
                     "catalog_number": f"CAT-{row['name'][:10].upper().replace(' ', '')}",
@@ -165,7 +165,7 @@ def index_table_data(api, datatable):
 )
 def create_and_index_vendor(api, name):
     """Create a vendor via API and index it into Meilisearch."""
-    r = api.post("/api/v1/vendors/", json={"name": name})
+    r = api.post("/api/v1/vendors", json={"name": name})
     assert r.status_code in (200, 201), r.text
     vendor = r.json()
 
@@ -181,14 +181,14 @@ def create_and_index_vendor(api, name):
 def create_and_index_products(api, p1, p2, p3):
     """Create three products via API and index them into Meilisearch."""
     # Need a vendor first
-    r = api.post("/api/v1/vendors/", json={"name": "Test Vendor"})
+    r = api.post("/api/v1/vendors", json={"name": "Test Vendor"})
     assert r.status_code in (200, 201), r.text
     vendor = r.json()
 
     products = []
     for i, name in enumerate([p1, p2, p3], start=1):
         r = api.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "name": name,
                 "catalog_number": f"SOD-{i:03d}",

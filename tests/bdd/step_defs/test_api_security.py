@@ -86,7 +86,7 @@ def authenticated_user(api):
 def made_many_requests(api):
     """Make many requests to trigger rate limiting."""
     for _ in range(100):
-        api.get("/api/v1/vendors/")
+        api.get("/api/v1/vendors")
 
 
 @given("my session token has expired")
@@ -99,11 +99,11 @@ def expired_session_token(api):
 @given(parsers.parse('product metadata contains "{description}"'))
 def product_with_xss_description(api, description):
     """Create a product with XSS in description."""
-    r = api.post("/api/v1/vendors/", json={"name": "Test Vendor"})
+    r = api.post("/api/v1/vendors", json={"name": "Test Vendor"})
     if r.status_code in (200, 201):
         vendor = r.json()
         product_response = api.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "name": "XSS Test Product",
                 "catalog_number": "XSS-001",
@@ -121,19 +121,19 @@ def product_with_xss_description(api, description):
 @when(parsers.parse('I create a product with name "{name}"'))
 def create_product_with_name(api, name):
     api.response = api.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={"name": name, "catalog_number": "CAT-001", "vendor_id": 1},
     )
 
 
 @when(parsers.parse('I create a vendor with name "{name}"'))
 def create_vendor_with_name(api, name):
-    api.response = api.post("/api/v1/vendors/", json={"name": name})
+    api.response = api.post("/api/v1/vendors", json={"name": name})
 
 
 @when(parsers.parse('I search for "{query}"'))
 def search_query(api, query):
-    api.response = api.get("/api/v1/search/", params={"q": query})
+    api.response = api.get("/api/v1/search", params={"q": query})
 
 
 @when(parsers.parse('I request product with ID "{pid}"'))
@@ -144,11 +144,11 @@ def request_product(api, pid):
 @when(parsers.parse("I create an order with quantity {qty:d}"))
 @when(parsers.parse("I create an order item with quantity {qty:d}"))
 def create_order_with_quantity(api, qty):
-    r = api.post("/api/v1/vendors/", json={"name": "Test Vendor"})
+    r = api.post("/api/v1/vendors", json={"name": "Test Vendor"})
     if r.status_code in (200, 201):
         vendor = r.json()
         api.response = api.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "vendor_id": vendor.get("id", 1),
                 "items": [
@@ -168,7 +168,7 @@ def upload_large_file(api):
         tmp.flush()
         tmp.seek(0)
         api.response = api.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             files={"file": ("large.txt", tmp)},
         )
 
@@ -177,14 +177,14 @@ def upload_large_file(api):
 @when("I send a JSON body larger than 10MB")
 def send_large_json_body(api):
     large_data = {"data": "x" * (10 * 1024 * 1024 + 1024)}
-    api.response = api.post("/api/v1/vendors/", json=large_data)
+    api.response = api.post("/api/v1/vendors", json=large_data)
 
 
 @when("I send an OPTIONS request")
 @when("I send a proper OPTIONS preflight request")
 def send_options_request(api):
     api.response = api.options(
-        "/api/v1/vendors/",
+        "/api/v1/vendors",
         headers={
             "Origin": "https://example.test",
             "Access-Control-Request-Method": "POST",
@@ -203,13 +203,13 @@ def make_another_login_attempt(api):
 @when("I send a request with malformed auth header")
 def send_malformed_auth(api):
     api.response = api.get(
-        "/api/v1/vendors/", headers={"Authorization": "Bearer invalid-format"}
+        "/api/v1/vendors", headers={"Authorization": "Bearer invalid-format"}
     )
 
 
 @when("I make another request")
 def make_another_request(api):
-    api.response = api.get("/api/v1/vendors/")
+    api.response = api.get("/api/v1/vendors")
 
 
 @when("I make an authenticated request")
@@ -229,7 +229,7 @@ def bulk_create_products(api):
 @when("I send XML to a JSON endpoint")
 def send_xml_to_json_endpoint(api):
     api.response = api.post(
-        "/api/v1/vendors/",
+        "/api/v1/vendors",
         content="<vendor><name>Test</name></vendor>",
         headers={"Content-Type": "application/xml"},
     )
@@ -239,7 +239,7 @@ def send_xml_to_json_endpoint(api):
 @when(parsers.parse('I create a document with path "{path}"'))
 def upload_path_traversal(api, path):
     api.response = api.post(
-        "/api/v1/documents/",
+        "/api/v1/documents",
         json={
             "file_path": path,
             "file_name": "test.png",
@@ -254,7 +254,7 @@ def request_product_details(api):
     if product_id is not None:
         api.response = api.get(f"/api/v1/products/{product_id}")
     else:
-        api.response = api.get("/api/v1/products/")
+        api.response = api.get("/api/v1/products")
 
 
 @when("I upload an XML document to the upload endpoint")
@@ -304,7 +304,7 @@ def check_no_data_leak():
 
 @then("the vendor name should be HTML-escaped in responses")
 def check_vendor_name_escaped(api):
-    r = api.get("/api/v1/vendors/")
+    r = api.get("/api/v1/vendors")
     # If XSS content is present, it should be escaped
     if "<script>" in r.text:
         assert "&lt;script&gt;" in r.text or r.status_code in (200, 201)
@@ -340,7 +340,7 @@ def check_script_not_execute():
 @then("the HTML should be escaped or stripped")
 def check_html_escaped(api):
     # Response should not contain executable HTML
-    api.get("/api/v1/products/")
+    api.get("/api/v1/products")
 
 
 @then("the response should be safe")

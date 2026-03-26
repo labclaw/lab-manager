@@ -105,7 +105,7 @@ def navigate_dashboard(api):
 )
 def click_documents_nav(api, label):
     """Navigation click is represented by the target page fetch."""
-    return api.get("/api/v1/documents/")
+    return api.get("/api/v1/documents")
 
 
 @when("I click the dark mode toggle", target_fixture="dashboard_response")
@@ -123,7 +123,7 @@ def refresh_page(api, dashboard_response):
 @when("I navigate to the documents page", target_fixture="documents_response")
 def navigate_documents(api):
     """Go to documents page."""
-    return api.get("/api/v1/documents/")
+    return api.get("/api/v1/documents")
 
 
 @when("I submit the form with empty fields", target_fixture="login_response")
@@ -147,7 +147,7 @@ def resize_to_mobile():
 @when("I navigate to the inventory page", target_fixture="inventory_response")
 def navigate_inventory(api):
     """Go to inventory page."""
-    return api.get("/api/v1/inventory/")
+    return api.get("/api/v1/inventory")
 
 
 @when("the upload completes successfully")

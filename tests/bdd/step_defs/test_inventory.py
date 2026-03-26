@@ -58,7 +58,7 @@ def ctx():
 
 @given('a vendor "Thermo Fisher Scientific" exists', target_fixture="test_vendor")
 def create_vendor(api):
-    r = api.post("/api/v1/vendors/", json={"name": "Thermo Fisher Scientific"})
+    r = api.post("/api/v1/vendors", json={"name": "Thermo Fisher Scientific"})
     assert r.status_code in (200, 201), r.text
     return r.json()
 
@@ -69,7 +69,7 @@ def create_vendor(api):
 )
 def create_product(api, test_vendor, name, catalog):
     r = api.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={
             "name": name,
             "catalog_number": catalog,
@@ -86,7 +86,7 @@ def create_product(api, test_vendor, name, catalog):
 )
 def create_inventory(api, test_product, qty, lot):
     r = api.post(
-        "/api/v1/inventory/",
+        "/api/v1/inventory",
         json={
             "product_id": test_product["id"],
             "quantity_on_hand": float(qty),
@@ -101,7 +101,7 @@ def create_inventory(api, test_product, qty, lot):
 @given(parsers.parse('an order "{po}" for the vendor'), target_fixture="test_order")
 def create_order(api, test_vendor, po):
     r = api.post(
-        "/api/v1/orders/",
+        "/api/v1/orders",
         json={
             "vendor_id": test_vendor["id"],
             "po_number": po,

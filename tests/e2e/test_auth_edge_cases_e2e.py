@@ -138,7 +138,7 @@ class TestAuthProtectedEndpoints:
     ):
         """Protected endpoints return 401 without auth."""
         resp = e2e_client.post(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             json={"name": "Unauthorized Vendor"},
         )
         assert resp.status_code == 401, f"Expected 401, got {resp.status_code}"
@@ -148,7 +148,7 @@ class TestAuthProtectedEndpoints:
     ):
         """Protected endpoints work with auth."""
         resp = authenticated_client.post(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             json={"name": "Authorized Vendor Test"},
         )
         assert resp.status_code == 201, f"Expected 201, got {resp.status_code}"
@@ -206,7 +206,7 @@ class TestAuthUserManagement:
         self, authenticated_client: TestClient | httpx.Client
     ):
         """GET /api/v1/users/ requires an available admin endpoint."""
-        resp = authenticated_client.get("/api/v1/users/")
+        resp = authenticated_client.get("/api/v1/users")
         assert resp.status_code in (200, 401, 403, 404)
 
 
@@ -218,7 +218,7 @@ class TestAuthToken:
         """API key in header authenticates requests."""
         # Use the test API key from conftest
         resp = e2e_client.get(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             headers={"X-API-Key": "e2e-test-api-key"},
         )
         assert resp.status_code == 200, (
@@ -228,7 +228,7 @@ class TestAuthToken:
     def test_invalid_api_key(self, e2e_client: TestClient | httpx.Client):
         """Invalid API key returns 401."""
         resp = e2e_client.get(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             headers={"X-API-Key": "invalid-key-12345"},
         )
         assert resp.status_code == 401, (

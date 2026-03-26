@@ -18,7 +18,7 @@ from lab_manager.services.alerts import get_alert_summary, persist_alerts
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("")
 def list_alerts(
     alert_type: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),

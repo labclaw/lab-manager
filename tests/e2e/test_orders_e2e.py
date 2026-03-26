@@ -31,7 +31,7 @@ class TestOrdersE2E:
 
         suffix = uuid4().hex[:8]
         resp = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "po_number": f"E2E-ORDER-{suffix.upper()}",
                 "vendor_id": test_vendor_id,
@@ -46,7 +46,7 @@ class TestOrdersE2E:
 
     def test_list_orders(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/orders/ returns paginated list."""
-        resp = authenticated_client.get("/api/v1/orders/")
+        resp = authenticated_client.get("/api/v1/orders")
         assert resp.status_code == 200
         data = resp.json()
         assert "items" in data or isinstance(data, list)
@@ -58,7 +58,7 @@ class TestOrdersE2E:
     ):
         """POST /api/v1/orders/ creates new order."""
         resp = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "po_number": "E2E-ORDER-001",
                 "vendor_id": test_vendor_id,
@@ -129,7 +129,7 @@ class TestOrderItems:
     ):
         """POST /api/v1/orders/ creates order with items."""
         resp = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "po_number": "E2E-ORDER-ITEMS-001",
                 "vendor_id": test_vendor_id,
@@ -204,7 +204,7 @@ class TestOrderStatusTransitions:
         """Order can transition from pending to approved."""
         # Create order
         resp = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "po_number": "E2E-STATUS-001",
                 "vendor_id": test_vendor_id,
@@ -234,7 +234,7 @@ class TestOrderStatusTransitions:
         """Order can transition from approved to ordered."""
         # Create order in pending state first (default)
         resp = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "po_number": "E2E-STATUS-002",
                 "vendor_id": test_vendor_id,
@@ -271,7 +271,7 @@ class TestOrderStatusTransitions:
         """Order can be marked as received."""
         # Create order in pending state first (default)
         resp = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "po_number": "E2E-STATUS-003",
                 "vendor_id": test_vendor_id,
@@ -299,7 +299,7 @@ class TestOrderFiltering:
 
     def test_filter_by_status(self, authenticated_client: TestClient | httpx.Client):
         """Filter orders by status."""
-        resp = authenticated_client.get("/api/v1/orders/", params={"status": "pending"})
+        resp = authenticated_client.get("/api/v1/orders", params={"status": "pending"})
         assert resp.status_code == 200
 
     def test_filter_by_vendor(
@@ -309,19 +309,19 @@ class TestOrderFiltering:
     ):
         """Filter orders by vendor."""
         resp = authenticated_client.get(
-            "/api/v1/orders/", params={"vendor_id": test_vendor_id}
+            "/api/v1/orders", params={"vendor_id": test_vendor_id}
         )
         assert resp.status_code == 200
 
     def test_search_by_po_number(self, authenticated_client: TestClient | httpx.Client):
         """Search orders by PO number."""
-        resp = authenticated_client.get("/api/v1/orders/", params={"search": "E2E"})
+        resp = authenticated_client.get("/api/v1/orders", params={"search": "E2E"})
         assert resp.status_code == 200
 
     def test_pagination(self, authenticated_client: TestClient | httpx.Client):
         """Test order list pagination."""
         resp = authenticated_client.get(
-            "/api/v1/orders/", params={"page": 1, "page_size": 10}
+            "/api/v1/orders", params={"page": 1, "page_size": 10}
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -337,7 +337,7 @@ class TestOrderReceiving:
         """POST receive order with empty items."""
         # Create order
         resp = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={"po_number": "E2E-RECV-001"},
         )
         if resp.status_code in (200, 201):
@@ -358,7 +358,7 @@ class TestOrderReceiving:
         """POST receive order with items."""
         # Create order with items
         resp = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "po_number": "E2E-RECV-002",
                 "vendor_id": test_vendor_id,
@@ -391,7 +391,7 @@ class TestOrderReceiving:
     ):
         """POST receive order partially."""
         resp = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "po_number": "E2E-RECV-PARTIAL",
                 "vendor_id": test_vendor_id,
@@ -428,7 +428,7 @@ class TestOrderNotes:
     def test_order_with_notes(self, authenticated_client: TestClient | httpx.Client):
         """Order can have notes."""
         resp = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "po_number": "E2E-NOTES-001",
                 "notes": "This is a test order with notes",
@@ -451,7 +451,7 @@ class TestOrderNotes:
         """Order notes can be updated."""
         # Create order
         resp = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={"po_number": "E2E-NOTES-002"},
         )
         assert resp.status_code in (200, 201)
@@ -476,7 +476,7 @@ class TestOrderDates:
     def test_order_with_dates(self, authenticated_client: TestClient | httpx.Client):
         """Order can have order date and expected date."""
         resp = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "po_number": "E2E-DATES-001",
                 "order_date": "2024-01-15",

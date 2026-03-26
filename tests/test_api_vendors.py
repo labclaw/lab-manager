@@ -8,14 +8,14 @@ def test_health(client):
 
 
 def test_create_vendor(client):
-    resp = client.post("/api/v1/vendors/", json={"name": "Sigma-Aldrich"})
+    resp = client.post("/api/v1/vendors", json={"name": "Sigma-Aldrich"})
     assert resp.status_code == 201
     assert resp.json()["name"] == "Sigma-Aldrich"
 
 
 def test_list_vendors(client):
-    client.post("/api/v1/vendors/", json={"name": "Sigma"})
-    resp = client.get("/api/v1/vendors/")
+    client.post("/api/v1/vendors", json={"name": "Sigma"})
+    resp = client.get("/api/v1/vendors")
     assert resp.status_code == 200
     data = resp.json()
     assert "items" in data

@@ -243,7 +243,7 @@ class TestPubChemEndpoints:
 
     def _create_product(self, client, name="Ethanol", catalog_number="E7023"):
         resp = client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={"name": name, "catalog_number": catalog_number},
         )
         assert resp.status_code == 201

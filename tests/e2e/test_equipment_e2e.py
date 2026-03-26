@@ -31,7 +31,7 @@ class TestEquipmentE2E:
 
         suffix = uuid4().hex[:8]
         resp = authenticated_client.post(
-            "/api/v1/equipment/",
+            "/api/v1/equipment",
             json={
                 "name": f"E2E Centrifuge {suffix}",
                 "model": f"CF-E2E-{suffix.upper()}",
@@ -48,7 +48,7 @@ class TestEquipmentE2E:
 
     def test_list_equipment(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/equipment/ returns paginated list."""
-        resp = authenticated_client.get("/api/v1/equipment/")
+        resp = authenticated_client.get("/api/v1/equipment")
         assert resp.status_code == 200
         data = resp.json()
         assert "items" in data or isinstance(data, list)
@@ -56,7 +56,7 @@ class TestEquipmentE2E:
     def test_create_equipment(self, authenticated_client: TestClient | httpx.Client):
         """POST /api/v1/equipment/ creates new equipment."""
         resp = authenticated_client.post(
-            "/api/v1/equipment/",
+            "/api/v1/equipment",
             json={
                 "name": "E2E Centrifuge",
                 "model": "CF-E2E-5000",
@@ -110,7 +110,7 @@ class TestEquipmentStatusTransitions:
         """Equipment can transition from active to maintenance."""
         # Create equipment
         resp = authenticated_client.post(
-            "/api/v1/equipment/",
+            "/api/v1/equipment",
             json={
                 "name": "Status Test Equipment",
                 "model": "ST-E2E-001",
@@ -137,7 +137,7 @@ class TestEquipmentStatusTransitions:
         """Equipment can transition from maintenance to retired."""
         # Create equipment in maintenance
         resp = authenticated_client.post(
-            "/api/v1/equipment/",
+            "/api/v1/equipment",
             json={
                 "name": "Retirement Test Equipment",
                 "model": "RT-E2E-001",
@@ -166,28 +166,28 @@ class TestEquipmentFiltering:
     def test_filter_by_status(self, authenticated_client: TestClient | httpx.Client):
         """Filter equipment by status."""
         resp = authenticated_client.get(
-            "/api/v1/equipment/", params={"status": "active"}
+            "/api/v1/equipment", params={"status": "active"}
         )
         assert resp.status_code == 200
 
     def test_filter_by_location(self, authenticated_client: TestClient | httpx.Client):
         """Filter equipment by location."""
         resp = authenticated_client.get(
-            "/api/v1/equipment/", params={"location": "Lab A"}
+            "/api/v1/equipment", params={"location": "Lab A"}
         )
         assert resp.status_code == 200
 
     def test_search_by_name(self, authenticated_client: TestClient | httpx.Client):
         """Search equipment by name."""
         resp = authenticated_client.get(
-            "/api/v1/equipment/", params={"search": "Centrifuge"}
+            "/api/v1/equipment", params={"search": "Centrifuge"}
         )
         assert resp.status_code == 200
 
     def test_pagination(self, authenticated_client: TestClient | httpx.Client):
         """Test equipment list pagination."""
         resp = authenticated_client.get(
-            "/api/v1/equipment/", params={"page": 1, "page_size": 10}
+            "/api/v1/equipment", params={"page": 1, "page_size": 10}
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -203,7 +203,7 @@ class TestEquipmentMaintenance:
         """GET /api/v1/equipment/{id}/maintenance returns maintenance log."""
         # Create equipment first
         resp = authenticated_client.post(
-            "/api/v1/equipment/",
+            "/api/v1/equipment",
             json={
                 "name": "Maintenance Test Equipment",
                 "model": "MT-E2E-001",
@@ -227,7 +227,7 @@ class TestEquipmentMaintenance:
         """POST /api/v1/equipment/{id}/maintenance adds maintenance record."""
         # Create equipment
         resp = authenticated_client.post(
-            "/api/v1/equipment/",
+            "/api/v1/equipment",
             json={
                 "name": "Maintenance Record Test",
                 "model": "MR-E2E-001",
@@ -262,7 +262,7 @@ class TestEquipmentCalibration:
         """GET /api/v1/equipment/{id}/calibration returns calibration history."""
         # Create equipment
         resp = authenticated_client.post(
-            "/api/v1/equipment/",
+            "/api/v1/equipment",
             json={
                 "name": "Calibration Test Equipment",
                 "model": "CT-E2E-001",
@@ -286,7 +286,7 @@ class TestEquipmentCalibration:
         """POST /api/v1/equipment/{id}/calibration schedules calibration."""
         # Create equipment
         resp = authenticated_client.post(
-            "/api/v1/equipment/",
+            "/api/v1/equipment",
             json={
                 "name": "Calibration Schedule Test",
                 "model": "CS-E2E-001",
@@ -319,7 +319,7 @@ class TestEquipmentWarranty:
         """GET /api/v1/equipment/{id}/warranty returns warranty info."""
         # Create equipment with warranty
         resp = authenticated_client.post(
-            "/api/v1/equipment/",
+            "/api/v1/equipment",
             json={
                 "name": "Warranty Test Equipment",
                 "model": "WT-E2E-001",

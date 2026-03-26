@@ -795,7 +795,7 @@ class TestAppAuthMiddleware:
     def test_x_user_header(self, client):
         """X-User header is read when auth is disabled for audit context."""
         resp = client.get(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             headers={"X-User": "test-user"},
         )
         assert resp.status_code == 200

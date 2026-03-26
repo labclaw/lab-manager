@@ -91,7 +91,7 @@ def create_bulk_equipment(api, n):
     items = []
     for i in range(n):
         r = api.post(
-            "/api/v1/equipment/",
+            "/api/v1/equipment",
             json={"name": f"Device {i}", "category": "general"},
         )
         assert r.status_code in (200, 201), r.text
@@ -105,7 +105,7 @@ def create_bulk_equipment(api, n):
 )
 def create_equipment_with_cat(api, name, cat):
     r = api.post(
-        "/api/v1/equipment/",
+        "/api/v1/equipment",
         json={"name": name, "category": cat},
     )
     assert r.status_code in (200, 201), r.text
@@ -118,7 +118,7 @@ def create_equipment_with_cat(api, name, cat):
 )
 def create_equipment_with_status(api, name, status):
     r = api.post(
-        "/api/v1/equipment/",
+        "/api/v1/equipment",
         json={"name": name, "category": "general", "status": status},
     )
     assert r.status_code in (200, 201), r.text
@@ -131,7 +131,7 @@ def create_equipment_with_status(api, name, status):
 )
 def create_equipment_with_mfr(api, name, mfr):
     r = api.post(
-        "/api/v1/equipment/",
+        "/api/v1/equipment",
         json={"name": name, "manufacturer": mfr},
     )
     assert r.status_code in (200, 201), r.text
@@ -162,7 +162,7 @@ def create_location(db):
 )
 def create_equipment(api, name, cat, mfr):
     r = api.post(
-        "/api/v1/equipment/",
+        "/api/v1/equipment",
         json={"name": name, "category": cat, "manufacturer": mfr},
     )
     assert r.status_code in (200, 201), r.text
@@ -174,7 +174,7 @@ def create_equipment(api, name, cat, mfr):
     target_fixture="list_response",
 )
 def list_equipment(api, page, size):
-    r = api.get(f"/api/v1/equipment/?page={page}&page_size={size}")
+    r = api.get(f"/api/v1/equipment?page={page}&page_size={size}")
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -184,7 +184,7 @@ def list_equipment(api, page, size):
     target_fixture="list_response",
 )
 def filter_by_category(api, cat):
-    r = api.get(f"/api/v1/equipment/?category={cat}")
+    r = api.get(f"/api/v1/equipment?category={cat}")
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -194,7 +194,7 @@ def filter_by_category(api, cat):
     target_fixture="list_response",
 )
 def filter_by_status(api, status):
-    r = api.get(f"/api/v1/equipment/?status={status}")
+    r = api.get(f"/api/v1/equipment?status={status}")
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -204,7 +204,7 @@ def filter_by_status(api, status):
     target_fixture="list_response",
 )
 def search_equipment(api, query):
-    r = api.get(f"/api/v1/equipment/?search={query}")
+    r = api.get(f"/api/v1/equipment?search={query}")
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -250,7 +250,7 @@ def delete_equipment(api, test_equipment):
 )
 def create_equipment_with_location(api, test_location, name, cat, loc_name):
     r = api.post(
-        "/api/v1/equipment/",
+        "/api/v1/equipment",
         json={
             "name": name,
             "category": cat,
@@ -284,7 +284,7 @@ def update_photos(api, test_equipment):
 )
 def create_with_vlm_data(api, name):
     r = api.post(
-        "/api/v1/equipment/",
+        "/api/v1/equipment",
         json={
             "name": name,
             "category": "two-photon",

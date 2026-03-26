@@ -42,7 +42,7 @@ def _create_request(c, **overrides):
         "urgency": "normal",
     }
     body.update(overrides)
-    return c.post("/api/v1/requests/", json=body)
+    return c.post("/api/v1/requests", json=body)
 
 
 # --- Test: Create request ---
@@ -72,20 +72,20 @@ def test_list_requests_student_sees_own(student_client, admin_client):
     _create_request(student_client)
     _create_request(student_client)
 
-    resp = student_client.get("/api/v1/requests/")
+    resp = student_client.get("/api/v1/requests")
     assert resp.status_code == 200
     data = resp.json()
     assert data["total"] == 2
 
     # Admin can see all
-    resp = admin_client.get("/api/v1/requests/")
+    resp = admin_client.get("/api/v1/requests")
     assert resp.status_code == 200
     assert resp.json()["total"] >= 2
 
 
 def test_list_requests_filter_status(student_client):
     _create_request(student_client)
-    resp = student_client.get("/api/v1/requests/?status=pending")
+    resp = student_client.get("/api/v1/requests?status=pending")
     assert resp.status_code == 200
     assert resp.json()["total"] >= 1
 

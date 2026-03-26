@@ -16,7 +16,7 @@ from lab_manager.models.audit import AuditLog
 router = APIRouter(dependencies=[Depends(require_permission("view_audit_log"))])
 
 
-@router.get("/")
+@router.get("")
 def list_audit_logs(
     table: Optional[str] = Query(None),
     record_id: Optional[int] = Query(None),

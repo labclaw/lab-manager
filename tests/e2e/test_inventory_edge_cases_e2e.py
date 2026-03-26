@@ -18,7 +18,7 @@ class TestInventoryPagination:
         self, authenticated_client: TestClient | httpx.Client
     ):
         """GET /api/v1/inventory/ returns paginated results."""
-        resp = authenticated_client.get("/api/v1/inventory/")
+        resp = authenticated_client.get("/api/v1/inventory")
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
         assert "items" in data, f"Response missing 'items': {data.keys()}"
@@ -30,7 +30,7 @@ class TestInventoryPagination:
         self, authenticated_client: TestClient | httpx.Client
     ):
         """GET /api/v1/inventory/ respects page_size."""
-        resp = authenticated_client.get("/api/v1/inventory/", params={"page_size": 5})
+        resp = authenticated_client.get("/api/v1/inventory", params={"page_size": 5})
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
         assert data["page_size"] == 5, f"Expected page_size=5, got {data['page_size']}"
@@ -40,7 +40,7 @@ class TestInventoryPagination:
     ):
         """GET /api/v1/inventory/ returns correct page."""
         resp = authenticated_client.get(
-            "/api/v1/inventory/", params={"page": 2, "page_size": 5}
+            "/api/v1/inventory", params={"page": 2, "page_size": 5}
         )
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
@@ -50,7 +50,7 @@ class TestInventoryPagination:
         self, authenticated_client: TestClient | httpx.Client
     ):
         """GET /api/v1/inventory/ returns empty items for out-of-range page."""
-        resp = authenticated_client.get("/api/v1/inventory/", params={"page": 99999})
+        resp = authenticated_client.get("/api/v1/inventory", params={"page": 99999})
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
         # Out-of-range page should return empty items
@@ -66,7 +66,7 @@ class TestInventorySorting:
     def test_sort_by_quantity(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/inventory/ sorts by quantity descending."""
         resp = authenticated_client.get(
-            "/api/v1/inventory/", params={"sort_by": "quantity", "sort_order": "desc"}
+            "/api/v1/inventory", params={"sort_by": "quantity", "sort_order": "desc"}
         )
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
@@ -79,14 +79,14 @@ class TestInventorySorting:
     def test_sort_by_location(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/inventory/ sorts by location ascending."""
         resp = authenticated_client.get(
-            "/api/v1/inventory/", params={"sort_by": "location", "sort_order": "asc"}
+            "/api/v1/inventory", params={"sort_by": "location", "sort_order": "asc"}
         )
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
 
     def test_sort_invalid_field(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/inventory/ handles invalid sort field safely."""
         resp = authenticated_client.get(
-            "/api/v1/inventory/", params={"sort_by": "invalid_field_xyz"}
+            "/api/v1/inventory", params={"sort_by": "invalid_field_xyz"}
         )
         assert resp.status_code in (200, 400, 422), (
             f"Expected 200/400/422, got {resp.status_code}"
@@ -162,7 +162,7 @@ class TestInventoryFiltering:
     def test_filter_by_location(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/inventory/ filters by location."""
         resp = authenticated_client.get(
-            "/api/v1/inventory/", params={"location": "Shelf A1"}
+            "/api/v1/inventory", params={"location": "Shelf A1"}
         )
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
@@ -175,7 +175,7 @@ class TestInventoryFiltering:
     ):
         """GET /api/v1/inventory/ filters by product_id."""
         resp = authenticated_client.get(
-            "/api/v1/inventory/", params={"product_id": test_product_id}
+            "/api/v1/inventory", params={"product_id": test_product_id}
         )
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
@@ -189,7 +189,7 @@ class TestInventoryFiltering:
     ):
         """GET /api/v1/inventory/ filters by lot_number."""
         resp = authenticated_client.get(
-            "/api/v1/inventory/", params={"lot_number": "LOT-E2E-001"}
+            "/api/v1/inventory", params={"lot_number": "LOT-E2E-001"}
         )
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
 
@@ -252,7 +252,7 @@ class TestInventoryDispose:
         """POST /api/v1/inventory/{id}/dispose validates the dispose payload."""
         # Create item to dispose
         create_resp = authenticated_client.post(
-            "/api/v1/inventory/",
+            "/api/v1/inventory",
             json={
                 "product_id": test_product_id,
                 "quantity": 10,
@@ -282,7 +282,7 @@ class TestInventoryDispose:
         """POST /api/v1/inventory/{id}/dispose disposes an item."""
         # Create item
         create_resp = authenticated_client.post(
-            "/api/v1/inventory/",
+            "/api/v1/inventory",
             json={
                 "product_id": test_product_id,
                 "quantity": 100,

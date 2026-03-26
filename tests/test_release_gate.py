@@ -166,14 +166,14 @@ def test_authenticated_release_flow(release_client: TestClient):
     assert dashboard.status_code == 200
 
     vendor = release_client.post(
-        "/api/v1/vendors/",
+        "/api/v1/vendors",
         json={"name": "Release Vendor", "website": "https://example.com"},
     )
     assert vendor.status_code == 201
     vendor_id = vendor.json()["id"]
 
     product = release_client.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={
             "catalog_number": "REL-001",
             "name": "Release Product",
@@ -183,7 +183,7 @@ def test_authenticated_release_flow(release_client: TestClient):
     assert product.status_code == 201
 
     order = release_client.post(
-        "/api/v1/orders/",
+        "/api/v1/orders",
         json={"vendor_id": vendor_id, "po_number": "REL-PO-001"},
     )
     assert order.status_code == 201

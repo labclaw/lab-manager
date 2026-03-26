@@ -64,7 +64,7 @@ def ctx():
     target_fixture="edge_vendor",
 )
 def create_edge_vendor(api, name):
-    r = api.post("/api/v1/vendors/", json={"name": name})
+    r = api.post("/api/v1/vendors", json={"name": name})
     assert r.status_code == 201, r.text
     return r.json()
 
@@ -75,7 +75,7 @@ def create_edge_vendor(api, name):
 )
 def create_edge_order(api, edge_vendor, po):
     r = api.post(
-        "/api/v1/orders/",
+        "/api/v1/orders",
         json={
             "vendor_id": edge_vendor["id"],
             "po_number": po,
@@ -92,7 +92,7 @@ def create_edge_order(api, edge_vendor, po):
 )
 def create_edge_order_with_items(api, edge_vendor, ctx, po, n):
     r = api.post(
-        "/api/v1/orders/",
+        "/api/v1/orders",
         json={
             "vendor_id": edge_vendor["id"],
             "po_number": po,
@@ -124,7 +124,7 @@ def create_edge_order_with_items(api, edge_vendor, ctx, po, n):
 def create_n_edge_orders(api, edge_vendor, n):
     for i in range(n):
         r = api.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "vendor_id": edge_vendor["id"],
                 "po_number": f"PO-PAGN-{next(_seq):05d}",
@@ -140,7 +140,7 @@ def create_sequential_orders(api, edge_vendor, ctx, n):
     for i in range(n):
         po = f"PO-SORT-{chr(65 + i)}"
         r = api.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "vendor_id": edge_vendor["id"],
                 "po_number": po,
@@ -194,7 +194,7 @@ def delete_first_order_item(api, edge_order, ctx):
     target_fixture="order_list",
 )
 def list_orders_paginated(api, page, ps):
-    r = api.get("/api/v1/orders/", params={"page": page, "page_size": ps})
+    r = api.get("/api/v1/orders", params={"page": page, "page_size": ps})
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -204,7 +204,7 @@ def list_orders_paginated(api, page, ps):
     target_fixture="order_list",
 )
 def list_orders_sorted(api, field, direction):
-    r = api.get("/api/v1/orders/", params={"sort_by": field, "sort_dir": direction})
+    r = api.get("/api/v1/orders", params={"sort_by": field, "sort_dir": direction})
     assert r.status_code == 200, r.text
     return r.json()
 

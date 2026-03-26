@@ -29,7 +29,7 @@ class AskResponse(BaseModel):
 
 
 @router.post("", response_model=AskResponse)
-@router.post("/", response_model=AskResponse, include_in_schema=False)
+@router.post("", response_model=AskResponse, include_in_schema=False)
 def ask_post(
     request: Request,
     body: AskRequest,
@@ -43,7 +43,7 @@ def ask_post(
 
 
 @router.get("", response_model=AskResponse)
-@router.get("/", response_model=AskResponse, include_in_schema=False)
+@router.get("", response_model=AskResponse, include_in_schema=False)
 def ask_get(
     request: Request,
     q: str = Query(..., description="Question in plain English or Chinese"),

@@ -161,8 +161,8 @@ def receive_order_no_items(api):
 def make_invalid_requests(api, ctx):
     """Make various invalid requests."""
     ctx["responses"] = [
-        api.post("/api/v1/documents/", json={}),
-        api.post("/api/v1/products/", json={}),
+        api.post("/api/v1/documents", json={}),
+        api.post("/api/v1/products", json={}),
         api.post("/api/v1/orders/1/items", json={"quantity": -1}),
     ]
 
@@ -171,7 +171,7 @@ def make_invalid_requests(api, ctx):
 def submit_invalid_data(api):
     """Submit invalid data."""
     return api.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={"catalog_number": "", "name": ""},
     )
 
@@ -179,14 +179,14 @@ def submit_invalid_data(api):
 @when("I submit data with SQL injection attempt", target_fixture="response")
 def submit_sql_injection(api):
     """Submit SQL injection attempt."""
-    return api.post("/api/v1/vendors/", json={"name": "'; DROP TABLE vendors; --"})
+    return api.post("/api/v1/vendors", json={"name": "'; DROP TABLE vendors; --"})
 
 
 @when("I submit data with script tags", target_fixture="response")
 def submit_xss(api):
     """Submit XSS attempt."""
     return api.post(
-        "/api/v1/vendors/", json={"name": "<script>alert('xss')</script>Test"}
+        "/api/v1/vendors", json={"name": "<script>alert('xss')</script>Test"}
     )
 
 

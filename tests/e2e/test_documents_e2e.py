@@ -28,7 +28,7 @@ class TestDocumentsE2E:
 
     def test_list_documents(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/documents/ returns paginated list."""
-        resp = authenticated_client.get("/api/v1/documents/")
+        resp = authenticated_client.get("/api/v1/documents")
         assert resp.status_code == 200
         data = resp.json()
         assert "items" in data or isinstance(data, list)
@@ -172,7 +172,7 @@ class TestDocumentsE2E:
     ):
         """POST /api/v1/documents/ creates document directly."""
         resp = authenticated_client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             json={
                 "filename": "e2e_test.txt",
                 "document_type": "invoice",
@@ -192,7 +192,7 @@ class TestDocumentsE2E:
         if TestDocumentsE2E._document_id is None:
             # Create one
             resp = authenticated_client.post(
-                "/api/v1/documents/",
+                "/api/v1/documents",
                 json={
                     "filename": "test_get.txt",
                     "document_type": "packing_list",
@@ -255,21 +255,21 @@ class TestDocumentFiltering:
     def test_filter_by_status(self, authenticated_client: TestClient | httpx.Client):
         """Filter documents by status."""
         resp = authenticated_client.get(
-            "/api/v1/documents/", params={"status": "pending"}
+            "/api/v1/documents", params={"status": "pending"}
         )
         assert resp.status_code == 200
 
     def test_filter_by_type(self, authenticated_client: TestClient | httpx.Client):
         """Filter documents by type."""
         resp = authenticated_client.get(
-            "/api/v1/documents/", params={"document_type": "invoice"}
+            "/api/v1/documents", params={"document_type": "invoice"}
         )
         assert resp.status_code == 200
 
     def test_pagination(self, authenticated_client: TestClient | httpx.Client):
         """Test document list pagination."""
         resp = authenticated_client.get(
-            "/api/v1/documents/", params={"page": 1, "page_size": 10}
+            "/api/v1/documents", params={"page": 1, "page_size": 10}
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -288,7 +288,7 @@ class DocumentWorkflowDuplicate:
         """Document can go from pending to approved."""
         # Create document in pending state
         resp = authenticated_client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             json={
                 "filename": "workflow_test.txt",
                 "document_type": "invoice",
@@ -314,7 +314,7 @@ class DocumentWorkflowDuplicate:
         """Document can be rejected."""
         # Create document
         resp = authenticated_client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             json={
                 "filename": "reject_test.txt",
                 "document_type": "packing_list",
@@ -339,7 +339,7 @@ class DocumentWorkflowDuplicate:
         """POST /api/v1/documents/{id}/extract triggers extraction."""
         # Create document
         resp = authenticated_client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             json={
                 "filename": "extract_test.txt",
                 "document_type": "invoice",
@@ -367,7 +367,7 @@ class TestDocumentStatusTransitions:
     ):
         """Document can transition to processing."""
         resp = authenticated_client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             json={
                 "filename": "processing_test.txt",
                 "document_type": "invoice",
@@ -392,7 +392,7 @@ class TestDocumentStatusTransitions:
     ):
         """Document can transition to reviewed."""
         resp = authenticated_client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             json={
                 "filename": "reviewed_test.txt",
                 "document_type": "invoice",
@@ -419,7 +419,7 @@ class TestDocumentSearch:
 
     def test_search_by_filename(self, authenticated_client: TestClient | httpx.Client):
         """Search documents by filename."""
-        resp = authenticated_client.get("/api/v1/documents/", params={"search": "test"})
+        resp = authenticated_client.get("/api/v1/documents", params={"search": "test"})
         assert resp.status_code == 200
 
     def test_filter_by_date_range(
@@ -427,7 +427,7 @@ class TestDocumentSearch:
     ):
         """Filter documents by date range."""
         resp = authenticated_client.get(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             params={
                 "created_after": "2024-01-01",
                 "created_before": "2025-12-31",
@@ -446,7 +446,7 @@ class TestDocumentWorkflow:
         """Document can go from pending to approved."""
         # Create document in pending state
         resp = authenticated_client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             json={
                 "filename": "workflow_test.txt",
                 "document_type": "invoice",
@@ -474,7 +474,7 @@ class TestDocumentWorkflow:
         """Document can be rejected."""
         # Create document
         resp = authenticated_client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             json={
                 "filename": "reject_test.txt",
                 "document_type": "packing_list",
@@ -500,7 +500,7 @@ class TestDocumentWorkflow:
         """POST /api/v1/documents/{id}/extract triggers extraction."""
         # Create document
         resp = authenticated_client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             json={
                 "filename": "extract_test.txt",
                 "document_type": "invoice",
@@ -534,7 +534,7 @@ class TestDocumentBulkOperations:
 
     def test_documents_by_vendor(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/documents/ with vendor filter."""
-        resp = authenticated_client.get("/api/v1/documents/", params={"vendor_id": 1})
+        resp = authenticated_client.get("/api/v1/documents", params={"vendor_id": 1})
         assert resp.status_code == 200
 
     def test_documents_by_date_range(
@@ -542,7 +542,7 @@ class TestDocumentBulkOperations:
     ):
         """GET /api/v1/documents/ with date range filter."""
         resp = authenticated_client.get(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             params={"start_date": "2024-01-01", "end_date": "2024-12-31"},
         )
         assert resp.status_code == 200

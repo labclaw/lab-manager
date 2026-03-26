@@ -28,7 +28,7 @@ def _create_vendor(
     """Create a vendor and return its full JSON response."""
     suffix = suffix or _suffix()
     resp = client.post(
-        "/api/v1/vendors/",
+        "/api/v1/vendors",
         json={
             "name": f"E2E Alert Vendor {suffix}",
             "email": f"alert-vendor-{suffix}@e2e.local",
@@ -49,7 +49,7 @@ def _create_product(
     """Create a product and return its full JSON response."""
     suffix = suffix or _suffix()
     resp = client.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={
             "catalog_number": f"E2E-ALERT-{suffix.upper()}",
             "name": f"E2E Alert Product {suffix}",
@@ -93,7 +93,7 @@ def _create_inventory(
     }
     if expiry_date:
         payload["expiry_date"] = expiry_date
-    resp = client.post("/api/v1/inventory/", json=payload)
+    resp = client.post("/api/v1/inventory", json=payload)
     assert resp.status_code == 201, f"Inventory create failed: {resp.text}"
     return resp.json()
 
@@ -106,7 +106,7 @@ def _create_order_with_items(
     """Create an order, add items, return order data."""
     suffix = _suffix()
     resp = client.post(
-        "/api/v1/orders/",
+        "/api/v1/orders",
         json={
             "po_number": f"E2E-PO-{suffix.upper()}",
             "vendor_id": vendor_id,
@@ -211,7 +211,7 @@ class TestAlertsE2E:
         )
         authenticated_client.post("/api/v1/alerts/check")
 
-        resp = authenticated_client.get("/api/v1/alerts/")
+        resp = authenticated_client.get("/api/v1/alerts")
         assert resp.status_code == 200
         data = resp.json()
         assert "items" in data
@@ -250,7 +250,7 @@ class TestAlertsE2E:
         authenticated_client.post("/api/v1/alerts/check")
 
         # Get an alert to acknowledge
-        list_resp = authenticated_client.get("/api/v1/alerts/")
+        list_resp = authenticated_client.get("/api/v1/alerts")
         assert list_resp.status_code == 200
         alerts = list_resp.json()["items"]
         if not alerts:
@@ -276,7 +276,7 @@ class TestAlertsE2E:
         )
         authenticated_client.post("/api/v1/alerts/check")
 
-        list_resp = authenticated_client.get("/api/v1/alerts/")
+        list_resp = authenticated_client.get("/api/v1/alerts")
         alerts = list_resp.json()["items"]
         if not alerts:
             pytest.skip("No alerts available to resolve")
@@ -292,7 +292,7 @@ class TestAlertsE2E:
     def test_08_filter_alerts_by_type(
         self, authenticated_client: TestClient | httpx.Client
     ):
-        """GET /api/v1/alerts/?alert_type=expiring_soon filters correctly."""
+        """GET /api/v1/alerts?alert_type=expiring_soon filters correctly."""
         # Seed an expiring alert
         vendor = _create_vendor(authenticated_client)
         product = _create_product(authenticated_client, vendor["id"])
@@ -303,7 +303,7 @@ class TestAlertsE2E:
         authenticated_client.post("/api/v1/alerts/check")
 
         resp = authenticated_client.get(
-            "/api/v1/alerts/", params={"alert_type": "expiring_soon"}
+            "/api/v1/alerts", params={"alert_type": "expiring_soon"}
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -324,7 +324,7 @@ class TestAlertsE2E:
         )
         authenticated_client.post("/api/v1/alerts/check")
 
-        list_resp = authenticated_client.get("/api/v1/alerts/")
+        list_resp = authenticated_client.get("/api/v1/alerts")
         alerts = list_resp.json()["items"]
         if not alerts:
             pytest.skip("No alerts to resolve for exclusion test")
@@ -333,7 +333,7 @@ class TestAlertsE2E:
         authenticated_client.post(f"/api/v1/alerts/{alert_id}/resolve")
 
         # Default list should NOT include the resolved alert
-        default_resp = authenticated_client.get("/api/v1/alerts/")
+        default_resp = authenticated_client.get("/api/v1/alerts")
         default_ids = {a["id"] for a in default_resp.json()["items"]}
         assert alert_id not in default_ids, (
             "Resolved alert should be excluded by default"
@@ -341,7 +341,7 @@ class TestAlertsE2E:
 
         # Explicitly requesting resolved=true should include it
         resolved_resp = authenticated_client.get(
-            "/api/v1/alerts/", params={"resolved": True}
+            "/api/v1/alerts", params={"resolved": True}
         )
         assert resolved_resp.status_code == 200
         resolved_ids = {a["id"] for a in resolved_resp.json()["items"]}
@@ -435,7 +435,7 @@ class TestAskE2E:
         suffix = _suffix()
         vendor_name = f"E2E RAG Vendor {suffix}"
         vendor_resp = authenticated_client.post(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             json={
                 "name": vendor_name,
                 "email": f"rag-{suffix}@e2e.local",

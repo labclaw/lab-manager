@@ -112,20 +112,20 @@ def create_staff_table(api, datatable):
 
     rows = table_to_dicts(datatable)
     for row in rows:
-        api.response = api.post("/api/v1/staff/", json=row)
+        api.response = api.post("/api/v1/staff", json=row)
 
 
 @when(parsers.parse('I create a staff member with email "{email}"'))
 def create_staff_email(api, email):
     api.response = api.post(
-        "/api/v1/staff/", json={"name": "Test", "email": email, "role": "staff"}
+        "/api/v1/staff", json={"name": "Test", "email": email, "role": "staff"}
     )
 
 
 @when("I create a staff member without a name")
 def create_staff_no_name(api):
     api.response = api.post(
-        "/api/v1/staff/", json={"email": "noname@test.com", "role": "staff"}
+        "/api/v1/staff", json={"email": "noname@test.com", "role": "staff"}
     )
 
 

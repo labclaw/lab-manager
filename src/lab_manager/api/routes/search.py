@@ -11,7 +11,7 @@ from lab_manager.services.search import search, search_all, suggest
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("")
 def search_endpoint(
     q: str = Query(..., min_length=1, description="Search query"),
     index: Optional[str] = Query(

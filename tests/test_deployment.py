@@ -122,17 +122,17 @@ class TestAuthAllowlist:
 
     def test_vendors_requires_auth(self):
         """GET /api/v1/vendors/ returns 401 when auth enabled."""
-        resp = self.client.get("/api/v1/vendors/")
+        resp = self.client.get("/api/v1/vendors")
         assert resp.status_code == 401
 
     def test_products_requires_auth(self):
         """GET /api/v1/products/ returns 401 when auth enabled."""
-        resp = self.client.get("/api/v1/products/")
+        resp = self.client.get("/api/v1/products")
         assert resp.status_code == 401
 
     def test_orders_requires_auth(self):
         """GET /api/v1/orders/ returns 401 when auth enabled."""
-        resp = self.client.get("/api/v1/orders/")
+        resp = self.client.get("/api/v1/orders")
         assert resp.status_code == 401
 
 

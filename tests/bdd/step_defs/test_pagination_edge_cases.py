@@ -110,7 +110,7 @@ def documents_various_statuses(db):
 @when("I request the documents list without parameters", target_fixture="response")
 def request_documents_default(api):
     """Request documents with default pagination."""
-    return api.get("/api/v1/documents/?page_size=20")
+    return api.get("/api/v1/documents?page_size=20")
 
 
 @when(
@@ -120,7 +120,7 @@ def request_documents_default(api):
 def request_documents_page_size(api, size):
     """Request documents with specific page size."""
     requested = 501 if size == 500 else size
-    return api.get(f"/api/v1/documents/?page_size={requested}")
+    return api.get(f"/api/v1/documents?page_size={requested}")
 
 
 @when(
@@ -129,7 +129,7 @@ def request_documents_page_size(api, size):
 )
 def request_documents_page(api, page):
     """Request documents at specific page."""
-    return api.get(f"/api/v1/documents/?page={page}")
+    return api.get(f"/api/v1/documents?page={page}")
 
 
 @when(
@@ -138,19 +138,19 @@ def request_documents_page(api, page):
 )
 def request_documents_filtered(api):
     """Request filtered documents."""
-    return api.get("/api/v1/documents/?status=needs_review&page=2&page_size=20")
+    return api.get("/api/v1/documents?status=needs_review&page=2&page_size=20")
 
 
 @when("I request each list endpoint with pagination")
 def request_all_list_endpoints(api, ctx):
     """Request all list endpoints."""
     endpoints = [
-        "/api/v1/vendors/",
-        "/api/v1/products/",
-        "/api/v1/orders/",
-        "/api/v1/inventory/",
-        "/api/v1/documents/",
-        "/api/v1/alerts/",
+        "/api/v1/vendors",
+        "/api/v1/products",
+        "/api/v1/orders",
+        "/api/v1/inventory",
+        "/api/v1/documents",
+        "/api/v1/alerts",
     ]
     ctx["responses"] = {}
     for endpoint in endpoints:
@@ -311,11 +311,11 @@ def create_resource(db, count, resource):
 def request_resource_list(api, resource):
     """Request a resource list."""
     endpoints = {
-        "vendors": "/api/v1/vendors/",
-        "products": "/api/v1/products/",
-        "orders": "/api/v1/orders/",
-        "inventory": "/api/v1/inventory/",
-        "documents": "/api/v1/documents/",
-        "alerts": "/api/v1/alerts/",
+        "vendors": "/api/v1/vendors",
+        "products": "/api/v1/products",
+        "orders": "/api/v1/orders",
+        "inventory": "/api/v1/inventory",
+        "documents": "/api/v1/documents",
+        "alerts": "/api/v1/alerts",
     }
-    return api.get(endpoints.get(resource, "/api/v1/documents/"))
+    return api.get(endpoints.get(resource, "/api/v1/documents"))

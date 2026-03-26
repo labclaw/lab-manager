@@ -124,7 +124,7 @@ def resolve_nonexistent(api, aid):
     target_fixture="alert_list",
 )
 def list_alerts_by_type(api, alert_type):
-    r = api.get("/api/v1/alerts/", params={"alert_type": alert_type})
+    r = api.get("/api/v1/alerts", params={"alert_type": alert_type})
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -134,7 +134,7 @@ def list_alerts_by_type(api, alert_type):
     target_fixture="alert_list",
 )
 def list_alerts_by_severity(api, severity):
-    r = api.get("/api/v1/alerts/", params={"severity": severity})
+    r = api.get("/api/v1/alerts", params={"severity": severity})
     assert r.status_code == 200, r.text
     return r.json()
 

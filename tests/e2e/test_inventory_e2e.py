@@ -33,7 +33,7 @@ class TestInventoryE2E:
 
         suffix = uuid4().hex[:8]
         resp = authenticated_client.post(
-            "/api/v1/inventory/",
+            "/api/v1/inventory",
             json={
                 "product_id": test_product_id,
                 "quantity": 500,
@@ -48,7 +48,7 @@ class TestInventoryE2E:
 
     def test_list_inventory(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/inventory/ returns paginated list."""
-        resp = authenticated_client.get("/api/v1/inventory/")
+        resp = authenticated_client.get("/api/v1/inventory")
         assert resp.status_code == 200
         data = resp.json()
         assert "items" in data or isinstance(data, list)
@@ -60,7 +60,7 @@ class TestInventoryE2E:
     ):
         """POST /api/v1/inventory/ creates inventory item."""
         resp = authenticated_client.post(
-            "/api/v1/inventory/",
+            "/api/v1/inventory",
             json={
                 "product_id": test_product_id,
                 "quantity": 500,
@@ -163,7 +163,7 @@ class TestInventoryE2E:
         """POST dispose inventory marks item as disposed."""
         # Create a new inventory item to dispose
         resp = authenticated_client.post(
-            "/api/v1/inventory/",
+            "/api/v1/inventory",
             json={
                 "product_id": 1,  # Use existing product
                 "quantity": 10,
@@ -217,7 +217,7 @@ class TestInventoryFiltering:
     def test_filter_by_location(self, authenticated_client: TestClient | httpx.Client):
         """Filter inventory by location."""
         resp = authenticated_client.get(
-            "/api/v1/inventory/", params={"location": "Shelf A1"}
+            "/api/v1/inventory", params={"location": "Shelf A1"}
         )
         assert resp.status_code == 200
 
@@ -228,7 +228,7 @@ class TestInventoryFiltering:
     ):
         """Filter inventory by product ID."""
         resp = authenticated_client.get(
-            "/api/v1/inventory/", params={"product_id": test_product_id}
+            "/api/v1/inventory", params={"product_id": test_product_id}
         )
         assert resp.status_code == 200
 
@@ -237,21 +237,21 @@ class TestInventoryFiltering:
     ):
         """Filter inventory by lot number."""
         resp = authenticated_client.get(
-            "/api/v1/inventory/", params={"lot_number": "LOT-E2E-001"}
+            "/api/v1/inventory", params={"lot_number": "LOT-E2E-001"}
         )
         assert resp.status_code == 200
 
     def test_sort_by_quantity(self, authenticated_client: TestClient | httpx.Client):
         """Sort inventory by quantity."""
         resp = authenticated_client.get(
-            "/api/v1/inventory/", params={"sort_by": "quantity", "sort_order": "desc"}
+            "/api/v1/inventory", params={"sort_by": "quantity", "sort_order": "desc"}
         )
         assert resp.status_code == 200
 
     def test_pagination(self, authenticated_client: TestClient | httpx.Client):
         """Test inventory list pagination."""
         resp = authenticated_client.get(
-            "/api/v1/inventory/", params={"page": 1, "page_size": 20}
+            "/api/v1/inventory", params={"page": 1, "page_size": 20}
         )
         assert resp.status_code == 200
         data = resp.json()

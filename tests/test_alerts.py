@@ -172,7 +172,7 @@ def test_alerts_check_api(client):
     """POST /api/alerts/check should trigger checks and return summary."""
     # Seed a pending document so there's something to find
     client.post(
-        "/api/v1/documents/",
+        "/api/v1/documents",
         json={
             "file_path": "uploads/check.jpg",
             "file_name": "check.jpg",
@@ -189,7 +189,7 @@ def test_alerts_check_api(client):
 
 def test_alerts_list_api(client):
     """GET /api/alerts should list unresolved alerts."""
-    resp = client.get("/api/v1/alerts/")
+    resp = client.get("/api/v1/alerts")
     assert resp.status_code == 200
     data = resp.json()
     assert "items" in data
@@ -199,7 +199,7 @@ def test_alert_acknowledge_resolve(client):
     """POST /api/alerts/{id}/acknowledge and /resolve should work."""
     # Seed + check to create alerts
     client.post(
-        "/api/v1/documents/",
+        "/api/v1/documents",
         json={
             "file_path": "uploads/ack.jpg",
             "file_name": "ack.jpg",
@@ -209,7 +209,7 @@ def test_alert_acknowledge_resolve(client):
     client.post("/api/v1/alerts/check")
 
     # Get alerts
-    resp = client.get("/api/v1/alerts/")
+    resp = client.get("/api/v1/alerts")
     items = resp.json()["items"]
     if not items:
         return  # Nothing to test if no alerts generated

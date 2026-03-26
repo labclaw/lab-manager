@@ -103,7 +103,7 @@ class ProductResponse(BaseModel):
     updated_at: datetime | None = None
 
 
-@router.get("/")
+@router.get("")
 def list_products(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
@@ -136,7 +136,7 @@ def list_products(
 
 
 @router.post(
-    "/", status_code=201, dependencies=[Depends(require_permission("manage_products"))]
+    "", status_code=201, dependencies=[Depends(require_permission("manage_products"))]
 )
 def create_product(body: ProductCreate, db: Session = Depends(get_db)):
     product = Product(**body.model_dump())

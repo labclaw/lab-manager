@@ -18,7 +18,7 @@ class TestOrdersPagination:
         self, authenticated_client: TestClient | httpx.Client
     ):
         """GET /api/v1/orders/ returns paginated results."""
-        resp = authenticated_client.get("/api/v1/orders/")
+        resp = authenticated_client.get("/api/v1/orders")
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
         assert "items" in data, f"Response missing 'items': {data.keys()}"
@@ -28,7 +28,7 @@ class TestOrdersPagination:
         self, authenticated_client: TestClient | httpx.Client
     ):
         """GET /api/v1/orders/ with status filter."""
-        resp = authenticated_client.get("/api/v1/orders/", params={"status": "pending"})
+        resp = authenticated_client.get("/api/v1/orders", params={"status": "pending"})
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
         for item in data["items"]:
@@ -43,7 +43,7 @@ class TestOrdersPagination:
     ):
         """GET /api/v1/orders/ with vendor filter."""
         resp = authenticated_client.get(
-            "/api/v1/orders/", params={"vendor_id": test_vendor_id}
+            "/api/v1/orders", params={"vendor_id": test_vendor_id}
         )
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
@@ -281,7 +281,7 @@ class TestOrderStatusTransitions:
         """Order transition request from pending to approved is handled safely."""
         # Create order
         create_resp = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "po_number": "E2E-STATUS-001",
                 "vendor_id": test_vendor_id,
@@ -310,7 +310,7 @@ class TestOrderStatusTransitions:
         """Order transition request to ordered is handled safely."""
         # Create order in default pending state.
         create_resp = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "po_number": "E2E-STATUS-002",
                 "vendor_id": test_vendor_id,
@@ -336,7 +336,7 @@ class TestOrderStatusTransitions:
     ):
         """Order transition request to received is handled safely."""
         create_resp = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "po_number": "E2E-STATUS-003",
                 "vendor_id": test_vendor_id,
@@ -379,7 +379,7 @@ class TestOrderValidation:
     ):
         """POST /api/v1/orders/ handles missing vendor."""
         resp = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={"po_number": "E2E-NO-VENDOR"},
         )
         assert resp.status_code in (201, 422), (
@@ -395,7 +395,7 @@ class TestOrderValidation:
         po_number = "E2E-DUPLICATE-PO"
         # First create
         first_resp = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={"po_number": po_number, "vendor_id": test_vendor_id},
         )
         assert first_resp.status_code == 201, (
@@ -403,7 +403,7 @@ class TestOrderValidation:
         )
         # Second create with same PO
         resp = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={"po_number": po_number, "vendor_id": test_vendor_id},
         )
         assert resp.status_code in (201, 409), (
@@ -436,7 +436,7 @@ class TestOrderSearch:
 
     def test_search_by_po_number(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/orders/ searches by PO number."""
-        resp = authenticated_client.get("/api/v1/orders/", params={"search": "E2E-PO"})
+        resp = authenticated_client.get("/api/v1/orders", params={"search": "E2E-PO"})
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
 
     def test_filter_by_date_range(
@@ -444,7 +444,7 @@ class TestOrderSearch:
     ):
         """GET /api/v1/orders/ filters by date range."""
         resp = authenticated_client.get(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             params={
                 "start_date": "2024-01-01",
                 "end_date": "2026-12-31",

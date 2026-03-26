@@ -81,12 +81,12 @@ def ctx():
 
 @given("some baseline data exists for analytics", target_fixture="analytics_vendor")
 def create_baseline_data(api):
-    r = api.post("/api/v1/vendors/", json={"name": "Analytics Vendor"})
+    r = api.post("/api/v1/vendors", json={"name": "Analytics Vendor"})
     assert r.status_code == 201, r.text
     vendor = r.json()
 
     r = api.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={
             "name": "Analytics Product",
             "catalog_number": f"ANAL-{next(_seq):05d}",
@@ -96,7 +96,7 @@ def create_baseline_data(api):
     assert r.status_code == 201, r.text
 
     r = api.post(
-        "/api/v1/orders/",
+        "/api/v1/orders",
         json={
             "vendor_id": vendor["id"],
             "po_number": f"PO-ANAL-{next(_seq):05d}",
@@ -106,7 +106,7 @@ def create_baseline_data(api):
     assert r.status_code == 201, r.text
 
     product = api.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={
             "name": "Analytics Inv Product",
             "catalog_number": f"ANAL-INV-{next(_seq):05d}",
@@ -117,7 +117,7 @@ def create_baseline_data(api):
     prod_id = product.json()["id"]
 
     r = api.post(
-        "/api/v1/inventory/",
+        "/api/v1/inventory",
         json={
             "product_id": prod_id,
             "quantity_on_hand": 10,
@@ -135,12 +135,12 @@ def create_baseline_data(api):
     target_fixture="spend_vendor",
 )
 def create_vendor_with_priced_items(api, name):
-    r = api.post("/api/v1/vendors/", json={"name": name})
+    r = api.post("/api/v1/vendors", json={"name": name})
     assert r.status_code == 201, r.text
     vendor = r.json()
 
     r = api.post(
-        "/api/v1/orders/",
+        "/api/v1/orders",
         json={
             "vendor_id": vendor["id"],
             "po_number": f"PO-SPEND-{next(_seq):05d}",
@@ -171,12 +171,12 @@ def create_vendor_with_priced_items(api, name):
     target_fixture="top_vendor",
 )
 def create_vendor_with_ordered_products(api, name):
-    r = api.post("/api/v1/vendors/", json={"name": name})
+    r = api.post("/api/v1/vendors", json={"name": name})
     assert r.status_code == 201, r.text
     vendor = r.json()
 
     r = api.post(
-        "/api/v1/orders/",
+        "/api/v1/orders",
         json={
             "vendor_id": vendor["id"],
             "po_number": f"PO-TOP-{next(_seq):05d}",
@@ -206,13 +206,13 @@ def create_vendor_with_ordered_products(api, name):
     target_fixture="hist_vendor",
 )
 def create_vendor_with_n_orders(api, name, n):
-    r = api.post("/api/v1/vendors/", json={"name": name})
+    r = api.post("/api/v1/vendors", json={"name": name})
     assert r.status_code == 201, r.text
     vendor = r.json()
 
     for i in range(n):
         r = api.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "vendor_id": vendor["id"],
                 "po_number": f"PO-HIST-{next(_seq):05d}",
@@ -229,12 +229,12 @@ def create_vendor_with_n_orders(api, name, n):
     target_fixture="summary_vendor",
 )
 def create_vendor_with_products_and_orders(api, name):
-    r = api.post("/api/v1/vendors/", json={"name": name})
+    r = api.post("/api/v1/vendors", json={"name": name})
     assert r.status_code == 201, r.text
     vendor = r.json()
 
     r = api.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={
             "name": "Summary Product",
             "catalog_number": f"SUM-{next(_seq):05d}",
@@ -244,7 +244,7 @@ def create_vendor_with_products_and_orders(api, name):
     assert r.status_code == 201, r.text
 
     r = api.post(
-        "/api/v1/orders/",
+        "/api/v1/orders",
         json={
             "vendor_id": vendor["id"],
             "po_number": f"PO-SUM-{next(_seq):05d}",
@@ -260,7 +260,7 @@ def create_vendor_with_products_and_orders(api, name):
 def create_docs_for_analytics(api, n):
     for i in range(n):
         r = api.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             json={
                 "file_name": f"analytics_doc_{i}.jpg",
                 "file_path": f"/uploads/analytics_doc_{i}.jpg",

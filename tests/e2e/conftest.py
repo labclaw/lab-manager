@@ -150,7 +150,7 @@ def test_vendor_id(authenticated_client: TestClient | httpx.Client) -> int:
     """Create a test vendor and return its ID."""
     suffix = _unique_suffix()
     resp = authenticated_client.post(
-        "/api/v1/vendors/",
+        "/api/v1/vendors",
         json={
             "name": f"E2E Test Vendor {suffix}",
             "email": f"vendor-{suffix}@e2e-test.local",
@@ -169,7 +169,7 @@ def test_product_id(
     """Create a test product and return its ID."""
     suffix = _unique_suffix()
     resp = authenticated_client.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={
             "catalog_number": f"E2E-TEST-{suffix.upper()}",
             "name": f"E2E Test Product {suffix}",
@@ -190,7 +190,7 @@ def test_order_id(
     """Create a test order and return its ID."""
     suffix = _unique_suffix()
     resp = authenticated_client.post(
-        "/api/v1/orders/",
+        "/api/v1/orders",
         json={
             "po_number": f"E2E-PO-{suffix.upper()}",
             "vendor_id": test_vendor_id,
@@ -207,7 +207,7 @@ def test_equipment_id(authenticated_client: TestClient | httpx.Client) -> int:
     """Create test equipment and return its ID."""
     suffix = _unique_suffix()
     resp = authenticated_client.post(
-        "/api/v1/equipment/",
+        "/api/v1/equipment",
         json={
             "name": f"E2E Test Equipment {suffix}",
             "model": f"TEST-MODEL-{suffix.upper()}",
@@ -228,7 +228,7 @@ def test_inventory_id(
     """Create test inventory item and return its ID."""
     suffix = _unique_suffix()
     resp = authenticated_client.post(
-        "/api/v1/inventory/",
+        "/api/v1/inventory",
         json={
             "product_id": test_product_id,
             "quantity": 100,

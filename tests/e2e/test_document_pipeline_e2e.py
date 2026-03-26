@@ -83,7 +83,7 @@ def _create_doc(
         body["ocr_text"] = ocr_text
     if vendor_name is not None:
         body["vendor_name"] = vendor_name
-    resp = client.post("/api/v1/documents/", json=body)
+    resp = client.post("/api/v1/documents", json=body)
     assert resp.status_code == 201, f"Document creation failed: {resp.text}"
     return resp.json()
 
@@ -137,12 +137,12 @@ class TestDocumentPipelineE2E:
     def test_04_list_documents_filter_by_status(
         self, authenticated_client: TestClient | httpx.Client
     ):
-        """GET /api/v1/documents/?status=needs_review returns only matching docs."""
+        """GET /api/v1/documents?status=needs_review returns only matching docs."""
         # Seed a document with known status
         _create_doc(authenticated_client, status="needs_review")
 
         resp = authenticated_client.get(
-            "/api/v1/documents/", params={"status": "needs_review"}
+            "/api/v1/documents", params={"status": "needs_review"}
         )
         assert resp.status_code == 200
         payload = resp.json()
@@ -199,7 +199,7 @@ class TestDocumentPipelineE2E:
 
         # Verify order was created and linked to this document
         orders_resp = authenticated_client.get(
-            "/api/v1/orders/", params={"po_number": extracted["po_number"]}
+            "/api/v1/orders", params={"po_number": extracted["po_number"]}
         )
         assert orders_resp.status_code == 200
         orders_data = orders_resp.json()
@@ -237,7 +237,7 @@ class TestDocumentPipelineE2E:
         product_id = oi.get("product_id")
         assert product_id is not None, "Product should have been auto-created"
         inv_resp = authenticated_client.get(
-            "/api/v1/inventory/", params={"product_id": product_id}
+            "/api/v1/inventory", params={"product_id": product_id}
         )
         assert inv_resp.status_code == 200
         inv_data = inv_resp.json()
@@ -284,7 +284,7 @@ class TestDocumentPipelineE2E:
 
         # Confirm no order for this document
         orders_resp = authenticated_client.get(
-            "/api/v1/orders/", params={"po_number": extracted["po_number"]}
+            "/api/v1/orders", params={"po_number": extracted["po_number"]}
         )
         assert orders_resp.status_code == 200
         orders_data = orders_resp.json()
@@ -326,7 +326,7 @@ class TestDocumentPipelineE2E:
 
         # Order should still be created (vendor present), but with no items
         orders_resp = authenticated_client.get(
-            "/api/v1/orders/", params={"po_number": partial_data["po_number"]}
+            "/api/v1/orders", params={"po_number": partial_data["po_number"]}
         )
         assert orders_resp.status_code == 200
         order_items = orders_resp.json().get("items", [])
@@ -398,7 +398,7 @@ class TestDocumentPipelineE2E:
 
         # Page 1
         resp = authenticated_client.get(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             params={
                 "extraction_model": "pagination-test",
                 "page": 1,
@@ -415,7 +415,7 @@ class TestDocumentPipelineE2E:
 
         # Page 2
         resp2 = authenticated_client.get(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             params={
                 "extraction_model": "pagination-test",
                 "page": 2,
@@ -456,13 +456,13 @@ class TestDocumentPipelineE2E:
     def test_13_filter_by_extraction_model(
         self, authenticated_client: TestClient | httpx.Client
     ):
-        """GET /api/v1/documents/?extraction_model=... filters correctly."""
+        """GET /api/v1/documents?extraction_model=... filters correctly."""
         model_name = f"test-model-{_uid()}"
         _create_doc(authenticated_client, extraction_model=model_name)
         _create_doc(authenticated_client, extraction_model="other-model")
 
         resp = authenticated_client.get(
-            "/api/v1/documents/", params={"extraction_model": model_name}
+            "/api/v1/documents", params={"extraction_model": model_name}
         )
         assert resp.status_code == 200
         payload = resp.json()
@@ -513,7 +513,7 @@ class TestDocumentPipelineE2E:
 
         # Fetch order
         orders_resp = authenticated_client.get(
-            "/api/v1/orders/", params={"po_number": extracted["po_number"]}
+            "/api/v1/orders", params={"po_number": extracted["po_number"]}
         )
         order_list = orders_resp.json().get("items", [])
         matching = [
@@ -626,7 +626,7 @@ class TestDocumentPipelineE2E:
         _create_doc(authenticated_client)
 
         resp = authenticated_client.get(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             params={"sort_by": "id", "sort_dir": "desc", "page_size": 5},
         )
         assert resp.status_code == 200
@@ -638,13 +638,13 @@ class TestDocumentPipelineE2E:
     # 18. Search by filename/vendor
     # ------------------------------------------------------------------
     def test_21_search_documents(self, authenticated_client: TestClient | httpx.Client):
-        """GET /api/v1/documents/?search=... matches on file_name or vendor_name."""
+        """GET /api/v1/documents?search=... matches on file_name or vendor_name."""
         s = _uid()
         unique_vendor = f"UniqueSearchVendor{s}"
         _create_doc(authenticated_client, vendor_name=unique_vendor)
 
         resp = authenticated_client.get(
-            "/api/v1/documents/", params={"search": unique_vendor}
+            "/api/v1/documents", params={"search": unique_vendor}
         )
         assert resp.status_code == 200
         payload = resp.json()

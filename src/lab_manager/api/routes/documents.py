@@ -384,7 +384,7 @@ def document_stats(db: Session = Depends(get_db)):
     }
 
 
-@router.get("/")
+@router.get("")
 def list_documents(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=500),
@@ -415,7 +415,7 @@ def list_documents(
     return paginate(q, db, page, page_size)
 
 
-@router.post("/", status_code=201)
+@router.post("", status_code=201)
 def create_document(body: DocumentCreate, db: Session = Depends(get_db)):
     document = Document(**body.model_dump())
     db.add(document)

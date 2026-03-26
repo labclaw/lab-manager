@@ -169,7 +169,7 @@ def request_db_status(api):
 @when("I make an API request")
 def make_api_request(api):
     """Make a generic API request."""
-    api.response = api.get("/api/v1/vendors/")
+    api.response = api.get("/api/v1/vendors")
 
 
 @when(parsers.parse('I query the telemetry logs for trace ID "{trace_id}"'))

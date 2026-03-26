@@ -3,7 +3,7 @@
 
 def test_create_product_empty_catalog_number_rejected(client):
     resp = client.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={
             "catalog_number": "",
             "name": "Test Product",
@@ -24,7 +24,7 @@ def test_create_product_duplicate_returns_409(client, db_session):
     db_session.commit()
 
     resp = client.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={
             "catalog_number": "DUP-001",
             "name": "Duplicate",
@@ -36,7 +36,7 @@ def test_create_product_duplicate_returns_409(client, db_session):
 
 def test_create_product_name_too_long_rejected(client):
     resp = client.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={
             "catalog_number": "CAT-1",
             "name": "X" * 501,
@@ -50,7 +50,7 @@ def test_create_product_name_too_long_rejected(client):
 
 def test_create_document_path_traversal_rejected(client):
     resp = client.post(
-        "/api/v1/documents/",
+        "/api/v1/documents",
         json={
             "file_path": "../../../etc/passwd",
             "file_name": "traversal.pdf",
@@ -61,7 +61,7 @@ def test_create_document_path_traversal_rejected(client):
 
 def test_create_document_etc_path_rejected(client):
     resp = client.post(
-        "/api/v1/documents/",
+        "/api/v1/documents",
         json={
             "file_path": "/etc/shadow",
             "file_name": "shadow.pdf",
@@ -72,7 +72,7 @@ def test_create_document_etc_path_rejected(client):
 
 def test_create_document_status_invalid_rejected(client):
     resp = client.post(
-        "/api/v1/documents/",
+        "/api/v1/documents",
         json={
             "file_path": "/uploads/test.pdf",
             "file_name": "test.pdf",
@@ -84,7 +84,7 @@ def test_create_document_status_invalid_rejected(client):
 
 def test_create_document_valid_status_accepted(client):
     resp = client.post(
-        "/api/v1/documents/",
+        "/api/v1/documents",
         json={
             "file_path": "/uploads/ok.pdf",
             "file_name": "ok.pdf",
@@ -126,7 +126,7 @@ def test_rag_subquery_table_blocked():
 def test_create_product_invalid_cas_rejected(client):
     """CAS numbers must match NNNNN-NN-N format or be null."""
     resp = client.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={
             "catalog_number": "CAS-TEST",
             "name": "CAS Test",
@@ -138,7 +138,7 @@ def test_create_product_invalid_cas_rejected(client):
 
 def test_create_product_valid_cas_accepted(client):
     resp = client.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={
             "catalog_number": "CAS-OK",
             "name": "CAS Ok",
@@ -150,7 +150,7 @@ def test_create_product_valid_cas_accepted(client):
 
 def test_create_product_null_cas_accepted(client):
     resp = client.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={
             "catalog_number": "CAS-NULL",
             "name": "No CAS",
@@ -208,7 +208,7 @@ def test_vendor_name_with_html_chars_stored_and_returned_raw(client):
     unchanged from the API JSON response.
     """
     xss_name = '<script>alert("xss")</script>'
-    resp = client.post("/api/v1/vendors/", json={"name": xss_name})
+    resp = client.post("/api/v1/vendors", json={"name": xss_name})
     assert resp.status_code == 201
     data = resp.json()
     assert data["name"] == xss_name, "API must return raw string, not HTML-escaped"
@@ -224,7 +224,7 @@ def test_product_name_with_html_chars_stored_raw(client):
     """Product names with HTML chars must be preserved verbatim in API responses."""
     xss_name = 'Reagent <b>bold</b> & "quoted"'
     resp = client.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={"catalog_number": "XSS-PROD-01", "name": xss_name},
     )
     assert resp.status_code == 201

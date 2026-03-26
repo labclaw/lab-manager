@@ -211,7 +211,7 @@ class TestAppSessionCookie:
 
             app = create_app()
             with TestClient(app) as client:
-                resp = client.get("/api/v1/vendors/")
+                resp = client.get("/api/v1/vendors")
                 assert resp.status_code == 401
         finally:
             os.environ["AUTH_ENABLED"] = "false"
@@ -241,7 +241,7 @@ class TestAppSessionCookie:
             with TestClient(app) as client:
                 # Set invalid session cookie
                 client.cookies.set("lab_session", "invalid-cookie-data")
-                resp = client.get("/api/v1/vendors/")
+                resp = client.get("/api/v1/vendors")
                 assert resp.status_code == 401
         finally:
             os.environ["AUTH_ENABLED"] = "false"

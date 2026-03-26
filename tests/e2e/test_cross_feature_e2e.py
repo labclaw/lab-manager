@@ -28,7 +28,7 @@ def _create_vendor(client, *, name: str | None = None, **kwargs) -> dict:
         "website": "https://test.local",
         **kwargs,
     }
-    resp = client.post("/api/v1/vendors/", json=payload)
+    resp = client.post("/api/v1/vendors", json=payload)
     assert resp.status_code == 201, resp.text
     return resp.json()
 
@@ -44,7 +44,7 @@ def _create_product(
         "category": kwargs.pop("category", "Reagents"),
         **kwargs,
     }
-    resp = client.post("/api/v1/products/", json=payload)
+    resp = client.post("/api/v1/products", json=payload)
     assert resp.status_code == 201, resp.text
     return resp.json()
 
@@ -57,7 +57,7 @@ def _create_order(client, vendor_id: int, *, status: str = "pending", **kwargs) 
         "status": status,
         **kwargs,
     }
-    resp = client.post("/api/v1/orders/", json=payload)
+    resp = client.post("/api/v1/orders", json=payload)
     assert resp.status_code == 201, resp.text
     data = resp.json()
     return data.get("order", data)
@@ -87,7 +87,7 @@ def _create_inventory(client, product_id: int, **kwargs) -> dict:
         "status": kwargs.pop("status", "available"),
         **kwargs,
     }
-    resp = client.post("/api/v1/inventory/", json=payload)
+    resp = client.post("/api/v1/inventory", json=payload)
     assert resp.status_code == 201, resp.text
     return resp.json()
 
@@ -147,7 +147,7 @@ class TestDataFlowE2E:
         assert order_resp.json()["status"] == "received"
 
         # Step 7: Verify inventory was auto-created
-        inv_resp = client.get(f"/api/v1/inventory/?product_id={product_id}")
+        inv_resp = client.get(f"/api/v1/inventory?product_id={product_id}")
         assert inv_resp.status_code == 200
         inv_data = inv_resp.json()
         assert inv_data["total"] >= 1
@@ -325,7 +325,7 @@ class TestPaginationE2E:
             _create_vendor(client, name=f"{prefix}-{i:02d}")
 
         resp = client.get(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             params={"page_size": 5, "page": 1, "search": prefix},
         )
         assert resp.status_code == 200
@@ -343,11 +343,11 @@ class TestPaginationE2E:
             _create_vendor(client, name=f"{prefix}-{i:02d}")
 
         page1 = client.get(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             params={"page_size": 5, "page": 1, "search": prefix},
         ).json()
         page2 = client.get(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             params={"page_size": 5, "page": 2, "search": prefix},
         ).json()
 
@@ -366,7 +366,7 @@ class TestPaginationE2E:
             _create_vendor(client, name=f"{prefix}-{i:02d}")
 
         resp = client.get(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             params={"page_size": 5, "page": 3, "search": prefix},
         )
         assert resp.status_code == 200
@@ -383,7 +383,7 @@ class TestPaginationE2E:
             _create_vendor(client, name=f"{prefix}-{i:02d}")
 
         resp = client.get(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             params={"page_size": 5, "page": 4, "search": prefix},
         )
         assert resp.status_code == 200
@@ -401,7 +401,7 @@ class TestPaginationE2E:
             _create_product(client, vendor["id"], category=cat)
 
         resp = client.get(
-            "/api/v1/products/",
+            "/api/v1/products",
             params={"page_size": 3, "page": 1, "category": cat},
         )
         assert resp.status_code == 200
@@ -421,7 +421,7 @@ class TestPaginationE2E:
 
         # Filter by vendor_id to isolate our test data
         resp = client.get(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             params={"page_size": 4, "page": 1, "vendor_id": vendor["id"]},
         )
         assert resp.status_code == 200
@@ -449,7 +449,7 @@ class TestFiltersE2E:
         _create_vendor(client, name=f"AlphaLabs-{tag}")
         _create_vendor(client, name=f"BetaCorp-{tag}")
 
-        resp = client.get("/api/v1/vendors/", params={"search": f"AlphaLabs-{tag}"})
+        resp = client.get("/api/v1/vendors", params={"search": f"AlphaLabs-{tag}"})
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 1
@@ -467,7 +467,7 @@ class TestFiltersE2E:
         _create_product(client, vendor["id"], category=cat_tag)
         _create_product(client, vendor["id"], category=other_tag)
 
-        resp = client.get("/api/v1/products/", params={"category": cat_tag})
+        resp = client.get("/api/v1/products", params={"category": cat_tag})
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 2
@@ -485,7 +485,7 @@ class TestFiltersE2E:
         _create_product(client, v1["id"])
         _create_product(client, v2["id"])
 
-        resp = client.get("/api/v1/products/", params={"vendor_id": v1["id"]})
+        resp = client.get("/api/v1/products", params={"vendor_id": v1["id"]})
         assert resp.status_code == 200
         data = resp.json()
         for p in data["items"]:
@@ -502,7 +502,7 @@ class TestFiltersE2E:
         _create_order(client, vendor["id"], status="pending")
 
         resp = client.get(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             params={"status": "pending", "vendor_id": vendor["id"]},
         )
         assert resp.status_code == 200
@@ -522,7 +522,7 @@ class TestFiltersE2E:
         _create_order(client, vendor["id"], status="cancelled")
 
         resp = client.get(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             params={"status_group": "active", "vendor_id": vendor["id"]},
         )
         assert resp.status_code == 200
@@ -547,7 +547,7 @@ class TestFiltersE2E:
         _create_order(client, vendor["id"], order_date=last_week.isoformat())
 
         resp = client.get(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             params={
                 "date_from": yesterday.isoformat(),
                 "date_to": today.isoformat(),
@@ -573,7 +573,7 @@ class TestFiltersE2E:
         _create_inventory(client, product["id"], status="opened")
 
         resp = client.get(
-            "/api/v1/inventory/",
+            "/api/v1/inventory",
             params={"status": "available", "product_id": product["id"]},
         )
         assert resp.status_code == 200
@@ -639,7 +639,7 @@ class TestFiltersE2E:
         )
 
         resp = client.get(
-            "/api/v1/inventory/",
+            "/api/v1/inventory",
             params={
                 "status": "available",
                 "search": f"COMBO-{tag}",
@@ -673,7 +673,7 @@ class TestSortingE2E:
         _create_vendor(client, name=f"Z-{tag}-Bravo")
 
         resp = client.get(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             params={
                 "sort_by": "name",
                 "sort_dir": "asc",
@@ -695,7 +695,7 @@ class TestSortingE2E:
         _create_vendor(client, name=f"Z-{tag}-Bravo")
 
         resp = client.get(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             params={
                 "sort_by": "name",
                 "sort_dir": "desc",
@@ -720,7 +720,7 @@ class TestSortingE2E:
         _create_product(client, vendor["id"], name=f"Z-{tag}-Mike")
 
         resp = client.get(
-            "/api/v1/products/",
+            "/api/v1/products",
             params={
                 "sort_by": "name",
                 "sort_dir": "desc",
@@ -750,7 +750,7 @@ class TestSortingE2E:
         )
 
         resp = client.get(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             params={
                 "sort_by": "order_date",
                 "sort_dir": "desc",
@@ -807,11 +807,11 @@ class TestAuditTrailE2E:
     def test_02_audit_filter_by_table(
         self, authenticated_client: TestClient | httpx.Client
     ):
-        """GET /api/v1/audit/?table=vendors returns only vendor audit entries."""
+        """GET /api/v1/audit?table=vendors returns only vendor audit entries."""
         client = authenticated_client
         _create_vendor(client)
 
-        resp = client.get("/api/v1/audit/", params={"table": "vendors"})
+        resp = client.get("/api/v1/audit", params={"table": "vendors"})
         assert resp.status_code == 200
         data = resp.json()
         for entry in data["items"]:

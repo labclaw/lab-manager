@@ -120,7 +120,7 @@ def request_stats(
     return counts
 
 
-@router.get("/")
+@router.get("")
 def list_requests(
     request: Request,
     page: int = Query(1, ge=1),
@@ -147,7 +147,7 @@ def list_requests(
     return paginate(q, db, page, page_size)
 
 
-@router.post("/", status_code=201)
+@router.post("", status_code=201)
 def create_request(
     body: OrderRequestCreate,
     request: Request,

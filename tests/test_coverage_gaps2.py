@@ -553,7 +553,7 @@ class TestProductEndpoints:
         db_session.flush()
 
         resp = client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "catalog_number": "CAS-TEST",
                 "name": "CAS Product",
@@ -571,7 +571,7 @@ class TestProductEndpoints:
         db_session.flush()
 
         resp = client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "catalog_number": "CAS-TEST2",
                 "name": "CAS Product",

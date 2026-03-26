@@ -57,7 +57,7 @@ class VendorResponse(BaseModel):
     updated_at: datetime | None = None
 
 
-@router.get("/")
+@router.get("")
 def list_vendors(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
@@ -81,7 +81,7 @@ def list_vendors(
 
 
 @router.post(
-    "/", status_code=201, dependencies=[Depends(require_permission("manage_vendors"))]
+    "", status_code=201, dependencies=[Depends(require_permission("manage_vendors"))]
 )
 def create_vendor(body: VendorCreate, db: Session = Depends(get_db)):
     vendor = Vendor(**body.model_dump())

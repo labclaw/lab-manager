@@ -665,35 +665,35 @@ class TestListDocuments:
 
     def test_filter_by_status(self, list_client, db_session):
         self._seed_docs(db_session)
-        resp = list_client.get("/api/v1/documents/?status=pending")
+        resp = list_client.get("/api/v1/documents?status=pending")
         assert resp.status_code == 200
         items = resp.json()["items"]
         assert all(i["status"] == "pending" for i in items)
 
     def test_filter_by_vendor_name(self, list_client, db_session):
         self._seed_docs(db_session)
-        resp = list_client.get("/api/v1/documents/?vendor_name=Sigma")
+        resp = list_client.get("/api/v1/documents?vendor_name=Sigma")
         assert resp.status_code == 200
         items = resp.json()["items"]
         assert all("Sigma" in i["vendor_name"] for i in items)
 
     def test_filter_by_document_type(self, list_client, db_session):
         self._seed_docs(db_session)
-        resp = list_client.get("/api/v1/documents/?document_type=invoice")
+        resp = list_client.get("/api/v1/documents?document_type=invoice")
         assert resp.status_code == 200
         items = resp.json()["items"]
         assert all(i["document_type"] == "invoice" for i in items)
 
     def test_sort_by_name_desc(self, list_client, db_session):
         self._seed_docs(db_session)
-        resp = list_client.get("/api/v1/documents/?sort_by=file_name&sort_dir=desc")
+        resp = list_client.get("/api/v1/documents?sort_by=file_name&sort_dir=desc")
         assert resp.status_code == 200
         names = [i["file_name"] for i in resp.json()["items"]]
         assert names == sorted(names, reverse=True)
 
     def test_search_filter(self, list_client, db_session):
         self._seed_docs(db_session)
-        resp = list_client.get("/api/v1/documents/?search=Sigma")
+        resp = list_client.get("/api/v1/documents?search=Sigma")
         assert resp.status_code == 200
         items = resp.json()["items"]
         assert len(items) >= 1
@@ -711,7 +711,7 @@ class TestListDocuments:
         db_session.add(doc)
         db_session.flush()
 
-        resp = list_client.get("/api/v1/documents/?extraction_model=gemini-2.5-flash")
+        resp = list_client.get("/api/v1/documents?extraction_model=gemini-2.5-flash")
         assert resp.status_code == 200
         items = resp.json()["items"]
         assert all(i.get("extraction_model") == "gemini-2.5-flash" for i in items)

@@ -51,7 +51,7 @@ def ctx():
     target_fixture="vendor",
 )
 def create_vendor(api, name):
-    r = api.post("/api/v1/vendors/", json={"name": name})
+    r = api.post("/api/v1/vendors", json={"name": name})
     assert r.status_code in (200, 201), r.text
     return r.json()
 
@@ -62,7 +62,7 @@ def create_vendor(api, name):
 )
 def create_order_given(api, vendor, po):
     r = api.post(
-        "/api/v1/orders/",
+        "/api/v1/orders",
         json={
             "vendor_id": vendor["id"],
             "po_number": po,
@@ -79,7 +79,7 @@ def create_order_given(api, vendor, po):
 )
 def create_order_with_items(api, vendor, ctx, po, n):
     r = api.post(
-        "/api/v1/orders/",
+        "/api/v1/orders",
         json={
             "vendor_id": vendor["id"],
             "po_number": po,
@@ -112,7 +112,7 @@ def create_matching_products(api, vendor, ctx):
     products = []
     for oi in ctx["order_items"]:
         r = api.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "name": oi["description"],
                 "catalog_number": oi["catalog_number"],
@@ -144,14 +144,14 @@ def create_n_orders_for_vendor(api, vendor, ctx, n, name):
     if vendor["name"] not in vendors:
         vendors[vendor["name"]] = vendor
     if name not in vendors:
-        r = api.post("/api/v1/vendors/", json={"name": name})
+        r = api.post("/api/v1/vendors", json={"name": name})
         assert r.status_code in (200, 201), r.text
         vendors[name] = r.json()
     v = vendors[name]
 
     for i in range(n):
         r = api.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "vendor_id": v["id"],
                 "po_number": f"PO-{name[:3].upper()}-{i + 1:03d}",
@@ -167,7 +167,7 @@ def create_n_orders_for_vendor(api, vendor, ctx, n, name):
 )
 def create_order_with_n_items(api, vendor, ctx, n):
     r = api.post(
-        "/api/v1/orders/",
+        "/api/v1/orders",
         json={
             "vendor_id": vendor["id"],
             "po_number": "PO-DETAIL-001",
@@ -204,7 +204,7 @@ def create_order_with_n_items(api, vendor, ctx, n):
 )
 def create_order_when(api, vendor, po):
     r = api.post(
-        "/api/v1/orders/",
+        "/api/v1/orders",
         json={
             "vendor_id": vendor["id"],
             "po_number": po,
@@ -273,7 +273,7 @@ def receive_order(api, db, order, ctx, name):
 )
 def list_orders_for_vendor(api, ctx, name):
     v = ctx["vendors"][name]
-    r = api.get(f"/api/v1/orders/?vendor_id={v['id']}")
+    r = api.get(f"/api/v1/orders?vendor_id={v['id']}")
     assert r.status_code == 200, r.text
     return r.json()
 

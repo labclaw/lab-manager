@@ -68,7 +68,7 @@ class EquipmentUpdate(BaseModel):
     extra: Optional[dict] = None
 
 
-@router.get("/")
+@router.get("")
 def list_equipment(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
@@ -99,7 +99,7 @@ def list_equipment(
 
 
 @router.post(
-    "/",
+    "",
     status_code=201,
     dependencies=[Depends(require_permission("log_equipment_usage"))],
 )

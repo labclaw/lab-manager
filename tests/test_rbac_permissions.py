@@ -419,7 +419,7 @@ def test_locked_account_rejected_by_session_middleware(_rbac_client, _rbac_db):
     assert resp.status_code == 200
 
     # Verify session works before locking
-    resp = _rbac_client.get("/api/v1/vendors/")
+    resp = _rbac_client.get("/api/v1/vendors")
     assert resp.status_code == 200
 
     # Lock the account (simulating admin action or brute-force lockout)
@@ -427,5 +427,5 @@ def test_locked_account_rejected_by_session_middleware(_rbac_client, _rbac_db):
     _rbac_db.commit()
 
     # Session middleware must now reject the request
-    resp = _rbac_client.get("/api/v1/vendors/")
+    resp = _rbac_client.get("/api/v1/vendors")
     assert resp.status_code == 401

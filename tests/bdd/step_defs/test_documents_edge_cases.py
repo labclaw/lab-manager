@@ -76,7 +76,7 @@ def ctx():
 def create_test_doc(api, status):
     seq = next(_seq)
     r = api.post(
-        "/api/v1/documents/",
+        "/api/v1/documents",
         json={
             "file_name": f"test_doc_{seq}.jpg",
             "file_path": f"/uploads/test_doc_{seq}.jpg",
@@ -96,7 +96,7 @@ def create_test_doc(api, status):
 def create_test_doc_no_data(api, status):
     seq = next(_seq)
     r = api.post(
-        "/api/v1/documents/",
+        "/api/v1/documents",
         json={
             "file_name": f"no_data_doc_{seq}.jpg",
             "file_path": f"/uploads/no_data_doc_{seq}.jpg",
@@ -112,7 +112,7 @@ def create_docs_with_type(api, n, doc_type):
     for i in range(n):
         seq = next(_seq)
         r = api.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             json={
                 "file_name": f"type_doc_{seq}.jpg",
                 "file_path": f"/uploads/type_doc_{seq}.jpg",
@@ -129,7 +129,7 @@ def create_docs_with_type(api, n, doc_type):
 )
 def create_named_doc(api, fname):
     r = api.post(
-        "/api/v1/documents/",
+        "/api/v1/documents",
         json={
             "file_name": fname,
             "file_path": f"/uploads/{fname}",
@@ -157,7 +157,7 @@ def get_doc_nonexistent(api, did):
 )
 def create_doc_path_traversal(api, path):
     return api.post(
-        "/api/v1/documents/",
+        "/api/v1/documents",
         json={
             "file_name": "evil.jpg",
             "file_path": path,
@@ -171,7 +171,7 @@ def create_doc_path_traversal(api, path):
 )
 def create_doc_invalid_status(api, status):
     return api.post(
-        "/api/v1/documents/",
+        "/api/v1/documents",
         json={
             "file_name": "invalid_status.jpg",
             "file_path": "/uploads/invalid_status.jpg",
@@ -203,7 +203,7 @@ def delete_doc(api, doc):
     target_fixture="doc_list",
 )
 def list_docs_by_type(api, doc_type):
-    r = api.get("/api/v1/documents/", params={"document_type": doc_type})
+    r = api.get("/api/v1/documents", params={"document_type": doc_type})
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -213,7 +213,7 @@ def list_docs_by_type(api, doc_type):
     target_fixture="doc_list",
 )
 def search_docs(api, query):
-    r = api.get("/api/v1/documents/", params={"search": query})
+    r = api.get("/api/v1/documents", params={"search": query})
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -270,7 +270,7 @@ def check_doc_review_status(doc_review_resp, status):
 
 @then("no order should be created from this document")
 def check_no_order_from_doc(api, doc):
-    r = api.get("/api/v1/orders/", params={"page_size": 200})
+    r = api.get("/api/v1/orders", params={"page_size": 200})
     assert r.status_code == 200, r.text
     orders = r.json()["items"]
     doc_orders = [o for o in orders if o.get("document_id") == doc["id"]]

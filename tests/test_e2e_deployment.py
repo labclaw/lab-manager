@@ -186,12 +186,12 @@ class TestE2EDeployment:
         if base_url:
             # Fresh httpx client with no cookies.
             with httpx.Client(base_url=base_url, timeout=30) as fresh:
-                resp = fresh.get("/api/v1/vendors/")
+                resp = fresh.get("/api/v1/vendors")
         else:
             # For local TestClient: temporarily clear cookies.
             saved = dict(e2e_client.cookies)
             e2e_client.cookies.clear()
-            resp = e2e_client.get("/api/v1/vendors/")
+            resp = e2e_client.get("/api/v1/vendors")
             # Restore cookies.
             for k, v in saved.items():
                 e2e_client.cookies.set(k, v)
@@ -255,7 +255,7 @@ class TestE2EDeployment:
     def test_create_vendor(self, e2e_client):
         """POST /api/v1/vendors/ creates a vendor."""
         resp = e2e_client.post(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             json={
                 "name": "E2E Test Vendor",
                 "email": "vendor@e2e-test.com",
@@ -274,7 +274,7 @@ class TestE2EDeployment:
 
     def test_list_vendors(self, e2e_client):
         """GET /api/v1/vendors/ returns total >= 1."""
-        resp = e2e_client.get("/api/v1/vendors/")
+        resp = e2e_client.get("/api/v1/vendors")
         assert resp.status_code == 200
         data = resp.json()
         assert "total" in data
@@ -288,7 +288,7 @@ class TestE2EDeployment:
     def test_create_product(self, e2e_client):
         """POST /api/v1/products/ creates a product."""
         resp = e2e_client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "catalog_number": "E2E-001",
                 "name": "E2E Test Product",
@@ -308,7 +308,7 @@ class TestE2EDeployment:
     def test_create_order(self, e2e_client):
         """POST /api/v1/orders/ creates an order."""
         resp = e2e_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={
                 "po_number": "E2E-PO-001",
                 "vendor_id": TestE2EDeployment._vendor_id,
@@ -327,7 +327,7 @@ class TestE2EDeployment:
 
     def test_list_orders(self, e2e_client):
         """GET /api/v1/orders/ returns total >= 1."""
-        resp = e2e_client.get("/api/v1/orders/")
+        resp = e2e_client.get("/api/v1/orders")
         assert resp.status_code == 200
         data = resp.json()
         assert "total" in data
@@ -353,8 +353,8 @@ class TestE2EDeployment:
     # ------------------------------------------------------------------
 
     def test_search(self, e2e_client):
-        """GET /api/v1/search/?q=test returns results dict or hits array."""
-        resp = e2e_client.get("/api/v1/search/", params={"q": "test"})
+        """GET /api/v1/search?q=test returns results dict or hits array."""
+        resp = e2e_client.get("/api/v1/search", params={"q": "test"})
         # Meilisearch may not be available — accept 200 (with results) or 500.
         if resp.status_code == 200:
             data = resp.json()
@@ -368,7 +368,7 @@ class TestE2EDeployment:
 
     def test_alerts(self, e2e_client):
         """GET /api/v1/alerts/ returns items array."""
-        resp = e2e_client.get("/api/v1/alerts/")
+        resp = e2e_client.get("/api/v1/alerts")
         assert resp.status_code == 200
         data = resp.json()
         assert "items" in data
@@ -380,7 +380,7 @@ class TestE2EDeployment:
 
     def test_audit(self, e2e_client):
         """GET /api/v1/audit/ returns items with total."""
-        resp = e2e_client.get("/api/v1/audit/")
+        resp = e2e_client.get("/api/v1/audit")
         assert resp.status_code == 200
         data = resp.json()
         assert "items" in data
@@ -415,8 +415,8 @@ class TestE2EDeployment:
         base_url = os.environ.get("APP_BASE_URL")
         if base_url:
             with httpx.Client(base_url=base_url, timeout=30) as fresh:
-                check = fresh.get("/api/v1/vendors/")
+                check = fresh.get("/api/v1/vendors")
         else:
             e2e_client.cookies.clear()
-            check = e2e_client.get("/api/v1/vendors/")
+            check = e2e_client.get("/api/v1/vendors")
         assert check.status_code == 401

@@ -7,7 +7,7 @@
 
 
 def test_vendor_update(client):
-    resp = client.post("/api/v1/vendors/", json={"name": "OldName"})
+    resp = client.post("/api/v1/vendors", json={"name": "OldName"})
     vid = resp.json()["id"]
     resp = client.patch(f"/api/v1/vendors/{vid}", json={"name": "NewName"})
     assert resp.status_code == 200
@@ -20,7 +20,7 @@ def test_vendor_update_not_found(client):
 
 
 def test_vendor_delete(client):
-    resp = client.post("/api/v1/vendors/", json={"name": "ToDelete"})
+    resp = client.post("/api/v1/vendors", json={"name": "ToDelete"})
     vid = resp.json()["id"]
     resp = client.delete(f"/api/v1/vendors/{vid}")
     assert resp.status_code == 204
@@ -35,8 +35,8 @@ def test_vendor_delete_not_found(client):
 
 def test_vendor_list_pagination(client):
     for i in range(5):
-        client.post("/api/v1/vendors/", json={"name": f"V{i}"})
-    resp = client.get("/api/v1/vendors/?page=1&page_size=2")
+        client.post("/api/v1/vendors", json={"name": f"V{i}"})
+    resp = client.get("/api/v1/vendors?page=1&page_size=2")
     data = resp.json()
     assert data["page"] == 1
     assert data["page_size"] == 2
@@ -46,9 +46,9 @@ def test_vendor_list_pagination(client):
 
 
 def test_vendor_list_filter_name(client):
-    client.post("/api/v1/vendors/", json={"name": "Thermo Fisher"})
-    client.post("/api/v1/vendors/", json={"name": "Sigma-Aldrich"})
-    resp = client.get("/api/v1/vendors/?name=Thermo")
+    client.post("/api/v1/vendors", json={"name": "Thermo Fisher"})
+    client.post("/api/v1/vendors", json={"name": "Sigma-Aldrich"})
+    resp = client.get("/api/v1/vendors?name=Thermo")
     data = resp.json()
     assert data["total"] == 1
     assert data["items"][0]["name"] == "Thermo Fisher"
@@ -56,31 +56,31 @@ def test_vendor_list_filter_name(client):
 
 def test_vendor_list_search(client):
     client.post(
-        "/api/v1/vendors/", json={"name": "Bio-Rad", "email": "info@biorad.com"}
+        "/api/v1/vendors", json={"name": "Bio-Rad", "email": "info@biorad.com"}
     )
-    client.post("/api/v1/vendors/", json={"name": "Sigma"})
-    resp = client.get("/api/v1/vendors/?search=biorad")
+    client.post("/api/v1/vendors", json={"name": "Sigma"})
+    resp = client.get("/api/v1/vendors?search=biorad")
     data = resp.json()
     assert data["total"] >= 1
 
 
 def test_vendor_list_sorting(client):
-    client.post("/api/v1/vendors/", json={"name": "Zzz Vendor"})
-    client.post("/api/v1/vendors/", json={"name": "Aaa Vendor"})
-    resp = client.get("/api/v1/vendors/?sort_by=name&sort_dir=asc")
+    client.post("/api/v1/vendors", json={"name": "Zzz Vendor"})
+    client.post("/api/v1/vendors", json={"name": "Aaa Vendor"})
+    resp = client.get("/api/v1/vendors?sort_by=name&sort_dir=asc")
     items = resp.json()["items"]
     assert items[0]["name"] <= items[-1]["name"]
 
-    resp = client.get("/api/v1/vendors/?sort_by=name&sort_dir=desc")
+    resp = client.get("/api/v1/vendors?sort_by=name&sort_dir=desc")
     items = resp.json()["items"]
     assert items[0]["name"] >= items[-1]["name"]
 
 
 def test_vendor_products_relationship(client):
-    vr = client.post("/api/v1/vendors/", json={"name": "VendorA"})
+    vr = client.post("/api/v1/vendors", json={"name": "VendorA"})
     vid = vr.json()["id"]
     client.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={"catalog_number": "CAT1", "name": "Prod1", "vendor_id": vid},
     )
     resp = client.get(f"/api/v1/vendors/{vid}/products")
@@ -90,9 +90,9 @@ def test_vendor_products_relationship(client):
 
 
 def test_vendor_orders_relationship(client):
-    vr = client.post("/api/v1/vendors/", json={"name": "VendorB"})
+    vr = client.post("/api/v1/vendors", json={"name": "VendorB"})
     vid = vr.json()["id"]
-    client.post("/api/v1/orders/", json={"vendor_id": vid, "status": "pending"})
+    client.post("/api/v1/orders", json={"vendor_id": vid, "status": "pending"})
     resp = client.get(f"/api/v1/vendors/{vid}/orders")
     data = resp.json()
     assert data["total"] == 1
@@ -110,7 +110,7 @@ def test_vendor_relationship_not_found(client):
 
 def test_product_update(client):
     resp = client.post(
-        "/api/v1/products/", json={"catalog_number": "C1", "name": "OldProd"}
+        "/api/v1/products", json={"catalog_number": "C1", "name": "OldProd"}
     )
     pid = resp.json()["id"]
     resp = client.patch(f"/api/v1/products/{pid}", json={"name": "NewProd"})
@@ -120,7 +120,7 @@ def test_product_update(client):
 
 def test_product_delete(client):
     resp = client.post(
-        "/api/v1/products/", json={"catalog_number": "C2", "name": "DelProd"}
+        "/api/v1/products", json={"catalog_number": "C2", "name": "DelProd"}
     )
     pid = resp.json()["id"]
     resp = client.delete(f"/api/v1/products/{pid}")
@@ -129,10 +129,10 @@ def test_product_delete(client):
 
 
 def test_product_list_filters(client):
-    vr = client.post("/api/v1/vendors/", json={"name": "ProdVendor"})
+    vr = client.post("/api/v1/vendors", json={"name": "ProdVendor"})
     vid = vr.json()["id"]
     client.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={
             "catalog_number": "AB100",
             "name": "Alpha Beta",
@@ -141,44 +141,44 @@ def test_product_list_filters(client):
         },
     )
     client.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={"catalog_number": "CD200", "name": "Gamma", "category": "reagents"},
     )
 
     # filter by vendor_id
-    resp = client.get(f"/api/v1/products/?vendor_id={vid}")
+    resp = client.get(f"/api/v1/products?vendor_id={vid}")
     assert resp.json()["total"] == 1
 
     # filter by category
-    resp = client.get("/api/v1/products/?category=antibodies")
+    resp = client.get("/api/v1/products?category=antibodies")
     assert resp.json()["total"] == 1
 
     # filter by catalog_number
-    resp = client.get("/api/v1/products/?catalog_number=AB")
+    resp = client.get("/api/v1/products?catalog_number=AB")
     assert resp.json()["total"] >= 1
 
     # search
-    resp = client.get("/api/v1/products/?search=Alpha")
+    resp = client.get("/api/v1/products?search=Alpha")
     assert resp.json()["total"] >= 1
 
 
 def test_product_inventory_relationship(client):
     pr = client.post(
-        "/api/v1/products/", json={"catalog_number": "INV1", "name": "InvProd"}
+        "/api/v1/products", json={"catalog_number": "INV1", "name": "InvProd"}
     )
     pid = pr.json()["id"]
-    client.post("/api/v1/inventory/", json={"product_id": pid, "quantity_on_hand": 10})
+    client.post("/api/v1/inventory", json={"product_id": pid, "quantity_on_hand": 10})
     resp = client.get(f"/api/v1/products/{pid}/inventory")
     assert resp.json()["total"] == 1
 
 
 def test_product_orders_relationship(client):
     pr = client.post(
-        "/api/v1/products/", json={"catalog_number": "ORD1", "name": "OrdProd"}
+        "/api/v1/products", json={"catalog_number": "ORD1", "name": "OrdProd"}
     )
     pid = pr.json()["id"]
     # Create order and item
-    orr = client.post("/api/v1/orders/", json={"status": "pending"})
+    orr = client.post("/api/v1/orders", json={"status": "pending"})
     oid = orr.json()["id"]
     client.post(
         f"/api/v1/orders/{oid}/items",
@@ -194,7 +194,7 @@ def test_product_orders_relationship(client):
 
 
 def test_order_update(client):
-    resp = client.post("/api/v1/orders/", json={"status": "pending"})
+    resp = client.post("/api/v1/orders", json={"status": "pending"})
     oid = resp.json()["id"]
     resp = client.patch(f"/api/v1/orders/{oid}", json={"status": "shipped"})
     assert resp.status_code == 200
@@ -202,7 +202,7 @@ def test_order_update(client):
 
 
 def test_order_soft_delete(client):
-    resp = client.post("/api/v1/orders/", json={"status": "pending"})
+    resp = client.post("/api/v1/orders", json={"status": "pending"})
     oid = resp.json()["id"]
     resp = client.delete(f"/api/v1/orders/{oid}")
     assert resp.status_code == 204
@@ -213,10 +213,10 @@ def test_order_soft_delete(client):
 
 
 def test_order_list_filters(client):
-    vr = client.post("/api/v1/vendors/", json={"name": "OrderVendor"})
+    vr = client.post("/api/v1/vendors", json={"name": "OrderVendor"})
     vid = vr.json()["id"]
     client.post(
-        "/api/v1/orders/",
+        "/api/v1/orders",
         json={
             "vendor_id": vid,
             "status": "received",
@@ -225,31 +225,31 @@ def test_order_list_filters(client):
             "received_by": "John",
         },
     )
-    client.post("/api/v1/orders/", json={"status": "pending"})
+    client.post("/api/v1/orders", json={"status": "pending"})
 
     # filter by vendor_id
-    resp = client.get(f"/api/v1/orders/?vendor_id={vid}")
+    resp = client.get(f"/api/v1/orders?vendor_id={vid}")
     assert resp.json()["total"] == 1
 
     # filter by status
-    resp = client.get("/api/v1/orders/?status=received")
+    resp = client.get("/api/v1/orders?status=received")
     assert resp.json()["total"] >= 1
 
     # filter by po_number
-    resp = client.get("/api/v1/orders/?po_number=PO-999")
+    resp = client.get("/api/v1/orders?po_number=PO-999")
     assert resp.json()["total"] >= 1
 
     # filter by date range
-    resp = client.get("/api/v1/orders/?date_from=2026-01-01&date_to=2026-02-01")
+    resp = client.get("/api/v1/orders?date_from=2026-01-01&date_to=2026-02-01")
     assert resp.json()["total"] >= 1
 
     # filter by received_by
-    resp = client.get("/api/v1/orders/?received_by=John")
+    resp = client.get("/api/v1/orders?received_by=John")
     assert resp.json()["total"] >= 1
 
 
 def test_order_list_pagination(client):
-    resp = client.get("/api/v1/orders/?page=1&page_size=10")
+    resp = client.get("/api/v1/orders?page=1&page_size=10")
     data = resp.json()
     assert "items" in data
     assert "total" in data
@@ -262,7 +262,7 @@ def test_order_list_pagination(client):
 
 
 def test_order_items_crud(client):
-    orr = client.post("/api/v1/orders/", json={"status": "pending"})
+    orr = client.post("/api/v1/orders", json={"status": "pending"})
     oid = orr.json()["id"]
 
     # Create item
@@ -297,7 +297,7 @@ def test_order_items_crud(client):
 
 
 def test_order_items_filter(client):
-    orr = client.post("/api/v1/orders/", json={"status": "pending"})
+    orr = client.post("/api/v1/orders", json={"status": "pending"})
     oid = orr.json()["id"]
     client.post(
         f"/api/v1/orders/{oid}/items",
@@ -327,7 +327,7 @@ def test_order_items_filter(client):
 def _make_product(client, catalog="TEST-INV", name="InvTestProduct"):
     """Helper to create a product and return its id."""
     resp = client.post(
-        "/api/v1/products/", json={"catalog_number": catalog, "name": name}
+        "/api/v1/products", json={"catalog_number": catalog, "name": name}
     )
     return resp.json()["id"]
 
@@ -335,7 +335,7 @@ def _make_product(client, catalog="TEST-INV", name="InvTestProduct"):
 def test_inventory_update(client):
     pid = _make_product(client, "UPD-INV")
     resp = client.post(
-        "/api/v1/inventory/",
+        "/api/v1/inventory",
         json={"product_id": pid, "quantity_on_hand": 10, "status": "available"},
     )
     iid = resp.json()["id"]
@@ -347,7 +347,7 @@ def test_inventory_update(client):
 def test_inventory_soft_delete(client):
     pid = _make_product(client, "DEL-INV")
     resp = client.post(
-        "/api/v1/inventory/",
+        "/api/v1/inventory",
         json={"product_id": pid, "quantity_on_hand": 3, "status": "available"},
     )
     iid = resp.json()["id"]
@@ -360,12 +360,12 @@ def test_inventory_soft_delete(client):
 
 def test_inventory_list_filters(client):
     pr = client.post(
-        "/api/v1/products/", json={"catalog_number": "FP1", "name": "FilterProd"}
+        "/api/v1/products", json={"catalog_number": "FP1", "name": "FilterProd"}
     )
     pid = pr.json()["id"]
     pid2 = _make_product(client, "FP2", "ExpiredProd")
     client.post(
-        "/api/v1/inventory/",
+        "/api/v1/inventory",
         json={
             "product_id": pid,
             "status": "available",
@@ -374,25 +374,25 @@ def test_inventory_list_filters(client):
         },
     )
     client.post(
-        "/api/v1/inventory/",
+        "/api/v1/inventory",
         json={"product_id": pid2, "status": "expired", "quantity_on_hand": 0},
     )
 
     # filter by product_id
-    resp = client.get(f"/api/v1/inventory/?product_id={pid}")
+    resp = client.get(f"/api/v1/inventory?product_id={pid}")
     assert resp.json()["total"] == 1
 
     # filter by status
-    resp = client.get("/api/v1/inventory/?status=available")
+    resp = client.get("/api/v1/inventory?status=available")
     assert resp.json()["total"] >= 1
 
     # filter by expiring_before
-    resp = client.get("/api/v1/inventory/?expiring_before=2026-12-31")
+    resp = client.get("/api/v1/inventory?expiring_before=2026-12-31")
     assert resp.json()["total"] >= 1
 
 
 def test_inventory_list_pagination(client):
-    resp = client.get("/api/v1/inventory/?page=1&page_size=10")
+    resp = client.get("/api/v1/inventory?page=1&page_size=10")
     data = resp.json()
     assert "items" in data
     assert "total" in data
@@ -406,7 +406,7 @@ def test_inventory_list_pagination(client):
 
 def test_document_update_full(client):
     resp = client.post(
-        "/api/v1/documents/",
+        "/api/v1/documents",
         json={
             "file_path": "/tmp/test.pdf",
             "file_name": "test_upd.pdf",
@@ -425,7 +425,7 @@ def test_document_update_full(client):
 
 def test_document_soft_delete(client):
     resp = client.post(
-        "/api/v1/documents/",
+        "/api/v1/documents",
         json={
             "file_path": "/tmp/del.pdf",
             "file_name": "del.pdf",
@@ -442,7 +442,7 @@ def test_document_soft_delete(client):
 
 def test_document_list_filters(client):
     client.post(
-        "/api/v1/documents/",
+        "/api/v1/documents",
         json={
             "file_path": "/tmp/a.pdf",
             "file_name": "a_filter.pdf",
@@ -452,7 +452,7 @@ def test_document_list_filters(client):
         },
     )
     client.post(
-        "/api/v1/documents/",
+        "/api/v1/documents",
         json={
             "file_path": "/tmp/b.pdf",
             "file_name": "b_filter.pdf",
@@ -463,24 +463,24 @@ def test_document_list_filters(client):
     )
 
     # filter by status
-    resp = client.get("/api/v1/documents/?status=pending")
+    resp = client.get("/api/v1/documents?status=pending")
     assert resp.json()["total"] >= 1
 
     # filter by document_type
-    resp = client.get("/api/v1/documents/?document_type=invoice")
+    resp = client.get("/api/v1/documents?document_type=invoice")
     assert resp.json()["total"] >= 1
 
     # filter by vendor_name
-    resp = client.get("/api/v1/documents/?vendor_name=Sigma")
+    resp = client.get("/api/v1/documents?vendor_name=Sigma")
     assert resp.json()["total"] >= 1
 
     # search
-    resp = client.get("/api/v1/documents/?search=a_filter")
+    resp = client.get("/api/v1/documents?search=a_filter")
     assert resp.json()["total"] >= 1
 
 
 def test_document_list_pagination(client):
-    resp = client.get("/api/v1/documents/?page=1&page_size=10")
+    resp = client.get("/api/v1/documents?page=1&page_size=10")
     data = resp.json()
     assert "items" in data
     assert "total" in data
@@ -488,5 +488,5 @@ def test_document_list_pagination(client):
 
 
 def test_document_list_sorting(client):
-    resp = client.get("/api/v1/documents/?sort_by=id&sort_dir=desc")
+    resp = client.get("/api/v1/documents?sort_by=id&sort_dir=desc")
     assert resp.status_code == 200

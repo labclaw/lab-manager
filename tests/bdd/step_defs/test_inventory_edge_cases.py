@@ -88,12 +88,12 @@ def ctx():
 def _create_item(api, quantity=10, expiry_date=None):
     """Create a vendor, product, inventory item triple."""
     seq = next(_seq)
-    r = api.post("/api/v1/vendors/", json={"name": f"InvEdgeVendor-{seq}"})
+    r = api.post("/api/v1/vendors", json={"name": f"InvEdgeVendor-{seq}"})
     assert r.status_code == 201, r.text
     vendor = r.json()
 
     r = api.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={
             "name": f"InvEdgeProduct-{seq}",
             "catalog_number": f"IEDGE-{seq:05d}",
@@ -112,7 +112,7 @@ def _create_item(api, quantity=10, expiry_date=None):
     if expiry_date:
         payload["expiry_date"] = expiry_date.isoformat()
 
-    r = api.post("/api/v1/inventory/", json=payload)
+    r = api.post("/api/v1/inventory", json=payload)
     assert r.status_code == 201, r.text
     return r.json()
 
@@ -224,7 +224,7 @@ def open_test_item_again(api, inv_item):
 
 @when("I list all inventory items", target_fixture="inv_list")
 def list_all_inventory(api):
-    r = api.get("/api/v1/inventory/")
+    r = api.get("/api/v1/inventory")
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -234,7 +234,7 @@ def list_all_inventory(api):
     target_fixture="inv_list",
 )
 def list_inventory_by_status(api, status):
-    r = api.get("/api/v1/inventory/", params={"status": status})
+    r = api.get("/api/v1/inventory", params={"status": status})
     assert r.status_code == 200, r.text
     return r.json()
 

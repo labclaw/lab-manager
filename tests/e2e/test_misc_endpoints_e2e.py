@@ -85,7 +85,7 @@ class TestSearchEndpoints:
 
     def test_search_all(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/search/ searches all indexes."""
-        resp = authenticated_client.get("/api/v1/search/", params={"q": "test"})
+        resp = authenticated_client.get("/api/v1/search", params={"q": "test"})
         # Meilisearch may not be available
         if resp.status_code == 200:
             data = resp.json()
@@ -94,7 +94,7 @@ class TestSearchEndpoints:
     def test_search_with_limit(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/search/ respects limit parameter."""
         resp = authenticated_client.get(
-            "/api/v1/search/", params={"q": "test", "limit": 5}
+            "/api/v1/search", params={"q": "test", "limit": 5}
         )
         if resp.status_code == 200:
             data = resp.json()
@@ -102,7 +102,7 @@ class TestSearchEndpoints:
 
     def test_search_empty_query(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/search/ handles empty query."""
-        resp = authenticated_client.get("/api/v1/search/", params={"q": ""})
+        resp = authenticated_client.get("/api/v1/search", params={"q": ""})
         # May return 400, 422 for empty query or empty results
         assert resp.status_code in (200, 400, 422)
 
@@ -120,7 +120,7 @@ class TestAlertsEndpoints:
 
     def test_list_alerts(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/alerts/ returns alerts list."""
-        resp = authenticated_client.get("/api/v1/alerts/")
+        resp = authenticated_client.get("/api/v1/alerts")
         assert resp.status_code == 200
         data = resp.json()
         assert "items" in data or isinstance(data, list)
@@ -157,7 +157,7 @@ class TestAuditEndpoints:
 
     def test_list_audit(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/audit/ returns audit log."""
-        resp = authenticated_client.get("/api/v1/audit/")
+        resp = authenticated_client.get("/api/v1/audit")
         assert resp.status_code == 200
         data = resp.json()
         assert "items" in data or isinstance(data, list)
@@ -165,7 +165,7 @@ class TestAuditEndpoints:
     def test_audit_with_filters(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/audit/ with filters."""
         resp = authenticated_client.get(
-            "/api/v1/audit/",
+            "/api/v1/audit",
             params={"table": "vendors", "action": "create"},
         )
         assert resp.status_code == 200
@@ -249,7 +249,7 @@ class TestProductsEndpoints:
 
     def test_list_products(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/products/ returns products list."""
-        resp = authenticated_client.get("/api/v1/products/")
+        resp = authenticated_client.get("/api/v1/products")
         assert resp.status_code == 200
         data = resp.json()
         assert "items" in data or isinstance(data, list)
@@ -304,7 +304,7 @@ class TestVendorsEndpoints:
 
     def test_list_vendors(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/vendors/ returns vendors list."""
-        resp = authenticated_client.get("/api/v1/vendors/")
+        resp = authenticated_client.get("/api/v1/vendors")
         assert resp.status_code == 200
         data = resp.json()
         assert "items" in data or isinstance(data, list)
@@ -359,42 +359,42 @@ class TestEndpointAccessibility:
         self, authenticated_client: TestClient | httpx.Client
     ):
         """Vendors endpoint is accessible."""
-        resp = authenticated_client.get("/api/v1/vendors/")
+        resp = authenticated_client.get("/api/v1/vendors")
         assert resp.status_code == 200
 
     def test_products_endpoint_accessible(
         self, authenticated_client: TestClient | httpx.Client
     ):
         """Products endpoint is accessible."""
-        resp = authenticated_client.get("/api/v1/products/")
+        resp = authenticated_client.get("/api/v1/products")
         assert resp.status_code == 200
 
     def test_inventory_endpoint_accessible(
         self, authenticated_client: TestClient | httpx.Client
     ):
         """Inventory endpoint is accessible."""
-        resp = authenticated_client.get("/api/v1/inventory/")
+        resp = authenticated_client.get("/api/v1/inventory")
         assert resp.status_code == 200
 
     def test_orders_endpoint_accessible(
         self, authenticated_client: TestClient | httpx.Client
     ):
         """Orders endpoint is accessible."""
-        resp = authenticated_client.get("/api/v1/orders/")
+        resp = authenticated_client.get("/api/v1/orders")
         assert resp.status_code == 200
 
     def test_documents_endpoint_accessible(
         self, authenticated_client: TestClient | httpx.Client
     ):
         """Documents endpoint is accessible."""
-        resp = authenticated_client.get("/api/v1/documents/")
+        resp = authenticated_client.get("/api/v1/documents")
         assert resp.status_code == 200
 
     def test_equipment_endpoint_accessible(
         self, authenticated_client: TestClient | httpx.Client
     ):
         """Equipment endpoint is accessible."""
-        resp = authenticated_client.get("/api/v1/equipment/")
+        resp = authenticated_client.get("/api/v1/equipment")
         assert resp.status_code == 200
 
     def test_analytics_endpoint_accessible(
@@ -408,7 +408,7 @@ class TestEndpointAccessibility:
         self, authenticated_client: TestClient | httpx.Client
     ):
         """Audit endpoint is accessible."""
-        resp = authenticated_client.get("/api/v1/audit/")
+        resp = authenticated_client.get("/api/v1/audit")
         assert resp.status_code == 200
 
 
@@ -493,7 +493,7 @@ class TestMalformedRequests:
         self, authenticated_client: TestClient | httpx.Client
     ):
         """POST /api/v1/vendors/ rejects missing name."""
-        resp = authenticated_client.post("/api/v1/vendors/", json={})
+        resp = authenticated_client.post("/api/v1/vendors", json={})
         assert resp.status_code in (400, 422)
 
     def test_create_order_invalid_vendor(
@@ -502,7 +502,7 @@ class TestMalformedRequests:
         """POST /api/v1/orders/ handles invalid vendor_id."""
         # API may accept the order with null vendor or create anyway
         resp = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={"po_number": "TEST-INVALID-VENDOR", "vendor_id": 999999},
         )
         # API returns 201 even with invalid vendor_id (creates order)
@@ -512,7 +512,7 @@ class TestMalformedRequests:
         """Endpoints handle invalid JSON gracefully."""
         # This tests the framework's JSON parsing
         resp = authenticated_client.post(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             content="not valid json",
             headers={"Content-Type": "application/json"},
         )
@@ -526,7 +526,7 @@ class TestProductsCRUD:
     def test_create_product(self, authenticated_client: TestClient | httpx.Client):
         """POST /api/v1/products/ creates new product."""
         resp = authenticated_client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "name": "E2E Test Product CRUD",
                 "catalog_number": "E2E-CRUD-001",
@@ -543,7 +543,7 @@ class TestProductsCRUD:
         """DELETE /api/v1/products/{id} removes product."""
         # Create a product to delete
         resp = authenticated_client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "name": "Product To Delete",
                 "catalog_number": "E2E-DEL-001",
@@ -562,7 +562,7 @@ class TestVendorsCRUD:
     def test_create_vendor(self, authenticated_client: TestClient | httpx.Client):
         """POST /api/v1/vendors/ creates new vendor."""
         resp = authenticated_client.post(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             json={
                 "name": "E2E Test Vendor CRUD",
                 "website": "https://e2e-crud.local",
@@ -574,7 +574,7 @@ class TestVendorsCRUD:
         """DELETE /api/v1/vendors/{id} removes vendor."""
         # Create a vendor to delete
         resp = authenticated_client.post(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             json={"name": "Vendor To Delete E2E"},
         )
         if resp.status_code in (200, 201):
@@ -682,7 +682,7 @@ class TestStaffEndpoints:
 
     def test_list_staff(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/staff/ returns staff list."""
-        resp = authenticated_client.get("/api/v1/staff/")
+        resp = authenticated_client.get("/api/v1/staff")
         assert resp.status_code in (200, 404)
         if resp.status_code == 200:
             data = resp.json()
@@ -691,7 +691,7 @@ class TestStaffEndpoints:
     def test_create_staff(self, authenticated_client: TestClient | httpx.Client):
         """POST /api/v1/staff/ creates staff member."""
         resp = authenticated_client.post(
-            "/api/v1/staff/",
+            "/api/v1/staff",
             json={
                 "name": "E2E Test Staff",
                 "email": "e2e-staff@test.local",
@@ -715,7 +715,7 @@ class TestLocationEndpoints:
 
     def test_list_locations(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/locations/ returns locations list."""
-        resp = authenticated_client.get("/api/v1/locations/")
+        resp = authenticated_client.get("/api/v1/locations")
         assert resp.status_code in (200, 404)
         if resp.status_code == 200:
             data = resp.json()
@@ -724,7 +724,7 @@ class TestLocationEndpoints:
     def test_create_location(self, authenticated_client: TestClient | httpx.Client):
         """POST /api/v1/locations/ creates location."""
         resp = authenticated_client.post(
-            "/api/v1/locations/",
+            "/api/v1/locations",
             json={
                 "name": "E2E Test Location",
                 "building": "Building A",
@@ -740,7 +740,7 @@ class TestUserManagement:
 
     def test_list_users(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/users/ returns users list."""
-        resp = authenticated_client.get("/api/v1/users/")
+        resp = authenticated_client.get("/api/v1/users")
         assert resp.status_code in (200, 401, 403, 404)
 
     def test_get_current_user(self, authenticated_client: TestClient | httpx.Client):

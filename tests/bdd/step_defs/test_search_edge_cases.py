@@ -132,13 +132,13 @@ def products_indexed(api, p1, p2):
     """Create and index products."""
     from lab_manager.services.search import get_search_client
 
-    r = api.post("/api/v1/vendors/", json={"name": "Test Vendor"})
+    r = api.post("/api/v1/vendors", json={"name": "Test Vendor"})
     vendor = r.json()
 
     products = []
     for name in [p1, p2]:
         r = api.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "name": name,
                 "catalog_number": f"CAT-{name[:5]}",
@@ -158,10 +158,10 @@ def product_indexed(api, name):
     """Create and index a single product."""
     from lab_manager.services.search import get_search_client
 
-    r = api.post("/api/v1/vendors/", json={"name": "Test Vendor"})
+    r = api.post("/api/v1/vendors", json={"name": "Test Vendor"})
     vendor = r.json()
     r = api.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={
             "name": name,
             "catalog_number": f"CAT-{name[:5]}",
@@ -200,13 +200,13 @@ def meilisearch_down(monkeypatch):
 @given(parse('{count:d} products matching "{term}" exist'))
 def create_matching_products(api, count, term):
     """Create products matching a term."""
-    r = api.post("/api/v1/vendors/", json={"name": "Test Vendor"})
+    r = api.post("/api/v1/vendors", json={"name": "Test Vendor"})
     vendor = r.json()
 
     products = []
     for i in range(count):
         r = api.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "name": f"{term} {i}",
                 "catalog_number": f"CAT-{i}",

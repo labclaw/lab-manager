@@ -93,12 +93,12 @@ class TestGetReorderUrlEndpoint:
 
     def test_reorder_url_with_known_vendor(self, client):
         # Create vendor
-        vr = client.post("/api/v1/vendors/", json={"name": "Sigma-Aldrich"})
+        vr = client.post("/api/v1/vendors", json={"name": "Sigma-Aldrich"})
         vendor_id = vr.json()["id"]
 
         # Create product
         pr = client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "name": "Test Chemical",
                 "catalog_number": "S1234",
@@ -109,7 +109,7 @@ class TestGetReorderUrlEndpoint:
 
         # Create inventory item
         ir = client.post(
-            "/api/v1/inventory/",
+            "/api/v1/inventory",
             json={"product_id": product_id, "quantity_on_hand": 5},
         )
         item_id = ir.json()["id"]
@@ -124,11 +124,11 @@ class TestGetReorderUrlEndpoint:
         assert "S1234" in data["url"]
 
     def test_reorder_url_unknown_vendor_google_fallback(self, client):
-        vr = client.post("/api/v1/vendors/", json={"name": "Unknown Lab Supply"})
+        vr = client.post("/api/v1/vendors", json={"name": "Unknown Lab Supply"})
         vendor_id = vr.json()["id"]
 
         pr = client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "name": "Mystery Reagent",
                 "catalog_number": "UNK-001",
@@ -138,7 +138,7 @@ class TestGetReorderUrlEndpoint:
         product_id = pr.json()["id"]
 
         ir = client.post(
-            "/api/v1/inventory/",
+            "/api/v1/inventory",
             json={"product_id": product_id, "quantity_on_hand": 1},
         )
         item_id = ir.json()["id"]
@@ -151,13 +151,13 @@ class TestGetReorderUrlEndpoint:
     def test_reorder_url_no_vendor_returns_none(self, client):
         # Product with no vendor
         pr = client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={"name": "Orphan Product", "catalog_number": "ORP-001"},
         )
         product_id = pr.json()["id"]
 
         ir = client.post(
-            "/api/v1/inventory/",
+            "/api/v1/inventory",
             json={"product_id": product_id, "quantity_on_hand": 1},
         )
         item_id = ir.json()["id"]

@@ -157,7 +157,7 @@ def _seed_members(db):
 class TestListMembers:
     def test_list_members_returns_all(self, pi_client, team_db):
         _seed_members(team_db)
-        resp = pi_client.get("/api/v1/team/")
+        resp = pi_client.get("/api/v1/team")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 5
@@ -165,7 +165,7 @@ class TestListMembers:
 
     def test_list_members_filter_active(self, pi_client, team_db):
         _seed_members(team_db)
-        resp = pi_client.get("/api/v1/team/?is_active=true")
+        resp = pi_client.get("/api/v1/team?is_active=true")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 4
@@ -187,7 +187,7 @@ class TestListMembers:
 
         app.dependency_overrides[get_db] = override_get_db
         with TestClient(app) as c:
-            resp = c.get("/api/v1/team/")
+            resp = c.get("/api/v1/team")
             assert resp.status_code == 401
 
         os.environ["AUTH_ENABLED"] = "false"

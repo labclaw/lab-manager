@@ -48,16 +48,16 @@ def admin_auth(api):
 
 @given(parsers.parse('vendor "{name}" exists'))
 def vendor_exists(api, name):
-    r = api.post("/api/v1/vendors/", json={"name": name})
+    r = api.post("/api/v1/vendors", json={"name": name})
     return r.json() if r.status_code in (200, 201) else None
 
 
 @given(parsers.parse('product "{catalog}" exists'))
 def product_exists(api, catalog):
-    r = api.post("/api/v1/vendors/", json={"name": f"Vendor {catalog}"})
+    r = api.post("/api/v1/vendors", json={"name": f"Vendor {catalog}"})
     vendor = r.json()
     r = api.post(
-        "/api/v1/products/",
+        "/api/v1/products",
         json={
             "name": f"Product {catalog}",
             "catalog_number": catalog,
@@ -76,7 +76,7 @@ def product_exists(api, catalog):
 )
 def create_order_bad_vendor(api):
     r = api.post(
-        "/api/v1/orders/",
+        "/api/v1/orders",
         json={"vendor_id": "00000000-0000-0000-0000-000000000000"},
     )
     return r
@@ -125,7 +125,7 @@ def check_conflict(response):
 
 @then("the original vendor should be preserved")
 def check_vendor_preserved(api):
-    r = api.get("/api/v1/vendors/")
+    r = api.get("/api/v1/vendors")
     assert r.status_code == 200
 
 

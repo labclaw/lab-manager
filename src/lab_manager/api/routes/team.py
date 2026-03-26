@@ -43,7 +43,7 @@ def _get_invite_serializer() -> URLSafeTimedSerializer:
 # ---------------------------------------------------------------------------
 
 
-@router.get("/")
+@router.get("")
 def list_members(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),

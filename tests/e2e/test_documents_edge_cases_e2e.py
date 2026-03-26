@@ -107,7 +107,7 @@ class TestDocumentReview:
         """POST /api/v1/documents/{id}/review with extracted data succeeds."""
         # Create document first
         create_resp = authenticated_client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             json={
                 "file_path": "/tmp/review-test.txt",
                 "file_name": "review-test.txt",
@@ -139,7 +139,7 @@ class TestDocumentReview:
         """POST /api/v1/documents/{id}/review rejects invalid action with 422."""
         # Create document first
         create_resp = authenticated_client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             json={
                 "file_path": "/tmp/review-invalid.txt",
                 "file_name": "review-invalid.txt",
@@ -166,7 +166,7 @@ class TestDocumentFiltering:
     def test_filter_by_status(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/documents/ filters by status."""
         resp = authenticated_client.get(
-            "/api/v1/documents/", params={"status": "pending"}
+            "/api/v1/documents", params={"status": "pending"}
         )
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
@@ -178,7 +178,7 @@ class TestDocumentFiltering:
     def test_filter_by_type(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/documents/ filters by document type."""
         resp = authenticated_client.get(
-            "/api/v1/documents/", params={"document_type": "invoice"}
+            "/api/v1/documents", params={"document_type": "invoice"}
         )
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
@@ -255,7 +255,7 @@ class TestDocumentPagination:
 
     def test_pagination_default(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/documents/ returns paginated results."""
-        resp = authenticated_client.get("/api/v1/documents/")
+        resp = authenticated_client.get("/api/v1/documents")
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
         assert "items" in data, f"Response missing 'items': {data.keys()}"
@@ -265,7 +265,7 @@ class TestDocumentPagination:
         self, authenticated_client: TestClient | httpx.Client
     ):
         """GET /api/v1/documents/ respects page_size."""
-        resp = authenticated_client.get("/api/v1/documents/", params={"page_size": 10})
+        resp = authenticated_client.get("/api/v1/documents", params={"page_size": 10})
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()
         assert len(data["items"]) <= 10, (
@@ -277,7 +277,7 @@ class TestDocumentPagination:
     ):
         """GET /api/v1/documents/ returns correct page."""
         resp = authenticated_client.get(
-            "/api/v1/documents/", params={"page": 2, "page_size": 5}
+            "/api/v1/documents", params={"page": 2, "page_size": 5}
         )
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
         data = resp.json()

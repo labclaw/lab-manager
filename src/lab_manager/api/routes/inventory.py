@@ -113,7 +113,7 @@ class OpenBody(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-@router.get("/")
+@router.get("")
 def list_inventory(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
@@ -147,7 +147,7 @@ def list_inventory(
 
 
 @router.post(
-    "/",
+    "",
     status_code=201,
     dependencies=[Depends(require_permission("receive_shipments"))],
 )

@@ -17,7 +17,7 @@ class TestSearchEndpoints:
     def test_search_basic(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/search/ searches all indexes."""
         try:
-            resp = authenticated_client.get("/api/v1/search/", params={"q": "test"})
+            resp = authenticated_client.get("/api/v1/search", params={"q": "test"})
             # Meilisearch may not be available
             assert resp.status_code in (200, 400, 422, 500, 503)
             if resp.status_code == 200:
@@ -30,7 +30,7 @@ class TestSearchEndpoints:
         """GET /api/v1/search/ respects limit parameter."""
         try:
             resp = authenticated_client.get(
-                "/api/v1/search/", params={"q": "test", "limit": 5}
+                "/api/v1/search", params={"q": "test", "limit": 5}
             )
             assert resp.status_code in (200, 400, 422, 500, 503)
         except Exception:
@@ -39,7 +39,7 @@ class TestSearchEndpoints:
     def test_search_empty_query(self, authenticated_client: TestClient | httpx.Client):
         """GET /api/v1/search/ handles empty query."""
         try:
-            resp = authenticated_client.get("/api/v1/search/", params={"q": ""})
+            resp = authenticated_client.get("/api/v1/search", params={"q": ""})
             assert resp.status_code in (200, 400, 422, 500, 503)
         except Exception:
             pytest.skip("Meilisearch not available")
@@ -65,7 +65,7 @@ class TestSearchIndexing:
         """Search returns newly created vendor."""
         # Create vendor
         resp = authenticated_client.post(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             json={"name": "Search Test Vendor E2E"},
         )
         if resp.status_code not in (200, 201):
@@ -74,7 +74,7 @@ class TestSearchIndexing:
         # Try to search for it
         try:
             resp = authenticated_client.get(
-                "/api/v1/search/", params={"q": "Search Test Vendor E2E"}
+                "/api/v1/search", params={"q": "Search Test Vendor E2E"}
             )
             assert resp.status_code in (200, 400, 422, 500, 503)
         except Exception:
@@ -86,7 +86,7 @@ class TestSearchIndexing:
         """Search returns newly created product."""
         # Create product
         resp = authenticated_client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "name": "Search Test Product E2E",
                 "catalog_number": "SEARCH-E2E-001",
@@ -98,7 +98,7 @@ class TestSearchIndexing:
         # Try to search for it
         try:
             resp = authenticated_client.get(
-                "/api/v1/search/", params={"q": "SEARCH-E2E"}
+                "/api/v1/search", params={"q": "SEARCH-E2E"}
             )
             assert resp.status_code in (200, 400, 422, 500, 503)
         except Exception:

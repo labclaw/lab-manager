@@ -33,32 +33,32 @@ class TestAuthEnforcementE2E:
 
     def test_1_unauthenticated_vendors(self, e2e_client: TestClient | httpx.Client):
         """GET /api/v1/vendors/ returns 401 without auth."""
-        resp = e2e_client.get("/api/v1/vendors/")
+        resp = e2e_client.get("/api/v1/vendors")
         assert resp.status_code == 401, f"Expected 401, got {resp.status_code}"
 
     def test_2_unauthenticated_products(self, e2e_client: TestClient | httpx.Client):
         """GET /api/v1/products/ returns 401 without auth."""
-        resp = e2e_client.get("/api/v1/products/")
+        resp = e2e_client.get("/api/v1/products")
         assert resp.status_code == 401, f"Expected 401, got {resp.status_code}"
 
     def test_3_unauthenticated_orders(self, e2e_client: TestClient | httpx.Client):
         """GET /api/v1/orders/ returns 401 without auth."""
-        resp = e2e_client.get("/api/v1/orders/")
+        resp = e2e_client.get("/api/v1/orders")
         assert resp.status_code == 401, f"Expected 401, got {resp.status_code}"
 
     def test_4_unauthenticated_inventory(self, e2e_client: TestClient | httpx.Client):
         """GET /api/v1/inventory/ returns 401 without auth."""
-        resp = e2e_client.get("/api/v1/inventory/")
+        resp = e2e_client.get("/api/v1/inventory")
         assert resp.status_code == 401, f"Expected 401, got {resp.status_code}"
 
     def test_5_unauthenticated_documents(self, e2e_client: TestClient | httpx.Client):
         """GET /api/v1/documents/ returns 401 without auth."""
-        resp = e2e_client.get("/api/v1/documents/")
+        resp = e2e_client.get("/api/v1/documents")
         assert resp.status_code == 401, f"Expected 401, got {resp.status_code}"
 
     def test_6_unauthenticated_search(self, e2e_client: TestClient | httpx.Client):
-        """GET /api/v1/search/?q=test returns 401 without auth."""
-        resp = e2e_client.get("/api/v1/search/", params={"q": "test"})
+        """GET /api/v1/search?q=test returns 401 without auth."""
+        resp = e2e_client.get("/api/v1/search", params={"q": "test"})
         assert resp.status_code == 401, f"Expected 401, got {resp.status_code}"
 
     def test_7_unauthenticated_ask(self, e2e_client: TestClient | httpx.Client):
@@ -78,17 +78,17 @@ class TestAuthEnforcementE2E:
 
     def test_10_unauthenticated_alerts(self, e2e_client: TestClient | httpx.Client):
         """GET /api/v1/alerts/ returns 401 without auth."""
-        resp = e2e_client.get("/api/v1/alerts/")
+        resp = e2e_client.get("/api/v1/alerts")
         assert resp.status_code == 401, f"Expected 401, got {resp.status_code}"
 
     def test_11_unauthenticated_audit(self, e2e_client: TestClient | httpx.Client):
         """GET /api/v1/audit/ returns 401 without auth."""
-        resp = e2e_client.get("/api/v1/audit/")
+        resp = e2e_client.get("/api/v1/audit")
         assert resp.status_code == 401, f"Expected 401, got {resp.status_code}"
 
     def test_12_unauthenticated_equipment(self, e2e_client: TestClient | httpx.Client):
         """GET /api/v1/equipment/ returns 401 without auth."""
-        resp = e2e_client.get("/api/v1/equipment/")
+        resp = e2e_client.get("/api/v1/equipment")
         assert resp.status_code == 401, f"Expected 401, got {resp.status_code}"
 
     def test_13_unauthenticated_telemetry(self, e2e_client: TestClient | httpx.Client):
@@ -292,7 +292,7 @@ class TestInputValidationE2E:
         self, authenticated_client: TestClient | httpx.Client
     ):
         """POST /api/v1/vendors/ with missing name returns 422."""
-        resp = authenticated_client.post("/api/v1/vendors/", json={})
+        resp = authenticated_client.post("/api/v1/vendors", json={})
         assert resp.status_code == 422, f"Expected 422, got {resp.status_code}"
 
     def test_2_product_invalid_cas_number(
@@ -301,7 +301,7 @@ class TestInputValidationE2E:
         """POST /api/v1/products/ with invalid CAS number returns 422."""
         suffix = _unique_suffix()
         resp = authenticated_client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "catalog_number": f"CAS-TEST-{suffix}",
                 "name": f"CAS Test Product {suffix}",
@@ -346,7 +346,7 @@ class TestInputValidationE2E:
         suffix = _unique_suffix()
         # Create product
         prod_resp = authenticated_client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "catalog_number": f"OVERCON-{suffix}",
                 "name": f"Overconsume Product {suffix}",
@@ -358,7 +358,7 @@ class TestInputValidationE2E:
 
         # Create inventory with small quantity
         inv_resp = authenticated_client.post(
-            "/api/v1/inventory/",
+            "/api/v1/inventory",
             json={
                 "product_id": product_id,
                 "quantity_on_hand": 5,
@@ -401,14 +401,14 @@ class TestInputValidationE2E:
 
         # First order
         resp1 = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={"po_number": po, "vendor_id": test_vendor_id, "status": "pending"},
         )
         assert resp1.status_code == 201
 
         # Second order with same PO#
         resp2 = authenticated_client.post(
-            "/api/v1/orders/",
+            "/api/v1/orders",
             json={"po_number": po, "vendor_id": test_vendor_id, "status": "pending"},
         )
         # API warns but does not block (OCR re-scan use case)
@@ -426,7 +426,7 @@ class TestInputValidationE2E:
         catalog = f"DUP-CAT-{suffix}"
 
         resp1 = authenticated_client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "catalog_number": catalog,
                 "name": f"Dup Product 1 {suffix}",
@@ -436,7 +436,7 @@ class TestInputValidationE2E:
         assert resp1.status_code == 201
 
         resp2 = authenticated_client.post(
-            "/api/v1/products/",
+            "/api/v1/products",
             json={
                 "catalog_number": catalog,
                 "name": f"Dup Product 2 {suffix}",
@@ -452,7 +452,7 @@ class TestInputValidationE2E:
         # Build a payload slightly over 10 MB
         large_value = "x" * (11 * 1024 * 1024)
         resp = authenticated_client.post(
-            "/api/v1/vendors/",
+            "/api/v1/vendors",
             json={"name": large_value},
         )
         assert resp.status_code == 413, f"Expected 413, got {resp.status_code}"
@@ -462,7 +462,7 @@ class TestInputValidationE2E:
     ):
         """POST /api/v1/documents/ with path traversal is rejected."""
         resp = authenticated_client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             json={
                 "file_path": "../../etc/passwd",
                 "file_name": "passwd",

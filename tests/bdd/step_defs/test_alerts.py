@@ -231,7 +231,7 @@ def run_alert_check(api):
 
 @when("I list active alerts", target_fixture="list_response")
 def list_active_alerts(api):
-    r = api.get("/api/v1/alerts/", params={"resolved": False})
+    r = api.get("/api/v1/alerts", params={"resolved": False})
     assert r.status_code == 200, r.text
     return r.json()
 
