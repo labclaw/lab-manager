@@ -138,7 +138,7 @@ export default function App() {
             showSearch={location.pathname !== '/ask'}
             onMobileMenuToggle={() => setMobileMenuOpen(prev => !prev)}
           />
-          <main className="flex-1 overflow-y-auto p-6">
+          <main className="flex-1 overflow-y-auto p-3 md:p-6">
             <Routes>
               <Route path="/">
                 <Route index element={<DashboardPage onError={setError} />} />

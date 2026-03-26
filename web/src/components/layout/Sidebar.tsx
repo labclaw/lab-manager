@@ -54,6 +54,9 @@ export function Sidebar({
   mobileOpen = false,
   onMobileClose,
 }: SidebarProps) {
+  // On mobile overlay, always show expanded regardless of collapsed state
+  const showLabels = mobileOpen || !collapsed
+
   const handleLogout = async () => {
     try {
       await auth.logout()
@@ -76,7 +79,7 @@ export function Sidebar({
     <aside
       className={cn(
         'flex flex-col bg-[var(--sidebar)] border-r border-primary/10 transition-all duration-300 shrink-0',
-        collapsed ? 'w-16' : 'w-[240px]',
+        mobileOpen ? 'w-[240px]' : (collapsed ? 'w-16' : 'w-[240px]'),
         mobileOpen
           ? 'fixed inset-y-0 left-0 z-50 md:relative md:z-auto'
           : 'hidden md:flex relative',
@@ -87,7 +90,7 @@ export function Sidebar({
         <div className="size-8 flex items-center justify-center bg-primary/10 rounded-lg shrink-0">
           <Brain className="size-5" />
         </div>
-        {!collapsed && (
+        {showLabels && (
           <div>
             <h2 className="text-[var(--foreground)] text-xl font-bold leading-none tracking-tight">Lab Manager</h2>
             <p className="text-[10px] text-[var(--muted-foreground)] font-bold uppercase tracking-widest mt-1">Laboratory</p>
@@ -111,7 +114,7 @@ export function Sidebar({
               to={item.path}
               onClick={onMobileClose}
               className={cn(
-                'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors',
+                'flex items-center gap-3 px-4 py-3 md:py-2.5 rounded-lg transition-colors',
                 isActive
                   ? 'bg-primary/10 text-primary font-semibold'
                   : 'text-[var(--muted-foreground)] hover:bg-primary/5 hover:text-[var(--foreground)]',
@@ -119,8 +122,8 @@ export function Sidebar({
               title={collapsed ? item.label : undefined}
             >
               <item.Icon className="size-5 shrink-0" />
-              {!collapsed && <span className="text-sm">{item.label}</span>}
-              {!collapsed && badge > 0 && (
+              {showLabels && <span className="text-sm">{item.label}</span>}
+              {showLabels && badge > 0 && (
                 <span className="ml-auto bg-red-500/15 text-red-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                   {badge}
                 </span>
@@ -136,7 +139,7 @@ export function Sidebar({
           <div className="h-9 w-9 rounded-full border border-primary/30 overflow-hidden shrink-0 bg-primary/10 flex items-center justify-center">
             <User className="size-4 text-primary" />
           </div>
-          {!collapsed && (
+          {showLabels && (
             <div className="overflow-hidden">
               <p className="text-sm font-bold text-[var(--foreground)] truncate">Admin</p>
             </div>
@@ -146,7 +149,7 @@ export function Sidebar({
           to="/settings"
           onClick={onMobileClose}
           className={cn(
-            'flex items-center gap-3 w-full px-4 py-2 rounded-lg transition-colors text-sm font-medium',
+            'flex items-center gap-3 w-full px-4 py-3 md:py-2 rounded-lg transition-colors text-sm font-medium',
             current === '/settings'
               ? 'bg-primary/10 text-primary font-semibold'
               : 'text-[var(--muted-foreground)] hover:bg-primary/5 hover:text-[var(--foreground)]',
@@ -154,15 +157,15 @@ export function Sidebar({
           title={collapsed ? 'Settings' : undefined}
         >
           <Settings className="size-4 shrink-0" />
-          {!collapsed && <span>Settings</span>}
+          {showLabels && <span>Settings</span>}
         </Link>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-4 py-2 text-[var(--muted-foreground)] hover:text-red-400 transition-colors text-sm font-medium"
+          className="flex items-center gap-3 w-full px-4 py-3 md:py-2 text-[var(--muted-foreground)] hover:text-red-400 transition-colors text-sm font-medium"
           title={collapsed ? 'Sign Out' : undefined}
         >
           <LogOut className="size-4 shrink-0" />
-          {!collapsed && <span>Sign Out</span>}
+          {showLabels && <span>Sign Out</span>}
         </button>
       </div>
 
