@@ -79,6 +79,8 @@ class Settings(BaseSettings):
     extraction_api_key: str = ""
     mistral_api_key: str = ""
     openai_api_key: str = ""
+    gemini_api_key: str = ""
+    google_api_key: str = ""
 
     # RAG — uses NVIDIA API when nvidia_build_api_key is set
     rag_model: str = "nvidia_nim/z-ai/glm5"
