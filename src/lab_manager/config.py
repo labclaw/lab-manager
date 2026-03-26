@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     admin_secret_key: str = ""
     admin_password: str = ""
     auth_enabled: bool = True
-    secure_cookies: bool = True
+    secure_cookies: bool = False
 
     # Document intake — OCR tiered detection
     # ocr_tier: "local" (vLLM only), "api" (cloud APIs), "auto" (local first, API fallback)
