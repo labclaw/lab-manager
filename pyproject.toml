@@ -100,3 +100,11 @@ filterwarnings = [
   "ignore::DeprecationWarning:sqlmodel.*",
   "ignore::pytest.PytestUnknownMarkWarning",
 ]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.8.2"
+version_files = ["pyproject.toml:version"]
+tag_format = "v$version"
+changelog_file = "CHANGELOG.md"
+update_changelog_on_bump = true
