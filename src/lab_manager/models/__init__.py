@@ -13,6 +13,7 @@ from lab_manager.models.document import Document, DocumentStatus
 from lab_manager.models.audit import AuditLog, log_change
 from lab_manager.models.alert import Alert, AlertType, AlertSeverity
 from lab_manager.models.equipment import Equipment, EquipmentStatus
+from lab_manager.models.notification import Notification, NotificationPreference
 from lab_manager.models.usage_event import UsageEvent
 
 __all__ = [
@@ -39,4 +40,6 @@ __all__ = [
     "EquipmentStatus",
     "UsageEvent",
     "Invitation",
+    "Notification",
+    "NotificationPreference",
 ]
