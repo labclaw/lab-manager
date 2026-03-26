@@ -244,9 +244,7 @@ def create_order(body: OrderCreate, db: Session = Depends(get_db)):
         if dupes:
             duplicate_warning = build_duplicate_warning(dupes)
 
-    if duplicate_warning:
-        return {"order": order, "_duplicate_warning": duplicate_warning}
-    return order
+    return {"order": order, "_duplicate_warning": duplicate_warning}
 
 
 @router.get("/{order_id}", response_model=OrderResponse)
@@ -283,8 +281,11 @@ def delete_order(order_id: int, db: Session = Depends(get_db)):
     return None
 
 
-
-_IMMUTABLE_ORDER_STATUSES = {OrderStatus.received.value, OrderStatus.cancelled.value, OrderStatus.deleted.value}
+_IMMUTABLE_ORDER_STATUSES = {
+    OrderStatus.received.value,
+    OrderStatus.cancelled.value,
+    OrderStatus.deleted.value,
+}
 
 
 def _ensure_order_mutable(order: Order) -> None:
@@ -292,6 +293,8 @@ def _ensure_order_mutable(order: Order) -> None:
         raise ValidationError(
             f"Cannot modify items on order with status '{order.status.value}'"
         )
+
+
 # =====================
 #  Order Items sub-endpoints
 # =====================
