@@ -7,7 +7,7 @@ import { renderWithProviders } from '@/test/utils'
 import { ScanPage } from '@/pages/ScanPage'
 
 // Mock html5-qrcode — vi.mock is hoisted, so we use vi.hoisted()
-const { mockStart, mockStop, mockGetState, MockHtml5Qrcode } = vi.hoisted(() => {
+const { mockStart, mockStop, MockHtml5Qrcode } = vi.hoisted(() => {
   const mockStart = vi.fn()
   const mockStop = vi.fn()
   const mockGetState = vi.fn().mockReturnValue(1)

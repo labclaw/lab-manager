@@ -1,6 +1,6 @@
 import { test, expect } from './fixtures'
 
-const REVIEW_DOCS = [
+const _REVIEW_DOCS = [
   { id: 1, file_name: 'packing_list_001.pdf', vendor_name: 'Sigma-Aldrich', document_type: 'packing_list', status: 'needs_review', extraction_confidence: 0.95, created_at: '2026-03-20T10:00:00Z' },
   { id: 2, file_name: 'invoice_002.pdf', vendor_name: 'Thermo Fisher', document_type: 'invoice', status: 'needs_review', extraction_confidence: 0.72, created_at: '2026-03-21T14:30:00Z' },
 ]

@@ -1,4 +1,4 @@
-import { test, expect, mockAllAPIs } from './fixtures'
+import { test, expect } from './fixtures'
 
 test.describe('Authentication', () => {
   test('shows login page when not authenticated', async ({ page }) => {
