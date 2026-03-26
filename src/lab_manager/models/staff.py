@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Optional
 
 from sqlmodel import Field
@@ -15,6 +16,12 @@ class Staff(AuditMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(max_length=200, index=True)
     email: Optional[str] = Field(default=None, max_length=255, unique=True)
-    role: str = Field(default="member", max_length=50)
+    role: str = Field(default="grad_student", max_length=50)
+    role_level: int = Field(default=3)
     is_active: bool = Field(default=True)
     password_hash: Optional[str] = Field(default=None, max_length=255)
+    invited_by: Optional[int] = Field(default=None, foreign_key="staff.id")
+    last_login_at: Optional[datetime] = Field(default=None)
+    access_expires_at: Optional[datetime] = Field(default=None)
+    failed_login_count: int = Field(default=0)
+    locked_until: Optional[datetime] = Field(default=None)

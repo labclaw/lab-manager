@@ -112,10 +112,12 @@ def _get_serializer() -> URLSafeTimedSerializer:
 def _load_session_staff(session_cookie: str):
     """Load staff from session cookie, returning a detach-safe dict.
 
-    Returns ``{"id": ..., "name": ...}`` or *None*.  Eagerly extracts
-    attributes inside the DB session so callers never hit a
-    ``DetachedInstanceError``.
+    Returns ``{"id": ..., "name": ..., "role": ..., "role_level": ...}``
+    or *None*.  Eagerly extracts attributes inside the DB session so
+    callers never hit a ``DetachedInstanceError``.
     """
+    from datetime import datetime, timezone
+
     serializer = _get_serializer()
     data = serializer.loads(session_cookie, max_age=_SESSION_MAX_AGE)
     staff_id = data.get("staff_id")
@@ -128,12 +130,31 @@ def _load_session_staff(session_cookie: str):
 
         staff = db.get(Staff, staff_id)
         if staff and staff.is_active:
+            # Check account lock
+            if staff.locked_until and staff.locked_until > datetime.now(timezone.utc):
+                logger.warning(
+                    "Session for locked staff_id=%s name=%s",
+                    staff_id,
+                    staff_name,
+                )
+                return None
+            # Check access expiration
+            if staff.access_expires_at and staff.access_expires_at < datetime.now(
+                timezone.utc
+            ):
+                logger.warning(
+                    "Session for expired-access staff_id=%s name=%s",
+                    staff_id,
+                    staff_name,
+                )
+                return None
             # Eagerly read attributes while session is open
             return {
                 "id": staff.id,
                 "name": staff.name,
                 "email": staff.email,
                 "role": staff.role,
+                "role_level": staff.role_level,
             }
 
     logger.warning(
@@ -285,6 +306,7 @@ def create_app() -> FastAPI:
             _AUTH_ALLOWLIST_PREFIXES
         )
 
+        staff_dict = None
         if settings.auth_enabled and not is_allowed:
             authenticated = False
 
@@ -292,9 +314,9 @@ def create_app() -> FastAPI:
             session_cookie = request.cookies.get(_SESSION_COOKIE)
             if session_cookie:
                 try:
-                    staff = _load_session_staff(session_cookie)
-                    if staff:
-                        user = staff["name"]
+                    staff_dict = _load_session_staff(session_cookie)
+                    if staff_dict:
+                        user = staff_dict["name"]
                         authenticated = True
                 except BadSignature:
                     logger.warning("Invalid session cookie signature")
@@ -307,6 +329,13 @@ def create_app() -> FastAPI:
                         # When auth is enabled, API key clients are always "api-client"
                         # X-User header is ignored to prevent spoofing
                         user = "api-client"
+                        staff_dict = {
+                            "id": 0,
+                            "name": "api-client",
+                            "email": None,
+                            "role": "admin",
+                            "role_level": 1,
+                        }
                         authenticated = True
 
             if not authenticated:
@@ -317,8 +346,16 @@ def create_app() -> FastAPI:
         elif not settings.auth_enabled:
             raw = request.headers.get("X-User", "system")
             user = _CONTROL_CHARS.sub("", raw)[:_MAX_USER_LEN]
+            staff_dict = {
+                "id": 0,
+                "name": user,
+                "email": None,
+                "role": "pi",
+                "role_level": 0,
+            }
 
         request.state.user = user
+        request.state.staff = staff_dict
         return await call_next(request)
 
     # --- Access log middleware (outermost — registered last, runs first) ---
@@ -408,7 +445,9 @@ def create_app() -> FastAPI:
         db=Depends(get_db),
     ):
         import bcrypt as _bcrypt
+        from datetime import datetime, timezone
 
+        from lab_manager.api.auth import get_permissions
         from lab_manager.models.staff import Staff
 
         try:
@@ -418,16 +457,29 @@ def create_app() -> FastAPI:
                 staff_id = staff.id
                 staff_name = staff.name
                 staff_email = staff.email
+                staff_role = staff.role
+                staff_role_level = staff.role_level
                 staff_active = staff.is_active
                 staff_pw_hash = staff.password_hash
+                staff_locked_until = staff.locked_until
             else:
                 staff_id = staff_name = staff_email = staff_pw_hash = None
+                staff_role = "visitor"
+                staff_role_level = 4
                 staff_active = False
+                staff_locked_until = None
         except Exception:
             logger.error("Login: database unavailable")
             return JSONResponse(
                 status_code=503,
                 content={"detail": "Service temporarily unavailable"},
+            )
+
+        # Check account lock
+        if staff_locked_until and staff_locked_until > datetime.now(timezone.utc):
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "Account temporarily locked. Try again later."},
             )
 
         # Constant-time: always run bcrypt to prevent timing oracle on user existence.
@@ -441,6 +493,25 @@ def create_app() -> FastAPI:
             _bcrypt.checkpw(password.encode("utf-8"), _DUMMY_HASH)
 
         if not password_ok:
+            # Increment failed login count
+            if staff:
+                try:
+                    from lab_manager.database import get_db_session as _fdb
+
+                    with _fdb() as fdb:
+                        s = fdb.get(Staff, staff_id)
+                        if s:
+                            s.failed_login_count = (s.failed_login_count or 0) + 1
+                            # Lock after 5 consecutive failures for 15 minutes
+                            if s.failed_login_count >= 5:
+                                from datetime import timedelta
+
+                                s.locked_until = datetime.now(timezone.utc) + timedelta(
+                                    minutes=15
+                                )
+                            fdb.commit()
+                except Exception:
+                    logger.warning("Failed to update failed_login_count")
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Invalid email or password"},
@@ -449,8 +520,18 @@ def create_app() -> FastAPI:
         # Create signed session cookie with new token (session regeneration)
         serializer = _get_serializer()
         session_data = serializer.dumps({"staff_id": staff_id, "name": staff_name})
+        perms = get_permissions(staff_role)
         response = JSONResponse(
-            {"status": "ok", "user": {"id": staff_id, "name": staff_name}}
+            {
+                "status": "ok",
+                "user": {
+                    "id": staff_id,
+                    "name": staff_name,
+                    "role": staff_role,
+                    "role_level": staff_role_level,
+                    "permissions": sorted(perms),
+                },
+            }
         )
         response.set_cookie(
             _SESSION_COOKIE,
@@ -461,8 +542,22 @@ def create_app() -> FastAPI:
             secure=get_settings().secure_cookies,
         )
         logger.info("Login successful for %s (staff_id=%s)", staff_email, staff_id)
-        # Record login usage event for DAU measurement
+
+        # Update last_login_at and reset failed_login_count
         from lab_manager.database import get_db_session as _get_db_session
+
+        try:
+            with _get_db_session() as _db:
+                s = _db.get(Staff, staff_id)
+                if s:
+                    s.last_login_at = datetime.now(timezone.utc)
+                    s.failed_login_count = 0
+                    s.locked_until = None
+                _db.commit()
+        except Exception:
+            logger.warning("Failed to update last_login_at")
+
+        # Record login usage event for DAU measurement
         from lab_manager.models.usage_event import UsageEvent as _UsageEvent
 
         try:
@@ -483,10 +578,20 @@ def create_app() -> FastAPI:
     @app.get("/api/v1/auth/me")
     def auth_me(request: Request):
         """Return current user info from session cookie. Used by frontend to check auth state."""
+        from lab_manager.api.auth import get_permissions
+
         settings = get_settings()
         if not settings.auth_enabled:
+            perms = get_permissions("pi")
             return {
-                "user": {"id": 0, "name": "Lab User", "email": None, "role": "admin"}
+                "user": {
+                    "id": 0,
+                    "name": "Lab User",
+                    "email": None,
+                    "role": "pi",
+                    "role_level": 0,
+                    "permissions": sorted(perms),
+                }
             }
         session_cookie = request.cookies.get(_SESSION_COOKIE)
         if not session_cookie:
@@ -501,12 +606,16 @@ def create_app() -> FastAPI:
             return JSONResponse(
                 status_code=401, content={"detail": "Not authenticated"}
             )
+        role = staff.get("role", "visitor")
+        perms = get_permissions(role)
         return {
             "user": {
                 "id": staff["id"],
                 "name": staff["name"],
                 "email": staff.get("email"),
-                "role": staff.get("role", "member"),
+                "role": role,
+                "role_level": staff.get("role_level", 4),
+                "permissions": sorted(perms),
             }
         }
 
@@ -606,17 +715,19 @@ def create_app() -> FastAPI:
                 content={"detail": "Setup already completed"},
             )
 
-        # Create or update staff record
+        # Create or update staff record — first user is always PI
         staff = db.scalars(select(Staff).where(Staff.email == admin_email)).first()
         if staff:
             staff.name = admin_name
-            staff.role = "admin"
+            staff.role = "pi"
+            staff.role_level = 0
             staff.is_active = True
         else:
             staff = Staff(
                 name=admin_name,
                 email=admin_email,
-                role="admin",
+                role="pi",
+                role_level=0,
                 is_active=True,
             )
             db.add(staff)
