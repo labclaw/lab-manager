@@ -51,6 +51,20 @@ class Settings(BaseSettings):
         return self
 
     @model_validator(mode="after")
+    def _validate_public_auth_guard(self):
+        """Block AUTH_ENABLED=false on non-localhost domains (security guard)."""
+        if not self.auth_enabled and self.domain not in (
+            "localhost",
+            "127.0.0.1",
+            "::1",
+        ):
+            raise ValueError(
+                "AUTH_ENABLED=false is only allowed on localhost domains. "
+                "For production deployments, auth must remain enabled."
+            )
+        return self
+
+    @model_validator(mode="after")
     def _warn_default_admin_password(self):
         """Warn when ADMIN_PASSWORD is empty or a known default."""
         if self.auth_enabled:
@@ -84,6 +98,9 @@ class Settings(BaseSettings):
     admin_password: str = ""
     auth_enabled: bool = True
     secure_cookies: bool = False
+
+    # Deployment
+    domain: str = "localhost"
 
     # Document intake — OCR tiered detection
     # ocr_tier: "local" (vLLM only), "api" (cloud APIs), "auto" (local first, API fallback)

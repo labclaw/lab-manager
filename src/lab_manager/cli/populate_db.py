@@ -46,7 +46,9 @@ def populate_products(db: Session) -> dict[str, int]:
     log.info("=== Populating products ===")
 
     existing = db.query(Product).all()
-    existing_map: dict[str, int] = {p.catalog_number: p.id for p in existing}
+    existing_map: dict[str, int] = {
+        p.catalog_number: p.id for p in existing if p.id is not None
+    }
     if existing_map:
         log.info("Found %d existing products, will skip duplicates", len(existing_map))
 
