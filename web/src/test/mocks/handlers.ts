@@ -62,10 +62,10 @@ const mockReviewQueue = {
 
 const mockAlerts = {
   items: [
-    { id: 1, alert_type: 'low_stock', severity: 'warning', message: 'Sodium Chloride below reorder level', is_acknowledged: false, created_at: '2026-03-19T10:00:00' },
-    { id: 2, alert_type: 'expiring_soon', severity: 'critical', message: 'Ethanol 95% expires in 3 days', is_acknowledged: false, created_at: '2026-03-19T08:00:00' },
+    { id: 1, alert_type: 'low_stock', severity: 'warning', message: 'Sodium Chloride below reorder level', entity_type: 'inventory', entity_id: 1, is_acknowledged: false, is_resolved: false, created_at: '2026-03-19T10:00:00' },
+    { id: 2, alert_type: 'expiring_soon', severity: 'critical', message: 'Ethanol 95% expires in 3 days', entity_type: 'inventory', entity_id: 2, is_acknowledged: false, is_resolved: false, created_at: '2026-03-19T08:00:00' },
   ],
-  total: 2, page: 1, page_size: 20, pages: 1,
+  total: 2, page: 1, page_size: 50, pages: 1,
 }
 
 const mockAlertsSummary = {

@@ -9,14 +9,10 @@ import {
   CircleCheck,
   Filter,
   ChevronRight,
-  ZoomIn,
-  ZoomOut,
-  ExternalLink,
   FileText,
   LayoutGrid,
   List,
   History,
-  CirclePlus,
   Ban,
   AlertTriangle,
   Upload,
@@ -119,6 +115,16 @@ export function ReviewPage({ onError }: ReviewPageProps) {
     onError: (err: Error) => onError(err.message),
   })
 
+  const updateDocTypeMutation = useMutation({
+    mutationFn: ({ id, docType }: { id: number; docType: string }) =>
+      docApi.update(id, { document_type: docType }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reviewQueue'] })
+      queryClient.invalidateQueries({ queryKey: ['document'] })
+    },
+    onError: (err: Error) => onError(err.message),
+  })
+
   const actionLoading = approveMutation.isPending || rejectMutation.isPending
 
   if (isLoading) {
@@ -196,13 +202,14 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                 >
                   <div className="flex justify-between items-start mb-2">
                     <h3
-                      className={`text-sm font-bold truncate w-4/5 ${
-                        isSelected ? 'text-[var(--foreground)]' : 'text-[var(--foreground)]'
-                      }`}
+                      className="text-sm font-bold truncate w-4/5 text-[var(--foreground)]"
                       title={item.file_name ?? `Doc #${item.id}`}
                     >
-                      {item.vendor_name ?? 'Pending extraction'}
-                      {item.document_type ? ` — ${formatEnum(item.document_type)}` : ''}
+                      {item.vendor_name
+                        ? `${item.vendor_name}${item.document_type ? ` — ${formatEnum(item.document_type)}` : ''}`
+                        : item.document_type
+                          ? `${formatEnum(item.document_type)} — ${formatDate(item.created_at)}`
+                          : `Document #${item.id}`}
                     </h3>
                     <span className={badgeInfo.wrapperClass}>
                       {confLabel(item.extraction_confidence)}
@@ -260,22 +267,11 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                 {docDetail.extraction_model && (
                   <>
                     <div className="h-4 w-px bg-[var(--border)]" />
-                    <span className="text-[10px] text-[var(--muted-foreground)] font-mono">
-                      {docDetail.extraction_model}
+                    <span className="text-[10px] text-[var(--muted-foreground)]">
+                      AI Extracted
                     </span>
                   </>
                 )}
-              </div>
-              <div className="flex gap-2">
-                <button className="p-1.5 rounded bg-[var(--card)] hover:bg-[var(--border)] text-[var(--muted-foreground)]">
-                  <ZoomIn className="size-4" />
-                </button>
-                <button className="p-1.5 rounded bg-[var(--card)] hover:bg-[var(--border)] text-[var(--muted-foreground)]">
-                  <ZoomOut className="size-4" />
-                </button>
-                <button className="p-1.5 rounded bg-[var(--card)] hover:bg-[var(--border)] text-[var(--muted-foreground)]">
-                  <ExternalLink className="size-4" />
-                </button>
               </div>
             </div>
             <div className="flex-1 rounded-lg border border-gray-200 bg-white flex items-center justify-center overflow-hidden relative group shadow-sm">
@@ -358,8 +354,8 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                       Document Type
                     </label>
                     <select
-                      disabled
                       value={docDetail.document_type ?? ''}
+                      onChange={(e) => updateDocTypeMutation.mutate({ id: doc.id, docType: e.target.value })}
                       className="w-full bg-[var(--card)] border-[var(--border)] rounded-lg py-2.5 px-3 text-sm focus:ring-primary focus:border-primary transition-all hover:bg-[var(--card)]/80"
                     >
                       <option value="packing_list">Packing List</option>
@@ -478,12 +474,6 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                     </tbody>
                   </table>
                 </div>
-                <div className="mt-4 flex justify-end">
-                  <button className="text-primary hover:text-primary/80 text-xs font-bold flex items-center gap-1">
-                    <CirclePlus className="size-4" />
-                    Add Manual Row
-                  </button>
-                </div>
               </div>
             </div>
 
@@ -510,7 +500,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                     <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
                     <div>
                       <p className="text-[11px] text-[var(--foreground)] leading-tight">
-                        AI extraction via {docDetail.extraction_model}
+                        AI extraction complete
                         {docDetail.extraction_confidence != null && (
                           <span className="ml-1 text-[var(--muted-foreground)]">
                             ({Math.round(docDetail.extraction_confidence * 100)}% confidence)
@@ -612,28 +602,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-3 md:gap-6">
-                <div className="hidden xl:flex items-center gap-4 text-[var(--muted-foreground)] mr-4">
-                  <div className="flex items-center gap-1.5">
-                    <kbd className="px-1.5 py-0.5 bg-[var(--card)] border border-[var(--border)] rounded text-[10px] font-bold">
-                      ESC
-                    </kbd>
-                    <span className="text-[10px] font-medium uppercase tracking-wider">
-                      Cancel
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <kbd className="px-1.5 py-0.5 bg-[var(--card)] border border-[var(--border)] rounded text-[10px] font-bold">
-                      J
-                    </kbd>
-                    <kbd className="px-1.5 py-0.5 bg-[var(--card)] border border-[var(--border)] rounded text-[10px] font-bold">
-                      K
-                    </kbd>
-                    <span className="text-[10px] font-medium uppercase tracking-wider">
-                      Navigate
-                    </span>
-                  </div>
-                </div>
+              <div className="flex items-center gap-6">
                 <button
                   onClick={() => setRejecting(true)}
                   disabled={actionLoading}
