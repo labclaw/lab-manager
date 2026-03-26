@@ -191,8 +191,8 @@ class TestNotificationsAPI:
 
         db_session.execute(
             text(
-                "INSERT INTO staff (id, name, role, is_active) "
-                "VALUES (0, 'system', 'admin', true) "
+                "INSERT INTO staff (id, name, role, role_level, is_active) "
+                "VALUES (0, 'system', 'admin', 1, true) "
                 "ON CONFLICT (id) DO NOTHING"
             )
         )
