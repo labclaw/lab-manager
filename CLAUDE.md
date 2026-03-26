@@ -135,6 +135,16 @@ MISTRAL_API_KEY=...         # for Mistral Pixtral
 CLAUDE_MODEL=claude-opus-4-6  # override for claude CLI
 ```
 
+## Merge Policy (ABSOLUTE — NO EXCEPTIONS)
+
+- NEVER use `gh pr merge --admin`
+- NEVER merge with pending or failing CI checks
+- ONLY acceptable merge: `gh pr merge --auto --squash` (waits for CI)
+- If CI fails: FIX the code, do not bypass
+- Subagents MUST be told: "NEVER use --admin"
+- The `merge-gate` workflow verifies all required checks before allowing merge
+- Required checks: lint, typecheck, test (py3.12), test (py3.13), frontend, e2e, conventional-commits
+
 ## Code Style
 
 - Linter: `ruff` (configured in pyproject.toml)
