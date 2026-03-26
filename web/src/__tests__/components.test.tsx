@@ -174,4 +174,15 @@ describe('Sidebar', () => {
     expect(screen.queryByText('Dashboard')).not.toBeInTheDocument()
     expect(screen.queryByText('Documents')).not.toBeInTheDocument()
   })
+
+  it('shows provided userName instead of hardcoded Admin', () => {
+    renderWithProviders(<Sidebar {...defaultProps} userName="Dr. Aris Thorne" />)
+    expect(screen.getByText('Dr. Aris Thorne')).toBeInTheDocument()
+    expect(screen.queryByText('Admin')).not.toBeInTheDocument()
+  })
+
+  it('defaults to "User" when userName is not provided', () => {
+    renderWithProviders(<Sidebar {...defaultProps} />)
+    expect(screen.getByText('User')).toBeInTheDocument()
+  })
 })
