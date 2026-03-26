@@ -6,9 +6,14 @@ import logging
 import re
 
 from sqlalchemy import text
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from lab_manager.config import get_settings
+from lab_manager.models.document import Document
+from lab_manager.models.inventory import InventoryItem
+from lab_manager.models.order import Order
+from lab_manager.models.product import Product
+from lab_manager.models.vendor import Vendor
 from lab_manager.services.litellm_client import create_completion, response_text
 from lab_manager.services.serialization import serialize_value as _serialize_value
 
@@ -508,7 +513,59 @@ def _format_answer(question: str, sql: str, results: list[dict]) -> str:
     return _generate_completion(prompt)
 
 
-def _fallback_search(question: str) -> dict:
+def _serialize_model_rows(rows: list[object], fields: tuple[str, ...]) -> list[dict]:
+    """Serialize ORM rows into JSON-safe dicts for fallback responses."""
+    serialized: list[dict] = []
+    for row in rows:
+        item: dict[str, object] = {}
+        for field in fields:
+            value = getattr(row, field, None)
+            if value is not None:
+                item[field] = _serialize_value(value)
+        if item:
+            serialized.append(item)
+    return serialized
+
+
+def _fallback_db_lookup(question: str, db: Session | None) -> list[dict]:
+    """Query obvious entity tables directly when text search cannot help."""
+    if db is None:
+        return []
+
+    lowered = question.lower()
+    entity_lookups: tuple[tuple[tuple[str, ...], object, tuple[str, ...]], ...] = (
+        (("vendor", "vendors"), Vendor, ("id", "name", "email", "website")),
+        (
+            ("product", "products", "catalog", "cas"),
+            Product,
+            ("id", "name", "catalog_number", "category", "cas_number"),
+        ),
+        (
+            ("order", "orders", "invoice", "delivery"),
+            Order,
+            ("id", "po_number", "status", "invoice_number", "delivery_number"),
+        ),
+        (
+            ("document", "documents", "invoice", "packing slip", "packing list"),
+            Document,
+            ("id", "file_name", "document_type", "vendor_name", "status"),
+        ),
+        (
+            ("inventory", "stock", "item", "items", "reagent", "reagents"),
+            InventoryItem,
+            ("id", "lot_number", "quantity_on_hand", "unit", "status"),
+        ),
+    )
+
+    for keywords, model, fields in entity_lookups:
+        if any(keyword in lowered for keyword in keywords):
+            rows = db.exec(select(model).order_by(model.id.desc()).limit(20)).all()
+            return _serialize_model_rows(rows, fields)
+
+    return []
+
+
+def _fallback_search(question: str, db: Session | None = None) -> dict:
     """Fall back to Meilisearch full-text search when SQL generation fails."""
     try:
         from lab_manager.services.search import search
@@ -518,6 +575,9 @@ def _fallback_search(question: str) -> dict:
             hits = search(question, index=index_name, limit=20)
             if hits:
                 break
+
+        if not hits:
+            hits = _fallback_db_lookup(question, db)
 
         answer = (
             f"Found {len(hits)} results via text search."
@@ -629,7 +689,7 @@ def ask(question: str, db: Session) -> dict:
         logger.info("Generated SQL for question '%s': %s", question[:80], sql)
     except Exception as e:
         logger.warning("SQL generation failed: %s — falling back to search", e)
-        return _fallback_search(question)
+        return _fallback_search(question, db)
 
     # Step 2: Execute SQL
     try:
@@ -637,7 +697,7 @@ def ask(question: str, db: Session) -> dict:
         logger.info("Query returned %d rows", len(results))
     except Exception as e:
         logger.warning("SQL execution failed: %s — falling back to search", e)
-        return _fallback_search(question)
+        return _fallback_search(question, db)
 
     # Step 3: Format answer
     # For simple scalar results (COUNT, SUM, etc.), skip the second LLM call
