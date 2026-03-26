@@ -828,25 +828,51 @@ def create_app() -> FastAPI:
                 original_endpoint = route.endpoint
                 route.endpoint = limiter.limit("10/minute")(original_endpoint)
 
-    # Serve scan images (protected by auth middleware when auth is enabled)
-    if scans_dir and scans_dir.exists():  # pragma: no cover — depends on deployment
-        app.mount("/scans", StaticFiles(directory=str(scans_dir)), name="scans")
+    # --- Authenticated static file serving ---
+    # Replaced app.mount() (which bypasses auth middleware) with API
+    # endpoints that go through the normal middleware pipeline.
 
-    # Serve uploaded documents at /uploads/
+    def _safe_serve(base_dir: Path, file_path: str) -> FileResponse:
+        """Serve a file from *base_dir* with path-traversal protection."""
+        from fastapi import HTTPException
+
+        resolved = (base_dir / file_path).resolve()
+        base_resolved = base_dir.resolve()
+        if (
+            not str(resolved).startswith(str(base_resolved) + "/")
+            and resolved != base_resolved
+        ):
+            raise HTTPException(status_code=403, detail="Access denied")
+        if not resolved.is_file():
+            raise HTTPException(status_code=404, detail="Not found")
+        return FileResponse(resolved)
+
+    scans_dir_resolved = (
+        scans_dir.resolve() if scans_dir and scans_dir.exists() else None
+    )  # pragma: no cover
     upload_path = Path(settings.upload_dir)
     upload_path.mkdir(parents=True, exist_ok=True)
     app.state.upload_dir = upload_path.resolve()
-    app.mount(
-        "/uploads",
-        StaticFiles(directory=str(app.state.upload_dir)),
-        name="uploads",
-    )
+    upload_dir_resolved = app.state.upload_dir
+    devices_dir_resolved = (
+        devices_dir.resolve() if devices_dir and devices_dir.exists() else None
+    )  # pragma: no cover
 
-    # Serve device photos
-    if devices_dir and devices_dir.exists():  # pragma: no cover — depends on deployment
-        app.mount(
-            "/lab-devices", StaticFiles(directory=str(devices_dir)), name="devices"
-        )
+    if scans_dir_resolved:  # pragma: no cover — depends on deployment
+
+        @app.get("/scans/{file_path:path}")
+        async def serve_scan(file_path: str):  # noqa: F811
+            return _safe_serve(scans_dir_resolved, file_path)
+
+    @app.get("/uploads/{file_path:path}")
+    async def serve_upload(file_path: str):
+        return _safe_serve(upload_dir_resolved, file_path)
+
+    if devices_dir_resolved:  # pragma: no cover — depends on deployment
+
+        @app.get("/lab-devices/{file_path:path}")
+        async def serve_device(file_path: str):  # noqa: F811
+            return _safe_serve(devices_dir_resolved, file_path)
 
     # Wire up SQLAdmin UI at /admin/
     setup_admin(app, get_engine())
