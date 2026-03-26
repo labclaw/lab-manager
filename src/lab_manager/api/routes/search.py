@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
-from lab_manager.services.search import search, search_all, suggest
+from lab_manager.services.search import INDEX_CONFIG, search, search_all, suggest
 
 router = APIRouter()
+
+_VALID_INDICES = set(INDEX_CONFIG.keys())
 
 
 @router.get("/")
@@ -20,6 +22,11 @@ def search_endpoint(
     limit: int = Query(20, ge=1, le=100, description="Max results per index"),
 ) -> dict:
     """Search across all indexes or a specific one."""
+    if index and index not in _VALID_INDICES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid index '{index}'. Must be one of: {sorted(_VALID_INDICES)}",
+        )
     if index:
         hits = search(q, index=index, limit=limit)
         return {"query": q, "index": index, "hits": hits, "count": len(hits)}
