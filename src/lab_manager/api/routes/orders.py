@@ -23,6 +23,32 @@ from lab_manager.services.search import index_order_record
 router = APIRouter()
 
 
+_VALID_STATUS_TRANSITIONS: dict[str, set[str]] = {
+    OrderStatus.pending.value: {
+        OrderStatus.shipped.value,
+        OrderStatus.cancelled.value,
+        OrderStatus.deleted.value,
+    },
+    OrderStatus.shipped.value: {
+        OrderStatus.received.value,
+        OrderStatus.cancelled.value,
+        OrderStatus.deleted.value,
+    },
+    OrderStatus.received.value: {
+        OrderStatus.deleted.value,
+    },
+}
+
+
+def _validate_status_transition(current_status: str, new_status: str) -> None:
+    allowed = _VALID_STATUS_TRANSITIONS.get(current_status, set())
+    if new_status not in allowed:
+        raise ValidationError(
+            f"Invalid status transition: {current_status} -> {new_status}. "
+            f"Allowed: {sorted(allowed) if allowed else ['(terminal status)']}"
+        )
+
+
 def _get_order_item_or_raise(db: Session, order_id: int, item_id: int) -> OrderItem:
     item = db.scalars(
         select(OrderItem).where(OrderItem.id == item_id, OrderItem.order_id == order_id)
@@ -194,6 +220,10 @@ def list_orders(
     "/", status_code=201, dependencies=[Depends(require_permission("create_orders"))]
 )
 def create_order(body: OrderCreate, db: Session = Depends(get_db)):
+    if body.status != OrderStatus.pending.value:
+        raise ValidationError(
+            f"New orders must be created with status '{OrderStatus.pending.value}', got '{body.status}'"
+        )
     order = Order(**body.model_dump())
     db.add(order)
     db.flush()
@@ -229,7 +259,10 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
 )
 def update_order(order_id: int, body: OrderUpdate, db: Session = Depends(get_db)):
     order = get_or_404(db, Order, order_id, "Order")
-    for key, value in body.model_dump(exclude_unset=True).items():
+    updates = body.model_dump(exclude_unset=True)
+    if "status" in updates:
+        _validate_status_transition(order.status, updates["status"])
+    for key, value in updates.items():
         setattr(order, key, value)
     db.flush()
     db.refresh(order)
