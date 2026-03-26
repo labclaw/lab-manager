@@ -50,6 +50,24 @@ class Settings(BaseSettings):
             )
         return self
 
+    @model_validator(mode="after")
+    def _warn_default_admin_password(self):
+        """Warn when ADMIN_PASSWORD is empty or a known default."""
+        if self.auth_enabled:
+            pw = self.admin_password.strip()
+            if not pw:
+                logger.warning(
+                    "ADMIN_PASSWORD is empty — the admin panel will be unprotected. "
+                    "Set ADMIN_PASSWORD to a strong value."
+                )
+            elif pw.startswith("changeme"):
+                logger.warning(
+                    "ADMIN_PASSWORD is still a default value (%s). "
+                    "Change it to a strong password before deploying.",
+                    pw,
+                )
+        return self
+
     meilisearch_url: str = "http://localhost:7700"
     meilisearch_api_key: str = ""
 
