@@ -283,6 +283,15 @@ def delete_order(order_id: int, db: Session = Depends(get_db)):
     return None
 
 
+
+_IMMUTABLE_ORDER_STATUSES = {OrderStatus.received.value, OrderStatus.cancelled.value, OrderStatus.deleted.value}
+
+
+def _ensure_order_mutable(order: Order) -> None:
+    if order.status in _IMMUTABLE_ORDER_STATUSES:
+        raise ValidationError(
+            f"Cannot modify items on order with status '{order.status.value}'"
+        )
 # =====================
 #  Order Items sub-endpoints
 # =====================
@@ -315,7 +324,8 @@ def list_order_items(
 def create_order_item(
     order_id: int, body: OrderItemCreate, db: Session = Depends(get_db)
 ):
-    get_or_404(db, Order, order_id, "Order")
+    order = get_or_404(db, Order, order_id, "Order")
+    _ensure_order_mutable(order)
     item = OrderItem(**body.model_dump())
     item.order_id = order_id
     db.add(item)
@@ -336,6 +346,8 @@ def get_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)):
 def update_order_item(
     order_id: int, item_id: int, body: OrderItemUpdate, db: Session = Depends(get_db)
 ):
+    order = get_or_404(db, Order, order_id, "Order")
+    _ensure_order_mutable(order)
     item = _get_order_item_or_raise(db, order_id, item_id)
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
@@ -350,6 +362,8 @@ def update_order_item(
     dependencies=[Depends(require_permission("delete_records"))],
 )
 def delete_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)):
+    order = get_or_404(db, Order, order_id, "Order")
+    _ensure_order_mutable(order)
     item = _get_order_item_or_raise(db, order_id, item_id)
     db.delete(item)
     db.flush()
