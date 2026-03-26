@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+
+import bcrypt as _bcrypt
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 
@@ -14,6 +16,10 @@ from lab_manager.api.auth import (
     get_permissions,
     require_permission,
 )
+
+
+def _hash_password(password: str) -> str:
+    return _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
 
 
 # ---------------------------------------------------------------------------
@@ -285,3 +291,144 @@ class TestRoleHierarchy:
                 assert visitor <= get_permissions(role), (
                     f"visitor should be subset of {role}"
                 )
+
+
+# ---------------------------------------------------------------------------
+# RBAC lockout / login-counter integration tests
+# ---------------------------------------------------------------------------
+
+import os
+from datetime import datetime, timedelta, timezone
+
+import pytest
+from sqlalchemy.pool import StaticPool
+from sqlmodel import Session, SQLModel, create_engine
+
+from lab_manager.config import get_settings
+
+
+@pytest.fixture
+def _rbac_engine():
+    engine = create_engine(
+        "sqlite://",
+        poolclass=StaticPool,
+        connect_args={"check_same_thread": False},
+    )
+    import lab_manager.models  # noqa: F401
+
+    SQLModel.metadata.create_all(engine)
+    return engine
+
+
+@pytest.fixture
+def _rbac_db(_rbac_engine):
+    with Session(_rbac_engine) as session:
+        yield session
+
+
+@pytest.fixture
+def _rbac_client(_rbac_engine, _rbac_db):
+    """TestClient with auth enabled and a shared in-memory DB."""
+    os.environ["AUTH_ENABLED"] = "true"
+    os.environ["ADMIN_SECRET_KEY"] = "test-secret-key-for-signing"
+    os.environ["ADMIN_PASSWORD"] = "test-admin-password-12345"
+    os.environ["API_KEY"] = "test-api-key-12345"
+    os.environ["SECURE_COOKIES"] = "false"
+    get_settings.cache_clear()
+
+    import lab_manager.database as db_module
+
+    original_engine = db_module._engine
+    original_factory = db_module._session_factory
+    db_module._engine = _rbac_engine
+    db_module._session_factory = None
+
+    from lab_manager.api.app import create_app
+    from lab_manager.api.deps import get_db
+
+    app = create_app()
+
+    def override_get_db():
+        yield _rbac_db
+
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as c:
+        yield c
+
+    db_module._engine = original_engine
+    db_module._session_factory = original_factory
+    os.environ["AUTH_ENABLED"] = "false"
+    os.environ.pop("ADMIN_SECRET_KEY", None)
+    os.environ.pop("ADMIN_PASSWORD", None)
+    os.environ.pop("API_KEY", None)
+    get_settings.cache_clear()
+
+
+def test_successful_login_resets_failed_count(_rbac_client, _rbac_db):
+    """After a successful login, failed_login_count must be 0 and locked_until cleared."""
+    from lab_manager.models.staff import Staff
+
+    staff = Staff(
+        name="Counter User",
+        email="counter@example.com",
+        role="admin",
+        is_active=True,
+        password_hash=_hash_password("goodpass"),
+        failed_login_count=3,
+        locked_until=None,
+    )
+    _rbac_db.add(staff)
+    _rbac_db.commit()
+    _rbac_db.refresh(staff)
+    staff_id = staff.id
+
+    # Successful login
+    resp = _rbac_client.post(
+        "/api/v1/auth/login",
+        json={"email": "counter@example.com", "password": "goodpass"},
+    )
+    assert resp.status_code == 200
+
+    # Verify counter was reset in the database
+    _rbac_db.expire_all()
+    s = _rbac_db.get(Staff, staff_id)
+    assert s.failed_login_count == 0
+    assert s.locked_until is None
+    assert s.last_login_at is not None
+
+
+def test_locked_account_rejected_by_session_middleware(_rbac_client, _rbac_db):
+    """A staff account locked via locked_until must be rejected by session middleware."""
+    from lab_manager.models.staff import Staff
+
+    staff = Staff(
+        name="Locked User",
+        email="locked@example.com",
+        role="admin",
+        is_active=True,
+        password_hash=_hash_password("goodpass"),
+        failed_login_count=0,
+        locked_until=None,
+    )
+    _rbac_db.add(staff)
+    _rbac_db.commit()
+    _rbac_db.refresh(staff)
+
+    # Login successfully first (get a session cookie)
+    resp = _rbac_client.post(
+        "/api/v1/auth/login",
+        json={"email": "locked@example.com", "password": "goodpass"},
+    )
+    assert resp.status_code == 200
+
+    # Verify session works before locking
+    resp = _rbac_client.get("/api/v1/vendors/")
+    assert resp.status_code == 200
+
+    # Lock the account (simulating admin action or brute-force lockout)
+    staff.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
+    _rbac_db.commit()
+
+    # Session middleware must now reject the request
+    resp = _rbac_client.get("/api/v1/vendors/")
+    assert resp.status_code == 401

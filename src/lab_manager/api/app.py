@@ -130,24 +130,32 @@ def _load_session_staff(session_cookie: str):
 
         staff = db.get(Staff, staff_id)
         if staff and staff.is_active:
+            now_utc = datetime.now(timezone.utc)
+
             # Check account lock
-            if staff.locked_until and staff.locked_until > datetime.now(timezone.utc):
-                logger.warning(
-                    "Session for locked staff_id=%s name=%s",
-                    staff_id,
-                    staff_name,
-                )
-                return None
+            if staff.locked_until:
+                locked = staff.locked_until
+                if locked.tzinfo is None:
+                    locked = locked.replace(tzinfo=timezone.utc)
+                if locked > now_utc:
+                    logger.warning(
+                        "Session for locked staff_id=%s name=%s",
+                        staff_id,
+                        staff_name,
+                    )
+                    return None
             # Check access expiration
-            if staff.access_expires_at and staff.access_expires_at < datetime.now(
-                timezone.utc
-            ):
-                logger.warning(
-                    "Session for expired-access staff_id=%s name=%s",
-                    staff_id,
-                    staff_name,
-                )
-                return None
+            if staff.access_expires_at:
+                expires = staff.access_expires_at
+                if expires.tzinfo is None:
+                    expires = expires.replace(tzinfo=timezone.utc)
+                if expires < now_utc:
+                    logger.warning(
+                        "Session for expired-access staff_id=%s name=%s",
+                        staff_id,
+                        staff_name,
+                    )
+                    return None
             # Eagerly read attributes while session is open
             return {
                 "id": staff.id,
