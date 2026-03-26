@@ -42,7 +42,7 @@ test.describe('Cloud Brain Page', () => {
   })
 
   test('query input area exists', async ({ authedPage: page }) => {
-    const input = page.getByPlaceholder(/query|ask|search|try/i)
+    const input = page.getByRole('textbox', { name: /search ai skills/i })
     await expect(input).toBeVisible()
   })
 
