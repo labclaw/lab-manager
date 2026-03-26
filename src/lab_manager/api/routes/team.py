@@ -340,7 +340,7 @@ def cancel_invitation(
 @router.post("/join/{token}")
 def accept_invitation(
     token: str,
-    password: str = Body(...),
+    password: str = Body(..., embed=True),
     db: Session = Depends(get_db),
 ):
     """Accept an invitation and create an account. No auth required."""
