@@ -6,6 +6,7 @@ import {
   Pill,
   FlaskConical,
   PenLine,
+  Activity,
 } from 'lucide-react'
 import {
   type ChatMessage,
@@ -13,20 +14,22 @@ import {
 } from './ChatMessage'
 
 const QUICK_ACTIONS = [
-  { label: 'Search PubMed', icon: Search, query: 'Search PubMed for recent papers on...', color: 'text-cyan-600', bg: 'bg-cyan-50' },
-  { label: 'Protein Lookup', icon: Dna, query: 'Look up protein in UniProt by accession...', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-  { label: 'Drug Info', icon: Pill, query: 'Find drug information and targets for...', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-  { label: 'Experiment Design', icon: FlaskConical, query: 'Design an experiment to test...', color: 'text-amber-600', bg: 'bg-amber-50' },
-  { label: 'Write Section', icon: PenLine, query: 'Write a Methods section for...', color: 'text-rose-600', bg: 'bg-rose-50' },
-]
+  { label: 'Search PubMed', icon: Search, query: 'Search PubMed for recent papers on CRISPR base editing', color: 'text-cyan-600', bg: 'bg-cyan-50' },
+  { label: 'Protein Lookup', icon: Dna, query: 'Look up protein P04637 in UniProt', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+  { label: 'Drug Info', icon: Pill, query: 'Find drug information for aspirin in ChEMBL', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+  { label: 'Experiment Design', icon: FlaskConical, query: 'Design a Western blot experiment to confirm CRISPR knockout', color: 'text-amber-600', bg: 'bg-amber-50' },
+  { label: 'Write Methods', icon: PenLine, query: 'Write a Methods section for immunohistochemistry', color: 'text-rose-600', bg: 'bg-rose-50' },
+  { label: 'Gene Analysis', icon: Activity, query: 'Analyze gene expression for BRCA1 in single-cell RNA-seq', color: 'text-violet-600', bg: 'bg-violet-50' },
+] as const
 
 interface ChatContainerProps {
   messages: ChatMessage[]
   onSend: (text: string) => void
   disabled?: boolean
+  quickActions?: readonly typeof QUICK_ACTIONS[number][]
 }
 
-export function ChatContainer({ messages, onSend, disabled }: ChatContainerProps) {
+export function ChatContainer({ messages, onSend, disabled, quickActions }: ChatContainerProps) {
   const [query, setQuery] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -51,14 +54,16 @@ export function ChatContainer({ messages, onSend, disabled }: ChatContainerProps
     inputRef.current?.focus()
   }
 
+  const actions = quickActions ?? QUICK_ACTIONS
+
   return (
     <div
       className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col"
-      style={{ maxHeight: messages.length > 0 ? '60vh' : undefined }}
+      style={{ maxHeight: '60vh' }}
     >
       {/* Messages */}
       {messages.length > 0 && (
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4" role="log" aria-live="polite">
           {messages.map((msg) => (
             <MessageBubble key={msg.id} message={msg} />
           ))}
@@ -70,7 +75,7 @@ export function ChatContainer({ messages, onSend, disabled }: ChatContainerProps
       {messages.length === 0 && (
         <div className="px-4 pt-4 pb-2">
           <div className="flex flex-wrap gap-2">
-            {QUICK_ACTIONS.map((action) => {
+            {actions.map((action) => {
               const Icon = action.icon
               return (
                 <button
@@ -98,6 +103,7 @@ export function ChatContainer({ messages, onSend, disabled }: ChatContainerProps
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Ask Cloud Brain..."
             disabled={disabled}
+            aria-label="Send scientific query"
             className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 disabled:bg-gray-50 disabled:text-gray-400"
           />
           <button
