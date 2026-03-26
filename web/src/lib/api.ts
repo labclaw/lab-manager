@@ -184,11 +184,19 @@ export interface DocumentStats {
 
 export interface Alert {
   id: number
-  type: string
-  message: string
+  alert_type: string
   severity: string
-  acknowledged: boolean
+  message: string
+  entity_type: string
+  entity_id: number
+  is_acknowledged: boolean
+  acknowledged_by?: string | null
+  acknowledged_at?: string | null
+  is_resolved: boolean
   created_at: string
+  updated_at?: string
+  /** @deprecated alias kept for badge counts in App.tsx */
+  acknowledged?: boolean
 }
 
 export interface AskEvidenceRow {

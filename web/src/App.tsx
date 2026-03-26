@@ -21,6 +21,7 @@ import { ProductsPage } from '@/pages/ProductsPage'
 import { ScanPage } from '@/pages/ScanPage'
 import { TeamPage } from '@/pages/TeamPage'
 import { ImportPage } from '@/pages/ImportPage'
+import { AlertsPage } from '@/pages/AlertsPage' 
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -39,19 +40,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/settings': 'Settings',
   '/cloud-brain': 'Cloud Brain',
   '/team': 'Team',
-}
-
-function AlertsPage() {
-  return (
-    <div className="text-center py-16 space-y-3">
-      <h3 className="text-lg font-display font-semibold text-[var(--foreground)]">
-        Alerts
-      </h3>
-      <p className="text-sm text-[var(--muted-foreground)]">
-        Alerts page
-      </p>
-    </div>
-  )
 }
 
 export default function App() {
@@ -97,7 +85,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return
     alerts.list().then((res) => {
-      const unack = (res.items ?? []).filter((a) => !a.acknowledged)
+      const unack = (res.items ?? []).filter((a) => !a.is_acknowledged)
       setAlertCount(unack.length)
     }).catch(() => {})
 
@@ -159,7 +147,7 @@ export default function App() {
                 <Route path="upload" element={<UploadPage />} />
                 <Route path="import" element={<ImportPage onError={setError} />} />
                 <Route path="review" element={<ReviewPage onError={setError} />} />
-                <Route path="alerts" element={<AlertsPage />} />
+                <Route path="alerts" element={<AlertsPage onError={setError} />} />
                 <Route path="settings" element={<SettingsPage onError={setError} />} />
                 <Route path="cloud-brain" element={<CloudBrainPage onError={setError} />} />
                 <Route path="team" element={<TeamPage onError={setError} />} />
