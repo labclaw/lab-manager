@@ -90,6 +90,10 @@ class ProductResponse(BaseModel):
     vendor_id: Optional[int] = None
     category: Optional[str] = None
     cas_number: Optional[str] = None
+    molecular_weight: Optional[float] = None
+    molecular_formula: Optional[str] = None
+    smiles: Optional[str] = None
+    pubchem_cid: Optional[int] = None
     storage_temp: Optional[str] = None
     unit: Optional[str] = None
     hazard_info: Optional[str] = None
@@ -216,3 +220,38 @@ def list_product_orders(
         .order_by(OrderItem.id)
     )
     return paginate(q, db, page, page_size)
+
+
+@router.get("/{product_id}/pubchem")
+def get_pubchem_enrichment(product_id: int, db: Session = Depends(get_db)):
+    """Fetch or refresh PubChem enrichment data for a product."""
+    from lab_manager.services.pubchem import enrich_product
+
+    product = get_or_404(db, Product, product_id, "Product")
+    data = enrich_product(product.name, product.catalog_number)
+    return {"product_id": product_id, "enrichment": data}
+
+
+@router.post("/{product_id}/enrich", response_model=ProductResponse)
+def enrich_product_endpoint(product_id: int, db: Session = Depends(get_db)):
+    """Enrich a product with PubChem data and persist to database."""
+    from lab_manager.services.pubchem import enrich_product
+
+    product = get_or_404(db, Product, product_id, "Product")
+    data = enrich_product(product.name, product.catalog_number)
+
+    # Only update fields that are currently empty on the product
+    field_map = {
+        "cas_number": "cas_number",
+        "molecular_weight": "molecular_weight",
+        "molecular_formula": "molecular_formula",
+        "smiles": "smiles",
+        "pubchem_cid": "pubchem_cid",
+    }
+    for enrich_key, model_field in field_map.items():
+        if enrich_key in data and getattr(product, model_field) is None:
+            setattr(product, model_field, data[enrich_key])
+
+    db.flush()
+    db.refresh(product)
+    return product
