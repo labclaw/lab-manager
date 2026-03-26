@@ -146,40 +146,40 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
       {/* Quick Actions Row */}
       <div className="mb-8">
         <h3 className="text-[var(--muted-foreground)] text-[10px] font-bold uppercase tracking-widest mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
           <button
             onClick={() => navigate('/upload')}
-            className="flex items-center justify-center gap-3 p-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-primary/20 group"
+            className="flex items-center justify-center gap-2 md:gap-3 p-3 md:p-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-xs md:text-sm transition-all shadow-lg shadow-primary/20 group"
           >
-            <Upload className="size-5 group-hover:scale-110 transition-transform" />
-            <span>Upload Document</span>
+            <Upload className="size-5 group-hover:scale-110 transition-transform shrink-0" />
+            <span>Upload</span>
           </button>
           <button
             onClick={() => navigate('/orders')}
-            className="flex items-center justify-center gap-3 p-4 bg-[var(--card)] border border-primary/20 hover:border-primary/50 text-[var(--foreground)] rounded-xl font-bold text-sm transition-all group"
+            className="flex items-center justify-center gap-2 md:gap-3 p-3 md:p-4 bg-[var(--card)] border border-primary/20 hover:border-primary/50 text-[var(--foreground)] rounded-xl font-bold text-xs md:text-sm transition-all group"
           >
-            <ShoppingCart className="size-5 text-primary group-hover:scale-110 transition-transform" />
+            <ShoppingCart className="size-5 text-primary group-hover:scale-110 transition-transform shrink-0" />
             <span>New Order</span>
           </button>
           <button
             onClick={() => navigate('/inventory')}
-            className="flex items-center justify-center gap-3 p-4 bg-[var(--card)] border border-primary/20 hover:border-primary/50 text-[var(--foreground)] rounded-xl font-bold text-sm transition-all group"
+            className="flex items-center justify-center gap-2 md:gap-3 p-3 md:p-4 bg-[var(--card)] border border-primary/20 hover:border-primary/50 text-[var(--foreground)] rounded-xl font-bold text-xs md:text-sm transition-all group"
           >
-            <Boxes className="size-5 text-primary group-hover:scale-110 transition-transform" />
-            <span>Update Stock</span>
+            <Boxes className="size-5 text-primary group-hover:scale-110 transition-transform shrink-0" />
+            <span>Stock</span>
           </button>
           <button
             onClick={() => navigate('/settings')}
-            className="flex items-center justify-center gap-3 p-4 bg-[var(--card)] border border-primary/20 hover:border-primary/50 text-[var(--foreground)] rounded-xl font-bold text-sm transition-all group"
+            className="flex items-center justify-center gap-2 md:gap-3 p-3 md:p-4 bg-[var(--card)] border border-primary/20 hover:border-primary/50 text-[var(--foreground)] rounded-xl font-bold text-xs md:text-sm transition-all group"
           >
-            <Users className="size-5 text-primary group-hover:scale-110 transition-transform" />
-            <span>Manage Lab</span>
+            <Users className="size-5 text-primary group-hover:scale-110 transition-transform shrink-0" />
+            <span>Manage</span>
           </button>
         </div>
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 mb-8">
         {/* Total Documents */}
         <div className="bg-[var(--card)] border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
           <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
