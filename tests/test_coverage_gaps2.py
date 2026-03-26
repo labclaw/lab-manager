@@ -13,19 +13,17 @@ import pytest
 
 
 class TestOcrExtract:
-    @patch("lab_manager.intake.ocr.genai.Client")
+    @patch("lab_manager.intake.ocr._ocr_api")
+    @patch("lab_manager.intake.ocr._ocr_local")
     @patch("lab_manager.intake.ocr.get_settings")
-    def test_extract_text_from_image(self, mock_settings, mock_client_cls, tmp_path):
+    def test_extract_text_from_image(
+        self, mock_settings, mock_local, mock_api, tmp_path
+    ):
         from lab_manager.intake.ocr import extract_text_from_image
 
-        mock_settings.return_value.extraction_api_key = "key"
-        mock_settings.return_value.extraction_model = "gemini-2.5-flash"
-
-        mock_client = MagicMock()
-        mock_client_cls.return_value = mock_client
-        mock_response = MagicMock()
-        mock_response.text = "OCR output text"
-        mock_client.models.generate_content.return_value = mock_response
+        mock_settings.return_value.ocr_tier = "auto"
+        mock_local.return_value = ""  # local fails, falls back to API
+        mock_api.return_value = "OCR output text"
 
         img = tmp_path / "test.png"
         img.write_bytes(b"\x89PNG fake image data")
