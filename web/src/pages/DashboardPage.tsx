@@ -1,9 +1,10 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
   Upload, ShoppingCart, Boxes, Users, FileText, CheckCircle,
   Clock, ShoppingBag, Store, AlertTriangle, Calendar, BarChart3, FolderOpen,
+  Lightbulb, Bot, TableProperties, X,
 } from 'lucide-react'
 import { analytics, inventory, vendors, documents } from '@/lib/api'
 import type { Vendor, DashboardStats } from '@/lib/api'
@@ -31,6 +32,9 @@ const DOC_BAR_CLASSES = [
 
 export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
   const navigate = useNavigate()
+  const [showOnboarding, setShowOnboarding] = useState(
+    () => !localStorage.getItem('labclaw_onboarding_dismissed'),
+  )
 
   const { data: stats, error: statsErr, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard'],
@@ -143,6 +147,42 @@ export function DashboardPage({ onError }: Readonly<DashboardPageProps>) {
 
   return (
     <div className="space-y-8">
+      {/* Onboarding banner for new users */}
+      {showOnboarding && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
+          <div className="flex items-start gap-4">
+            <Lightbulb className="size-6 text-primary mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-[var(--foreground)] mb-2">Getting Started</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-[var(--muted-foreground)]">
+                <div className="flex items-start gap-2">
+                  <Bot className="size-4 text-primary mt-0.5 shrink-0" />
+                  <span>Use <strong>Ask AI</strong> to query your lab in plain English — &quot;Do we have acetone?&quot;</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Upload className="size-4 text-primary mt-0.5 shrink-0" />
+                  <span>Upload packing lists or invoices — AI extracts the data automatically</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <TableProperties className="size-4 text-primary mt-0.5 shrink-0" />
+                  <span>Import existing data from Excel/CSV via the Upload page</span>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                localStorage.setItem('labclaw_onboarding_dismissed', '1')
+                setShowOnboarding(false)
+              }}
+              className="shrink-0 p-1 rounded hover:bg-[var(--border)] transition-colors text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              title="Dismiss"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Quick Actions Row */}
       <div className="mb-8">
         <h3 className="text-[var(--muted-foreground)] text-[10px] font-bold uppercase tracking-widest mb-4">Quick Actions</h3>

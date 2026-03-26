@@ -20,7 +20,7 @@ import {
   Check,
 } from 'lucide-react'
 import { ask } from '@/lib/api'
-import type { AskEvidenceRow, AskResponse } from '@/lib/api'
+import type { AskEvidenceRow, AskResponse, SuggestedAction } from '@/lib/api'
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /*  Types                                                                    */
@@ -37,6 +37,7 @@ interface ChatMessage {
   evidence?: AskEvidenceRow[]
   source?: string
   rowCount?: number
+  suggestedActions?: SuggestedAction[]
   timestamp: string
 }
 
@@ -57,6 +58,7 @@ type AskTurn = {
   readonly sql?: string | null
   readonly evidence?: AskEvidenceRow[]
   readonly rowCount?: number
+  readonly suggestedActions?: SuggestedAction[]
   readonly error?: string
 }
 
@@ -734,6 +736,7 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
           evidence: turn.evidence,
           source: turn.source,
           rowCount: turn.rowCount,
+          suggestedActions: turn.suggestedActions,
           timestamp: new Date().toISOString(),
         })
       }
@@ -926,6 +929,7 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
                 sql: response.sql,
                 evidence: response.raw_results ?? [],
                 rowCount: response.row_count,
+                suggestedActions: response.suggested_actions,
               }
             : turn,
         )
@@ -1070,6 +1074,25 @@ export function AskPage({ onError }: Readonly<AskPageProps>) {
                               source={turn.source}
                               rowCount={turn.rowCount}
                             />
+                            {turn.suggestedActions && turn.suggestedActions.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-gray-100">
+                                {turn.suggestedActions.map((action, i) => (
+                                  <a
+                                    key={i}
+                                    href={action.action_type === 'navigate' ? action.target : undefined}
+                                    onClick={(e) => {
+                                      if (action.action_type === 'ask') {
+                                        e.preventDefault()
+                                        setDraft(action.target)
+                                      }
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:border-primary hover:text-primary transition-colors cursor-pointer no-underline"
+                                  >
+                                    {action.label}
+                                  </a>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

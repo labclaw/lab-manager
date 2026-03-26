@@ -257,6 +257,13 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                     {Math.round((docDetail.extraction_confidence ?? 0) * 100)}%)
                   </span>
                 )}
+                {docDetail.extraction_confidence != null && docDetail.extraction_confidence < 0.8 && (
+                  <span className="text-[10px] text-[var(--muted-foreground)] italic max-w-xs">
+                    {docDetail.extraction_confidence >= 0.6
+                      ? 'Some fields may need verification'
+                      : 'AI models disagreed — please verify each field'}
+                  </span>
+                )}
                 {docDetail.extraction_model && (
                   <>
                     <div className="h-4 w-px bg-[var(--border)]" />
@@ -591,6 +598,17 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Approve preview */}
+          {docDetail?.extracted_data && (
+            <div className="mx-4 mb-1 p-2.5 rounded-lg bg-emerald-50 border border-emerald-100 text-[11px] text-emerald-700">
+              <strong>Approve will:</strong> Create 1 order from{' '}
+              <strong>{docDetail.extracted_data.vendor_name || 'unknown vendor'}</strong>
+              {(docDetail.extracted_data.items?.length ?? 0) > 0 && (
+                <> with {docDetail.extracted_data.items?.length} line item{(docDetail.extracted_data.items?.length ?? 0) !== 1 ? 's' : ''} added to inventory</>
+              )}
             </div>
           )}
 

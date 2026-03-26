@@ -146,6 +146,12 @@ export interface AskEvidenceRow {
   [key: string]: unknown
 }
 
+export interface SuggestedAction {
+  label: string
+  action_type: 'navigate' | 'ask' | 'api_call' | string
+  target: string
+}
+
 export interface AskResponse {
   question: string
   answer: string
@@ -153,6 +159,20 @@ export interface AskResponse {
   raw_results: AskEvidenceRow[]
   row_count?: number
   source: 'sql' | 'search' | string
+  suggested_actions?: SuggestedAction[]
+}
+
+export interface ImportResult {
+  created: number
+  skipped: number
+  errors: string[]
+  total_rows: number
+}
+
+export interface BatchResult {
+  succeeded: number
+  failed: number
+  errors: string[]
 }
 
 async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
@@ -357,5 +377,42 @@ export const ask = {
     apiFetch<AskResponse>('/ask', {
       method: 'POST',
       body: JSON.stringify({ question }),
+    }),
+}
+
+// Bulk import
+export const bulkImport = {
+  products: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiFetch<ImportResult>('/import/products', { method: 'POST', body: form })
+  },
+  vendors: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiFetch<ImportResult>('/import/vendors', { method: 'POST', body: form })
+  },
+}
+
+// Vendor merge
+export const vendorOps = {
+  merge: (sourceId: number, targetId: number, addAsAlias = true) =>
+    apiFetch<{ merged_into: number; target_name: string; products_moved: number; orders_moved: number }>('/vendors/merge', {
+      method: 'POST',
+      body: JSON.stringify({ source_vendor_id: sourceId, target_vendor_id: targetId, add_as_alias: addAsAlias }),
+    }),
+}
+
+// Batch inventory operations
+export const batchInventory = {
+  consume: (items: Array<{ item_id: number; quantity: number; purpose?: string }>, consumedBy: string) =>
+    apiFetch<BatchResult>('/inventory/batch/consume', {
+      method: 'POST',
+      body: JSON.stringify({ items, consumed_by: consumedBy }),
+    }),
+  dispose: (items: Array<{ item_id: number; reason: string }>, disposedBy: string) =>
+    apiFetch<BatchResult>('/inventory/batch/dispose', {
+      method: 'POST',
+      body: JSON.stringify({ items, disposed_by: disposedBy }),
     }),
 }
