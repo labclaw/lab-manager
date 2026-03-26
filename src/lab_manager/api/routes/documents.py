@@ -477,6 +477,11 @@ def review_document(
             status_code=409,
             content={"detail": "Document is still being processed"},
         )
+    if doc.status == DocumentStatus.pending:
+        return JSONResponse(
+            status_code=409,
+            content={"detail": "Document has not been processed yet"},
+        )
     if doc.status in (
         DocumentStatus.approved,
         DocumentStatus.rejected,
