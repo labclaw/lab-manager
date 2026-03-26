@@ -8,17 +8,21 @@ Usage:
 
 from __future__ import annotations
 
+import getpass
 import sys
 
 import bcrypt
 
 
 def main() -> None:
-    if len(sys.argv) != 3:
-        print(f"Usage: {sys.argv[0]} <email> <password>", file=sys.stderr)
+    if len(sys.argv) == 3:
+        email, password = sys.argv[1], sys.argv[2]
+    elif len(sys.argv) == 2:
+        email = sys.argv[1]
+        password = getpass.getpass("Password: ")
+    else:
+        print(f"Usage: {sys.argv[0]} <email> [password]", file=sys.stderr)
         sys.exit(1)
-
-    email, password = sys.argv[1], sys.argv[2]
 
     if len(password) < 8:
         print("Error: password must be at least 8 characters", file=sys.stderr)
