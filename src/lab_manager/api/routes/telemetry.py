@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db
 from lab_manager.models.usage_event import UsageEvent
 
@@ -35,7 +36,7 @@ def _evict_stale() -> None:
         del _rate_limits[k]
 
 
-@router.post("/event")
+@router.post("/event", dependencies=[Depends(require_permission("view_analytics"))])
 def record_event(
     request: Request,
     event_type: str = Query(..., max_length=50),
@@ -63,7 +64,7 @@ def record_event(
     return {"status": "ok"}
 
 
-@router.get("/dau")
+@router.get("/dau", dependencies=[Depends(require_permission("view_analytics"))])
 def daily_active_users(
     days: int = Query(30, ge=1, le=90), db: Session = Depends(get_db)
 ):
@@ -80,7 +81,7 @@ def daily_active_users(
     return [{"date": str(r.day), "dau": r.users} for r in rows]
 
 
-@router.get("/events")
+@router.get("/events", dependencies=[Depends(require_permission("view_analytics"))])
 def list_events(
     event_type: Optional[str] = Query(None, max_length=50),
     limit: int = Query(50, ge=1, le=500),

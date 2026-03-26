@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import paginate
 from lab_manager.models.alert import Alert
@@ -17,7 +18,7 @@ from lab_manager.services.alerts import get_alert_summary, persist_alerts
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(require_permission("acknowledge_alerts"))])
 def list_alerts(
     alert_type: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
@@ -44,13 +45,15 @@ def list_alerts(
     return paginate(q, db, page, page_size)
 
 
-@router.get("/summary")
+@router.get(
+    "/summary", dependencies=[Depends(require_permission("acknowledge_alerts"))]
+)
 def alert_summary(db: Session = Depends(get_db)):
     """Return alert counts grouped by type and severity."""
     return get_alert_summary(db)
 
 
-@router.post("/check")
+@router.post("/check", dependencies=[Depends(require_permission("manage_alerts"))])
 def run_alert_check(request: Request, db: Session = Depends(get_db)):
     """Trigger alert checks, persist new alerts, return summary.
 
@@ -64,7 +67,10 @@ def run_alert_check(request: Request, db: Session = Depends(get_db)):
     }
 
 
-@router.post("/{alert_id}/acknowledge")
+@router.post(
+    "/{alert_id}/acknowledge",
+    dependencies=[Depends(require_permission("acknowledge_alerts"))],
+)
 def acknowledge_alert(
     alert_id: int,
     acknowledged_by: Optional[str] = Query(None),
@@ -80,7 +86,9 @@ def acknowledge_alert(
     return alert
 
 
-@router.post("/{alert_id}/resolve")
+@router.post(
+    "/{alert_id}/resolve", dependencies=[Depends(require_permission("manage_alerts"))]
+)
 def resolve_alert(
     alert_id: int,
     db: Session = Depends(get_db),
