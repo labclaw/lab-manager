@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.exceptions import ConflictError
@@ -134,7 +135,9 @@ def list_products(
     return paginate(q, db, page, page_size)
 
 
-@router.post("/", status_code=201)
+@router.post(
+    "/", status_code=201, dependencies=[Depends(require_permission("manage_products"))]
+)
 def create_product(body: ProductCreate, db: Session = Depends(get_db)):
     product = Product(**body.model_dump())
     db.add(product)
@@ -156,7 +159,9 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, Product, product_id, "Product")
 
 
-@router.patch("/{product_id}")
+@router.patch(
+    "/{product_id}", dependencies=[Depends(require_permission("manage_products"))]
+)
 def update_product(product_id: int, body: ProductUpdate, db: Session = Depends(get_db)):
     product = get_or_404(db, Product, product_id, "Product")
     for key, value in body.model_dump(exclude_unset=True).items():
@@ -176,7 +181,11 @@ def update_product(product_id: int, body: ProductUpdate, db: Session = Depends(g
     return product
 
 
-@router.delete("/{product_id}", status_code=204)
+@router.delete(
+    "/{product_id}",
+    status_code=204,
+    dependencies=[Depends(require_permission("delete_records"))],
+)
 def delete_product(product_id: int, db: Session = Depends(get_db)):
     product = get_or_404(db, Product, product_id, "Product")
     try:
