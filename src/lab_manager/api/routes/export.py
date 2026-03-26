@@ -12,12 +12,13 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db
-from lab_manager.services import analytics as svc
 from lab_manager.models.product import Product
 from lab_manager.models.vendor import Vendor
+from lab_manager.services import analytics as svc
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_permission("export_data"))])
 
 _DANGEROUS_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
 
