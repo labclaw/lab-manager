@@ -39,32 +39,32 @@ Feature: One-Click Lab Setup
 
   Scenario: Create admin account via setup wizard
     Given a fresh Lab Manager instance with no users
-    When I complete setup with name "Dr. Chen" email "chen@mgh.harvard.edu" and password "neuroscience2026"
+    When I complete setup with name "Dr. Chen" email "admin@example.com" and password "testpassword123"
     Then the setup should succeed
     And the setup status should no longer indicate setup is needed
 
   Scenario: Setup endpoint requires no authentication
     Given a fresh Lab Manager instance with no users
-    When I complete setup with name "Dr. Chen" email "chen@mgh.harvard.edu" and password "neuroscience2026"
+    When I complete setup with name "Dr. Chen" email "admin@example.com" and password "testpassword123"
     Then I should not receive a 401 unauthorized error
 
   # === Input validation ===
 
   Scenario: Invalid email is rejected
     Given a fresh Lab Manager instance with no users
-    When I complete setup with name "Dr. Chen" email "notanemail" and password "neuroscience2026"
+    When I complete setup with name "Dr. Chen" email "notanemail" and password "testpassword123"
     Then the setup should fail with status 422
     And the error should mention "Invalid email"
 
   Scenario: Empty name is rejected
     Given a fresh Lab Manager instance with no users
-    When I complete setup with name "   " email "chen@mgh.harvard.edu" and password "neuroscience2026"
+    When I complete setup with name "   " email "admin@example.com" and password "testpassword123"
     Then the setup should fail with status 422
     And the error should mention "Name must be"
 
   Scenario: Password too short is rejected
     Given a fresh Lab Manager instance with no users
-    When I complete setup with name "Dr. Chen" email "chen@mgh.harvard.edu" and password "short"
+    When I complete setup with name "Dr. Chen" email "admin@example.com" and password "short"
     Then the setup should fail with status 422
     And the error should mention "at least 8 characters"
 
@@ -90,32 +90,32 @@ Feature: One-Click Lab Setup
   # === Login flow ===
 
   Scenario: Login works immediately after setup
-    Given a Lab Manager instance where setup was completed by "Dr. Chen" with email "chen@mgh.harvard.edu" and password "neuroscience2026"
-    When I log in with email "chen@mgh.harvard.edu" and password "neuroscience2026"
+    Given a Lab Manager instance where setup was completed by "Dr. Chen" with email "admin@example.com" and password "testpassword123"
+    When I log in with email "admin@example.com" and password "testpassword123"
     Then the login should succeed
     And the logged-in user name should be "Dr. Chen"
 
   Scenario: Login with wrong password fails
-    Given a Lab Manager instance where setup was completed by "Dr. Chen" with email "chen@mgh.harvard.edu" and password "neuroscience2026"
-    When I log in with email "chen@mgh.harvard.edu" and password "wrongpassword"
+    Given a Lab Manager instance where setup was completed by "Dr. Chen" with email "admin@example.com" and password "testpassword123"
+    When I log in with email "admin@example.com" and password "wrongpassword"
     Then the login should fail with status 401
 
   Scenario: Session cookie is set after login
-    Given a Lab Manager instance where setup was completed by "Dr. Chen" with email "chen@mgh.harvard.edu" and password "neuroscience2026"
-    When I log in with email "chen@mgh.harvard.edu" and password "neuroscience2026"
+    Given a Lab Manager instance where setup was completed by "Dr. Chen" with email "admin@example.com" and password "testpassword123"
+    When I log in with email "admin@example.com" and password "testpassword123"
     Then a session cookie should be set
 
   Scenario: Authenticated user can access protected endpoints
-    Given a Lab Manager instance where setup was completed by "Dr. Chen" with email "chen@mgh.harvard.edu" and password "neuroscience2026"
-    And I am logged in as "chen@mgh.harvard.edu" with password "neuroscience2026"
+    Given a Lab Manager instance where setup was completed by "Dr. Chen" with email "admin@example.com" and password "testpassword123"
+    And I am logged in as "admin@example.com" with password "testpassword123"
     When I check my auth status
     Then I should be recognized as "Dr. Chen"
 
   # === Logout ===
 
   Scenario: Logout clears session
-    Given a Lab Manager instance where setup was completed by "Dr. Chen" with email "chen@mgh.harvard.edu" and password "neuroscience2026"
-    And I am logged in as "chen@mgh.harvard.edu" with password "neuroscience2026"
+    Given a Lab Manager instance where setup was completed by "Dr. Chen" with email "admin@example.com" and password "testpassword123"
+    And I am logged in as "admin@example.com" with password "testpassword123"
     When I log out
     Then the logout should succeed
     And checking my auth status should return 401

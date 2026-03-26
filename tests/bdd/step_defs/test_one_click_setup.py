@@ -298,7 +298,7 @@ def complete_setup_long_password(api, ctx):
         "/api/v1/setup/complete",
         json={
             "admin_name": "Dr. Chen",
-            "admin_email": "chen@mgh.harvard.edu",
+            "admin_email": "admin@example.com",
             "admin_password": long_password,
         },
     )
