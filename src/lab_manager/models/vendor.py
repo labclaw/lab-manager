@@ -18,7 +18,9 @@ class Vendor(AuditMixin, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(max_length=255, unique=True)
-    aliases: list[str] = Field(default_factory=list, sa_column=Column(sa.JSON))
+    aliases: list[str] = Field(
+        default_factory=list, sa_column=Column(sa.dialects.postgresql.JSONB)
+    )
     website: Optional[str] = Field(default=None, max_length=500)
     phone: Optional[str] = Field(default=None, max_length=50)
     email: Optional[str] = Field(default=None, max_length=255)
