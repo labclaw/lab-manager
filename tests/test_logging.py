@@ -48,7 +48,7 @@ class TestConfigureLogging:
         monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost/test")
         monkeypatch.setenv("ADMIN_SECRET_KEY", "test-secret")
         get_settings.cache_clear()
-        structlog.reset_defaults()
+
         from lab_manager.logging_config import configure_logging
 
         configure_logging()
