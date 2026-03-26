@@ -539,3 +539,50 @@ export const orderRequests = {
     }),
   stats: () => apiFetch<RequestStats>('/requests/stats'),
 }
+
+// Notifications
+export interface NotificationItem {
+  id: number
+  type: string
+  title: string
+  message: string
+  link?: string | null
+  is_read: boolean
+  read_at?: string | null
+  created_at?: string | null
+}
+
+export interface NotificationPreference {
+  id: number
+  staff_id: number
+  in_app: boolean
+  email_weekly: boolean
+  order_requests: boolean
+  document_reviews: boolean
+  inventory_alerts: boolean
+  team_changes: boolean
+}
+
+export const notifications = {
+  list: (unreadOnly = false, page = 1, pageSize = 20) =>
+    apiFetch<ApiResponse<NotificationItem>>(
+      `/notifications?unread_only=${unreadOnly}&page=${page}&page_size=${pageSize}`,
+    ),
+  unreadCount: () =>
+    apiFetch<{ unread_count: number }>('/notifications/count'),
+  markRead: (id: number) =>
+    apiFetch<NotificationItem>(`/notifications/${id}/read`, {
+      method: 'POST',
+    }),
+  markAllRead: () =>
+    apiFetch<{ marked: number }>('/notifications/read-all', {
+      method: 'POST',
+    }),
+  preferences: () =>
+    apiFetch<NotificationPreference>('/notifications/preferences'),
+  updatePreferences: (data: Partial<NotificationPreference>) =>
+    apiFetch<NotificationPreference>('/notifications/preferences', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+}
