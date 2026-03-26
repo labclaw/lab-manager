@@ -307,7 +307,7 @@ def upload_document(
 
     # Build unique filename with timestamp prefix (include microseconds for uniqueness)
     settings = get_settings()
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     timestamp = now.strftime("%Y%m%d_%H%M%S")
     usec = f"{now.microsecond:06d}"
     raw_name = file.filename or "unnamed"
@@ -561,7 +561,8 @@ def _create_order_from_doc(doc: Document, db: Session):
         invoice_number=data.get("invoice_number"),
         status=OrderStatus.received,
         document_id=doc.id,
-        received_by=data.get("received_by"),
+        received_by=data.get("received_by") or doc.reviewed_by,
+        received_date=date_type.today(),
     )
     if data.get("order_date"):
         try:
