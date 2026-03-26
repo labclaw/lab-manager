@@ -207,7 +207,7 @@ describe('DashboardPage', () => {
     it('shows dashboard content after data loads', async () => {
       renderDashboard()
       // After data loads, quick actions appear
-      expect(await screen.findByText('Upload Document')).toBeInTheDocument()
+      expect(await screen.findByText('Upload')).toBeInTheDocument()
       expect(screen.getByText('New Order')).toBeInTheDocument()
     })
   })

@@ -287,7 +287,7 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
         {total > 0 && (
           <div className="mt-4 md:mt-6 flex items-center justify-between gap-2">
             <p className="text-xs md:text-sm text-slate-500">
-              <span className="hidden sm:inline">Showing </span>
+              Showing{' '}
               <span className="font-semibold text-slate-900">
                 {startItem}
               </span>
@@ -295,11 +295,11 @@ export function DocumentsPage({ onError }: DocumentsPageProps) {
               <span className="font-semibold text-slate-900">
                 {endItem}
               </span>
-              <span className="hidden sm:inline"> of </span>
-              <span className="sm:hidden"> / </span>
+              {' of '}
               <span className="font-semibold text-slate-900">
                 {total}
               </span>
+              <span className="hidden sm:inline"> documents</span>
             </p>
             <div className="flex gap-2">
               <button

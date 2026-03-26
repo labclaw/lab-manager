@@ -144,7 +144,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
           </button>
           <div className="hidden sm:block h-6 w-px bg-[var(--border)] mx-2" />
           <span className="text-xs text-[var(--muted-foreground)] font-medium">
-            {total.toLocaleString()} Items
+            {total.toLocaleString()} Items total
           </span>
         </div>
         <div className="flex items-center gap-2 md:gap-3">
