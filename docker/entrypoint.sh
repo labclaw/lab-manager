@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
 # Wait for PostgreSQL to accept connections before running migrations.
@@ -6,7 +6,7 @@ echo "[entrypoint] Waiting for database..."
 MAX_RETRIES=30
 RETRY=0
 # Strip SQLAlchemy driver suffix (+psycopg) - pg_isready only understands postgresql://
-PG_URL=$(echo "$DATABASE_URL" | sed 's/+psycopg//')
+PG_URL="${DATABASE_URL/+psycopg/}"
 until pg_isready -d "$PG_URL" -q 2>/dev/null; do
     RETRY=$((RETRY + 1))
     if [ "$RETRY" -ge "$MAX_RETRIES" ]; then

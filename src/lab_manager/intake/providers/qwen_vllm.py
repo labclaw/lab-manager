@@ -75,7 +75,10 @@ class GeminiOCRProvider(OCRProvider):
     def extract_text(self, image_path: str) -> str:
         import subprocess
 
-        prompt = f"Look at the image file {image_path} and follow these instructions:\n\n{OCR_PROMPT}"
+        import shlex
+
+        safe_path = shlex.quote(str(image_path))
+        prompt = f"Look at the image file {safe_path} and follow these instructions:\n\n{OCR_PROMPT}"
         try:
             result = subprocess.run(
                 ["gemini", "-p", prompt, "-m", self.model],
