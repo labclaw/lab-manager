@@ -30,7 +30,7 @@ test.describe('Dashboard Page', () => {
   })
 
   test('Upload button navigates to /upload', async ({ authedPage: page }) => {
-    await page.getByRole('button', { name: /upload/i }).click()
+    await page.getByRole('button', { name: /^upload$/i }).click()
     await expect(page).toHaveURL(/\/upload/)
   })
 
@@ -40,12 +40,12 @@ test.describe('Dashboard Page', () => {
   })
 
   test('Stock button navigates to /inventory', async ({ authedPage: page }) => {
-    await page.getByRole('button', { name: /stock/i }).click()
+    await page.getByRole('button', { name: /^stock$/i }).click()
     await expect(page).toHaveURL(/\/inventory/)
   })
 
   test('Manage button navigates to /settings', async ({ authedPage: page }) => {
-    await page.getByRole('button', { name: /manage/i }).click()
+    await page.getByRole('button', { name: /^manage$/i }).click()
     await expect(page).toHaveURL(/\/settings/)
   })
 
