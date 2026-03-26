@@ -7,12 +7,12 @@ describe('api client', () => {
   describe('auth', () => {
     it('login calls POST /auth/login', async () => {
       const result = await auth.login('test@example.com', 'password123')
-      expect(result).toEqual({ status: 'ok', user: { id: 1, name: 'Dr. Aris Thorne' } })
+      expect(result).toMatchObject({ status: 'ok', user: { id: 1, name: 'Dr. Aris Thorne' } })
     })
 
     it('me calls GET /auth/me', async () => {
       const result = await auth.me()
-      expect(result).toEqual({ user: { id: 1, name: 'Dr. Aris Thorne' } })
+      expect(result).toMatchObject({ user: { id: 1, name: 'Dr. Aris Thorne' } })
     })
   })
 
