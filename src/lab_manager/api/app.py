@@ -91,6 +91,7 @@ _AUTH_ALLOWLIST_PREFIXES = (
     "/static/",  # Frontend assets (login page needs CSS/JS before auth)
     "/assets/",  # SPA build assets (JS/CSS bundles)
     "/icons/",  # Icon assets
+    "/api/v1/team/join/",  # Invitation acceptance (public, token-verified)
 )
 
 # Session cookie config
@@ -805,6 +806,10 @@ def create_app() -> FastAPI:
     api_router.include_router(
         barcode.router, prefix="/api/v1/barcode", tags=["barcode"]
     )
+
+    from lab_manager.api.routes import team
+
+    api_router.include_router(team.router, prefix="/api/v1/team", tags=["team"])
     app.include_router(api_router)
 
     # --- Apply rate limiting decorators to GET /api/v1/ask endpoint ---
