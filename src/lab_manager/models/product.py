@@ -42,7 +42,9 @@ class Product(AuditMixin, table=True):
     storage_temp: Optional[str] = Field(default=None, max_length=50)
     unit: Optional[str] = Field(default=None, max_length=50)
     hazard_info: Optional[str] = Field(default=None, max_length=255)
-    extra: dict = Field(default_factory=dict, sa_column=Column(sa.JSON))
+    extra: dict = Field(
+        default_factory=dict, sa_column=Column(sa.dialects.postgresql.JSONB)
+    )
 
     min_stock_level: Optional[Decimal] = Field(
         default=None, sa_column=Column(sa.Numeric(12, 4), nullable=True)
