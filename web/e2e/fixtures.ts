@@ -83,19 +83,19 @@ const MOCK_DOCUMENTS = [
 
 const MOCK_INVENTORY = [
   {
-    id: 1, product_name: 'DMEM Medium', lot_number: 'LOT-001', quantity_on_hand: 25, unit: 'bottles', status: 'in_stock',
-    product: { id: 1, name: 'DMEM Medium', catalog_number: 'D5796', vendor: { id: 1, name: 'Sigma-Aldrich' } },
-    location_name: 'Cold Room A',
+    id: 1, product_name: 'DMEM Medium', catalog_number: 'D5796', lot_number: 'LOT-001',
+    quantity_on_hand: 25, quantity_display: '25', unit: 'bottles', status: 'in_stock',
+    vendor_name: 'Sigma-Aldrich', location_name: 'Cold Room A',
   },
   {
-    id: 2, product_name: 'Fetal Bovine Serum', lot_number: 'LOT-002', quantity_on_hand: 3, unit: 'bottles', status: 'low_stock',
-    product: { id: 2, name: 'Fetal Bovine Serum', catalog_number: 'F7524', vendor: { id: 1, name: 'Sigma-Aldrich' } },
-    location_name: 'Freezer B',
+    id: 2, product_name: 'Fetal Bovine Serum', catalog_number: 'F7524', lot_number: 'LOT-002',
+    quantity_on_hand: 3, quantity_display: '3', unit: 'bottles', status: 'low_stock',
+    vendor_name: 'Sigma-Aldrich', location_name: 'Freezer B',
   },
   {
-    id: 3, product_name: 'PBS Buffer', lot_number: 'LOT-003', quantity_on_hand: 0, unit: 'liters', status: 'out_of_stock',
-    product: { id: 3, name: 'PBS Buffer', catalog_number: 'P3813', vendor: { id: 1, name: 'Sigma-Aldrich' } },
-    location_name: 'Shelf C',
+    id: 3, product_name: 'PBS Buffer', catalog_number: 'P3813', lot_number: 'LOT-003',
+    quantity_on_hand: 0, quantity_display: '0', unit: 'liters', status: 'out_of_stock',
+    vendor_name: 'Sigma-Aldrich', location_name: 'Shelf C',
   },
 ]
 

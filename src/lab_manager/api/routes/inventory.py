@@ -113,6 +113,48 @@ class OpenBody(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+def _format_quantity(qty: Decimal | None) -> str:
+    """Format quantity: trim trailing zeros.  '1.0000' -> '1', '2.5000' -> '2.5'."""
+    if qty is None:
+        return "0"
+    if not hasattr(qty, "normalize"):
+        return str(qty)
+    # Use format to get fixed-point notation, then strip only decimal trailing zeros
+    s = f"{qty:f}"
+    if "." in s:
+        s = s.rstrip("0").rstrip(".")
+    return s
+
+
+def _flatten_item(item: InventoryItem) -> dict:
+    """Flatten inventory item with joined product/vendor/location names."""
+    product = item.product
+    vendor = getattr(product, "vendor", None) if product else None
+    location = item.location
+
+    return {
+        "id": item.id,
+        "product_id": item.product_id,
+        "product_name": getattr(product, "name", None) if product else None,
+        "catalog_number": getattr(product, "catalog_number", None) if product else None,
+        "category": getattr(product, "category", None) if product else None,
+        "vendor_name": getattr(vendor, "name", None) if vendor else None,
+        "location_id": item.location_id,
+        "location_name": getattr(location, "name", None) if location else None,
+        "lot_number": item.lot_number,
+        "quantity_on_hand": float(item.quantity_on_hand)
+        if item.quantity_on_hand is not None
+        else 0,
+        "quantity_display": _format_quantity(item.quantity_on_hand),
+        "unit": item.unit,
+        "expiry_date": item.expiry_date.isoformat() if item.expiry_date else None,
+        "opened_date": item.opened_date.isoformat() if item.opened_date else None,
+        "status": item.status,
+        "notes": item.notes,
+        "order_item_id": item.order_item_id,
+    }
+
+
 @router.get("/")
 def list_inventory(
     page: int = Query(1, ge=1),
@@ -127,7 +169,8 @@ def list_inventory(
     db: Session = Depends(get_db),
 ):
     q = select(InventoryItem).options(
-        selectinload(InventoryItem.product).selectinload(Product.vendor)
+        selectinload(InventoryItem.product).selectinload(Product.vendor),
+        selectinload(InventoryItem.location),
     )
     if product_id is not None:
         q = q.where(InventoryItem.product_id == product_id)
@@ -143,7 +186,9 @@ def list_inventory(
             | ilike_col(InventoryItem.notes, search)
         )
     q = apply_sort(q, InventoryItem, sort_by, sort_dir, _INV_SORTABLE)
-    return paginate(q, db, page, page_size)
+    result = paginate(q, db, page, page_size)
+    result["items"] = [_flatten_item(item) for item in result["items"]]
+    return result
 
 
 @router.post(

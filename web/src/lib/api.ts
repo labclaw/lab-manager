@@ -102,20 +102,19 @@ export interface InventoryItem {
   id: number
   product_id?: number
   product_name?: string
-  product?: {
-    id: number
-    name: string
-    catalog_number?: string
-    vendor_id?: number
-    vendor?: { id: number; name: string }
-  }
+  catalog_number?: string
+  category?: string
+  vendor_name?: string
   location_id?: number
   location_name?: string
   lot_number?: string
   quantity_on_hand?: number
+  quantity_display?: string
   unit?: string
   expiry_date?: string
+  opened_date?: string
   status?: string
+  notes?: string
 }
 
 export interface ExtractedItem {

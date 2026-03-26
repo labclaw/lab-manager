@@ -170,9 +170,9 @@ export function ScanPage({ onError }: ScanPageProps) {
 }
 
 function ScanResultCard({ item }: { readonly item: InventoryItem }) {
-  const productName = item.product?.name ?? item.product_name ?? 'Unknown Item'
-  const catalogNumber = item.product?.catalog_number ?? '—'
-  const vendorName = item.product?.vendor?.name ?? '—'
+  const productName = item.product_name ?? 'Unknown Item'
+  const catalogNumber = item.catalog_number ?? '—'
+  const vendorName = item.vendor_name ?? '—'
   const quantity = item.quantity_on_hand ?? 0
   const unit = item.unit ?? ''
   const status = item.status ?? 'unknown'
