@@ -18,10 +18,12 @@ import { SettingsPage } from '@/pages/SettingsPage'
 import { CloudBrainPage } from '@/pages/CloudBrainPage'
 import { VendorsPage } from '@/pages/VendorsPage'
 import { ProductsPage } from '@/pages/ProductsPage'
+import { ScanPage } from '@/pages/ScanPage'
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
   '/ask': 'Ask AI',
+  '/scan': 'Scan Barcode',
   '/inventory': 'Inventory',
   '/orders': 'Orders',
   '/documents': 'Documents',
@@ -143,6 +145,7 @@ export default function App() {
               <Route path="/">
                 <Route index element={<DashboardPage onError={setError} />} />
                 <Route path="ask" element={<AskPage onError={setError} />} />
+                <Route path="scan" element={<ScanPage onError={setError} />} />
                 <Route path="inventory" element={<InventoryPage onError={setError} />} />
                 <Route path="orders" element={<OrdersPage onError={setError} />} />
                 <Route path="vendors" element={<VendorsPage onError={setError} />} />

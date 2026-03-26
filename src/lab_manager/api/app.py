@@ -768,6 +768,7 @@ def create_app() -> FastAPI:
         telemetry,
         vendors,
     )
+    from lab_manager.api.routes import barcode  # noqa: E402
 
     # Auth is handled by auth_middleware — rate limiting via route decorators
     api_router = APIRouter()
@@ -800,6 +801,9 @@ def create_app() -> FastAPI:
     )
     api_router.include_router(
         email_ingest.router, prefix="/api/v1/email", tags=["email"]
+    )
+    api_router.include_router(
+        barcode.router, prefix="/api/v1/barcode", tags=["barcode"]
     )
     app.include_router(api_router)
 
