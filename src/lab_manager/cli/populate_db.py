@@ -395,7 +395,9 @@ def main():
             "locations",
         ]
         for table in tables:
-            count = db.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar()
+            count = db.execute(
+                text(f"SELECT COUNT(*) FROM {table}")  # nosec B608
+            ).scalar()
             log.info("  %-15s %d rows", table, count)
 
     log.info("Done.")

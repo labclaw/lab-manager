@@ -77,7 +77,7 @@ def test_api():
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
+            with urllib.request.urlopen(req, timeout=60) as resp:  # nosec B310
                 result = json.loads(resp.read().decode("utf-8"))
         except Exception as e:
             print(f"ERROR (POST): {e}")
@@ -104,7 +104,7 @@ def test_api():
     q = urllib.parse.quote("How many products do we have?")
     req = urllib.request.Request(f"{base_url}?q={q}")
     try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
+        with urllib.request.urlopen(req, timeout=60) as resp:  # nosec B310
             result = json.loads(resp.read().decode("utf-8"))
         print(f"GET /api/v1/ask?q=... -> {result['answer']}")
     except Exception as e:
