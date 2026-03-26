@@ -2,8 +2,8 @@
 
 from typing import TYPE_CHECKING, List, Optional
 
-import sqlalchemy as sa
 from sqlalchemy import Column
+from sqlalchemy.dialects.postgresql import JSONB  # noqa: F401
 from sqlmodel import Field, Relationship
 
 from lab_manager.models.base import AuditMixin
@@ -18,9 +18,7 @@ class Vendor(AuditMixin, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(max_length=255, unique=True)
-    aliases: list[str] = Field(
-        default_factory=list, sa_column=Column(sa.dialects.postgresql.JSONB)
-    )
+    aliases: list[str] = Field(default_factory=list, sa_column=Column(JSONB))
     website: Optional[str] = Field(default=None, max_length=500)
     phone: Optional[str] = Field(default=None, max_length=50)
     email: Optional[str] = Field(default=None, max_length=255)

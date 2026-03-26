@@ -27,7 +27,14 @@ _SORTABLE = {
     "status",
 }
 
-_VALID_EQUIPMENT_STATUSES = {s.value for s in EquipmentStatus}
+_VALID_EQUIPMENT_STATUSES = {
+    EquipmentStatus.active,
+    EquipmentStatus.maintenance,
+    EquipmentStatus.broken,
+    EquipmentStatus.retired,
+    EquipmentStatus.decommissioned,
+    EquipmentStatus.deleted,
+}
 
 
 class EquipmentCreate(BaseModel):
