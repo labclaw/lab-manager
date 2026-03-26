@@ -186,7 +186,7 @@ export function Header({ title, onSearch, showSearch = true, onMobileMenuToggle,
                   >
                     <div className="flex items-center gap-2">
                       <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${a.severity === 'critical' ? 'bg-red-500' : a.severity === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'}`} />
-                      <span className="text-xs font-medium text-[var(--muted-foreground)] uppercase">{a.type}</span>
+                      <span className="text-xs font-medium text-[var(--muted-foreground)] uppercase">{a.alert_type}</span>
                     </div>
                     <p className="text-sm text-[var(--foreground)] mt-1 line-clamp-2">{a.message}</p>
                   </div>
