@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.inventory import InventoryItem, InventoryStatus
@@ -145,7 +146,11 @@ def list_inventory(
     return paginate(q, db, page, page_size)
 
 
-@router.post("/", status_code=201)
+@router.post(
+    "/",
+    status_code=201,
+    dependencies=[Depends(require_permission("receive_shipments"))],
+)
 def create_inventory_item(body: InventoryItemCreate, db: Session = Depends(get_db)):
     item = InventoryItem(**body.model_dump())
     db.add(item)
@@ -188,7 +193,11 @@ def update_inventory_item(
     return item
 
 
-@router.delete("/{item_id}", status_code=204)
+@router.delete(
+    "/{item_id}",
+    status_code=204,
+    dependencies=[Depends(require_permission("delete_records"))],
+)
 def delete_inventory_item(item_id: int, db: Session = Depends(get_db)):
     """Soft-delete: set status to 'deleted'."""
     item = get_or_404(db, InventoryItem, item_id, "Inventory item")
@@ -203,7 +212,9 @@ def item_history(item_id: int, db: Session = Depends(get_db)):
     return inv_svc.get_item_history(item_id, db)
 
 
-@router.post("/{item_id}/consume")
+@router.post(
+    "/{item_id}/consume", dependencies=[Depends(require_permission("log_consumption"))]
+)
 def consume_item(item_id: int, body: ConsumeBody, db: Session = Depends(get_db)):
     return inv_svc.consume(item_id, body.quantity, body.consumed_by, body.purpose, db)
 

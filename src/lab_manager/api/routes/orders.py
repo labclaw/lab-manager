@@ -7,10 +7,12 @@ from decimal import Decimal
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
+
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.exceptions import NotFoundError
@@ -187,7 +189,9 @@ def list_orders(
     return paginate(q, db, page, page_size)
 
 
-@router.post("/", status_code=201)
+@router.post(
+    "/", status_code=201, dependencies=[Depends(require_permission("create_orders"))]
+)
 def create_order(body: OrderCreate, db: Session = Depends(get_db)):
     order = Order(**body.model_dump())
     db.add(order)
@@ -218,7 +222,9 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, Order, order_id, "Order")
 
 
-@router.patch("/{order_id}")
+@router.patch(
+    "/{order_id}", dependencies=[Depends(require_permission("approve_orders"))]
+)
 def update_order(order_id: int, body: OrderUpdate, db: Session = Depends(get_db)):
     order = get_or_404(db, Order, order_id, "Order")
     for key, value in body.model_dump(exclude_unset=True).items():
@@ -228,7 +234,11 @@ def update_order(order_id: int, body: OrderUpdate, db: Session = Depends(get_db)
     return order
 
 
-@router.delete("/{order_id}", status_code=204)
+@router.delete(
+    "/{order_id}",
+    status_code=204,
+    dependencies=[Depends(require_permission("delete_records"))],
+)
 def delete_order(order_id: int, db: Session = Depends(get_db)):
     """Soft-delete: set status to 'deleted'."""
     order = get_or_404(db, Order, order_id, "Order")
@@ -321,7 +331,11 @@ class ReceiveBody(BaseModel):
     received_by: str = Field(max_length=200)
 
 
-@router.post("/{order_id}/receive", status_code=201)
+@router.post(
+    "/{order_id}/receive",
+    status_code=201,
+    dependencies=[Depends(require_permission("receive_shipments"))],
+)
 def receive_order(order_id: int, body: ReceiveBody, db: Session = Depends(get_db)):
     """Receive a shipment — creates inventory records from order items."""
     from lab_manager.services import inventory as inv_svc

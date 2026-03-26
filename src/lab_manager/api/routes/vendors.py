@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.exceptions import ConflictError
@@ -79,7 +80,9 @@ def list_vendors(
     return paginate(q, db, page, page_size)
 
 
-@router.post("/", status_code=201)
+@router.post(
+    "/", status_code=201, dependencies=[Depends(require_permission("manage_vendors"))]
+)
 def create_vendor(body: VendorCreate, db: Session = Depends(get_db)):
     vendor = Vendor(**body.model_dump())
     db.add(vendor)
@@ -93,7 +96,9 @@ def get_vendor(vendor_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, Vendor, vendor_id, "Vendor")
 
 
-@router.patch("/{vendor_id}")
+@router.patch(
+    "/{vendor_id}", dependencies=[Depends(require_permission("manage_vendors"))]
+)
 def update_vendor(vendor_id: int, body: VendorUpdate, db: Session = Depends(get_db)):
     vendor = get_or_404(db, Vendor, vendor_id, "Vendor")
     for key, value in body.model_dump(exclude_unset=True).items():
@@ -103,7 +108,11 @@ def update_vendor(vendor_id: int, body: VendorUpdate, db: Session = Depends(get_
     return vendor
 
 
-@router.delete("/{vendor_id}", status_code=204)
+@router.delete(
+    "/{vendor_id}",
+    status_code=204,
+    dependencies=[Depends(require_permission("delete_records"))],
+)
 def delete_vendor(vendor_id: int, db: Session = Depends(get_db)):
     vendor = get_or_404(db, Vendor, vendor_id, "Vendor")
     try:

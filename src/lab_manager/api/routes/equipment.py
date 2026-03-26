@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.equipment import Equipment, EquipmentStatus
@@ -97,7 +98,11 @@ def list_equipment(
     return paginate(q, db, page, page_size)
 
 
-@router.post("/", status_code=201)
+@router.post(
+    "/",
+    status_code=201,
+    dependencies=[Depends(require_permission("log_equipment_usage"))],
+)
 def create_equipment(body: EquipmentCreate, db: Session = Depends(get_db)):
     equip = Equipment(**body.model_dump())
     db.add(equip)
@@ -123,7 +128,9 @@ def update_equipment(
     return equip
 
 
-@router.delete("/{equipment_id}")
+@router.delete(
+    "/{equipment_id}", dependencies=[Depends(require_permission("delete_records"))]
+)
 def delete_equipment(equipment_id: int, db: Session = Depends(get_db)):
     equip = get_or_404(db, Equipment, equipment_id, "Equipment")
     equip.status = EquipmentStatus.deleted
