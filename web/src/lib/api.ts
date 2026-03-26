@@ -565,3 +565,50 @@ export const orderRequests = {
     }),
   stats: () => apiFetch<RequestStats>('/requests/stats'),
 }
+
+// Notifications
+export interface NotificationItem {
+  id: number
+  type: string
+  title: string
+  message: string
+  link?: string | null
+  is_read: boolean
+  read_at?: string | null
+  created_at?: string | null
+}
+
+export interface NotificationPreference {
+  id: number
+  staff_id: number
+  in_app: boolean
+  email_weekly: boolean
+  order_requests: boolean
+  document_reviews: boolean
+  inventory_alerts: boolean
+  team_changes: boolean
+}
+
+export const notifications = {
+  list: (staffId: number, unreadOnly = false, page = 1, pageSize = 20) =>
+    apiFetch<ApiResponse<NotificationItem>>(
+      `/notifications?staff_id=${staffId}&unread_only=${unreadOnly}&page=${page}&page_size=${pageSize}`,
+    ),
+  unreadCount: (staffId: number) =>
+    apiFetch<{ unread_count: number }>(`/notifications/count?staff_id=${staffId}`),
+  markRead: (id: number, staffId: number) =>
+    apiFetch<NotificationItem>(`/notifications/${id}/read?staff_id=${staffId}`, {
+      method: 'POST',
+    }),
+  markAllRead: (staffId: number) =>
+    apiFetch<{ marked: number }>(`/notifications/read-all?staff_id=${staffId}`, {
+      method: 'POST',
+    }),
+  preferences: (staffId: number) =>
+    apiFetch<NotificationPreference>(`/notifications/preferences?staff_id=${staffId}`),
+  updatePreferences: (staffId: number, data: Partial<NotificationPreference>) =>
+    apiFetch<NotificationPreference>(`/notifications/preferences?staff_id=${staffId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+}

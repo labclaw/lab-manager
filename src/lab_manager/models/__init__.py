@@ -14,6 +14,7 @@ from lab_manager.models.audit import AuditLog, log_change
 from lab_manager.models.alert import Alert, AlertType, AlertSeverity
 from lab_manager.models.equipment import Equipment, EquipmentStatus
 from lab_manager.models.order_request import OrderRequest, RequestStatus, RequestUrgency
+from lab_manager.models.notification import Notification, NotificationPreference
 from lab_manager.models.usage_event import UsageEvent
 
 __all__ = [
@@ -43,4 +44,6 @@ __all__ = [
     "OrderRequest",
     "RequestStatus",
     "RequestUrgency",
+    "Notification",
+    "NotificationPreference",
 ]

@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Bell, Menu } from 'lucide-react'
-import { search, alerts as alertsApi, type Alert } from '@/lib/api'
+import { Search, Menu } from 'lucide-react'
+import { search } from '@/lib/api'
+import { NotificationBell } from '@/components/NotificationBell'
 
 interface HeaderProps {
   readonly title: string
@@ -9,7 +10,6 @@ interface HeaderProps {
   readonly showSearch?: boolean
   readonly onMobileMenuToggle?: () => void
   readonly userName?: string
-  readonly alertCount?: number
 }
 
 const SEARCH_TYPE_ROUTES: Record<string, string> = {
@@ -20,15 +20,11 @@ const SEARCH_TYPE_ROUTES: Record<string, string> = {
   order: '/orders',
 }
 
-export function Header({ title, onSearch, showSearch = true, onMobileMenuToggle, userName = 'User', alertCount = 0 }: HeaderProps) {
+export function Header({ title, onSearch, showSearch = true, onMobileMenuToggle, userName = 'User' }: HeaderProps) {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
   const [suggestions, setSuggestions] = useState<Array<{ type: string; text: string; id: number }>>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
-  const [bellOpen, setBellOpen] = useState(false)
-  const [recentAlerts, setRecentAlerts] = useState<Alert[]>([])
-  const [loadingAlerts, setLoadingAlerts] = useState(false)
-  const bellRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const handleSearchChange = useCallback((value: string) => {
@@ -62,35 +58,9 @@ export function Header({ title, onSearch, showSearch = true, onMobileMenuToggle,
     if (onSearch) onSearch(query)
   }, [onSearch])
 
-  const handleBellToggle = useCallback(() => {
-    setBellOpen(prev => {
-      if (!prev) {
-        setLoadingAlerts(true)
-        alertsApi.list({ acknowledged: false }).then(res => {
-          setRecentAlerts((res.items ?? []).slice(0, 5))
-        }).catch(() => {
-          setRecentAlerts([])
-        }).finally(() => setLoadingAlerts(false))
-      }
-      return !prev
-    })
-  }, [])
-
   useEffect(() => {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [])
-
-  // Close bell dropdown on outside click
-  useEffect(() => {
-    if (!bellOpen) return
-    const handler = (e: MouseEvent) => {
-      if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
-        setBellOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [bellOpen])
 
   return (
     <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-primary/10 px-3 py-3 md:px-6 md:py-4 lg:px-10 bg-[var(--background)]/80 backdrop-blur-md sticky top-0 z-50">
@@ -147,54 +117,7 @@ export function Header({ title, onSearch, showSearch = true, onMobileMenuToggle,
         </label>
       </div>
       <div className="flex items-center gap-2 md:gap-4">
-        <div ref={bellRef} className="relative">
-          <button
-            onClick={handleBellToggle}
-            aria-label="Notifications"
-            className="flex items-center justify-center rounded-lg size-10 bg-[var(--card)] text-[var(--foreground)] hover:bg-primary/20 transition-colors relative"
-          >
-            <Bell className="size-5" />
-            {alertCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
-                {alertCount > 99 ? '99+' : alertCount}
-              </span>
-            )}
-          </button>
-          {bellOpen && (
-            <div className="absolute right-0 top-full mt-2 w-80 bg-[var(--card)] border border-primary/10 rounded-lg shadow-xl z-50 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-primary/10">
-                <span className="text-sm font-semibold text-[var(--foreground)]">Notifications</span>
-                <button
-                  onClick={() => { setBellOpen(false); navigate('/alerts') }}
-                  className="text-xs text-primary hover:underline"
-                >
-                  View all
-                </button>
-              </div>
-              <div className="max-h-64 overflow-y-auto">
-                {loadingAlerts && (
-                  <p className="px-4 py-6 text-sm text-center text-[var(--muted-foreground)]">Loading...</p>
-                )}
-                {!loadingAlerts && recentAlerts.length === 0 && (
-                  <p className="px-4 py-6 text-sm text-center text-[var(--muted-foreground)]">No new notifications</p>
-                )}
-                {!loadingAlerts && recentAlerts.map(a => (
-                  <div
-                    key={a.id}
-                    className="px-4 py-3 hover:bg-primary/5 cursor-pointer border-b border-primary/5 last:border-b-0"
-                    onClick={() => { setBellOpen(false); navigate('/alerts') }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${a.severity === 'critical' ? 'bg-red-500' : a.severity === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'}`} />
-                      <span className="text-xs font-medium text-[var(--muted-foreground)] uppercase">{a.alert_type}</span>
-                    </div>
-                    <p className="text-sm text-[var(--foreground)] mt-1 line-clamp-2">{a.message}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <NotificationBell staffId={1} />
         <div className="hidden md:flex items-center gap-3 pl-4 border-l border-primary/10">
           <span className="text-sm font-medium text-[var(--muted-foreground)]">{userName}</span>
         </div>
