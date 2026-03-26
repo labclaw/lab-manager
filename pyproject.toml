@@ -22,6 +22,8 @@ dependencies = [
   "structlog>=24.0.0",
   "slowapi>=0.1.9",
   "litellm>=1.82.4,<=1.82.6",  # SECURITY: 1.82.7+ compromised (supply chain attack 2026-03-24)
+  "qrcode[pil]>=8.0",
+  "python-barcode>=0.15.1",
 ]
 
 [build-system]
