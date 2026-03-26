@@ -450,6 +450,9 @@ def _generate_sql(question: str, plan: dict | None = None) -> str:
 
 MAX_RESULT_ROWS = 200
 
+# Validated timeout literal — SET LOCAL does not support bind parameters in psycopg3
+_TIMEOUT_LITERAL = f"{int(SQL_TIMEOUT_S * 1000)}"  # milliseconds
+
 
 def _execute_sql(db: Session, sql: str) -> list[dict]:
     """Execute a read-only SQL query and return results.
@@ -468,7 +471,7 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
         # Defense-in-depth: also set READ ONLY at transaction level
         with readonly_engine.connect() as conn, conn.begin():
             conn.execute(text("SET TRANSACTION READ ONLY"))
-            conn.execute(text(f"SET LOCAL statement_timeout = '{int(SQL_TIMEOUT_S)}s'"))
+            conn.execute(text(f"SET LOCAL statement_timeout = {_TIMEOUT_LITERAL}"))
             result = conn.execute(text(sql))
             columns = list(result.keys())
             rows = [
@@ -478,7 +481,7 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
     else:
         # Fallback: main engine with application-level READ ONLY
         db.execute(text("SET TRANSACTION READ ONLY"))
-        db.execute(text(f"SET LOCAL statement_timeout = '{int(SQL_TIMEOUT_S)}s'"))
+        db.execute(text(f"SET LOCAL statement_timeout = {_TIMEOUT_LITERAL}"))
         nested = db.begin_nested()
         try:
             result = db.execute(text(sql))
