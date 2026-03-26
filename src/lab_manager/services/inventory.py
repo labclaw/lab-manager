@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -83,8 +83,17 @@ def receive_items(
     if not order:
         raise NotFoundError("Order", order_id)
 
+    if order.status in (
+        OrderStatus.received,
+        OrderStatus.cancelled,
+        OrderStatus.deleted,
+    ):
+        raise ValidationError(
+            f"Cannot receive order that is already {order.status.value}"
+        )
+
     created = []
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
 
     # Batch-fetch all order items to avoid N+1 queries
     order_item_ids = [
@@ -313,7 +322,7 @@ def open_item(
     if item.opened_date is not None:
         raise ValidationError("Item is already opened")
 
-    item.opened_date = date.today()
+    item.opened_date = datetime.now(timezone.utc).date()
     item.status = InventoryStatus.opened
 
     _log_consumption(
@@ -384,7 +393,7 @@ def get_low_stock(db: Session) -> list[dict]:
 
 def get_expiring(db: Session, days: int = 30) -> list[InventoryItem]:
     """Items expiring within N days."""
-    cutoff = date.today() + timedelta(days=days)
+    cutoff = datetime.now(timezone.utc).date() + timedelta(days=days)
     return db.scalars(
         select(InventoryItem).where(
             InventoryItem.expiry_date.isnot(None),
