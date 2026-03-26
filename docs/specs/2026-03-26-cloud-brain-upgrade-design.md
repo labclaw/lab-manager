@@ -104,6 +104,10 @@ The `byok` reference (`use-agent.ts`, 384 lines) demonstrates the target UX:
 - Health status dashboard
 - API reference hint
 
+> **Note:** K-Dense, Biomni, and LifeSci MCP skills appear in the UI catalog but have no backend registration in Phase 1. Their health status will show as `null` (neither active nor offline). These will be connected in a future phase.
+
+The health check (`GET /brain/health`) and tool listing (`GET /brain/tools`) remain as existing `useEffect` hooks. Only user-submitted text queries go through `routeQuery()`.
+
 ### Phase 2: Full SSE Streaming (with backend changes)
 
 ```
@@ -343,6 +347,10 @@ const handleSubmit = async (text: string) => {
 
 ```typescript
 function formatBrainResponse(data: any, route: RouteResult): string {
+  // Error handling: check for backend error responses first
+  if (!data.success && data.error) return `**Error:** ${data.error}`
+  if (!data.success) return `**Error:** Unknown error occurred`
+
   // /brain/reason returns { success, data: { answer, ... } }
   if (route.endpoint === '/reason') {
     return data.data?.answer ?? JSON.stringify(data.data, null, 2)
@@ -473,17 +481,33 @@ function routeQuery(input: string): RouteResult {
 
   const accession = accessionMatch?.[1] ?? detectedAccession
 
+  // 2b. Clinical keywords detection
+  const hasClinicalKeywords = /\b(clinical\s*trial|study|treatment|phase\s*[1-4]|nct\d+|intervention)\b/i.test(q)
+
+  // 2c. Priority override: clinical keywords + gene = clinical route
+  if (hasClinicalKeywords && detectedGene) {
+    const searchTerm = q
+      .replace(/\b(search|find|look\s*up|clinical|trial|trials|study|studies)\b/gi, '')
+      .trim() || q
+    return {
+      endpoint: '/execute',
+      payload: {
+        tool_name: 'ClinicalTrials_search_studies',
+        arguments: { query: searchTerm },
+      },
+      toolName: 'ClinicalTrials.gov',
+      toolArgs: { query: searchTerm },
+    }
+  }
+
   // 3. If accession found, decide which UniProt tool
   if (accession) {
     if (/sequence|amino\s*acid|fasta/i.test(q)) {
       return {
         endpoint: '/execute',
         payload: {
-          tool_name: 'tu_run',
-          arguments: {
-            name: 'UniProt_get_sequence_by_accession',
-            arguments: { accession },
-          },
+          tool_name: 'UniProt_get_sequence_by_accession',
+          arguments: { accession },
         },
         toolName: 'UniProt (sequence)',
         toolArgs: { accession, gene: detectedGene },
@@ -493,11 +517,8 @@ function routeQuery(input: string): RouteResult {
       return {
         endpoint: '/execute',
         payload: {
-          tool_name: 'tu_run',
-          arguments: {
-            name: 'UniProt_get_3D_structure_by_accession',
-            arguments: { accession },
-          },
+          tool_name: 'UniProt_get_3D_structure_by_accession',
+          arguments: { accession },
         },
         toolName: 'UniProt (3D structure)',
         toolArgs: { accession, gene: detectedGene },
@@ -507,11 +528,8 @@ function routeQuery(input: string): RouteResult {
     return {
       endpoint: '/execute',
       payload: {
-        tool_name: 'tu_run',
-        arguments: {
-          name: 'UniProt_get_function_by_accession',
-          arguments: { accession },
-        },
+        tool_name: 'UniProt_get_function_by_accession',
+        arguments: { accession },
       },
       toolName: 'UniProt (function)',
       toolArgs: { accession, gene: detectedGene },
@@ -527,30 +545,24 @@ function routeQuery(input: string): RouteResult {
     return {
       endpoint: '/execute',
       payload: {
-        tool_name: 'tu_run',
-        arguments: {
-          name: 'ChEMBL_search_molecules',
-          arguments: { query: searchTerm },
-        },
+        tool_name: 'ChEMBL_search_molecules',
+        arguments: { query: searchTerm },
       },
       toolName: 'ChEMBL (molecule search)',
       toolArgs: { query: searchTerm },
     }
   }
 
-  // 5. Clinical trial queries
-  if (/\b(clinical\s*trial|study|treatment|phase\s*[1-4]|nct\d+|intervention)\b/i.test(q)) {
+  // 5. Clinical trial queries (reuse hasClinicalKeywords from 2b)
+  if (hasClinicalKeywords) {
     const searchTerm = q
       .replace(/\b(search|find|look\s*up|clinical|trial|trials|study|studies)\b/gi, '')
       .trim() || q
     return {
       endpoint: '/execute',
       payload: {
-        tool_name: 'tu_run',
-        arguments: {
-          name: 'ClinicalTrials_search_studies',
-          arguments: { query: searchTerm },
-        },
+        tool_name: 'ClinicalTrials_search_studies',
+        arguments: { query: searchTerm },
       },
       toolName: 'ClinicalTrials.gov',
       toolArgs: { query: searchTerm },
@@ -565,11 +577,8 @@ function routeQuery(input: string): RouteResult {
     return {
       endpoint: '/execute',
       payload: {
-        tool_name: 'tu_run',
-        arguments: {
-          name: 'PubChem_search_compounds',
-          arguments: { query: searchTerm },
-        },
+        tool_name: 'PubChem_search_compounds',
+        arguments: { query: searchTerm },
       },
       toolName: 'PubChem',
       toolArgs: { query: searchTerm },
@@ -584,18 +593,47 @@ function routeQuery(input: string): RouteResult {
     return {
       endpoint: '/execute',
       payload: {
-        tool_name: 'tu_run',
-        arguments: {
-          name: 'FAERS_search_reports',
-          arguments: { query: searchTerm },
-        },
+        tool_name: 'FAERS_search_reports',
+        arguments: { query: searchTerm },
       },
       toolName: 'FAERS (adverse events)',
       toolArgs: { query: searchTerm },
     }
   }
 
-  // 8. Scientific writing
+  // 8. PubMed / literature queries
+  if (/\b(pubmed|literature|papers?|review|citation|search\s*papers)\b/i.test(q)) {
+    const searchTerm = q
+      .replace(/\b(search|find|look\s*up|pubmed|literature|papers?|review|citation)\b/gi, '')
+      .trim() || q
+    return {
+      endpoint: '/execute',
+      payload: {
+        tool_name: 'search_pubmed',
+        arguments: { query: searchTerm },
+      },
+      toolName: 'PubMed',
+      toolArgs: { query: searchTerm },
+    }
+  }
+
+  // 9. OpenTargets / disease-target queries
+  if (/\b(opentargets|open\s*targets|evidence|association|disease\s*target)\b/i.test(q)) {
+    const searchTerm = q
+      .replace(/\b(search|find|look\s*up|opentargets|open\s*targets|evidence|association)\b/gi, '')
+      .trim() || q
+    return {
+      endpoint: '/execute',
+      payload: {
+        tool_name: 'OpenTargets_search_disease',
+        arguments: { query: searchTerm },
+      },
+      toolName: 'OpenTargets',
+      toolArgs: { query: searchTerm },
+    }
+  }
+
+  // 10. Scientific writing
   if (/\b(write|draft|compose|abstract|methods?\s*section|results?\s*section|discussion|introduction|manuscript)\b/i.test(q)) {
     // Detect section type
     let section = 'methods'
@@ -611,7 +649,7 @@ function routeQuery(input: string): RouteResult {
     }
   }
 
-  // 9. Experiment design / reasoning
+  // 11. Experiment design / reasoning
   if (/\b(design|experiment|protocol|assay|western\s*blot|pcr|elisa|crispr|control)\b/i.test(q)) {
     return {
       endpoint: '/reason',
@@ -620,7 +658,7 @@ function routeQuery(input: string): RouteResult {
     }
   }
 
-  // 10. Fallback: general reasoning
+  // 12. Fallback: general reasoning
   return {
     endpoint: '/reason',
     payload: { question: q, domain: 'general' },
@@ -634,14 +672,19 @@ function routeQuery(input: string): RouteResult {
 | Priority | Detection Pattern | Endpoint | Tool |
 |----------|------------------|----------|------|
 | 1 | UniProt accession in text (`/[ABOPQ]\d[A-Z\d]{3}\d/`) | `/execute` | UniProt_get_function_by_accession |
-| 2 | Gene name from `GENE_TO_ACCESSION` map (50+ genes) | `/execute` | UniProt (function/sequence/structure based on sub-keywords) |
-| 3 | drug/molecule/chembl/compound/inhibitor | `/execute` | ChEMBL_search_molecules |
-| 4 | clinical trial/study/treatment/phase | `/execute` | ClinicalTrials_search_studies |
-| 5 | pubchem/chemical/cas/smiles | `/execute` | PubChem_search_compounds |
-| 6 | adverse/side effect/faers/safety | `/execute` | FAERS_search_reports |
-| 7 | write/draft/abstract/methods/results | `/write` | Scientific Writing |
-| 8 | design/experiment/protocol/assay | `/reason` | Life Science Reasoning |
-| 9 | (everything else) | `/reason` | Cloud Brain (general) |
+| 2 | **Clinical keywords + gene name** (priority override) | `/execute` | ClinicalTrials_search_studies |
+| 3 | Gene name from `GENE_TO_ACCESSION` map (50+ genes) | `/execute` | UniProt (function/sequence/structure based on sub-keywords) |
+| 4 | drug/molecule/chembl/compound/inhibitor | `/execute` | ChEMBL_search_molecules |
+| 5 | clinical trial/study/treatment/phase | `/execute` | ClinicalTrials_search_studies |
+| 6 | pubchem/chemical/cas/smiles | `/execute` | PubChem_search_compounds |
+| 7 | adverse/side effect/faers/safety | `/execute` | FAERS_search_reports |
+| 8 | pubmed/literature/paper/review/citation | `/execute` | search_pubmed |
+| 9 | opentargets/target/evidence/association/disease target | `/execute` | OpenTargets_search_disease |
+| 10 | write/draft/abstract/methods/results | `/write` | Scientific Writing |
+| 11 | design/experiment/protocol/assay | `/reason` | Life Science Reasoning |
+| 12 | (everything else) | `/reason` | Cloud Brain (general) |
+
+Tool names used in the router (e.g., `UniProt_get_function_by_accession`, `ChEMBL_search_molecules`) are based on the ToolUniverse SDK's registered names. If a tool name returns `success: false` with a 'not found' error, the router should fall back to `POST /brain/reason` with the original query text as a natural language question.
 
 ---
 
@@ -649,7 +692,7 @@ function routeQuery(input: string): RouteResult {
 
 ```bash
 cd lab-manager/web
-npm install react-markdown remark-gfm rehype-highlight
+npm install react-markdown remark-gfm rehype-highlight highlight.js
 ```
 
 | Package | Purpose | Bundle size (gzip) |
@@ -657,6 +700,7 @@ npm install react-markdown remark-gfm rehype-highlight
 | `react-markdown` | Render markdown in React | ~7 KB |
 | `remark-gfm` | GitHub-flavored markdown (tables, strikethrough, task lists) | ~1 KB |
 | `rehype-highlight` | Syntax highlighting for code blocks | ~3 KB + language grammars |
+| `highlight.js` | Core syntax highlighting library (peer dep of rehype-highlight) | ~10 KB (core) + language grammars |
 
 ### Import in CloudBrainPage.tsx
 
@@ -677,7 +721,7 @@ import 'highlight.js/styles/github.css'  // or github-dark.css
 | `web/src/lib/cloud-brain-router.ts` | **New file.** Extract `routeQuery()`, `GENE_TO_ACCESSION`, `formatBrainResponse()` for testability | ~200 lines |
 | `web/src/lib/cloud-brain-router.test.ts` | **New file.** Unit tests for NLP router | ~200 lines |
 | `web/src/pages/__tests__/CloudBrainPage.test.tsx` | Update existing tests for new ChatMessage flow | +60 / -40 |
-| `web/package.json` | Add react-markdown, remark-gfm, rehype-highlight | +3 lines |
+| `web/package.json` | Add react-markdown, remark-gfm, rehype-highlight, highlight.js | +4 lines |
 | `web/src/index.css` | Import highlight.js stylesheet (if not using CSS import) | +1 line |
 
 **No backend files change in Phase 1.**
@@ -694,9 +738,8 @@ describe('routeQuery', () => {
   it('routes "What is BRCA1?" to UniProt function lookup', () => {
     const result = routeQuery('What is BRCA1?')
     expect(result.endpoint).toBe('/execute')
-    expect(result.payload.tool_name).toBe('tu_run')
-    expect(result.payload.arguments.name).toBe('UniProt_get_function_by_accession')
-    expect(result.payload.arguments.arguments.accession).toBe('P38398')
+    expect(result.payload.tool_name).toBe('UniProt_get_function_by_accession')
+    expect(result.payload.arguments).toEqual({ accession: 'P38398' })
     expect(result.toolName).toBe('UniProt (function)')
   })
 
@@ -704,29 +747,30 @@ describe('routeQuery', () => {
   it('routes "Look up P04637" to UniProt', () => {
     const result = routeQuery('Look up P04637')
     expect(result.endpoint).toBe('/execute')
-    expect(result.payload.arguments.arguments.accession).toBe('P04637')
+    expect(result.payload.tool_name).toBe('UniProt_get_function_by_accession')
+    expect(result.payload.arguments).toEqual({ accession: 'P04637' })
   })
 
   // Sequence sub-routing
   it('routes "Get EGFR sequence" to UniProt sequence', () => {
     const result = routeQuery('Get EGFR sequence')
-    expect(result.payload.arguments.name).toBe('UniProt_get_sequence_by_accession')
-    expect(result.payload.arguments.arguments.accession).toBe('P00533')
+    expect(result.payload.tool_name).toBe('UniProt_get_sequence_by_accession')
+    expect(result.payload.arguments).toEqual({ accession: 'P00533' })
   })
 
   // Drug detection
   it('routes "Search aspirin drug" to ChEMBL', () => {
     const result = routeQuery('Search aspirin drug')
     expect(result.endpoint).toBe('/execute')
-    expect(result.payload.arguments.name).toBe('ChEMBL_search_molecules')
+    expect(result.payload.tool_name).toBe('ChEMBL_search_molecules')
   })
 
-  // Clinical trial detection
-  it('routes "clinical trials for EGFR inhibitors" to ClinicalTrials', () => {
+  // Clinical trial + gene name: clinical takes priority (Fix 1.2)
+  it('routes "clinical trials for EGFR inhibitors" to ClinicalTrials (not UniProt)', () => {
     const result = routeQuery('Find clinical trials for EGFR inhibitors')
-    // Gene detection has higher priority, so this routes to UniProt
-    // unless we specifically handle "clinical trial" priority
     expect(result.endpoint).toBe('/execute')
+    expect(result.payload.tool_name).toBe('ClinicalTrials_search_studies')
+    expect(result.toolName).toBe('ClinicalTrials.gov')
   })
 
   // Writing detection
@@ -753,7 +797,8 @@ describe('routeQuery', () => {
   // Case insensitivity
   it('detects gene names case-insensitively', () => {
     const result = routeQuery('what is brca1?')
-    expect(result.payload.arguments.arguments.accession).toBe('P38398')
+    expect(result.payload.tool_name).toBe('UniProt_get_function_by_accession')
+    expect(result.payload.arguments).toEqual({ accession: 'P38398' })
   })
 
   // All 50+ genes in map should be valid UniProt accessions
