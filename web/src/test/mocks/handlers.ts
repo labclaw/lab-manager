@@ -144,7 +144,32 @@ export const handlers = [
   http.get('/api/v1/products/:id/inventory/', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20, pages: 0 })),
 
   // Orders
-  http.get('/api/v1/orders', () => HttpResponse.json(mockOrders)),
+  http.get('/api/v1/orders', ({ request }) => {
+    const url = new URL(request.url)
+    const statusGroup = url.searchParams.get('status_group')
+    if (statusGroup === 'active') {
+      return HttpResponse.json({
+        items: mockOrders.items.filter(o => o.status !== 'received' && o.status !== 'cancelled'),
+        total: mockOrders.items.filter(o => o.status !== 'received' && o.status !== 'cancelled').length,
+        page: 1, page_size: 20, pages: 1,
+      })
+    }
+    if (statusGroup === 'past') {
+      return HttpResponse.json({
+        items: mockOrders.items.filter(o => o.status === 'received' || o.status === 'cancelled'),
+        total: mockOrders.items.filter(o => o.status === 'received' || o.status === 'cancelled').length,
+        page: 1, page_size: 20, pages: 1,
+      })
+    }
+    if (statusGroup === 'drafts') {
+      return HttpResponse.json({
+        items: mockOrders.items.filter(o => o.status === 'draft'),
+        total: mockOrders.items.filter(o => o.status === 'draft').length,
+        page: 1, page_size: 20, pages: 1,
+      })
+    }
+    return HttpResponse.json(mockOrders)
+  }),
   http.get('/api/v1/orders/:id', ({ params }) => {
     const o = mockOrders.items.find(i => i.id === Number(params.id))
     return o ? HttpResponse.json(o) : new HttpResponse(null, { status: 404 })
