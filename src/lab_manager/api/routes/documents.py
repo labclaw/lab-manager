@@ -279,7 +279,7 @@ def upload_document(
     db: Session = Depends(get_db),
 ):
     """Upload a document photo/PDF and trigger background extraction."""
-    from datetime import datetime
+    from datetime import datetime, timezone
     from pathlib import Path
 
     from lab_manager.config import get_settings

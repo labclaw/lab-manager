@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy import extract, func, select
@@ -102,7 +102,7 @@ def dashboard_summary(db: Session) -> dict:
         )
 
     # Items expiring within 30 days
-    cutoff = date.today() + timedelta(days=30)
+    cutoff = datetime.now(timezone.utc).date() + timedelta(days=30)
     expiring_rows = db.execute(
         select(InventoryItem, Product.name.label("product_name"))
         .outerjoin(Product, InventoryItem.product_id == Product.id)
@@ -213,7 +213,7 @@ def spending_by_vendor(
 
 
 def spending_by_month(db: Session, months: int = 12) -> list[dict]:
-    cutoff = date.today() - timedelta(days=months * 30)
+    cutoff = datetime.now(timezone.utc).date() - timedelta(days=months * 30)
 
     year_expr = extract("year", Order.order_date)
     month_expr = extract("month", Order.order_date)

@@ -21,7 +21,7 @@ from lab_manager.models.product import Product
 
 def get_expiring_items(db: Session, days_ahead: int = 30) -> list[InventoryItem]:
     """Find inventory items expiring within the given number of days."""
-    cutoff = date.today() + timedelta(days=days_ahead)
+    cutoff = datetime.now(timezone.utc).date() + timedelta(days=days_ahead)
     return db.scalars(
         select(InventoryItem).where(
             InventoryItem.expiry_date.isnot(None),
@@ -48,7 +48,7 @@ def get_low_stock_items(db: Session, threshold: float = 1) -> list[InventoryItem
 
 def _check_expired(db: Session) -> list[dict]:
     """Items past their expiry_date (critical)."""
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
     items = db.scalars(
         select(InventoryItem)
         .where(
@@ -77,7 +77,7 @@ def _check_expired(db: Session) -> list[dict]:
 
 def _check_expiring_soon(db: Session, days: int = 30) -> list[dict]:
     """Items expiring within *days* but NOT yet expired (warning)."""
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
     cutoff = today + timedelta(days=days)
     items = db.scalars(
         select(InventoryItem)
@@ -221,7 +221,7 @@ def _check_pending_review(db: Session) -> list[dict]:
 
 def _check_stale_orders(db: Session, stale_days: int = 30) -> list[dict]:
     """Orders stuck in 'pending' for more than *stale_days* (warning)."""
-    cutoff = date.today() - timedelta(days=stale_days)
+    cutoff = datetime.now(timezone.utc).date() - timedelta(days=stale_days)
     orders = db.scalars(
         select(Order)
         .where(
