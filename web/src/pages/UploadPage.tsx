@@ -370,7 +370,10 @@ export function UploadPage() {
                     </button>
                   </div>
                 ) : record.status === 'uploading' ? (
-                  <button className="p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
+                  <button
+                    className="p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                    onClick={() => setUploads((prev) => prev.map((u) => u.id === record.id ? { ...u, status: 'failed', error: 'Cancelled' } : u))}
+                  >
                     <X />
                   </button>
                 ) : (
