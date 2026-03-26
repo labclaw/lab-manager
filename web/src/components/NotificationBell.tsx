@@ -12,23 +12,19 @@ interface NotificationItem {
   created_at?: string | null
 }
 
-interface NotificationBellProps {
-  readonly staffId: number
-}
-
-export function NotificationBell({ staffId }: NotificationBellProps) {
+export function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [items, setItems] = useState<NotificationItem[]>([])
   const [open, setOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const fetchCount = useCallback(() => {
-    api.unreadCount(staffId).then(r => setUnreadCount(r.unread_count)).catch(() => {})
-  }, [staffId])
+    api.unreadCount().then(r => setUnreadCount(r.unread_count)).catch(() => {})
+  }, [])
 
   const fetchItems = useCallback(() => {
-    api.list(staffId, true).then(r => setItems(r.items ?? [])).catch(() => {})
-  }, [staffId])
+    api.list(true).then(r => setItems(r.items ?? [])).catch(() => {})
+  }, [])
 
   // Poll unread count every 30s
   useEffect(() => {
@@ -54,19 +50,19 @@ export function NotificationBell({ staffId }: NotificationBellProps) {
   }, [])
 
   const handleMarkRead = useCallback((id: number, link?: string | null) => {
-    api.markRead(id, staffId).then(() => {
+    api.markRead(id).then(() => {
       setItems(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n))
       setUnreadCount(prev => Math.max(0, prev - 1))
       if (link) window.location.href = link
     }).catch(() => {})
-  }, [staffId])
+  }, [])
 
   const handleMarkAllRead = useCallback(() => {
-    api.markAllRead(staffId).then(() => {
+    api.markAllRead().then(() => {
       setItems(prev => prev.map(n => ({ ...n, is_read: true })))
       setUnreadCount(0)
     }).catch(() => {})
-  }, [staffId])
+  }, [])
 
   const formatTime = (ts?: string | null) => {
     if (!ts) return ''

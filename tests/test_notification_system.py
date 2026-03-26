@@ -182,83 +182,76 @@ class TestPreferences:
 
 
 class TestNotificationsAPI:
+    """API tests use auth-disabled middleware which sets staff id=0."""
+
     def _seed(self, client, db_session):
-        """Seed a staff member + notifications via service layer."""
-        s = Staff(name="API User", email="api@lab.org", role="admin")
-        db_session.add(s)
-        db_session.flush()
-        db_session.refresh(s)
+        """Seed notifications for the default staff id (0, set by middleware)."""
         for i in range(3):
             svc.create_notification(
                 db_session,
-                staff_id=s.id,
+                staff_id=0,
                 type="order_request",
                 title=f"Order #{i + 1}",
                 message=f"Msg #{i + 1}",
                 link=f"/orders/{i + 1}",
             )
-        return s
 
     def test_list_notifications(self, client, db_session):
-        s = self._seed(client, db_session)
-        resp = client.get(f"/api/v1/notifications/?staff_id={s.id}")
+        self._seed(client, db_session)
+        resp = client.get("/api/v1/notifications/")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 3
         assert len(data["items"]) == 3
 
     def test_list_unread_only(self, client, db_session):
-        s = self._seed(client, db_session)
+        self._seed(client, db_session)
         # Mark first as read
-        notif_id = client.get(f"/api/v1/notifications/?staff_id={s.id}").json()[
-            "items"
-        ][0]["id"]
-        client.post(f"/api/v1/notifications/{notif_id}/read?staff_id={s.id}")
-        resp = client.get(f"/api/v1/notifications/?staff_id={s.id}&unread_only=true")
+        notif_id = client.get("/api/v1/notifications/").json()["items"][0]["id"]
+        client.post(f"/api/v1/notifications/{notif_id}/read")
+        resp = client.get("/api/v1/notifications/?unread_only=true")
         assert resp.status_code == 200
         assert resp.json()["total"] == 2
 
     def test_unread_count(self, client, db_session):
-        s = self._seed(client, db_session)
-        resp = client.get(f"/api/v1/notifications/count?staff_id={s.id}")
+        self._seed(client, db_session)
+        resp = client.get("/api/v1/notifications/count")
         assert resp.status_code == 200
         assert resp.json()["unread_count"] == 3
 
     def test_mark_one_read(self, client, db_session):
-        s = self._seed(client, db_session)
-        notif_id = client.get(f"/api/v1/notifications/?staff_id={s.id}").json()[
-            "items"
-        ][0]["id"]
-        resp = client.post(f"/api/v1/notifications/{notif_id}/read?staff_id={s.id}")
+        self._seed(client, db_session)
+        notif_id = client.get("/api/v1/notifications/").json()["items"][0]["id"]
+        resp = client.post(f"/api/v1/notifications/{notif_id}/read")
         assert resp.status_code == 200
         assert resp.json()["is_read"] is True
 
     def test_mark_one_read_404(self, client, db_session):
-        s = self._seed(client, db_session)
-        resp = client.post(f"/api/v1/notifications/99999/read?staff_id={s.id}")
+        self._seed(client, db_session)
+        resp = client.post("/api/v1/notifications/99999/read")
         assert resp.status_code == 404
 
     def test_mark_all_read(self, client, db_session):
-        s = self._seed(client, db_session)
-        resp = client.post(f"/api/v1/notifications/read-all?staff_id={s.id}")
+        self._seed(client, db_session)
+        resp = client.post("/api/v1/notifications/read-all")
         assert resp.status_code == 200
         assert resp.json()["marked"] == 3
         # Verify count is now 0
-        count_resp = client.get(f"/api/v1/notifications/count?staff_id={s.id}")
+        count_resp = client.get("/api/v1/notifications/count")
         assert count_resp.json()["unread_count"] == 0
 
     def test_get_preferences(self, client, db_session):
-        s = self._seed(client, db_session)
-        resp = client.get(f"/api/v1/notifications/preferences?staff_id={s.id}")
+        self._seed(client, db_session)
+        resp = client.get("/api/v1/notifications/preferences")
         assert resp.status_code == 200
         data = resp.json()
         assert data["in_app"] is True
         assert data["email_weekly"] is False
 
     def test_update_preferences(self, client, db_session):
-        s = self._seed(client, db_session)
+        self._seed(client, db_session)
         resp = client.patch(
-            f"/api/v1/notifications/preferences?staff_id={s.id}",
+            "/api/v1/notifications/preferences",
             json={"email_weekly": True, "inventory_alerts": False},
         )
         assert resp.status_code == 200
