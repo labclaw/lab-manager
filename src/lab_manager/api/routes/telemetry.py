@@ -10,10 +10,11 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db
 from lab_manager.models.usage_event import UsageEvent
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_permission("view_analytics"))])
 
 # In-memory rate limiting: 1 event per user per page per minute
 _rate_limits: dict[str, float] = {}
