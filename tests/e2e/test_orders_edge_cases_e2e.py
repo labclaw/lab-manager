@@ -340,13 +340,22 @@ class TestOrderStatusTransitions:
             json={
                 "po_number": "E2E-STATUS-003",
                 "vendor_id": test_vendor_id,
-                "status": "shipped",
+                "status": "pending",
             },
         )
         assert create_resp.status_code == 201, (
             f"Expected 201, got {create_resp.status_code}"
         )
         order_id = create_resp.json().get("order", create_resp.json())["id"]
+
+        # Transition to shipped first
+        ship_resp = authenticated_client.patch(
+            f"/api/v1/orders/{order_id}",
+            json={"status": "shipped"},
+        )
+        assert ship_resp.status_code == 200, (
+            f"Transition to shipped failed: {ship_resp.text}"
+        )
 
         resp = authenticated_client.patch(
             f"/api/v1/orders/{order_id}",

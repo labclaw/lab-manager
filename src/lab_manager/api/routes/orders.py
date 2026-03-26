@@ -291,7 +291,7 @@ _IMMUTABLE_ORDER_STATUSES = {
 def _ensure_order_mutable(order: Order) -> None:
     if order.status in _IMMUTABLE_ORDER_STATUSES:
         raise ValidationError(
-            f"Cannot modify items on order with status '{order.status.value}'"
+            f"Cannot modify items on order with status '{order.status}'"
         )
 
 

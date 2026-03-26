@@ -227,7 +227,7 @@ class TestOrderGuards:
 
     def test_pi_can_update_order(self, pi_client, _session):
         oid = _seed_order(_session)
-        resp = pi_client.patch(f"/api/v1/orders/{oid}", json={"status": "pending"})
+        resp = pi_client.patch(f"/api/v1/orders/{oid}", json={"status": "shipped"})
         assert resp.status_code == 200
 
     def test_visitor_cannot_delete_order(self, visitor_client, _session):
