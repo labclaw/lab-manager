@@ -42,20 +42,6 @@ function roleBadge(role: string) {
   )
 }
 
-function statusBadge(status: string) {
-  const colors: Record<string, string> = {
-    pending: 'bg-amber-100 text-amber-700',
-    accepted: 'bg-green-100 text-green-700',
-    cancelled: 'bg-gray-100 text-gray-500',
-  }
-  return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full capitalize ${colors[status] ?? 'bg-gray-100 text-gray-600'}`}
-    >
-      {status}
-    </span>
-  )
-}
 
 /* ---------- Invite Form ---------- */
 
