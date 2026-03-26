@@ -347,6 +347,10 @@ export const inventory = {
     apiFetch<ApiResponse<InventoryItem>>('/inventory/low-stock'),
   expiring: () =>
     apiFetch<ApiResponse<InventoryItem>>('/inventory/expiring'),
+  barcodeLookup: (value: string) =>
+    apiFetch<ApiResponse<InventoryItem> & { match_type?: string }>(
+      `/barcode/lookup?value=${encodeURIComponent(value)}`,
+    ),
 }
 
 // Documents
