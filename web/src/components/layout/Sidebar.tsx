@@ -9,6 +9,7 @@ import {
   ScanBarcode,
   ShoppingCart,
   Upload,
+  FileSpreadsheet,
   Brain,
   Sparkles,
   Users,
@@ -45,6 +46,7 @@ const navItems = [
   { path: '/inventory', label: 'Inventory', Icon: Package },
   { path: '/orders', label: 'Orders', Icon: ShoppingCart },
   { path: '/upload', label: 'Upload', Icon: Upload },
+  { path: '/import', label: 'Bulk Import', Icon: FileSpreadsheet },
   { path: '/cloud-brain', label: 'Cloud Brain', Icon: Sparkles },
   { path: '/team', label: 'Team', Icon: Users },
 ]
