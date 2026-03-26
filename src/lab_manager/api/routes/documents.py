@@ -623,6 +623,7 @@ def _create_order_from_doc(doc: Document, db: Session):
                     quantity_on_hand=item.get("quantity") or 1,
                     unit=item.get("unit"),
                     status="available",
+                    expiry_date=item.get("expiry_date"),
                 )
             )
 
