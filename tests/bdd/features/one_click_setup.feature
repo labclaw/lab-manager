@@ -24,10 +24,10 @@ Feature: One-Click Lab Setup
   # === Lab branding configuration ===
 
   Scenario: Lab config returns configured branding
-    Given a Lab Manager instance with name "My Lab" and subtitle "MGH Neuroscience"
+    Given a Lab Manager instance with name "My Lab" and subtitle "Neuroscience Department"
     When I request the lab configuration
     Then the lab name should be "My Lab"
-    And the lab subtitle should be "MGH Neuroscience"
+    And the lab subtitle should be "Neuroscience Department"
 
   Scenario: Lab config returns defaults when not configured
     Given a Lab Manager instance with default settings
