@@ -22,7 +22,12 @@ dependencies = [
   "structlog>=24.0.0",
   "slowapi>=0.1.9",
   "litellm>=1.82.4,<=1.82.6",  # SECURITY: 1.82.7+ compromised (supply chain attack 2026-03-24)
+  "mcp[cli]>=1.26.0",
+  "httpx>=0.28.1",
 ]
+
+[project.scripts]
+lab-manager-mcp = "lab_manager.mcp.server:main"
 
 [build-system]
 requires = ["setuptools>=75.0"]
