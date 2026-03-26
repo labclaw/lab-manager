@@ -4,23 +4,24 @@ import { useQuery } from '@tanstack/react-query'
 import {
   BarChart3, FileText, Package, Store, Clock,
   TrendingUp, AlertTriangle, Beaker, Wrench, Box, Brain,
-  Activity, ShieldCheck, PieChart, Users, Search,
+  Activity, ShieldCheck, PieChart, Users, Search, DollarSign,
 } from 'lucide-react'
 import { analytics, documents as docApi, inventory as invApi } from '@/lib/api'
-import type { DashboardStats, DocumentStats, Document, InventoryItem } from '@/lib/api'
+import type { DashboardStats, DocumentStats, Document, InventoryItem, AiCostData } from '@/lib/api'
 import { formatEnum } from '@/lib/utils'
 
 interface AnalyticsPageProps {
   readonly onError: (msg: string) => void
 }
 
-type TabValue = 'overview' | 'vendors' | 'documents' | 'inventory'
+type TabValue = 'overview' | 'vendors' | 'documents' | 'inventory' | 'ai-cost'
 
 const TABS: { readonly value: TabValue; readonly label: string; readonly icon: typeof BarChart3 }[] = [
   { value: 'overview', label: 'Lab Intelligence', icon: Brain },
   { value: 'vendors', label: 'Vendors', icon: Store },
   { value: 'documents', label: 'Documents', icon: FileText },
   { value: 'inventory', label: 'Inventory', icon: Package },
+  { value: 'ai-cost', label: 'AI Cost', icon: DollarSign },
 ]
 
 // Vendor category mapping
@@ -828,6 +829,162 @@ function InventoryTab({ stats, lowStock, expiring }: {
 }
 
 // ================================================================
+// AI COST TAB — BYOK spending visibility
+// ================================================================
+function AiCostTab({ data }: { data: AiCostData | undefined }) {
+  if (!data) {
+    return <p className="text-sm text-[var(--muted-foreground)] py-8 text-center">Loading AI cost data...</p>
+  }
+
+  const { summary, daily, by_model, by_endpoint } = data
+  const fmt = (n: number) => n < 0.01 ? `$${n.toFixed(6)}` : `$${n.toFixed(4)}`
+  const fmtTokens = (n: number) => n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(1)}K` : `${n}`
+
+  return (
+    <div className="space-y-6">
+      {/* Headline insight */}
+      <div className="space-y-2">
+        <Insight
+          text={`${summary.request_count} AI API calls totaling ${fmt(summary.total_cost)} over the last ${summary.period_days} days — ${fmtTokens(summary.total_tokens_in + summary.total_tokens_out)} tokens processed`}
+          variant={summary.total_cost > 10 ? 'warn' : 'info'}
+        />
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-[var(--card)] border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
+          <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Total Spend</span>
+            <DollarSign className="size-5 opacity-50" />
+          </div>
+          <div className="text-3xl font-bold text-[var(--foreground)] tracking-tight">{fmt(summary.total_cost)}</div>
+          <div className="text-[11px] text-[var(--muted-foreground)] font-medium">last {summary.period_days} days</div>
+        </div>
+        <div className="bg-[var(--card)] border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
+          <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider">API Calls</span>
+            <Activity className="size-5 opacity-50" />
+          </div>
+          <div className="text-3xl font-bold text-[var(--foreground)] tracking-tight">{summary.request_count}</div>
+          <div className="text-[11px] text-[var(--muted-foreground)] font-medium">total requests</div>
+        </div>
+        <div className="bg-[var(--card)] border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
+          <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Tokens In</span>
+            <TrendingUp className="size-5 opacity-50" />
+          </div>
+          <div className="text-3xl font-bold text-[var(--foreground)] tracking-tight">{fmtTokens(summary.total_tokens_in)}</div>
+          <div className="text-[11px] text-[var(--muted-foreground)] font-medium">input tokens</div>
+        </div>
+        <div className="bg-[var(--card)] border border-primary/10 p-5 rounded-xl flex flex-col gap-1 shadow-sm">
+          <div className="flex items-center justify-between text-[var(--muted-foreground)] mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Tokens Out</span>
+            <TrendingUp className="size-5 opacity-50" />
+          </div>
+          <div className="text-3xl font-bold text-[var(--foreground)] tracking-tight">{fmtTokens(summary.total_tokens_out)}</div>
+          <div className="text-[11px] text-[var(--muted-foreground)] font-medium">output tokens</div>
+        </div>
+      </div>
+
+      {/* Daily cost chart */}
+      {daily.length > 0 && (
+        <div className="bg-[var(--card)] border border-primary/10 rounded-xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-6">
+            <BarChart3 className="size-5 text-primary" />
+            <h3 className="text-[var(--foreground)] text-base font-bold">Daily Cost</h3>
+          </div>
+          <div className="space-y-2">
+            {daily.map(d => {
+              const maxCost = Math.max(...daily.map(x => x.total_cost), 0.0001)
+              const pct = Math.round((d.total_cost / maxCost) * 100)
+              return (
+                <div key={d.date} className="flex items-center gap-3">
+                  <span className="text-xs text-[var(--muted-foreground)] w-20 shrink-0 font-mono">{d.date}</span>
+                  <div className="flex-1 h-4 bg-[var(--background)] rounded-full overflow-hidden">
+                    <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="text-xs font-mono text-[var(--muted-foreground)] w-20 text-right font-semibold">{fmt(d.total_cost)}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Cost by model */}
+        <div className="bg-[var(--card)] border border-primary/10 rounded-xl shadow-sm overflow-hidden">
+          <div className="p-6 pb-3">
+            <div className="flex items-center gap-2">
+              <PieChart className="size-5 text-primary" />
+              <h3 className="text-[var(--foreground)] text-base font-bold">Cost by Model</h3>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-t border-b border-primary/10 bg-[var(--background)]">
+                  <th className="text-left px-6 py-2.5 text-[11px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Provider</th>
+                  <th className="text-left px-4 py-2.5 text-[11px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Model</th>
+                  <th className="text-right px-4 py-2.5 text-[11px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Calls</th>
+                  <th className="text-right px-6 py-2.5 text-[11px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {by_model.map(m => (
+                  <tr key={`${m.provider}-${m.model}`} className="border-b border-primary/5 hover:bg-primary/[0.02] transition-colors">
+                    <td className="px-6 py-2.5 text-sm text-[var(--muted-foreground)]">{m.provider}</td>
+                    <td className="px-4 py-2.5 text-sm font-medium text-[var(--foreground)] font-mono">{m.model}</td>
+                    <td className="px-4 py-2.5 text-sm text-right font-mono text-[var(--muted-foreground)]">{m.request_count}</td>
+                    <td className="px-6 py-2.5 text-sm text-right font-mono font-semibold text-primary">{fmt(m.total_cost)}</td>
+                  </tr>
+                ))}
+                {by_model.length === 0 && (
+                  <tr><td colSpan={4} className="px-6 py-8 text-center text-[var(--muted-foreground)]">No AI usage recorded yet</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Cost by endpoint */}
+        <div className="bg-[var(--card)] border border-primary/10 rounded-xl shadow-sm overflow-hidden">
+          <div className="p-6 pb-3">
+            <div className="flex items-center gap-2">
+              <Activity className="size-5 text-primary" />
+              <h3 className="text-[var(--foreground)] text-base font-bold">Cost by Feature</h3>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-t border-b border-primary/10 bg-[var(--background)]">
+                  <th className="text-left px-6 py-2.5 text-[11px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Feature</th>
+                  <th className="text-right px-4 py-2.5 text-[11px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Calls</th>
+                  <th className="text-right px-6 py-2.5 text-[11px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {by_endpoint.map(e => (
+                  <tr key={e.endpoint} className="border-b border-primary/5 hover:bg-primary/[0.02] transition-colors">
+                    <td className="px-6 py-2.5 text-sm font-medium text-[var(--foreground)]">{e.endpoint}</td>
+                    <td className="px-4 py-2.5 text-sm text-right font-mono text-[var(--muted-foreground)]">{e.request_count}</td>
+                    <td className="px-6 py-2.5 text-sm text-right font-mono font-semibold text-primary">{fmt(e.total_cost)}</td>
+                  </tr>
+                ))}
+                {by_endpoint.length === 0 && (
+                  <tr><td colSpan={3} className="px-6 py-8 text-center text-[var(--muted-foreground)]">No AI usage recorded yet</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ================================================================
 // MAIN PAGE
 // ================================================================
 export function AnalyticsPage({ onError }: AnalyticsPageProps) {
@@ -860,16 +1017,21 @@ export function AnalyticsPage({ onError }: AnalyticsPageProps) {
     queryFn: () => invApi.expiring(),
   })
 
+  const { data: aiCostData, error: aiCostErr } = useQuery({
+    queryKey: ['analytics-ai-cost'],
+    queryFn: () => analytics.aiCost(30),
+  })
+
   const docs = docsRes?.items ?? []
   const lowStock = lowStockRes?.items ?? []
   const expiring = expiringRes?.items ?? []
 
   useEffect(() => {
-    const err = statsErr ?? docStatsErr ?? docsErr ?? lowStockErr ?? expiringErr
+    const err = statsErr ?? docStatsErr ?? docsErr ?? lowStockErr ?? expiringErr ?? aiCostErr
     if (err) {
       onError(err instanceof Error ? err.message : 'Failed to load analytics data')
     }
-  }, [statsErr, docStatsErr, docsErr, lowStockErr, expiringErr, onError])
+  }, [statsErr, docStatsErr, docsErr, lowStockErr, expiringErr, aiCostErr, onError])
 
   const isLoading = !stats && !statsErr
 
@@ -927,6 +1089,9 @@ export function AnalyticsPage({ onError }: AnalyticsPageProps) {
       )}
       {activeTab === 'inventory' && (
         <InventoryTab stats={stats} lowStock={lowStock} expiring={expiring} />
+      )}
+      {activeTab === 'ai-cost' && (
+        <AiCostTab data={aiCostData} />
       )}
     </div>
   )

@@ -229,6 +229,45 @@ export const setup = {
     }),
 }
 
+// AI Cost types
+export interface AiCostSummary {
+  period_days: number
+  total_cost: number
+  total_tokens_in: number
+  total_tokens_out: number
+  request_count: number
+}
+
+export interface AiCostDaily {
+  date: string
+  total_cost: number
+  total_tokens_in: number
+  total_tokens_out: number
+  request_count: number
+}
+
+export interface AiCostModel {
+  provider: string
+  model: string
+  total_cost: number
+  total_tokens_in: number
+  total_tokens_out: number
+  request_count: number
+}
+
+export interface AiCostEndpoint {
+  endpoint: string
+  total_cost: number
+  request_count: number
+}
+
+export interface AiCostData {
+  summary: AiCostSummary
+  daily: AiCostDaily[]
+  by_model: AiCostModel[]
+  by_endpoint: AiCostEndpoint[]
+}
+
 // Analytics
 export const analytics = {
   dashboard: () =>
@@ -239,6 +278,8 @@ export const analytics = {
     ),
   documentStats: () =>
     apiFetch<DocumentStats>('/analytics/documents/stats'),
+  aiCost: (days?: number) =>
+    apiFetch<AiCostData>(`/analytics/ai-cost${days ? `?days=${days}` : ''}`),
 }
 
 // Vendors
