@@ -315,7 +315,7 @@ def upload_document(
     import re
 
     safe_name = raw_name.replace("/", "_").replace("\\", "_").replace("\x00", "")
-    safe_name = re.sub(r"[^a-zA-Z0-9._-]", "_", safe_name)
+    safe_name = re.sub(r"[^\w.\-]", "_", safe_name, flags=re.UNICODE)
     if not safe_name or safe_name.startswith("."):
         safe_name = "upload" + safe_name
     saved_name = f"{timestamp}_{usec}_{safe_name}"
@@ -415,7 +415,9 @@ def list_documents(
     return paginate(q, db, page, page_size)
 
 
-@router.post("/", status_code=201)
+@router.post(
+    "/", status_code=201, dependencies=[Depends(require_permission("upload_documents"))]
+)
 def create_document(body: DocumentCreate, db: Session = Depends(get_db)):
     document = Document(**body.model_dump())
     db.add(document)
@@ -429,7 +431,9 @@ def get_document(document_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, Document, document_id, "Document")
 
 
-@router.patch("/{document_id}")
+@router.patch(
+    "/{document_id}", dependencies=[Depends(require_permission("review_documents"))]
+)
 def update_document(
     document_id: int, body: DocumentUpdate, db: Session = Depends(get_db)
 ):
