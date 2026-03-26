@@ -59,136 +59,6 @@ def list_members(
 
 
 # ---------------------------------------------------------------------------
-# Member detail
-# ---------------------------------------------------------------------------
-
-
-@router.get("/{member_id}")
-def get_member(
-    member_id: int,
-    staff=Depends(require_permission("manage_users")),
-    db: Session = Depends(get_db),
-):
-    """Get a single team member."""
-    member = db.get(Staff, member_id)
-    if not member:
-        raise HTTPException(status_code=404, detail="Member not found")
-    perms = get_permissions(member.role)
-    return {
-        "id": member.id,
-        "name": member.name,
-        "email": member.email,
-        "role": member.role,
-        "role_level": member.role_level,
-        "is_active": member.is_active,
-        "last_login_at": member.last_login_at.isoformat()
-        if member.last_login_at
-        else None,
-        "access_expires_at": (
-            member.access_expires_at.isoformat() if member.access_expires_at else None
-        ),
-        "invited_by": member.invited_by,
-        "permissions": sorted(perms),
-    }
-
-
-# ---------------------------------------------------------------------------
-# Update role
-# ---------------------------------------------------------------------------
-
-
-@router.patch("/{member_id}")
-def update_member(
-    member_id: int,
-    role: str = Body(..., embed=True),
-    staff=Depends(require_permission("manage_users")),
-    db: Session = Depends(get_db),
-):
-    """Update a member's role. Cannot promote above own level."""
-    if role not in ROLE_LEVELS:
-        raise HTTPException(status_code=422, detail=f"Invalid role: {role}")
-
-    member = db.get(Staff, member_id)
-    if not member:
-        raise HTTPException(status_code=404, detail="Member not found")
-
-    caller_level = staff.get("role_level", 99)
-    target_level = ROLE_LEVELS[role]
-
-    # Cannot promote someone to a level higher (numerically lower) than own
-    if target_level < caller_level:
-        raise HTTPException(
-            status_code=403,
-            detail="Cannot promote a member above your own role level",
-        )
-
-    # Cannot change a member who is at a higher level than caller
-    member_level = ROLE_LEVELS.get(member.role, 99)
-    if member_level < caller_level:
-        raise HTTPException(
-            status_code=403,
-            detail="Cannot modify a member with a higher role than yours",
-        )
-
-    member.role = role
-    member.role_level = target_level
-    db.commit()
-    db.refresh(member)
-    logger.info(
-        "Role updated: staff_id=%s -> role=%s by staff_id=%s",
-        member_id,
-        role,
-        staff.get("id"),
-    )
-    return {
-        "id": member.id,
-        "name": member.name,
-        "email": member.email,
-        "role": member.role,
-        "role_level": member.role_level,
-        "is_active": member.is_active,
-    }
-
-
-# ---------------------------------------------------------------------------
-# Deactivate member
-# ---------------------------------------------------------------------------
-
-
-@router.delete("/{member_id}")
-def deactivate_member(
-    member_id: int,
-    staff=Depends(require_permission("manage_users")),
-    db: Session = Depends(get_db),
-):
-    """Deactivate (soft-delete) a team member. Cannot deactivate self."""
-    if member_id == staff.get("id"):
-        raise HTTPException(status_code=400, detail="Cannot deactivate yourself")
-
-    member = db.get(Staff, member_id)
-    if not member:
-        raise HTTPException(status_code=404, detail="Member not found")
-
-    # Cannot deactivate a member with higher privilege
-    caller_level = staff.get("role_level", 99)
-    member_level = ROLE_LEVELS.get(member.role, 99)
-    if member_level < caller_level:
-        raise HTTPException(
-            status_code=403,
-            detail="Cannot deactivate a member with a higher role than yours",
-        )
-
-    member.is_active = False
-    db.commit()
-    logger.info(
-        "Member deactivated: staff_id=%s by staff_id=%s",
-        member_id,
-        staff.get("id"),
-    )
-    return {"status": "ok", "message": f"Member {member.name} deactivated"}
-
-
-# ---------------------------------------------------------------------------
 # Invite
 # ---------------------------------------------------------------------------
 
@@ -330,6 +200,136 @@ def cancel_invitation(
         staff.get("id"),
     )
     return {"status": "ok", "message": "Invitation cancelled"}
+
+
+# ---------------------------------------------------------------------------
+# Member detail
+# ---------------------------------------------------------------------------
+
+
+@router.get("/{member_id}")
+def get_member(
+    member_id: int,
+    staff=Depends(require_permission("manage_users")),
+    db: Session = Depends(get_db),
+):
+    """Get a single team member."""
+    member = db.get(Staff, member_id)
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    perms = get_permissions(member.role)
+    return {
+        "id": member.id,
+        "name": member.name,
+        "email": member.email,
+        "role": member.role,
+        "role_level": member.role_level,
+        "is_active": member.is_active,
+        "last_login_at": member.last_login_at.isoformat()
+        if member.last_login_at
+        else None,
+        "access_expires_at": (
+            member.access_expires_at.isoformat() if member.access_expires_at else None
+        ),
+        "invited_by": member.invited_by,
+        "permissions": sorted(perms),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Update role
+# ---------------------------------------------------------------------------
+
+
+@router.patch("/{member_id}")
+def update_member(
+    member_id: int,
+    role: str = Body(..., embed=True),
+    staff=Depends(require_permission("manage_users")),
+    db: Session = Depends(get_db),
+):
+    """Update a member's role. Cannot promote above own level."""
+    if role not in ROLE_LEVELS:
+        raise HTTPException(status_code=422, detail=f"Invalid role: {role}")
+
+    member = db.get(Staff, member_id)
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    caller_level = staff.get("role_level", 99)
+    target_level = ROLE_LEVELS[role]
+
+    # Cannot promote someone to a level higher (numerically lower) than own
+    if target_level < caller_level:
+        raise HTTPException(
+            status_code=403,
+            detail="Cannot promote a member above your own role level",
+        )
+
+    # Cannot change a member who is at a higher level than caller
+    member_level = ROLE_LEVELS.get(member.role, 99)
+    if member_level < caller_level:
+        raise HTTPException(
+            status_code=403,
+            detail="Cannot modify a member with a higher role than yours",
+        )
+
+    member.role = role
+    member.role_level = target_level
+    db.commit()
+    db.refresh(member)
+    logger.info(
+        "Role updated: staff_id=%s -> role=%s by staff_id=%s",
+        member_id,
+        role,
+        staff.get("id"),
+    )
+    return {
+        "id": member.id,
+        "name": member.name,
+        "email": member.email,
+        "role": member.role,
+        "role_level": member.role_level,
+        "is_active": member.is_active,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Deactivate member
+# ---------------------------------------------------------------------------
+
+
+@router.delete("/{member_id}")
+def deactivate_member(
+    member_id: int,
+    staff=Depends(require_permission("manage_users")),
+    db: Session = Depends(get_db),
+):
+    """Deactivate (soft-delete) a team member. Cannot deactivate self."""
+    if member_id == staff.get("id"):
+        raise HTTPException(status_code=400, detail="Cannot deactivate yourself")
+
+    member = db.get(Staff, member_id)
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    # Cannot deactivate a member with higher privilege
+    caller_level = staff.get("role_level", 99)
+    member_level = ROLE_LEVELS.get(member.role, 99)
+    if member_level < caller_level:
+        raise HTTPException(
+            status_code=403,
+            detail="Cannot deactivate a member with a higher role than yours",
+        )
+
+    member.is_active = False
+    db.commit()
+    logger.info(
+        "Member deactivated: staff_id=%s by staff_id=%s",
+        member_id,
+        staff.get("id"),
+    )
+    return {"status": "ok", "message": f"Member {member.name} deactivated"}
 
 
 # ---------------------------------------------------------------------------
