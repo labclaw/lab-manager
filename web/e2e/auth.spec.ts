@@ -3,16 +3,13 @@ import { test, expect, mockAllAPIs } from './fixtures'
 test.describe('Authentication', () => {
   test('shows login page when not authenticated', async ({ page }) => {
     // Mock setup status OK, but auth returns 401
-    await page.route('**/api/v1/setup/status', (route) =>
+    await page.route(/\/api\/v1\/setup\/status/, (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ needs_setup: false }) }),
     )
-    await page.route('**/api/v1/auth/me', (route) =>
+    await page.route(/\/api\/v1\/auth\/me/, (route) =>
       route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ detail: 'Unauthorized' }) }),
     )
-    await page.route('**/api/v1/alerts', (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [] }) }),
-    )
-    await page.route('**/api/v1/alerts/**', (route) =>
+    await page.route(/\/api\/v1\/alerts/, (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [] }) }),
     )
 
@@ -24,16 +21,13 @@ test.describe('Authentication', () => {
   })
 
   test('login form has email and password fields', async ({ page }) => {
-    await page.route('**/api/v1/setup/status', (route) =>
+    await page.route(/\/api\/v1\/setup\/status/, (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ needs_setup: false }) }),
     )
-    await page.route('**/api/v1/auth/me', (route) =>
+    await page.route(/\/api\/v1\/auth\/me/, (route) =>
       route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ detail: 'Unauthorized' }) }),
     )
-    await page.route('**/api/v1/alerts', (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [] }) }),
-    )
-    await page.route('**/api/v1/alerts/**', (route) =>
+    await page.route(/\/api\/v1\/alerts/, (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [] }) }),
     )
 
@@ -48,19 +42,16 @@ test.describe('Authentication', () => {
   })
 
   test('login with invalid credentials shows error', async ({ page }) => {
-    await page.route('**/api/v1/setup/status', (route) =>
+    await page.route(/\/api\/v1\/setup\/status/, (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ needs_setup: false }) }),
     )
-    await page.route('**/api/v1/auth/me', (route) =>
+    await page.route(/\/api\/v1\/auth\/me/, (route) =>
       route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ detail: 'Unauthorized' }) }),
     )
-    await page.route('**/api/v1/auth/login', (route) =>
+    await page.route(/\/api\/v1\/auth\/login/, (route) =>
       route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ detail: 'Invalid credentials' }) }),
     )
-    await page.route('**/api/v1/alerts', (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [] }) }),
-    )
-    await page.route('**/api/v1/alerts/**', (route) =>
+    await page.route(/\/api\/v1\/alerts/, (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [] }) }),
     )
 
@@ -74,7 +65,7 @@ test.describe('Authentication', () => {
   })
 
   test('shows setup page when needs_setup is true', async ({ page }) => {
-    await page.route('**/api/v1/setup/status', (route) =>
+    await page.route(/\/api\/v1\/setup\/status/, (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ needs_setup: true }) }),
     )
 
@@ -86,16 +77,13 @@ test.describe('Authentication', () => {
   })
 
   test('security badge visible on login page', async ({ page }) => {
-    await page.route('**/api/v1/setup/status', (route) =>
+    await page.route(/\/api\/v1\/setup\/status/, (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ needs_setup: false }) }),
     )
-    await page.route('**/api/v1/auth/me', (route) =>
+    await page.route(/\/api\/v1\/auth\/me/, (route) =>
       route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ detail: 'Unauthorized' }) }),
     )
-    await page.route('**/api/v1/alerts', (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [] }) }),
-    )
-    await page.route('**/api/v1/alerts/**', (route) =>
+    await page.route(/\/api\/v1\/alerts/, (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [] }) }),
     )
 
