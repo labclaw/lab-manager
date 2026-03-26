@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "lab-manager": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "/path/to/lab-manager",
+        "python",
+        "-m",
+        "lab_manager.mcp"
+      ],
+      "env": {
+        "LAB_MANAGER_URL": "http://localhost:8000",
+        "LAB_MANAGER_API_KEY": ""
+      }
+    }
+  }
+}
