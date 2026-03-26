@@ -117,7 +117,7 @@ export function Header({ title, onSearch, showSearch = true, onMobileMenuToggle,
         </label>
       </div>
       <div className="flex items-center gap-2 md:gap-4">
-        <NotificationBell staffId={1} />
+        <NotificationBell />
         <div className="hidden md:flex items-center gap-3 pl-4 border-l border-primary/10">
           <span className="text-sm font-medium text-[var(--muted-foreground)]">{userName}</span>
         </div>
