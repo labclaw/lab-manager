@@ -4,10 +4,6 @@ import { useQuery } from '@tanstack/react-query'
 import {
   Dna,
   FlaskConical,
-  Filter,
-  Tag,
-  PlusCircle,
-  Truck,
   Building,
   ShoppingCart,
   Pencil,
@@ -16,6 +12,8 @@ import {
   ChevronRight,
   FileText,
   ExternalLink,
+  AlertTriangle,
+  Clock,
 } from 'lucide-react'
 import { inventory as invApi } from '@/lib/api'
 
@@ -30,25 +28,72 @@ function ReorderButton({ itemId, vendorName }: { itemId: number; vendorName?: st
     staleTime: Infinity,
   })
   const url = data?.url
-  if (url) {
+  if (!url) return null
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="p-2 hover:bg-primary/20 text-primary rounded-lg transition-colors inline-flex items-center"
+      title={`Reorder from ${vendorName ?? 'vendor'}`}
+    >
+      <ShoppingCart className="size-5" />
+      <ExternalLink className="size-3 ml-0.5 opacity-60" />
+    </a>
+  )
+}
+
+/** Days until expiry; negative = already expired. null if no date. */
+function daysUntilExpiry(expiryDate?: string): number | null {
+  if (!expiryDate) return null
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  const exp = new Date(expiryDate + 'T00:00:00')
+  return Math.ceil((exp.getTime() - now.getTime()) / 86_400_000)
+}
+
+function ExpiryCell({ expiryDate }: { expiryDate?: string }) {
+  if (!expiryDate) return <span className="text-[var(--muted-foreground)]">{'\u2014'}</span>
+
+  const days = daysUntilExpiry(expiryDate)
+  const formatted = new Date(expiryDate + 'T00:00:00').toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+
+  if (days !== null && days < 0) {
     return (
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="p-2 hover:bg-primary/20 text-primary rounded-lg transition-colors inline-flex items-center"
-        title={`Reorder from ${vendorName ?? 'vendor'}`}
-      >
-        <ShoppingCart className="size-5" />
-        <ExternalLink className="size-3 ml-0.5 opacity-60" />
-      </a>
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600">
+        <AlertTriangle className="size-3.5" />
+        <span>{formatted}</span>
+      </span>
     )
   }
+  if (days !== null && days <= 30) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600">
+        <Clock className="size-3.5" />
+        <span>{formatted}</span>
+      </span>
+    )
+  }
+  return <span className="text-sm text-[var(--muted-foreground)]">{formatted}</span>
+}
+
+function CategoryBadge({ category }: { category?: string }) {
+  if (!category) return null
   return (
-    <button className="p-2 hover:bg-primary/20 text-primary rounded-lg transition-colors opacity-30 cursor-not-allowed" title="No vendor info available" disabled>
-      <ShoppingCart className="size-5" />
-    </button>
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-wide">
+      {category}
+    </span>
   )
+}
+
+function formatStock(quantityDisplay?: string, unit?: string): string {
+  const qty = quantityDisplay ?? '0'
+  const u = unit ?? ''
+  return u ? `${qty} ${u}` : qty
 }
 
 export function InventoryPage({ onError }: InventoryPageProps) {
@@ -131,32 +176,11 @@ export function InventoryPage({ onError }: InventoryPageProps) {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Filters & Actions Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 md:gap-3">
-          <button disabled className="flex items-center gap-2 px-3 md:px-4 py-2 bg-[var(--card)] rounded-xl shadow-sm text-sm font-medium border border-outline opacity-50 cursor-not-allowed" title="Coming soon">
-            <Filter className="size-5" />
-            <span className="hidden sm:inline">Filters</span>
-          </button>
-          <button disabled className="flex items-center gap-2 px-3 md:px-4 py-2 bg-[var(--card)] rounded-xl shadow-sm text-sm font-medium border border-outline opacity-50 cursor-not-allowed" title="Coming soon">
-            <Tag className="size-5" />
-            <span className="hidden sm:inline">Category</span>
-          </button>
-          <div className="hidden sm:block h-6 w-px bg-[var(--border)] mx-2" />
-          <span className="text-xs text-[var(--muted-foreground)] font-medium">
-            {total.toLocaleString()} Items total
-          </span>
-        </div>
-        <div className="flex items-center gap-2 md:gap-3">
-          <button disabled className="bg-surface-container-high text-primary font-semibold px-3 md:px-6 py-2.5 rounded-xl text-sm flex items-center gap-2 opacity-50 cursor-not-allowed" title="Coming soon">
-            <PlusCircle className="size-5" />
-            <span className="hidden sm:inline">New Item</span>
-          </button>
-          <button disabled className="bg-primary text-white font-semibold px-3 md:px-6 py-2.5 rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-primary/20 opacity-50 cursor-not-allowed" title="Coming soon">
-            <Truck className="size-5" />
-            <span className="hidden sm:inline">Bulk Order</span>
-          </button>
-        </div>
+      {/* Summary Bar */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-[var(--muted-foreground)] font-medium">
+          {total.toLocaleString()} Items total
+        </span>
       </div>
 
       {/* Inventory Data Table */}
@@ -165,11 +189,12 @@ export function InventoryPage({ onError }: InventoryPageProps) {
           <table className="w-full min-w-[640px] text-left border-collapse">
             <thead>
               <tr className="bg-surface-container-high/50">
-                <th className="px-4 md:px-8 py-3 md:py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Item Name</th>
+                <th className="px-4 md:px-8 py-3 md:py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Product</th>
                 <th className="px-3 md:px-6 py-3 md:py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Lot #</th>
                 <th className="px-3 md:px-6 py-3 md:py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Vendor</th>
                 <th className="px-3 md:px-6 py-3 md:py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Location</th>
                 <th className="px-3 md:px-6 py-3 md:py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Stock</th>
+                <th className="px-3 md:px-6 py-3 md:py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Expiry</th>
                 <th className="px-3 md:px-6 py-3 md:py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
@@ -179,13 +204,16 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                   <td className="px-4 md:px-8 py-4 md:py-6">
                     <div className="flex items-center gap-3 md:gap-4">
                       {itemIcon(item.status)}
-                      <div>
+                      <div className="flex flex-col gap-1">
                         <p className="font-bold text-on-surface">
-                          {item.product_name ?? item.product?.name ?? `Item #${item.id}`}
+                          {item.product_name ?? item.catalog_number ?? item.lot_number ?? `Item #${item.id}`}
                         </p>
-                        <p className="text-[11px] text-[var(--muted-foreground)]">
-                          {item.lot_number ? `Lot ${item.lot_number}` : (item.unit ?? '')}
-                        </p>
+                        {item.catalog_number && item.product_name && (
+                          <p className="text-[11px] text-[var(--muted-foreground)] font-mono">
+                            {item.catalog_number}
+                          </p>
+                        )}
+                        <CategoryBadge category={item.category} />
                       </div>
                     </div>
                   </td>
@@ -193,7 +221,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                     {item.lot_number ?? '\u2014'}
                   </td>
                   <td className="px-3 md:px-6 py-4 md:py-6 text-sm font-medium">
-                    {item.product?.vendor?.name ?? '\u2014'}
+                    {item.vendor_name ?? '\u2014'}
                   </td>
                   <td className="px-3 md:px-6 py-4 md:py-6">
                     {item.location_name ? (
@@ -208,14 +236,17 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                   <td className="px-3 md:px-6 py-4 md:py-6">
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-on-surface">
-                        {item.quantity_on_hand ?? 0} {item.unit ?? ''}
+                        {formatStock(item.quantity_display, item.unit)}
                       </span>
                       {stockBadge(item.status, item.quantity_on_hand)}
                     </div>
                   </td>
+                  <td className="px-3 md:px-6 py-4 md:py-6">
+                    <ExpiryCell expiryDate={item.expiry_date} />
+                  </td>
                   <td className="px-3 md:px-6 py-4 md:py-6 text-right">
                     <div className="flex justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                      <ReorderButton itemId={item.id} vendorName={item.product?.vendor?.name} />
+                      <ReorderButton itemId={item.id} vendorName={item.vendor_name} />
                       <button className="p-2 hover:bg-surface-container-highest text-[var(--muted-foreground)] rounded-lg transition-colors" title="Edit Item">
                         <Pencil className="size-5" />
                       </button>

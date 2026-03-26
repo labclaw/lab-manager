@@ -38,8 +38,8 @@ const mockOrders = {
 
 const mockInventory = {
   items: [
-    { id: 1, product_name: 'Sodium Chloride', lot_number: 'LOT-ABC', quantity_on_hand: 5, unit: 'kg', status: 'available', expiry_date: '2027-01-15', product: { vendor: { name: 'Sigma-Aldrich' } } },
-    { id: 2, product_name: 'Ethanol 95%', lot_number: 'LOT-DEF', quantity_on_hand: 2, unit: 'L', status: 'opened', expiry_date: '2026-06-30', product: { vendor: { name: 'Fisher Scientific' } } },
+    { id: 1, product_id: 1, product_name: 'Sodium Chloride', catalog_number: 'S1234', category: 'Chemicals', vendor_name: 'Sigma-Aldrich', location_name: 'Shelf A1', lot_number: 'LOT-ABC', quantity_on_hand: 5, quantity_display: '5', unit: 'kg', status: 'available', expiry_date: '2027-01-15' },
+    { id: 2, product_id: 2, product_name: 'Ethanol 95%', catalog_number: 'E5678', category: 'Solvents', vendor_name: 'Fisher Scientific', location_name: null, lot_number: 'LOT-DEF', quantity_on_hand: 2, quantity_display: '2', unit: 'L', status: 'opened', expiry_date: '2026-06-30' },
   ],
   total: 2, page: 1, page_size: 20, pages: 1,
 }
