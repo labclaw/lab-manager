@@ -263,6 +263,17 @@ def create_app() -> FastAPI:
             content={"detail": exc.message},
         )
 
+    # --- Catch-all exception handler ---
+    @app.exception_handler(Exception)
+    async def _global_exception_handler(request: Request, exc: Exception):
+        logger.exception(
+            "Unhandled exception on %s %s", request.method, request.url.path
+        )
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error"},
+        )
+
     # --- Audit middleware (inner — registered first) ---
     #
     # In Starlette, last-registered middleware is outermost. Registering audit
