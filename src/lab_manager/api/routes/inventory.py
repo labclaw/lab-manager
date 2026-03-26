@@ -151,6 +151,7 @@ def _flatten_item(item: InventoryItem) -> dict:
         "opened_date": item.opened_date.isoformat() if item.opened_date else None,
         "status": item.status,
         "notes": item.notes,
+        "order_item_id": item.order_item_id,
     }
 
 
