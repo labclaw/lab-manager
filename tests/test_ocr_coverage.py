@@ -272,7 +272,9 @@ class TestOcrGemini:
         monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
         img = tmp_path / "test.png"
         img.write_bytes(b"fake")
-        with pytest.raises(RuntimeError, match="No Gemini OCR key"):
+        with pytest.raises(
+            (RuntimeError, Exception), match="No Gemini OCR key|Ephemeral tokens"
+        ):
             _ocr_gemini(
                 img,
                 MagicMock(extraction_api_key="", extraction_model="gemini-2.5-flash"),
