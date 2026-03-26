@@ -77,7 +77,7 @@ test.describe('Documents Page', () => {
   })
 
   test('pagination info shows item count', async ({ authedPage: page }) => {
-    await expect(page.getByText(/showing.*1.*to.*4.*of.*4/i)).toBeVisible()
+    await expect(page.getByText(/showing.*1.*(-|to).*4.*of.*4/i)).toBeVisible()
   })
 
   test('clicking document row navigates to review', async ({ authedPage: page }) => {
