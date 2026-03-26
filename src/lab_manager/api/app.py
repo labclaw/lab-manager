@@ -758,6 +758,7 @@ def create_app() -> FastAPI:
         ask,
         audit,
         documents,
+        email_ingest,
         equipment,
         export,
         inventory,
@@ -796,6 +797,9 @@ def create_app() -> FastAPI:
     api_router.include_router(alerts.router, prefix="/api/v1/alerts", tags=["alerts"])
     api_router.include_router(
         telemetry.router, prefix="/api/v1/telemetry", tags=["telemetry"]
+    )
+    api_router.include_router(
+        email_ingest.router, prefix="/api/v1/email", tags=["email"]
     )
     app.include_router(api_router)
 
