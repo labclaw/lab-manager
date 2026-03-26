@@ -35,7 +35,7 @@ class TestDocumentCreateValidators:
     def test_path_traversal_rejected(self):
         from lab_manager.api.routes.documents import DocumentCreate
 
-        with pytest.raises(ValidationError, match="traversal"):
+        with pytest.raises(ValidationError, match="upload_dir"):
             DocumentCreate(
                 file_path="../../etc/passwd",
                 file_name="test.png",
@@ -44,7 +44,7 @@ class TestDocumentCreateValidators:
     def test_blocked_prefix_rejected(self):
         from lab_manager.api.routes.documents import DocumentCreate
 
-        with pytest.raises(ValidationError, match="traversal"):
+        with pytest.raises(ValidationError, match="upload_dir"):
             DocumentCreate(
                 file_path="/etc/passwd",
                 file_name="test.png",
@@ -93,7 +93,7 @@ class TestDocumentUpdateValidators:
     def test_path_traversal_on_update(self):
         from lab_manager.api.routes.documents import DocumentUpdate
 
-        with pytest.raises(ValidationError, match="traversal"):
+        with pytest.raises(ValidationError, match="upload_dir"):
             DocumentUpdate(file_path="/etc/shadow")
 
 
@@ -101,42 +101,42 @@ class TestValidateFilePath:
     def test_normal_path(self):
         from lab_manager.api.routes.documents import _validate_file_path
 
-        assert _validate_file_path("uploads/test.png") == "uploads/test.png"
+        assert _validate_file_path("test.png") == "test.png"
 
     def test_double_dot_rejected(self):
         from lab_manager.api.routes.documents import _validate_file_path
 
-        with pytest.raises(ValueError, match="traversal"):
-            _validate_file_path("uploads/../etc/passwd")
+        with pytest.raises(ValueError, match="upload_dir"):
+            _validate_file_path("../../etc/passwd")
 
     def test_var_prefix_rejected(self):
         from lab_manager.api.routes.documents import _validate_file_path
 
-        with pytest.raises(ValueError, match="traversal"):
+        with pytest.raises(ValueError, match="upload_dir"):
             _validate_file_path("/var/tmp/test.png")
 
     def test_root_prefix_rejected(self):
         from lab_manager.api.routes.documents import _validate_file_path
 
-        with pytest.raises(ValueError, match="traversal"):
+        with pytest.raises(ValueError, match="upload_dir"):
             _validate_file_path("/root/test.png")
 
     def test_home_prefix_rejected(self):
         from lab_manager.api.routes.documents import _validate_file_path
 
-        with pytest.raises(ValueError, match="traversal"):
+        with pytest.raises(ValueError, match="upload_dir"):
             _validate_file_path("/home/user/test.png")
 
     def test_proc_prefix_rejected(self):
         from lab_manager.api.routes.documents import _validate_file_path
 
-        with pytest.raises(ValueError, match="traversal"):
+        with pytest.raises(ValueError, match="upload_dir"):
             _validate_file_path("/proc/self/mem")
 
     def test_sys_prefix_rejected(self):
         from lab_manager.api.routes.documents import _validate_file_path
 
-        with pytest.raises(ValueError, match="traversal"):
+        with pytest.raises(ValueError, match="upload_dir"):
             _validate_file_path("/sys/kernel/notes")
 
 

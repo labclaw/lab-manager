@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -17,6 +17,7 @@ from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.inventory import InventoryItem, InventoryStatus
 from lab_manager.models.product import Product
 from lab_manager.services import inventory as inv_svc
+from lab_manager.services.search import index_inventory_record
 from lab_manager.services.vendor_urls import get_reorder_url
 
 router = APIRouter()
@@ -106,6 +107,26 @@ class DisposeBody(BaseModel):
 
 class OpenBody(BaseModel):
     opened_by: str = Field(max_length=200)
+
+
+class InventoryItemResponse(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: int
+    product_id: int
+    location_id: Optional[int] = None
+    lot_number: Optional[str] = None
+    quantity_on_hand: Decimal
+    unit: Optional[str] = None
+    expiry_date: Optional[date] = None
+    opened_date: Optional[date] = None
+    status: str
+    notes: Optional[str] = None
+    received_by: Optional[str] = None
+    order_item_id: Optional[int] = None
+    extra: dict = {}
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 
 # ---------------------------------------------------------------------------
@@ -201,6 +222,7 @@ def create_inventory_item(body: InventoryItemCreate, db: Session = Depends(get_d
     db.add(item)
     db.flush()
     db.refresh(item)
+    index_inventory_record(item)
     return item
 
 
@@ -221,20 +243,31 @@ def expiring(days: int = Query(30, ge=1), db: Session = Depends(get_db)):
 # ---------------------------------------------------------------------------
 
 
-@router.get("/{item_id}")
+@router.get("/{item_id}", response_model=InventoryItemResponse)
 def get_inventory_item(item_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, InventoryItem, item_id, "Inventory item")
 
 
-@router.patch("/{item_id}")
+@router.patch(
+    "/{item_id}", dependencies=[Depends(require_permission("receive_shipments"))]
+)
 def update_inventory_item(
     item_id: int, body: InventoryItemUpdate, db: Session = Depends(get_db)
 ):
     item = get_or_404(db, InventoryItem, item_id, "Inventory item")
+    if item.status in (
+        InventoryStatus.deleted,
+        InventoryStatus.disposed,
+        InventoryStatus.depleted,
+    ):
+        raise ValidationError(
+            f"Cannot modify inventory item with status '{item.status}'"
+        )
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
     db.flush()
     db.refresh(item)
+    index_inventory_record(item)
     return item
 
 
@@ -264,22 +297,30 @@ def consume_item(item_id: int, body: ConsumeBody, db: Session = Depends(get_db))
     return inv_svc.consume(item_id, body.quantity, body.consumed_by, body.purpose, db)
 
 
-@router.post("/{item_id}/transfer")
+@router.post(
+    "/{item_id}/transfer", dependencies=[Depends(require_permission("log_consumption"))]
+)
 def transfer_item(item_id: int, body: TransferBody, db: Session = Depends(get_db)):
     return inv_svc.transfer(item_id, body.location_id, body.transferred_by, db)
 
 
-@router.post("/{item_id}/adjust")
+@router.post(
+    "/{item_id}/adjust", dependencies=[Depends(require_permission("log_consumption"))]
+)
 def adjust_item(item_id: int, body: AdjustBody, db: Session = Depends(get_db)):
     return inv_svc.adjust(item_id, body.new_quantity, body.reason, body.adjusted_by, db)
 
 
-@router.post("/{item_id}/dispose")
+@router.post(
+    "/{item_id}/dispose", dependencies=[Depends(require_permission("log_consumption"))]
+)
 def dispose_item(item_id: int, body: DisposeBody, db: Session = Depends(get_db)):
     return inv_svc.dispose(item_id, body.reason, body.disposed_by, db)
 
 
-@router.post("/{item_id}/open")
+@router.post(
+    "/{item_id}/open", dependencies=[Depends(require_permission("log_consumption"))]
+)
 def open_item(item_id: int, body: OpenBody, db: Session = Depends(get_db)):
     return inv_svc.open_item(item_id, body.opened_by, db)
 

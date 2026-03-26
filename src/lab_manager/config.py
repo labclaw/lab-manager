@@ -50,6 +50,24 @@ class Settings(BaseSettings):
             )
         return self
 
+    @model_validator(mode="after")
+    def _warn_default_admin_password(self):
+        """Warn when ADMIN_PASSWORD is empty or a known default."""
+        if self.auth_enabled:
+            pw = self.admin_password.strip()
+            if not pw:
+                logger.warning(
+                    "ADMIN_PASSWORD is empty — the admin panel will be unprotected. "
+                    "Set ADMIN_PASSWORD to a strong value."
+                )
+            elif pw.startswith("changeme"):
+                logger.warning(
+                    "ADMIN_PASSWORD is still a default value (%s). "
+                    "Change it to a strong password before deploying.",
+                    pw,
+                )
+        return self
+
     meilisearch_url: str = "http://localhost:7700"
     meilisearch_api_key: str = ""
 
@@ -65,7 +83,7 @@ class Settings(BaseSettings):
     admin_secret_key: str = ""
     admin_password: str = ""
     auth_enabled: bool = True
-    secure_cookies: bool = True
+    secure_cookies: bool = False
 
     # Document intake — OCR tiered detection
     # ocr_tier: "local" (vLLM only), "api" (cloud APIs), "auto" (local first, API fallback)
@@ -79,6 +97,8 @@ class Settings(BaseSettings):
     extraction_api_key: str = ""
     mistral_api_key: str = ""
     openai_api_key: str = ""
+    gemini_api_key: str = ""
+    google_api_key: str = ""
 
     # RAG — uses NVIDIA API when nvidia_build_api_key is set
     rag_model: str = "nvidia_nim/z-ai/glm5"

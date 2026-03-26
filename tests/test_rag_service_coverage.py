@@ -13,7 +13,7 @@ class TestSerializeRows:
 
         rows = [{"price": Decimal("10.50")}]
         result = _serialize_rows(rows)
-        assert result[0]["price"] == 10.50
+        assert result[0]["price"] == "10.50"
 
     def test_datetime_converted(self):
         from datetime import datetime

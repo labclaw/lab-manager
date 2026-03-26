@@ -18,7 +18,7 @@ from lab_manager.services.alerts import get_alert_summary, persist_alerts
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(require_permission("acknowledge_alerts"))])
 def list_alerts(
     alert_type: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
@@ -45,7 +45,9 @@ def list_alerts(
     return paginate(q, db, page, page_size)
 
 
-@router.get("/summary")
+@router.get(
+    "/summary", dependencies=[Depends(require_permission("acknowledge_alerts"))]
+)
 def alert_summary(db: Session = Depends(get_db)):
     """Return alert counts grouped by type and severity."""
     return get_alert_summary(db)

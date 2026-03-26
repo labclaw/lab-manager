@@ -869,14 +869,16 @@ class TestFullUserJourney:
         assert data["storage_temp"] == "-20C"
 
     def test_59_update_order_item(self, journey_client):
-        """PATCH /api/v1/orders/{id}/items/{item_id} updates an order item."""
+        """PATCH /api/v1/orders/{id}/items/{item_id} — blocked on received order."""
         oid = TestFullUserJourney.order_id
         item_id = TestFullUserJourney.order_item_ids[0]
         resp = journey_client.patch(
             f"/api/v1/orders/{oid}/items/{item_id}",
             json={"quantity": 8},
         )
-        assert resp.status_code == 200, f"Update order item failed: {resp.text}"
+        assert resp.status_code == 422, (
+            f"Expected 422 for immutable order, got {resp.status_code}"
+        )
 
     # -----------------------------------------------------------------------
     # 17. Inventory reorder URL

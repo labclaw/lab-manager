@@ -238,7 +238,7 @@ class TestApproveFlow:
             status=DocumentStatus.needs_review,
             vendor_name="Sigma-Aldrich",
             document_type="packing_list",
-            extracted_data=SAMPLE_EXTRACTED.model_dump(),
+            extracted_data=SAMPLE_EXTRACTED.model_dump(mode="json"),
             extraction_confidence=0.92,
         )
         db_session.add(doc)
@@ -503,7 +503,7 @@ class TestApproveEdgeCases:
         dest = upload_dir / "approve_edge.png"
         dest.write_bytes(png)
 
-        extracted_data = SAMPLE_EXTRACTED.model_dump()
+        extracted_data = SAMPLE_EXTRACTED.model_dump(mode="json")
         extracted_data.update(overrides.pop("extracted_overrides", {}))
 
         doc = Document(
@@ -562,7 +562,7 @@ class TestApproveEdgeCases:
             status=DocumentStatus.approved,
             vendor_name="Sigma-Aldrich",
             document_type="packing_list",
-            extracted_data=SAMPLE_EXTRACTED.model_dump(),
+            extracted_data=SAMPLE_EXTRACTED.model_dump(mode="json"),
             reviewed_by="admin",
         )
         db_session.add(doc)
@@ -668,7 +668,7 @@ class TestApproveEdgeCases:
             upload_dir,
         )
         # Override extracted_data with no catalog numbers
-        doc.extracted_data = extracted_no_cat.model_dump()
+        doc.extracted_data = extracted_no_cat.model_dump(mode="json")
         doc.vendor_name = "Sigma-Aldrich"
         db_session.commit()
         db_session.refresh(doc)
@@ -756,7 +756,7 @@ class TestSearchIndexingResilience:
             status=DocumentStatus.needs_review,
             vendor_name="Sigma-Aldrich",
             document_type="packing_list",
-            extracted_data=SAMPLE_EXTRACTED.model_dump(),
+            extracted_data=SAMPLE_EXTRACTED.model_dump(mode="json"),
             extraction_confidence=0.92,
         )
         db_session.add(doc)

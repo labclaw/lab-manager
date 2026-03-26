@@ -187,7 +187,7 @@ def process_document(image_path: Path, db: Session) -> Document:
 
             doc.document_type = extracted.document_type
             doc.vendor_name = normalize_vendor(extracted.vendor_name)
-            doc.extracted_data = extracted.model_dump()
+            doc.extracted_data = extracted.model_dump(mode="json")
             doc.extraction_model = settings.extraction_model
             doc.extraction_confidence = extracted.confidence
             doc.status = DocumentStatus.needs_review

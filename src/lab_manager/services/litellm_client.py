@@ -199,8 +199,9 @@ def create_completion(
         ... )
         >>> print(response.choices[0].message.content)
     """
-    # Load config if available (for routing/fallbacks)
-    load_litellm_config()
+    # NOTE: load_litellm_config() is available but not wired into the router.
+    # If model routing/fallbacks are needed, integrate the returned config here.
+    # Currently we rely on the resolved model and env vars directly.
 
     # Get client params (API keys, base URLs)
     client_params = get_client_params(model)
@@ -214,8 +215,6 @@ def create_completion(
         **kwargs,
     }
 
-    # If config file exists, LiteLLM will use it for fallbacks
-    # Otherwise, we rely on the resolved model and env vars
     return completion(**params)
 
 

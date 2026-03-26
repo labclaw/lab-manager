@@ -4,7 +4,8 @@ from decimal import Decimal  # noqa: F401 — used in Field type annotations
 from typing import TYPE_CHECKING, List, Optional
 
 import sqlalchemy as sa
-from sqlalchemy import Column
+from sqlalchemy import JSON, Column  # noqa: F401
+from sqlalchemy.dialects.postgresql import JSONB as _JSONB  # noqa: F401
 from sqlmodel import Field, Relationship
 
 from lab_manager.models.base import AuditMixin
@@ -42,7 +43,9 @@ class Product(AuditMixin, table=True):
     storage_temp: Optional[str] = Field(default=None, max_length=50)
     unit: Optional[str] = Field(default=None, max_length=50)
     hazard_info: Optional[str] = Field(default=None, max_length=255)
-    extra: dict = Field(default_factory=dict, sa_column=Column(sa.JSON))
+    extra: dict = Field(
+        default_factory=dict, sa_column=Column(_JSONB().with_variant(JSON, "sqlite"))
+    )
 
     min_stock_level: Optional[Decimal] = Field(
         default=None, sa_column=Column(sa.Numeric(12, 4), nullable=True)

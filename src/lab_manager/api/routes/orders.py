@@ -15,11 +15,38 @@ from sqlalchemy.orm import Session, selectinload
 from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
-from lab_manager.exceptions import NotFoundError
+from lab_manager.exceptions import NotFoundError, ValidationError
 from lab_manager.models.order import Order, OrderItem, OrderStatus
 from lab_manager.services.orders import build_duplicate_warning, find_duplicate_po
+from lab_manager.services.search import index_order_record
 
 router = APIRouter()
+
+
+_VALID_STATUS_TRANSITIONS: dict[str, set[str]] = {
+    OrderStatus.pending.value: {
+        OrderStatus.shipped.value,
+        OrderStatus.cancelled.value,
+        OrderStatus.deleted.value,
+    },
+    OrderStatus.shipped.value: {
+        OrderStatus.received.value,
+        OrderStatus.cancelled.value,
+        OrderStatus.deleted.value,
+    },
+    OrderStatus.received.value: {
+        OrderStatus.deleted.value,
+    },
+}
+
+
+def _validate_status_transition(current_status: str, new_status: str) -> None:
+    allowed = _VALID_STATUS_TRANSITIONS.get(current_status, set())
+    if new_status not in allowed:
+        raise ValidationError(
+            f"Invalid status transition: {current_status} -> {new_status}. "
+            f"Allowed: {sorted(allowed) if allowed else ['(terminal status)']}"
+        )
 
 
 def _get_order_item_or_raise(db: Session, order_id: int, item_id: int) -> OrderItem:
@@ -193,10 +220,15 @@ def list_orders(
     "/", status_code=201, dependencies=[Depends(require_permission("create_orders"))]
 )
 def create_order(body: OrderCreate, db: Session = Depends(get_db)):
+    if body.status != OrderStatus.pending.value:
+        raise ValidationError(
+            f"New orders must be created with status '{OrderStatus.pending.value}', got '{body.status}'"
+        )
     order = Order(**body.model_dump())
     db.add(order)
     db.flush()
     db.refresh(order)
+    index_order_record(order)
 
     # Duplicate PO# check — warn but never block (OCR may re-scan same doc).
     # The warning is embedded in the response under _duplicate_warning so callers
@@ -212,9 +244,7 @@ def create_order(body: OrderCreate, db: Session = Depends(get_db)):
         if dupes:
             duplicate_warning = build_duplicate_warning(dupes)
 
-    if duplicate_warning:
-        return {"order": order, "_duplicate_warning": duplicate_warning}
-    return order
+    return {"order": order, "_duplicate_warning": duplicate_warning}
 
 
 @router.get("/{order_id}", response_model=OrderResponse)
@@ -227,10 +257,14 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
 )
 def update_order(order_id: int, body: OrderUpdate, db: Session = Depends(get_db)):
     order = get_or_404(db, Order, order_id, "Order")
-    for key, value in body.model_dump(exclude_unset=True).items():
+    updates = body.model_dump(exclude_unset=True)
+    if "status" in updates:
+        _validate_status_transition(order.status, updates["status"])
+    for key, value in updates.items():
         setattr(order, key, value)
     db.flush()
     db.refresh(order)
+    index_order_record(order)
     return order
 
 
@@ -245,6 +279,20 @@ def delete_order(order_id: int, db: Session = Depends(get_db)):
     order.status = OrderStatus.deleted
     db.flush()
     return None
+
+
+_IMMUTABLE_ORDER_STATUSES = {
+    OrderStatus.received.value,
+    OrderStatus.cancelled.value,
+    OrderStatus.deleted.value,
+}
+
+
+def _ensure_order_mutable(order: Order) -> None:
+    if order.status in _IMMUTABLE_ORDER_STATUSES:
+        raise ValidationError(
+            f"Cannot modify items on order with status '{order.status}'"
+        )
 
 
 # =====================
@@ -271,11 +319,16 @@ def list_order_items(
     return paginate(q, db, page, page_size)
 
 
-@router.post("/{order_id}/items", status_code=201)
+@router.post(
+    "/{order_id}/items",
+    status_code=201,
+    dependencies=[Depends(require_permission("create_orders"))],
+)
 def create_order_item(
     order_id: int, body: OrderItemCreate, db: Session = Depends(get_db)
 ):
-    get_or_404(db, Order, order_id, "Order")
+    order = get_or_404(db, Order, order_id, "Order")
+    _ensure_order_mutable(order)
     item = OrderItem(**body.model_dump())
     item.order_id = order_id
     db.add(item)
@@ -289,10 +342,15 @@ def get_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)):
     return _get_order_item_or_raise(db, order_id, item_id)
 
 
-@router.patch("/{order_id}/items/{item_id}")
+@router.patch(
+    "/{order_id}/items/{item_id}",
+    dependencies=[Depends(require_permission("approve_orders"))],
+)
 def update_order_item(
     order_id: int, item_id: int, body: OrderItemUpdate, db: Session = Depends(get_db)
 ):
+    order = get_or_404(db, Order, order_id, "Order")
+    _ensure_order_mutable(order)
     item = _get_order_item_or_raise(db, order_id, item_id)
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
@@ -301,8 +359,14 @@ def update_order_item(
     return item
 
 
-@router.delete("/{order_id}/items/{item_id}", status_code=204)
+@router.delete(
+    "/{order_id}/items/{item_id}",
+    status_code=204,
+    dependencies=[Depends(require_permission("delete_records"))],
+)
 def delete_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)):
+    order = get_or_404(db, Order, order_id, "Order")
+    _ensure_order_mutable(order)
     item = _get_order_item_or_raise(db, order_id, item_id)
     db.delete(item)
     db.flush()

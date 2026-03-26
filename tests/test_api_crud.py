@@ -179,7 +179,7 @@ def test_product_orders_relationship(client):
     pid = pr.json()["id"]
     # Create order and item
     orr = client.post("/api/v1/orders/", json={"status": "pending"})
-    oid = orr.json()["id"]
+    oid = orr.json()["order"]["id"]
     client.post(
         f"/api/v1/orders/{oid}/items",
         json={"order_id": oid, "product_id": pid, "catalog_number": "ORD1"},
@@ -195,7 +195,7 @@ def test_product_orders_relationship(client):
 
 def test_order_update(client):
     resp = client.post("/api/v1/orders/", json={"status": "pending"})
-    oid = resp.json()["id"]
+    oid = resp.json()["order"]["id"]
     resp = client.patch(f"/api/v1/orders/{oid}", json={"status": "shipped"})
     assert resp.status_code == 200
     assert resp.json()["status"] == "shipped"
@@ -203,7 +203,7 @@ def test_order_update(client):
 
 def test_order_soft_delete(client):
     resp = client.post("/api/v1/orders/", json={"status": "pending"})
-    oid = resp.json()["id"]
+    oid = resp.json()["order"]["id"]
     resp = client.delete(f"/api/v1/orders/{oid}")
     assert resp.status_code == 204
     # Should still exist but with status=deleted
@@ -215,15 +215,18 @@ def test_order_soft_delete(client):
 def test_order_list_filters(client):
     vr = client.post("/api/v1/vendors/", json={"name": "OrderVendor"})
     vid = vr.json()["id"]
-    client.post(
+    order_resp = client.post(
         "/api/v1/orders/",
         json={
             "vendor_id": vid,
-            "status": "received",
             "po_number": "PO-999",
             "order_date": "2026-01-15",
-            "received_by": "John",
         },
+    )
+    oid = order_resp.json()["order"]["id"]
+    client.patch(f"/api/v1/orders/{oid}", json={"status": "shipped"})
+    client.patch(
+        f"/api/v1/orders/{oid}", json={"status": "received", "received_by": "John"}
     )
     client.post("/api/v1/orders/", json={"status": "pending"})
 
@@ -263,7 +266,7 @@ def test_order_list_pagination(client):
 
 def test_order_items_crud(client):
     orr = client.post("/api/v1/orders/", json={"status": "pending"})
-    oid = orr.json()["id"]
+    oid = orr.json()["order"]["id"]
 
     # Create item
     resp = client.post(
@@ -298,7 +301,7 @@ def test_order_items_crud(client):
 
 def test_order_items_filter(client):
     orr = client.post("/api/v1/orders/", json={"status": "pending"})
-    oid = orr.json()["id"]
+    oid = orr.json()["order"]["id"]
     client.post(
         f"/api/v1/orders/{oid}/items",
         json={
@@ -408,7 +411,7 @@ def test_document_update_full(client):
     resp = client.post(
         "/api/v1/documents/",
         json={
-            "file_path": "/tmp/test.pdf",
+            "file_path": "uploads/test.pdf",
             "file_name": "test_upd.pdf",
             "status": "pending",
         },
@@ -427,7 +430,7 @@ def test_document_soft_delete(client):
     resp = client.post(
         "/api/v1/documents/",
         json={
-            "file_path": "/tmp/del.pdf",
+            "file_path": "uploads/del.pdf",
             "file_name": "del.pdf",
             "status": "pending",
         },
@@ -444,7 +447,7 @@ def test_document_list_filters(client):
     client.post(
         "/api/v1/documents/",
         json={
-            "file_path": "/tmp/a.pdf",
+            "file_path": "uploads/a.pdf",
             "file_name": "a_filter.pdf",
             "status": "pending",
             "document_type": "packing_list",
@@ -454,7 +457,7 @@ def test_document_list_filters(client):
     client.post(
         "/api/v1/documents/",
         json={
-            "file_path": "/tmp/b.pdf",
+            "file_path": "uploads/b.pdf",
             "file_name": "b_filter.pdf",
             "status": "approved",
             "document_type": "invoice",

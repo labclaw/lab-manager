@@ -154,11 +154,8 @@ else
     log "Skipping pre-deployment backup."
 fi
 
-CURRENT_STEP="database migrations"
-log "Running alembic upgrade head..."
-run_migrations
-
 CURRENT_STEP="docker compose up -d --build"
+log "Building and starting containers (migrations run inside the container entrypoint)..."
 log "Building and starting containers..."
 docker compose -f "$ROOT_DIR/docker-compose.yml" up -d --build
 
@@ -186,7 +183,7 @@ printf '\nDeployment summary\n'
 printf '  Branch: %s\n' "$BRANCH_NAME"
 printf '  Commit: %s\n' "$DEPLOY_COMMIT"
 printf '  Backup: %s\n' "$BACKUP_STATUS"
-printf '  Migrations: alembic upgrade head\n'
+printf '  Migrations: container entrypoint (alembic upgrade head)\n'
 printf '  Compose: docker compose up -d --build\n'
 printf '  Health: %s\n' "$HEALTH_URL"
 printf '  Result: success\n'

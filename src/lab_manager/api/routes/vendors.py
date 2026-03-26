@@ -18,6 +18,7 @@ from lab_manager.exceptions import ConflictError
 from lab_manager.models.order import Order
 from lab_manager.models.product import Product
 from lab_manager.models.vendor import Vendor
+from lab_manager.services.search import index_vendor_record
 
 router = APIRouter()
 
@@ -88,6 +89,7 @@ def create_vendor(body: VendorCreate, db: Session = Depends(get_db)):
     db.add(vendor)
     db.flush()
     db.refresh(vendor)
+    index_vendor_record(vendor)
     return vendor
 
 
@@ -105,6 +107,7 @@ def update_vendor(vendor_id: int, body: VendorUpdate, db: Session = Depends(get_
         setattr(vendor, key, value)
     db.flush()
     db.refresh(vendor)
+    index_vendor_record(vendor)
     return vendor
 
 

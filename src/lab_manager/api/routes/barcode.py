@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db
 from lab_manager.api.pagination import ilike_col, paginate
 from lab_manager.models.inventory import InventoryItem
@@ -15,7 +16,7 @@ from lab_manager.models.product import Product
 router = APIRouter()
 
 
-@router.get("/lookup")
+@router.get("/lookup", dependencies=[Depends(require_permission("view_inventory"))])
 def barcode_lookup(
     value: str = Query(..., min_length=1, description="Scanned barcode or QR value"),
     page: int = Query(1, ge=1),

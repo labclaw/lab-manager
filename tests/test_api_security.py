@@ -86,7 +86,7 @@ def test_create_document_valid_status_accepted(client):
     resp = client.post(
         "/api/v1/documents/",
         json={
-            "file_path": "/uploads/ok.pdf",
+            "file_path": "uploads/ok.pdf",
             "file_name": "ok.pdf",
             "status": "pending",
         },

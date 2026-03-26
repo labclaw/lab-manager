@@ -56,7 +56,7 @@ def _csv_response(rows: list[dict], filename: str) -> StreamingResponse:
     buf.seek(0)
     return StreamingResponse(
         iter([buf.getvalue()]),
-        media_type="text/csv",
+        media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
@@ -124,7 +124,7 @@ def export_products(db: Session = Depends(get_db)):
 
     return StreamingResponse(
         generate(),
-        media_type="text/csv",
+        media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": 'attachment; filename="products.csv"'},
     )
 
@@ -154,6 +154,6 @@ def export_vendors(db: Session = Depends(get_db)):
 
     return StreamingResponse(
         generate(),
-        media_type="text/csv",
+        media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": 'attachment; filename="vendors.csv"'},
     )

@@ -50,7 +50,7 @@ class TestSerializeValue:
         assert serialize_value(Custom()) == "custom-str"
 
     def test_decimal(self):
-        assert serialize_value(Decimal("1.5")) == 1.5
+        assert serialize_value(Decimal("1.5")) == "1.5"
 
     def test_date(self):
         assert serialize_value(date(2026, 1, 15)) == "2026-01-15"

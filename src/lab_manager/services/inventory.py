@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from datetime import date, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -50,8 +50,13 @@ def _log_consumption(
     return entry
 
 
-def _get_inventory_or_404(db: Session, inventory_id: int) -> InventoryItem:
-    item = db.get(InventoryItem, inventory_id)
+def _get_inventory_or_404(
+    db: Session, inventory_id: int, *, for_update: bool = False
+) -> InventoryItem:
+    stmt = select(InventoryItem).where(InventoryItem.id == inventory_id)
+    if for_update:
+        stmt = stmt.with_for_update()
+    item = db.scalars(stmt).first()
     if not item:
         raise NotFoundError("Inventory item", inventory_id)
     return item
@@ -78,8 +83,17 @@ def receive_items(
     if not order:
         raise NotFoundError("Order", order_id)
 
+    if order.status in (
+        OrderStatus.received,
+        OrderStatus.cancelled,
+        OrderStatus.deleted,
+    ):
+        raise ValidationError(
+            f"Cannot receive order that is already {order.status.value}"
+        )
+
     created = []
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
 
     # Batch-fetch all order items to avoid N+1 queries
     order_item_ids = [
@@ -156,9 +170,14 @@ def consume(
 ) -> InventoryItem:
     """Reduce quantity on hand. Mark depleted if 0."""
     quantity = _to_decimal(quantity)
-    item = _get_inventory_or_404(db, inventory_id)
+    item = _get_inventory_or_404(db, inventory_id, for_update=True)
 
-    if item.status in (InventoryStatus.disposed, InventoryStatus.depleted):
+    if item.status in (
+        InventoryStatus.disposed,
+        InventoryStatus.depleted,
+        InventoryStatus.deleted,
+        InventoryStatus.expired,
+    ):
         raise ValidationError(f"Cannot consume from {item.status} item")
     if quantity <= 0:
         raise ValidationError("Quantity must be positive")
@@ -199,7 +218,7 @@ def transfer(
     db: Session,
 ) -> InventoryItem:
     """Move item to a different location."""
-    item = _get_inventory_or_404(db, inventory_id)
+    item = _get_inventory_or_404(db, inventory_id, for_update=True)
     old_location_id = item.location_id
     item.location_id = new_location_id
 
@@ -234,7 +253,7 @@ def adjust(
     new_quantity = _to_decimal(new_quantity)
     if new_quantity < Decimal("0"):
         raise ValidationError("Adjusted quantity cannot be negative")
-    item = _get_inventory_or_404(db, inventory_id)
+    item = _get_inventory_or_404(db, inventory_id, for_update=True)
     old_quantity = Decimal(str(item.quantity_on_hand))  # ensure Decimal
     delta = new_quantity - old_quantity
 
@@ -271,7 +290,7 @@ def dispose(
     db: Session,
 ) -> InventoryItem:
     """Mark item as disposed (expired, contaminated, etc)."""
-    item = _get_inventory_or_404(db, inventory_id)
+    item = _get_inventory_or_404(db, inventory_id, for_update=True)
 
     remaining = item.quantity_on_hand
     item.quantity_on_hand = Decimal("0")
@@ -308,7 +327,7 @@ def open_item(
     if item.opened_date is not None:
         raise ValidationError("Item is already opened")
 
-    item.opened_date = date.today()
+    item.opened_date = datetime.now(timezone.utc).date()
     item.status = InventoryStatus.opened
 
     _log_consumption(
@@ -379,7 +398,7 @@ def get_low_stock(db: Session) -> list[dict]:
 
 def get_expiring(db: Session, days: int = 30) -> list[InventoryItem]:
     """Items expiring within N days."""
-    cutoff = date.today() + timedelta(days=days)
+    cutoff = datetime.now(timezone.utc).date() + timedelta(days=days)
     return db.scalars(
         select(InventoryItem).where(
             InventoryItem.expiry_date.isnot(None),

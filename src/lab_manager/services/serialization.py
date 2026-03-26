@@ -19,7 +19,7 @@ def serialize_value(val: Any) -> Any:
     if isinstance(val, date):
         return val.isoformat()
     if isinstance(val, Decimal):
-        return float(val)
+        return str(val)
     if isinstance(val, (int, float, bool, str)):
         return val
     if isinstance(val, (list, dict)):
