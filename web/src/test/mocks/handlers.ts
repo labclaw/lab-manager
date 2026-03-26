@@ -38,8 +38,8 @@ const mockOrders = {
 
 const mockInventory = {
   items: [
-    { id: 1, product_name: 'Sodium Chloride', lot_number: 'LOT-ABC', quantity_on_hand: 5, unit: 'kg', status: 'available', expiry_date: '2027-01-15' },
-    { id: 2, product_name: 'Ethanol 95%', lot_number: 'LOT-DEF', quantity_on_hand: 2, unit: 'L', status: 'opened', expiry_date: '2026-06-30' },
+    { id: 1, product_name: 'Sodium Chloride', lot_number: 'LOT-ABC', quantity_on_hand: 5, unit: 'kg', status: 'available', expiry_date: '2027-01-15', product: { vendor: { name: 'Sigma-Aldrich' } } },
+    { id: 2, product_name: 'Ethanol 95%', lot_number: 'LOT-DEF', quantity_on_hand: 2, unit: 'L', status: 'opened', expiry_date: '2026-06-30', product: { vendor: { name: 'Fisher Scientific' } } },
   ],
   total: 2, page: 1, page_size: 20, pages: 1,
 }
@@ -114,7 +114,7 @@ export const handlers = [
   http.get('/api/v1/setup/status', () => HttpResponse.json({ needs_setup: false })),
 
   // Config
-  http.get('/api/v1/config', () => HttpResponse.json({ lab_name: 'Shen Lab', lab_subtitle: 'Neuroscience Research', version: '0.1.9' })),
+  http.get('/api/v1/config', () => HttpResponse.json({ lab_name: 'Research Lab', lab_subtitle: 'Neuroscience Department', version: '0.1.9' })),
 
   // Analytics
   http.get('/api/v1/analytics/dashboard', () => HttpResponse.json(mockDashboard)),
@@ -145,6 +145,11 @@ export const handlers = [
   http.get('/api/v1/inventory', () => HttpResponse.json(mockInventory)),
   http.get('/api/v1/inventory/low-stock', () => HttpResponse.json(mockLowStock)),
   http.get('/api/v1/inventory/expiring', () => HttpResponse.json(mockExpiring)),
+  http.get('/api/v1/inventory/:id/reorder-url', ({ params }) => {
+    const urls: Record<string, string> = { '1': 'https://www.sigmaaldrich.com/product/S1234', '2': 'https://www.fishersci.com/product/E5678' }
+    const url = urls[String(params.id)]
+    return url ? HttpResponse.json({ url }) : HttpResponse.json({ url: null })
+  }),
   http.get('/api/v1/inventory/:id', ({ params }) => {
     const item = mockInventory.items.find(i => i.id === Number(params.id))
     return item ? HttpResponse.json(item) : new HttpResponse(null, { status: 404 })

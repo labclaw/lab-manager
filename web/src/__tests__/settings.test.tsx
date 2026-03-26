@@ -97,7 +97,7 @@ describe('SettingsPage', () => {
 
     await waitFor(() => {
       const labNameInput = screen.getByLabelText('Lab Name') as HTMLInputElement
-      expect(labNameInput.value).toBe('Shen Lab')
+      expect(labNameInput.value).toBe('Research Lab')
     })
   })
 
