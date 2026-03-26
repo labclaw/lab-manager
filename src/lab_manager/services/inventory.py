@@ -103,13 +103,22 @@ def receive_items(
                 f"Order item {order_item_id} belongs to order {order_item.order_id}, not {order_id}"
             )
 
+        product_id = order_item.product_id if order_item else ri.get("product_id")
+
+        # Auto-calculate expiry from product.shelf_life_days when not provided
+        expiry = ri.get("expiry_date")
+        if not expiry and product_id:
+            product = db.get(Product, product_id)
+            if product and product.shelf_life_days:
+                expiry = today + timedelta(days=product.shelf_life_days)
+
         inv_kwargs = dict(
-            product_id=order_item.product_id if order_item else ri.get("product_id"),
+            product_id=product_id,
             lot_number=ri.get("lot_number")
             or (order_item.lot_number if order_item else None),
             quantity_on_hand=ri.get("quantity", 1),
             unit=ri.get("unit") or (order_item.unit if order_item else None),
-            expiry_date=ri.get("expiry_date"),
+            expiry_date=expiry,
             status=InventoryStatus.available,
             received_by=received_by,
             order_item_id=order_item_id,
