@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from pathlib import PurePosixPath
 from typing import Literal, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, UploadFile
@@ -46,16 +45,29 @@ _DOC_SORTABLE = {
 
 _VALID_STATUSES = {s.value for s in DocumentStatus}
 
-_BLOCKED_PREFIXES = ("/etc/", "/proc/", "/sys/", "/var/", "/root/", "/home/")
-
 
 def _validate_file_path(v: str) -> str:
-    """Check for path traversal and blocked system directories."""
-    parts = PurePosixPath(v).parts
-    if ".." in parts:
-        raise ValueError("Path traversal not allowed")
-    if any(v.startswith(b) for b in _BLOCKED_PREFIXES):
-        raise ValueError("Path traversal not allowed")
+    """Allowlist validation: path must resolve under upload_dir or scans_dir."""
+    from pathlib import Path
+    from urllib.parse import unquote
+
+    from lab_manager.config import get_settings
+
+    decoded = unquote(v)
+    resolved = Path(decoded).resolve()
+    settings = get_settings()
+
+    allowed_roots = []
+    upload_root = Path(settings.upload_dir).resolve()
+    allowed_roots.append(upload_root)
+    if settings.scans_dir:
+        allowed_roots.append(Path(settings.scans_dir).expanduser().resolve())
+
+    if not any(
+        str(resolved).startswith(str(root) + "/") or resolved == root
+        for root in allowed_roots
+    ):
+        raise ValueError("File path must be under upload_dir or scans_dir")
     return v
 
 
