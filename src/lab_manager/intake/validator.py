@@ -5,14 +5,20 @@ from __future__ import annotations
 from datetime import date, datetime
 
 MAX_REASONABLE_QTY = 10000
-# Dynamic year range: current year +/- 2 years for reasonable date validation
-_year = datetime.now().year
-MIN_REASONABLE_YEAR = _year - 6
-MAX_REASONABLE_YEAR = _year + 2
+
+
+def _get_year_bounds() -> tuple[int, int]:
+    """Return (min_year, max_year) for reasonable date validation.
+
+    Computed at call time so a long-running server doesn't cache a stale year.
+    """
+    year = datetime.now().year
+    return year - 6, year + 2
 
 
 def validate(data: dict) -> list[dict]:
     """Run validation rules. Returns list of issues found."""
+    MIN_REASONABLE_YEAR, MAX_REASONABLE_YEAR = _get_year_bounds()
     issues = []
 
     # Vendor name
