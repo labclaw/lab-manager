@@ -116,7 +116,9 @@ def get_equipment(equipment_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, Equipment, equipment_id, "Equipment")
 
 
-@router.patch("/{equipment_id}")
+@router.patch(
+    "/{equipment_id}", dependencies=[Depends(require_permission("log_equipment_usage"))]
+)
 def update_equipment(
     equipment_id: int, body: EquipmentUpdate, db: Session = Depends(get_db)
 ):
@@ -129,11 +131,12 @@ def update_equipment(
 
 
 @router.delete(
-    "/{equipment_id}", dependencies=[Depends(require_permission("delete_records"))]
+    "/{equipment_id}",
+    status_code=204,
+    dependencies=[Depends(require_permission("delete_records"))],
 )
 def delete_equipment(equipment_id: int, db: Session = Depends(get_db)):
     equip = get_or_404(db, Equipment, equipment_id, "Equipment")
     equip.status = EquipmentStatus.deleted
     db.flush()
-    db.refresh(equip)
-    return equip
+    return None
