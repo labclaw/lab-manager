@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import shlex
 import subprocess
 from typing import Optional
 
@@ -22,7 +23,8 @@ class GeminiProvider(VLMProvider):
         self.timeout = timeout
 
     def extract_from_image(self, image_path: str, prompt: str) -> Optional[str]:
-        full_prompt = f"Look at the image file {image_path} and follow these instructions:\n\n{prompt}"
+        safe_path = shlex.quote(str(image_path))
+        full_prompt = f"Look at the image file {safe_path} and follow these instructions:\n\n{prompt}"
         try:
             result = subprocess.run(
                 ["gemini", "-p", full_prompt, "-m", self.model],
