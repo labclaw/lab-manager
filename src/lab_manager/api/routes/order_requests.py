@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -87,7 +87,7 @@ def _get_current_staff(request: Request, db: Session) -> Staff:
     staff = db.scalars(select(Staff).where(Staff.name == user_name)).first()
     if not staff:
         # In dev mode (auth_enabled=false), auto-create a staff record
-        staff = Staff(name=user_name, role="admin", is_active=True)
+        staff = Staff(name=user_name, role="grad_student", is_active=True)
         db.add(staff)
         db.flush()
     return staff
@@ -203,6 +203,9 @@ def approve_request(
 
     if req.status != "pending":
         raise ConflictError(f"Cannot approve request in '{req.status}' status")
+
+    if req.vendor_id is None:
+        raise HTTPException(status_code=400, detail="vendor required")
 
     # Create the Order
     order = Order(
