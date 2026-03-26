@@ -184,19 +184,27 @@ class TestPreferences:
 class TestNotificationsAPI:
     """API tests use auth-disabled middleware which sets staff id=0."""
 
+    def _ensure_system_staff(self, db_session):
+        """Ensure a staff record with id=0 exists for the dev-mode middleware."""
+        from sqlalchemy import select as sa_select
+
+        existing = db_session.scalars(sa_select(Staff).where(Staff.id == 0)).first()
+        if existing:
+            return
+        # Create staff with ORM to get all defaults, then update id to 0
+        s = Staff(name="system", email="system@lab.test", role="admin", is_active=True)
+        db_session.add(s)
+        db_session.flush()
+        if s.id != 0:
+            from sqlalchemy import update
+
+            db_session.execute(update(Staff).where(Staff.id == s.id).values(id=0))
+            db_session.flush()
+            db_session.expire_all()
+
     def _seed(self, client, db_session):
         """Seed notifications for the default staff id (0, set by middleware)."""
-        # Ensure staff record with id=0 exists for FK constraint
-        from sqlalchemy import text
-
-        db_session.execute(
-            text(
-                "INSERT INTO staff (id, name, role, role_level, is_active) "
-                "VALUES (0, 'system', 'admin', 1, true) "
-                "ON CONFLICT (id) DO NOTHING"
-            )
-        )
-        db_session.flush()
+        self._ensure_system_staff(db_session)
         for i in range(3):
             svc.create_notification(
                 db_session,
