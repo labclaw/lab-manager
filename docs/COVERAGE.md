@@ -6,7 +6,7 @@ Last updated: 2026-03-20
 
 This document tracks UI/API wiring coverage and backlog priority. It is not the release gate.
 
-The maintained release gate for `v0.1.8.2` is:
+The maintained release gate for `v0.1.9` is:
 - frontend lint/build/test
 - Python static checks
 - `tests --ignore=tests/bdd`
