@@ -133,7 +133,6 @@ export default function App() {
             showSearch={location.pathname !== '/ask'}
             onMobileMenuToggle={() => setMobileMenuOpen(prev => !prev)}
             userName={user.name}
-            alertCount={alertCount}
           />
           <main className="flex-1 overflow-y-auto p-3 md:p-6">
             <Routes>
