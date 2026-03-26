@@ -5,26 +5,47 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
+import sqlalchemy as sa
 from sqlmodel import Session
 from sqlmodel import Field, SQLModel, Column
-from sqlalchemy import JSON
+from sqlalchemy import JSON, func
 from sqlalchemy.dialects.postgresql import JSONB as _JSONB
 
 from lab_manager.models.base import utcnow
 
+VALID_AUDIT_ACTIONS = ("create", "update", "delete")
+
 
 class AuditLog(SQLModel, table=True):
     __tablename__ = "audit_log"
+    __table_args__ = (
+        sa.Index(
+            "ix_audit_log_table_record_ts", "table_name", "record_id", "timestamp"
+        ),
+        sa.CheckConstraint(
+            "action IN ('create','update','delete')",
+            name="ck_audit_log_action",
+        ),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    table_name: str = Field(max_length=100, index=True)
-    record_id: int = Field(index=True)
-    action: str = Field(max_length=20)  # create, update, delete
+    table_name: str = Field(max_length=100)
+    record_id: int
+    action: str = Field(
+        max_length=20,
+        sa_column_kwargs={
+            "nullable": False,
+        },
+    )
     changed_by: Optional[str] = Field(default=None, max_length=100)
     changes: dict = Field(
         default_factory=dict, sa_column=Column(_JSONB().with_variant(JSON, "sqlite"))
     )
-    timestamp: datetime = Field(default_factory=utcnow)
+    timestamp: datetime = Field(
+        default_factory=utcnow,
+        sa_column_kwargs={"server_default": func.now()},
+        index=True,
+    )
 
 
 def log_change(
