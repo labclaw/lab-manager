@@ -132,52 +132,52 @@ export function InventoryPage({ onError }: InventoryPageProps) {
   return (
     <div className="flex flex-col gap-8">
       {/* Filters & Actions Bar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button disabled className="flex items-center gap-2 px-4 py-2 bg-[var(--card)] rounded-xl shadow-sm text-sm font-medium border border-outline opacity-50 cursor-not-allowed" title="Coming soon">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
+          <button disabled className="flex items-center gap-2 px-3 md:px-4 py-2 bg-[var(--card)] rounded-xl shadow-sm text-sm font-medium border border-outline opacity-50 cursor-not-allowed" title="Coming soon">
             <Filter className="size-5" />
-            <span>Filters</span>
+            <span className="hidden sm:inline">Filters</span>
           </button>
-          <button disabled className="flex items-center gap-2 px-4 py-2 bg-[var(--card)] rounded-xl shadow-sm text-sm font-medium border border-outline opacity-50 cursor-not-allowed" title="Coming soon">
+          <button disabled className="flex items-center gap-2 px-3 md:px-4 py-2 bg-[var(--card)] rounded-xl shadow-sm text-sm font-medium border border-outline opacity-50 cursor-not-allowed" title="Coming soon">
             <Tag className="size-5" />
-            <span>Category</span>
+            <span className="hidden sm:inline">Category</span>
           </button>
-          <div className="h-6 w-px bg-[var(--border)] mx-2" />
+          <div className="hidden sm:block h-6 w-px bg-[var(--border)] mx-2" />
           <span className="text-xs text-[var(--muted-foreground)] font-medium">
             {total.toLocaleString()} Items total
           </span>
         </div>
-        <div className="flex items-center gap-3">
-          <button disabled className="bg-surface-container-high text-primary font-semibold px-6 py-2.5 rounded-xl text-sm flex items-center gap-2 opacity-50 cursor-not-allowed" title="Coming soon">
+        <div className="flex items-center gap-2 md:gap-3">
+          <button disabled className="bg-surface-container-high text-primary font-semibold px-3 md:px-6 py-2.5 rounded-xl text-sm flex items-center gap-2 opacity-50 cursor-not-allowed" title="Coming soon">
             <PlusCircle className="size-5" />
-            <span>New Item</span>
+            <span className="hidden sm:inline">New Item</span>
           </button>
-          <button disabled className="bg-primary text-white font-semibold px-6 py-2.5 rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-primary/20 opacity-50 cursor-not-allowed" title="Coming soon">
+          <button disabled className="bg-primary text-white font-semibold px-3 md:px-6 py-2.5 rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-primary/20 opacity-50 cursor-not-allowed" title="Coming soon">
             <Truck className="size-5" />
-            <span>Bulk Order</span>
+            <span className="hidden sm:inline">Bulk Order</span>
           </button>
         </div>
       </div>
 
       {/* Inventory Data Table */}
-      <section className="bg-[var(--card)] rounded-[2rem] shadow-sm overflow-hidden flex flex-col flex-1 border border-outline">
+      <section className="bg-[var(--card)] rounded-2xl md:rounded-[2rem] shadow-sm overflow-hidden flex flex-col flex-1 border border-outline">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full min-w-[640px] text-left border-collapse">
             <thead>
               <tr className="bg-surface-container-high/50">
-                <th className="px-8 py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Item Name</th>
-                <th className="px-6 py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Lot #</th>
-                <th className="px-6 py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Vendor</th>
-                <th className="px-6 py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Location</th>
-                <th className="px-6 py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Stock</th>
-                <th className="px-6 py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider text-right">Actions</th>
+                <th className="px-4 md:px-8 py-3 md:py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Item Name</th>
+                <th className="px-3 md:px-6 py-3 md:py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Lot #</th>
+                <th className="px-3 md:px-6 py-3 md:py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Vendor</th>
+                <th className="px-3 md:px-6 py-3 md:py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Location</th>
+                <th className="px-3 md:px-6 py-3 md:py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Stock</th>
+                <th className="px-3 md:px-6 py-3 md:py-5 text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-outline">
               {items.map((item) => (
                 <tr key={item.id} className="hover:bg-surface-container-high/30 transition-colors group">
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-4">
+                  <td className="px-4 md:px-8 py-4 md:py-6">
+                    <div className="flex items-center gap-3 md:gap-4">
                       {itemIcon(item.status)}
                       <div>
                         <p className="font-bold text-on-surface">
@@ -189,13 +189,13 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-6 text-sm font-mono text-[var(--muted-foreground)]">
+                  <td className="px-3 md:px-6 py-4 md:py-6 text-sm font-mono text-[var(--muted-foreground)]">
                     {item.lot_number ?? '\u2014'}
                   </td>
-                  <td className="px-6 py-6 text-sm font-medium">
+                  <td className="px-3 md:px-6 py-4 md:py-6 text-sm font-medium">
                     {item.product?.vendor?.name ?? '\u2014'}
                   </td>
-                  <td className="px-6 py-6">
+                  <td className="px-3 md:px-6 py-4 md:py-6">
                     {item.location_name ? (
                       <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-surface-container-high text-[var(--muted-foreground)] text-xs font-medium border border-outline">
                         <Building className="size-3.5 mr-1" />
@@ -205,7 +205,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                       <span className="text-[var(--muted-foreground)]">{'\u2014'}</span>
                     )}
                   </td>
-                  <td className="px-6 py-6">
+                  <td className="px-3 md:px-6 py-4 md:py-6">
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-on-surface">
                         {item.quantity_on_hand ?? 0} {item.unit ?? ''}
@@ -213,8 +213,8 @@ export function InventoryPage({ onError }: InventoryPageProps) {
                       {stockBadge(item.status, item.quantity_on_hand)}
                     </div>
                   </td>
-                  <td className="px-6 py-6 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <td className="px-3 md:px-6 py-4 md:py-6 text-right">
+                    <div className="flex justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <ReorderButton itemId={item.id} vendorName={item.product?.vendor?.name} />
                       <button className="p-2 hover:bg-surface-container-highest text-[var(--muted-foreground)] rounded-lg transition-colors" title="Edit Item">
                         <Pencil className="size-5" />
@@ -248,7 +248,7 @@ export function InventoryPage({ onError }: InventoryPageProps) {
           )}
 
           {items.length > 0 && total <= 10 && (
-            <div className="mx-8 my-4 p-4 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-between">
+            <div className="mx-4 md:mx-8 my-4 p-4 rounded-xl bg-blue-50 border border-blue-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <FileText className="size-5 text-blue-600 shrink-0" />
                 <p className="text-sm text-blue-800">
@@ -267,9 +267,12 @@ export function InventoryPage({ onError }: InventoryPageProps) {
 
         {/* Pagination Footer */}
         {total > 0 && (
-          <div className="mt-auto px-8 py-4 bg-surface-container-lowest/30 border-t border-outline flex items-center justify-between">
-            <span className="text-xs text-[var(--muted-foreground)] font-medium">
+          <div className="mt-auto px-4 md:px-8 py-3 md:py-4 bg-surface-container-lowest/30 border-t border-outline flex items-center justify-between gap-2">
+            <span className="text-xs text-[var(--muted-foreground)] font-medium hidden sm:inline">
               Showing {startItem}-{endItem} of {total.toLocaleString()} items
+            </span>
+            <span className="text-xs text-[var(--muted-foreground)] font-medium sm:hidden">
+              {startItem}-{endItem} / {total}
             </span>
             <div className="flex items-center gap-2">
               <button

@@ -222,22 +222,22 @@ export function UploadPage() {
   }
 
   return (
-    <div className="flex flex-col gap-8 max-w-5xl mx-auto">
+    <div className="flex flex-col gap-6 md:gap-8 max-w-5xl mx-auto">
       {/* Upload Zone */}
       <section
         onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        className={`bg-[var(--card)] rounded-xl border-2 border-dashed p-12 min-h-[60vh] text-center flex flex-col items-center justify-center transition-all group cursor-pointer ${
+        className={`bg-[var(--card)] rounded-xl border-2 border-dashed p-6 md:p-12 min-h-[40vh] md:min-h-[60vh] text-center flex flex-col items-center justify-center transition-all group cursor-pointer ${
           dragOver ? 'border-primary bg-primary/5' : 'border-[var(--border)] hover:border-primary/50'
         }`}
         onClick={() => fileRef.current?.click()}
       >
-        <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-          <CloudUpload className="text-primary size-12" />
+        <div className="size-12 md:size-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 md:mb-6 group-hover:scale-110 transition-transform">
+          <CloudUpload className="text-primary size-8 md:size-12" />
         </div>
-        <h3 className="text-2xl font-bold mb-2">Drag & drop files here</h3>
-        <p className="text-[var(--muted-foreground)] text-sm mb-8">PDF, PNG, JPG, HEIC -- Max 10MB per file</p>
+        <h3 className="text-xl md:text-2xl font-bold mb-2">Drag & drop files here</h3>
+        <p className="text-[var(--muted-foreground)] text-xs md:text-sm mb-6 md:mb-8">PDF, PNG, JPG, HEIC -- Max 10MB per file</p>
         <div className="flex items-center gap-4">
           <button
             onClick={(e) => { e.stopPropagation(); fileRef.current?.click() }}
@@ -386,32 +386,32 @@ export function UploadPage() {
 
       {/* Bottom Action Bar */}
       {uploads.length > 0 && (
-        <div className="mt-4 p-6 bg-[var(--card)] rounded-xl border border-[var(--border)] flex items-center justify-between shadow-2xl">
-          <div className="flex items-center gap-4">
-            <div className="size-10 rounded-full bg-accent-green/20 flex items-center justify-center text-accent-green">
+        <div className="mt-4 p-4 md:p-6 bg-[var(--card)] rounded-xl border border-[var(--border)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xl">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="size-10 rounded-full bg-accent-green/20 flex items-center justify-center text-accent-green shrink-0">
               <CheckCheck />
             </div>
             <div>
-              <p className="font-bold">{completedCount} of {totalCount} files processed</p>
+              <p className="font-bold text-sm md:text-base">{completedCount} of {totalCount} files processed</p>
               <p className="text-xs text-[var(--muted-foreground)]">
-                {completedCount > 0 ? 'Documents sent to review queue automatically' : 'Processing...'}
+                {completedCount > 0 ? 'Documents sent to review queue' : 'Processing...'}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3 w-full sm:w-auto">
             <button
               onClick={() => setUploads([])}
-              className="px-6 py-2.5 bg-[var(--border)] hover:bg-[var(--border)]/70 text-[var(--foreground)] font-bold rounded-lg transition-all"
+              className="px-4 md:px-6 py-2.5 bg-[var(--border)] hover:bg-[var(--border)]/70 text-[var(--foreground)] font-bold rounded-lg transition-all text-sm"
             >
-              Clear All
+              Clear
             </button>
             {completedCount > 0 && (
               <button
                 onClick={() => navigate('/review')}
-                className="px-8 py-2.5 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg shadow-lg shadow-primary/20 transition-all flex items-center gap-2"
+                className="flex-1 sm:flex-none px-4 md:px-8 py-2.5 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 text-sm"
               >
-                View in Review Queue
-                <ArrowRight />
+                <span className="hidden md:inline">View in </span>Review Queue
+                <ArrowRight className="size-4" />
               </button>
             )}
           </div>

@@ -29,8 +29,8 @@ test.describe('Dashboard Page', () => {
     await expect(page.getByText('Quick Actions')).toBeVisible()
   })
 
-  test('Upload Document button navigates to /upload', async ({ authedPage: page }) => {
-    await page.getByRole('button', { name: /upload document/i }).click()
+  test('Upload button navigates to /upload', async ({ authedPage: page }) => {
+    await page.getByRole('button', { name: /^upload$/i }).click()
     await expect(page).toHaveURL(/\/upload/)
   })
 
@@ -39,13 +39,13 @@ test.describe('Dashboard Page', () => {
     await expect(page).toHaveURL(/\/orders/)
   })
 
-  test('Update Stock button navigates to /inventory', async ({ authedPage: page }) => {
-    await page.getByRole('button', { name: /update stock/i }).click()
+  test('Stock button navigates to /inventory', async ({ authedPage: page }) => {
+    await page.getByRole('button', { name: /^stock$/i }).click()
     await expect(page).toHaveURL(/\/inventory/)
   })
 
-  test('Manage Lab button navigates to /settings', async ({ authedPage: page }) => {
-    await page.getByRole('button', { name: /manage lab/i }).click()
+  test('Manage button navigates to /settings', async ({ authedPage: page }) => {
+    await page.getByRole('button', { name: /^manage$/i }).click()
     await expect(page).toHaveURL(/\/settings/)
   })
 

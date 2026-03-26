@@ -156,9 +156,9 @@ export function ReviewPage({ onError }: ReviewPageProps) {
   const docDetail = detail ?? doc
 
   return (
-    <div className="-m-6 flex flex-col h-[calc(100vh-4rem)]">
+    <div className="-m-3 md:-m-6 flex flex-col h-[calc(100vh-4rem)]">
       {/* Top Bar */}
-      <header className="h-16 border-b border-[var(--border)] flex items-center justify-between px-6 bg-[var(--background)] shrink-0">
+      <header className="h-14 md:h-16 border-b border-[var(--border)] flex items-center justify-between px-4 md:px-6 bg-[var(--background)] shrink-0">
         <div>
           <h2 className="text-xl font-bold text-[var(--foreground)] leading-tight">Review Queue</h2>
           <p className="text-xs text-[var(--muted-foreground)] font-medium">
@@ -173,9 +173,9 @@ export function ReviewPage({ onError }: ReviewPageProps) {
       </header>
 
       {/* Workspace Split */}
-      <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* Document List (40%) */}
-        <section className="w-[40%] border-r border-[var(--border)] flex flex-col bg-[var(--card)]/30">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
+        {/* Document List (40% desktop, full width mobile) */}
+        <section className="w-full md:w-[40%] max-h-[40vh] md:max-h-none border-b md:border-b-0 md:border-r border-[var(--border)] flex flex-col bg-[var(--card)]/30">
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
             {queue.map((item) => {
               const isSelected = item.id === doc.id
@@ -230,9 +230,9 @@ export function ReviewPage({ onError }: ReviewPageProps) {
         {/* Detail Panel (60%) */}
         <section className="flex-1 flex flex-col bg-[var(--background)] overflow-hidden relative">
           {/* Document Preview Area */}
-          <div className="h-[35%] min-h-[300px] p-6 bg-gray-50 flex flex-col border-b border-[var(--border)]">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
+          <div className="h-[35%] min-h-[200px] md:min-h-[300px] p-4 md:p-6 bg-gray-50 flex flex-col border-b border-[var(--border)]">
+            <div className="flex items-center justify-between mb-3 md:mb-4">
+              <div className="flex items-center gap-2 md:gap-3 flex-wrap">
                 <span className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest">
                   Document Preview
                 </span>
@@ -310,16 +310,16 @@ export function ReviewPage({ onError }: ReviewPageProps) {
           </div>
 
           {/* Extraction Details and Activity Split */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar flex">
+          <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col md:flex-row">
             {/* Data Extraction Fields (Main content) */}
-            <div className="flex-1 p-6 pb-28">
+            <div className="flex-1 p-4 md:p-6 pb-28">
               {/* Extracted Data Grid */}
               <div className="mb-8">
                 <h4 className="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-4 flex items-center gap-2">
                   <LayoutGrid className="size-4" />
                   Document Details
                 </h4>
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 md:gap-x-6 gap-y-4 md:gap-y-5">
                   <div className="space-y-1.5">
                     <label className="block text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wide">
                       Vendor
@@ -420,8 +420,8 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                   <List className="size-4" />
                   Extracted Line Items
                 </h4>
-                <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)]/30">
-                  <table className="w-full text-left text-sm border-collapse">
+                <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--card)]/30">
+                  <table className="w-full min-w-[540px] text-left text-sm border-collapse">
                     <thead>
                       <tr className="bg-[var(--card)]/60 text-[var(--muted-foreground)] font-bold border-b border-[var(--border)]">
                         <th className="px-4 py-3 text-[10px] uppercase tracking-wider">
@@ -488,7 +488,7 @@ export function ReviewPage({ onError }: ReviewPageProps) {
             </div>
 
             {/* Side Snippet: Activity Log */}
-            <div className="w-64 border-l border-[var(--border)]/30 p-4 bg-[var(--card)]/10">
+            <div className="hidden lg:block w-64 border-l border-[var(--border)]/30 p-4 bg-[var(--card)]/10">
               <h4 className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-widest mb-4 flex items-center gap-2">
                 <History className="size-4" />
                 Activity Log
@@ -554,8 +554,8 @@ export function ReviewPage({ onError }: ReviewPageProps) {
 
           {/* Rejection dialog */}
           {rejecting && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
-              <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 w-full max-w-md space-y-4 shadow-2xl">
+            <div className="absolute inset-0 bg-black/50 flex items-end md:items-center justify-center z-20">
+              <div className="bg-[var(--card)] border border-[var(--border)] rounded-t-xl md:rounded-xl p-4 md:p-6 w-full md:max-w-md space-y-4 shadow-2xl">
                 <h3 className="text-base font-semibold text-[var(--foreground)]">Reject Document</h3>
                 <p className="text-sm text-[var(--muted-foreground)]">
                   Provide a reason for rejecting{' '}
@@ -595,24 +595,24 @@ export function ReviewPage({ onError }: ReviewPageProps) {
           )}
 
           {/* Footer Action Bar */}
-          <footer className="p-4 border-t border-[var(--border)] bg-[var(--background)]/95 backdrop-blur-md absolute bottom-0 left-0 right-0 z-10 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <div className="flex gap-4">
+          <footer className="p-3 md:p-4 border-t border-[var(--border)] bg-[var(--background)]/95 backdrop-blur-md absolute bottom-0 left-0 right-0 z-10 shadow-2xl">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex gap-2 md:gap-4">
                 <div className="relative group">
                   <button
                     onClick={() => approveMutation.mutate(doc.id)}
                     disabled={actionLoading}
-                    className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg text-sm transition-all shadow-lg shadow-primary/30 flex items-center gap-2 ring-1 ring-primary/50 disabled:opacity-50"
+                    className="px-4 md:px-6 py-2.5 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg text-sm transition-all shadow-lg shadow-primary/30 flex items-center gap-2 ring-1 ring-primary/50 disabled:opacity-50"
                   >
                     <CheckCircle className="size-5" />
-                    {approveMutation.isPending ? 'Approving...' : 'Approve'}
+                    <span className="hidden sm:inline">{approveMutation.isPending ? 'Approving...' : 'Approve'}</span>
                   </button>
                   <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-[var(--background)] border border-[var(--border)] rounded text-[9px] font-bold text-[var(--muted-foreground)] opacity-0 group-hover:opacity-100 transition-opacity">
                     &#8984;&#8629;
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3 md:gap-6">
                 <div className="hidden xl:flex items-center gap-4 text-[var(--muted-foreground)] mr-4">
                   <div className="flex items-center gap-1.5">
                     <kbd className="px-1.5 py-0.5 bg-[var(--card)] border border-[var(--border)] rounded text-[10px] font-bold">
@@ -637,10 +637,10 @@ export function ReviewPage({ onError }: ReviewPageProps) {
                 <button
                   onClick={() => setRejecting(true)}
                   disabled={actionLoading}
-                  className="px-6 py-2.5 border-2 border-red-500/30 text-red-400 hover:text-[var(--foreground)] hover:bg-red-500/80 hover:border-red-500 font-bold rounded-lg text-sm transition-all flex items-center gap-2 disabled:opacity-50"
+                  className="px-4 md:px-6 py-2.5 border-2 border-red-500/30 text-red-400 hover:text-[var(--foreground)] hover:bg-red-500/80 hover:border-red-500 font-bold rounded-lg text-sm transition-all flex items-center gap-2 disabled:opacity-50"
                 >
                   <Ban className="size-5" />
-                  Reject
+                  <span className="hidden sm:inline">Reject</span>
                 </button>
               </div>
             </div>

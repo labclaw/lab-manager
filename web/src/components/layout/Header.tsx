@@ -42,7 +42,7 @@ export function Header({ title, onSearch, showSearch = true, onMobileMenuToggle 
   }, [])
 
   return (
-    <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-primary/10 px-6 py-4 lg:px-10 bg-[var(--background)]/80 backdrop-blur-md sticky top-0 z-50">
+    <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-primary/10 px-3 py-3 md:px-6 md:py-4 lg:px-10 bg-[var(--background)]/80 backdrop-blur-md sticky top-0 z-50">
       <div className="flex items-center gap-4 md:gap-8 flex-1 min-w-0">
         {onMobileMenuToggle && (
           <button
@@ -54,9 +54,9 @@ export function Header({ title, onSearch, showSearch = true, onMobileMenuToggle 
             <Menu className="size-5" />
           </button>
         )}
-        <div className="hidden xl:flex flex-col min-w-0">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">Current View</span>
-          <h1 className="text-lg font-bold text-[var(--foreground)] truncate">{title}</h1>
+        <div className="flex flex-col min-w-0">
+          <span className="hidden xl:block text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">Current View</span>
+          <h1 className="text-base md:text-lg font-bold text-[var(--foreground)] truncate">{title}</h1>
         </div>
         <label className={`${showSearch ? 'hidden md:flex' : 'hidden'} flex-col max-w-xl w-full h-10 relative`}>
           <div className="flex w-full flex-1 items-stretch rounded-lg h-full">
@@ -97,11 +97,11 @@ export function Header({ title, onSearch, showSearch = true, onMobileMenuToggle 
           )}
         </label>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
         <button className="flex items-center justify-center rounded-lg size-10 bg-[var(--card)] text-[var(--foreground)] hover:bg-primary/20 transition-colors">
           <Bell className="size-5" />
         </button>
-        <div className="flex items-center gap-3 pl-4 border-l border-primary/10">
+        <div className="hidden md:flex items-center gap-3 pl-4 border-l border-primary/10">
           <span className="text-sm font-medium text-[var(--muted-foreground)]">Admin</span>
         </div>
       </div>
