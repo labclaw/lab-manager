@@ -4,6 +4,7 @@ from lab_manager.models.base import AuditMixin
 from lab_manager.models.vendor import Vendor
 from lab_manager.models.product import Product
 from lab_manager.models.staff import Staff
+from lab_manager.models.invitation import Invitation
 from lab_manager.models.location import StorageLocation
 from lab_manager.models.order import Order, OrderItem, OrderStatus
 from lab_manager.models.inventory import InventoryItem, InventoryStatus
@@ -37,4 +38,5 @@ __all__ = [
     "Equipment",
     "EquipmentStatus",
     "UsageEvent",
+    "Invitation",
 ]
