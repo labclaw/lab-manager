@@ -172,8 +172,13 @@ def consume(
     quantity = _to_decimal(quantity)
     item = _get_inventory_or_404(db, inventory_id, for_update=True)
 
-    if item.status in (InventoryStatus.disposed, InventoryStatus.depleted):
-        raise ValidationError(f"Cannot consume from {item.status} item")
+    if item.status in (
+        InventoryStatus.disposed,
+        InventoryStatus.depleted,
+        InventoryStatus.deleted,
+        InventoryStatus.expired,
+    ):
+        raise ValidationError(f"Cannot consume from {item.status.value} item")
     if quantity <= 0:
         raise ValidationError("Quantity must be positive")
     current_qty = Decimal(str(item.quantity_on_hand))  # ensure Decimal
