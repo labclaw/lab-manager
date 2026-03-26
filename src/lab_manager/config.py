@@ -90,7 +90,8 @@ class Settings(BaseSettings):
     ocr_tier: str = "auto"
     # OCR model: benchmark winner — llama-3.2-90b 100% success on sample documents
     ocr_model: str = "nvidia_nim/meta/llama-3.2-90b-vision-instruct"
-    ocr_local_model: str = "deepseek_ocr"  # provider name from OCR_PROVIDERS registry
+    # Local OCR default: dots.mocr 3B — open-source Elo #1 (1124.7)
+    ocr_local_model: str = "dots_mocr"  # provider name from OCR_PROVIDERS registry
     ocr_local_url: str = "http://localhost:8000/v1"  # vLLM endpoint for local models
     # Extraction model: GLM-5 82.4% success, 0.92 avg confidence on sample documents
     extraction_model: str = "nvidia_nim/z-ai/glm5"
