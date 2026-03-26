@@ -16,6 +16,8 @@ import { UploadPage } from '@/pages/UploadPage'
 import { AnalyticsPage } from '@/pages/AnalyticsPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { CloudBrainPage } from '@/pages/CloudBrainPage'
+import { VendorsPage } from '@/pages/VendorsPage'
+import { ProductsPage } from '@/pages/ProductsPage'
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -27,6 +29,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/review': 'Review Queue',
   '/analytics': 'Analytics',
   '/alerts': 'Alerts',
+  '/vendors': 'Vendors',
+  '/products': 'Products',
   '/settings': 'Settings',
   '/cloud-brain': 'Cloud Brain',
 }
@@ -141,6 +145,8 @@ export default function App() {
                 <Route path="ask" element={<AskPage onError={setError} />} />
                 <Route path="inventory" element={<InventoryPage onError={setError} />} />
                 <Route path="orders" element={<OrdersPage onError={setError} />} />
+                <Route path="vendors" element={<VendorsPage onError={setError} />} />
+                <Route path="products" element={<ProductsPage onError={setError} />} />
                 <Route path="documents" element={<DocumentsPage onError={setError} />} />
                 <Route path="analytics" element={<AnalyticsPage onError={setError} />} />
                 <Route path="upload" element={<UploadPage />} />

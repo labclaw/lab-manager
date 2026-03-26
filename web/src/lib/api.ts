@@ -17,12 +17,34 @@ export interface User {
 export interface Vendor {
   id: number
   name: string
-  contact_email?: string
-  contact_phone?: string
+  aliases?: string[]
   website?: string
+  phone?: string
+  email?: string
   notes?: string
+  extra?: Record<string, unknown>
+  created_at?: string
+  updated_at?: string
   product_count?: number
   order_count?: number
+}
+
+export interface VendorCreate {
+  name: string
+  aliases?: string[]
+  website?: string
+  phone?: string
+  email?: string
+  notes?: string
+}
+
+export interface VendorUpdate {
+  name?: string
+  aliases?: string[]
+  website?: string
+  phone?: string
+  email?: string
+  notes?: string
 }
 
 export interface Product {
@@ -31,10 +53,37 @@ export interface Product {
   catalog_number?: string
   vendor_id?: number
   vendor_name?: string
+  vendor?: { id: number; name: string }
   category?: string
+  cas_number?: string
+  storage_temp?: string
   unit?: string
-  unit_price?: number
-  description?: string
+  hazard_info?: string
+  extra?: Record<string, unknown>
+  created_at?: string
+  updated_at?: string
+}
+
+export interface ProductCreate {
+  catalog_number: string
+  name: string
+  vendor_id?: number
+  category?: string
+  cas_number?: string
+  storage_temp?: string
+  unit?: string
+  hazard_info?: string
+}
+
+export interface ProductUpdate {
+  catalog_number?: string
+  name?: string
+  vendor_id?: number
+  category?: string
+  cas_number?: string
+  storage_temp?: string
+  unit?: string
+  hazard_info?: string
 }
 
 export interface Order {
@@ -177,6 +226,7 @@ async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
     const err = await res.json().catch(() => ({ detail: res.statusText }))
     throw new Error(err.detail || `HTTP ${res.status}`)
   }
+  if (res.status === 204) return undefined as T
   return res.json()
 }
 
@@ -243,16 +293,34 @@ export const analytics = {
 
 // Vendors
 export const vendors = {
-  list: (page = 1, pageSize = 20) =>
-    apiFetch<ApiResponse<Vendor>>(`/vendors?page=${page}&page_size=${pageSize}`),
+  list: (page = 1, pageSize = 20, search?: string) =>
+    apiFetch<ApiResponse<Vendor>>(`/vendors?page=${page}&page_size=${pageSize}${search ? `&search=${encodeURIComponent(search)}` : ''}`),
   get: (id: number) => apiFetch<Vendor>(`/vendors/${id}`),
+  create: (data: VendorCreate) =>
+    apiFetch<Vendor>('/vendors', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: number, data: VendorUpdate) =>
+    apiFetch<Vendor>(`/vendors/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id: number) =>
+    apiFetch<void>(`/vendors/${id}`, { method: 'DELETE' }),
+  products: (id: number, page = 1, pageSize = 20) =>
+    apiFetch<ApiResponse<Product>>(`/vendors/${id}/products?page=${page}&page_size=${pageSize}`),
+  orders: (id: number, page = 1, pageSize = 20) =>
+    apiFetch<ApiResponse<Order>>(`/vendors/${id}/orders?page=${page}&page_size=${pageSize}`),
 }
 
 // Products
 export const products = {
-  list: (page = 1, pageSize = 20) =>
-    apiFetch<ApiResponse<Product>>(`/products?page=${page}&page_size=${pageSize}`),
+  list: (page = 1, pageSize = 20, search?: string, vendorId?: number) =>
+    apiFetch<ApiResponse<Product>>(`/products?page=${page}&page_size=${pageSize}${search ? `&search=${encodeURIComponent(search)}` : ''}${vendorId ? `&vendor_id=${vendorId}` : ''}`),
   get: (id: number) => apiFetch<Product>(`/products/${id}`),
+  create: (data: ProductCreate) =>
+    apiFetch<Product>('/products', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: number, data: ProductUpdate) =>
+    apiFetch<Product>(`/products/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id: number) =>
+    apiFetch<void>(`/products/${id}`, { method: 'DELETE' }),
+  inventory: (id: number, page = 1, pageSize = 20) =>
+    apiFetch<ApiResponse<InventoryItem>>(`/products/${id}/inventory?page=${page}&page_size=${pageSize}`),
 }
 
 // Orders

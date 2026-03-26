@@ -15,6 +15,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Building2,
+  FlaskConical,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { auth } from '@/lib/api'
@@ -35,6 +37,8 @@ const navItems = [
   { path: '/ask', label: 'Ask AI', Icon: Bot },
   { path: '/documents', label: 'Documents', Icon: FileText },
   { path: '/review', label: 'Review Queue', Icon: ClipboardCheck },
+  { path: '/vendors', label: 'Vendors', Icon: Building2 },
+  { path: '/products', label: 'Products', Icon: FlaskConical },
   { path: '/inventory', label: 'Inventory', Icon: Package },
   { path: '/orders', label: 'Orders', Icon: ShoppingCart },
   { path: '/upload', label: 'Upload', Icon: Upload },

@@ -14,16 +14,16 @@ const mockDashboard = {
 
 const mockVendors = {
   items: [
-    { id: 1, name: 'Sigma-Aldrich', contact_email: 'orders@sigma.com', product_count: 15, order_count: 8 },
-    { id: 2, name: 'Fisher Scientific', contact_email: 'info@fisher.com', product_count: 22, order_count: 12 },
+    { id: 1, name: 'Sigma-Aldrich', email: 'orders@sigma.com', phone: '+1-800-325-3010', website: 'https://sigmaaldrich.com', notes: 'Primary chemical supplier', product_count: 15, order_count: 8 },
+    { id: 2, name: 'Fisher Scientific', email: 'info@fisher.com', phone: '+1-800-766-7000', website: 'https://fishersci.com', notes: '', product_count: 22, order_count: 12 },
   ],
   total: 2, page: 1, page_size: 20, pages: 1,
 }
 
 const mockProducts = {
   items: [
-    { id: 1, name: 'Sodium Chloride', catalog_number: 'S1234', vendor_name: 'Sigma-Aldrich', unit_price: 45.00 },
-    { id: 2, name: 'Ethanol 95%', catalog_number: 'E5678', vendor_name: 'Fisher Scientific', unit_price: 32.00 },
+    { id: 1, name: 'Sodium Chloride', catalog_number: 'S1234', vendor_id: 1, vendor_name: 'Sigma-Aldrich', category: 'Chemicals', cas_number: '7647-14-5', storage_temp: 'Room Temperature', unit: 'kg' },
+    { id: 2, name: 'Ethanol 95%', catalog_number: 'E5678', vendor_id: 2, vendor_name: 'Fisher Scientific', category: 'Solvents', cas_number: '64-17-5', storage_temp: '15-25C', unit: 'L' },
   ],
   total: 2, page: 1, page_size: 20, pages: 1,
 }
@@ -121,18 +121,27 @@ export const handlers = [
   http.get('/api/v1/analytics/spending', () => HttpResponse.json({ monthly: [{ month: '2026-03', total: 12500 }] })),
 
   // Vendors
-  http.get('/api/v1/vendors', () => HttpResponse.json(mockVendors)),
-  http.get('/api/v1/vendors/:id', ({ params }) => {
+  http.get('/api/v1/vendors/', () => HttpResponse.json(mockVendors)),
+  http.get('/api/v1/vendors/:id/', ({ params }) => {
     const v = mockVendors.items.find(i => i.id === Number(params.id))
     return v ? HttpResponse.json(v) : new HttpResponse(null, { status: 404 })
   }),
+  http.post('/api/v1/vendors/', () => HttpResponse.json({ id: 3, name: 'New Vendor', email: null, phone: null, website: null, notes: null }, { status: 201 })),
+  http.patch('/api/v1/vendors/:id/', () => HttpResponse.json({ id: 1, name: 'Updated Vendor' })),
+  http.delete('/api/v1/vendors/:id/', () => new HttpResponse(null, { status: 204 })),
+  http.get('/api/v1/vendors/:id/products/', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20, pages: 0 })),
+  http.get('/api/v1/vendors/:id/orders/', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20, pages: 0 })),
 
   // Products
-  http.get('/api/v1/products', () => HttpResponse.json(mockProducts)),
-  http.get('/api/v1/products/:id', ({ params }) => {
+  http.get('/api/v1/products/', () => HttpResponse.json(mockProducts)),
+  http.get('/api/v1/products/:id/', ({ params }) => {
     const p = mockProducts.items.find(i => i.id === Number(params.id))
     return p ? HttpResponse.json(p) : new HttpResponse(null, { status: 404 })
   }),
+  http.post('/api/v1/products/', () => HttpResponse.json({ id: 3, name: 'New Product', catalog_number: 'NP001' }, { status: 201 })),
+  http.patch('/api/v1/products/:id/', () => HttpResponse.json({ id: 1, name: 'Updated Product' })),
+  http.delete('/api/v1/products/:id/', () => new HttpResponse(null, { status: 204 })),
+  http.get('/api/v1/products/:id/inventory/', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20, pages: 0 })),
 
   // Orders
   http.get('/api/v1/orders', () => HttpResponse.json(mockOrders)),
