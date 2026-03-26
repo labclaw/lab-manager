@@ -1,5 +1,11 @@
 # Lab Manager
 
+[![CI](https://github.com/labclaw/lab-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/labclaw/lab-manager/actions/workflows/ci.yml)
+[![Security](https://github.com/labclaw/lab-manager/actions/workflows/security.yml/badge.svg)](https://github.com/labclaw/lab-manager/actions/workflows/security.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![Version](https://img.shields.io/badge/version-0.1.8.2-green.svg)](https://github.com/labclaw/lab-manager/releases)
+
 Lab Manager is a lab operations app for research groups that need one place to receive supplies, review scanned documents, track inventory, and keep an audit trail.
 
 Core flow:
