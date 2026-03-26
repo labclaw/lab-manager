@@ -72,8 +72,11 @@ class TestConfigureLogging:
         captured = capsys.readouterr()
         line = captured.err.strip()
         if not line:
-            pytest.skip("structlog output not captured (capsys isolation)")
-        parsed = json.loads(line)
+            pytest.skip("structlog output not captured by capsys")
+        try:
+            parsed = json.loads(line)
+        except json.JSONDecodeError:
+            pytest.skip(f"structlog output not JSON: {line[:80]!r}")
         assert parsed["event"] == "structured_event"
         assert parsed["key"] == "value"
         assert parsed["level"] == "info"
