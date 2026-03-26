@@ -54,14 +54,23 @@ def _validate_file_path(v: str) -> str:
     from lab_manager.config import get_settings
 
     decoded = unquote(v)
-    resolved = Path(decoded).resolve()
-    settings = get_settings()
+    p = Path(decoded)
 
-    allowed_roots = []
+    settings = get_settings()
     upload_root = Path(settings.upload_dir).resolve()
-    allowed_roots.append(upload_root)
-    if settings.scans_dir:
-        allowed_roots.append(Path(settings.scans_dir).expanduser().resolve())
+    scans_root = (
+        Path(settings.scans_dir).expanduser().resolve() if settings.scans_dir else None
+    )
+
+    # If path is relative, resolve against upload_dir
+    if not p.is_absolute():
+        resolved = (upload_root / p).resolve()
+    else:
+        resolved = p.resolve()
+
+    allowed_roots = [upload_root]
+    if scans_root:
+        allowed_roots.append(scans_root)
 
     if not any(
         str(resolved).startswith(str(root) + "/") or resolved == root
@@ -179,7 +188,7 @@ def _run_extraction(doc_id: int) -> None:
             extracted = extract_from_text(ocr_text)
             doc.document_type = extracted.document_type
             doc.vendor_name = normalize_vendor(extracted.vendor_name)
-            doc.extracted_data = extracted.model_dump()
+            doc.extracted_data = extracted.model_dump(mode="json")
             doc.extraction_model = settings.extraction_model
             doc.extraction_confidence = extracted.confidence
             doc.status = DocumentStatus.needs_review

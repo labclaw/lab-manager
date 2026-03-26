@@ -112,18 +112,16 @@ class TestBuildDuplicateWarning:
 
 class TestCreateOrderDuplicateApi:
     def test_no_duplicate_clean_response(self, client):
-        """Creating an order with a unique PO returns the order without warning."""
+        """Creating an order with a unique PO returns the order with null warning."""
         resp = client.post(
             "/api/v1/orders/",
             json={"po_number": "UNIQUE-001", "status": "pending"},
         )
         assert resp.status_code == 201
         data = resp.json()
-        assert (
-            data.get("po_number") == "UNIQUE-001"
-            or data.get("order", {}).get("po_number") == "UNIQUE-001"
-        )
-        assert "_duplicate_warning" not in data
+        order = data.get("order", data)
+        assert order.get("po_number") == "UNIQUE-001"
+        assert data.get("_duplicate_warning") is None
 
     def test_duplicate_triggers_warning_same_vendor(self, client):
         """Creating a second order with the same PO+vendor returns a warning."""
@@ -136,7 +134,7 @@ class TestCreateOrderDuplicateApi:
             json={"po_number": "DUP-001", "vendor_id": vid, "status": "pending"},
         )
         assert r1.status_code == 201
-        assert "_duplicate_warning" not in r1.json()
+        assert r1.json().get("_duplicate_warning") is None
 
         # Second order — duplicate
         r2 = client.post(
@@ -145,8 +143,7 @@ class TestCreateOrderDuplicateApi:
         )
         assert r2.status_code == 201  # still 201 — duplicates warn, not block
         data = r2.json()
-        assert "_duplicate_warning" in data
-        warning = data["_duplicate_warning"]
+        warning = data.get("_duplicate_warning")
         assert warning["warning"] == "duplicate_po_number"
         assert len(warning["duplicate_order_ids"]) >= 1
 
@@ -164,13 +161,13 @@ class TestCreateOrderDuplicateApi:
             json={"po_number": "SHARED-001", "vendor_id": v2, "status": "pending"},
         )
         assert resp.status_code == 201
-        assert "_duplicate_warning" not in resp.json()
+        assert resp.json().get("_duplicate_warning") is None
 
     def test_no_po_number_no_warning(self, client):
         """Order without a PO# must never produce a warning."""
         resp = client.post("/api/v1/orders/", json={"status": "pending"})
         assert resp.status_code == 201
-        assert "_duplicate_warning" not in resp.json()
+        assert resp.json().get("_duplicate_warning") is None
 
     @pytest.mark.parametrize("cancelled_status", ["cancelled", "deleted"])
     def test_cancelled_or_deleted_does_not_trigger_warning(
@@ -182,16 +179,18 @@ class TestCreateOrderDuplicateApi:
         )
         vid = vendor_resp.json()["id"]
 
-        # First order — then soft-cancel / delete it
+        # First order — create as pending, then transition to cancelled/deleted
         r1 = client.post(
             "/api/v1/orders/",
             json={
                 "po_number": f"INACT-{cancelled_status}",
                 "vendor_id": vid,
-                "status": cancelled_status,
+                "status": "pending",
             },
         )
         assert r1.status_code == 201
+        oid = r1.json()["order"]["id"]
+        client.patch(f"/api/v1/orders/{oid}", json={"status": cancelled_status})
 
         # Second order with same PO — the previous inactive one should be ignored
         r2 = client.post(
@@ -203,4 +202,4 @@ class TestCreateOrderDuplicateApi:
             },
         )
         assert r2.status_code == 201
-        assert "_duplicate_warning" not in r2.json()
+        assert r2.json().get("_duplicate_warning") is None

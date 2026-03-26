@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -178,7 +178,7 @@ def consume(
         InventoryStatus.deleted,
         InventoryStatus.expired,
     ):
-        raise ValidationError(f"Cannot consume from {item.status.value} item")
+        raise ValidationError(f"Cannot consume from {item.status} item")
     if quantity <= 0:
         raise ValidationError("Quantity must be positive")
     current_qty = Decimal(str(item.quantity_on_hand))  # ensure Decimal

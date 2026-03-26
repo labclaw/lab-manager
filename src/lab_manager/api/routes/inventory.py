@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
@@ -125,8 +125,8 @@ class InventoryItemResponse(BaseModel):
     received_by: Optional[str] = None
     order_item_id: Optional[int] = None
     extra: dict = {}
-    created_at: datetime | None = None
-    updated_at: datetime | None = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 
 # ---------------------------------------------------------------------------

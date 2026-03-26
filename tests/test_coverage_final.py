@@ -88,14 +88,14 @@ class TestDocumentValidation:
         """Path traversal in file_path should raise ValueError."""
         from lab_manager.api.routes.documents import _validate_file_path
 
-        with pytest.raises(ValueError, match="[Pp]ath traversal"):
+        with pytest.raises(ValueError, match="upload_dir"):
             _validate_file_path("../../etc/passwd")
 
     def test_valid_path(self):
         from lab_manager.api.routes.documents import _validate_file_path
 
-        # Should not raise
-        _validate_file_path("/tmp/valid_file.pdf")
+        # Should not raise — relative paths resolve against upload_dir
+        _validate_file_path("valid_file.pdf")
 
 
 # ---------------------------------------------------------------------------
@@ -354,7 +354,7 @@ class TestDocumentValidPathInValidator:
         from lab_manager.models.document import Document
 
         doc = Document(
-            file_path="/tmp/original.pdf",
+            file_path="original.pdf",
             file_name="original.pdf",
             status="pending",
         )
@@ -363,7 +363,7 @@ class TestDocumentValidPathInValidator:
 
         resp = client.patch(
             f"/api/v1/documents/{doc.id}",
-            json={"file_path": "/tmp/new_valid_path.pdf"},
+            json={"file_path": "new_valid_path.pdf"},
         )
         assert resp.status_code == 200
 

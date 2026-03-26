@@ -71,11 +71,11 @@ def daily_active_users(
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     rows = db.execute(
         select(
-            func.date(UsageEvent.timestamp).label("day"),
+            func.date(UsageEvent.created_at).label("day"),
             func.count(func.distinct(UsageEvent.user_email)).label("users"),
         )
-        .where(UsageEvent.timestamp >= cutoff)
-        .group_by(func.date(UsageEvent.timestamp))
+        .where(UsageEvent.created_at >= cutoff)
+        .group_by(func.date(UsageEvent.created_at))
         .order_by(text("day"))
     ).all()
     return [{"date": str(r.day), "dau": r.users} for r in rows]
@@ -87,7 +87,7 @@ def list_events(
     limit: int = Query(50, ge=1, le=500),
     db: Session = Depends(get_db),
 ):
-    q = select(UsageEvent).order_by(UsageEvent.timestamp.desc())
+    q = select(UsageEvent).order_by(UsageEvent.created_at.desc())
     if event_type:
         q = q.where(UsageEvent.event_type == event_type)
     events = db.scalars(q.limit(limit)).all()
@@ -97,7 +97,7 @@ def list_events(
             "user_email": e.user_email,
             "event_type": e.event_type,
             "page": e.page,
-            "timestamp": e.timestamp.isoformat() if e.timestamp else None,
+            "timestamp": e.created_at.isoformat() if e.created_at else None,
         }
         for e in events
     ]
