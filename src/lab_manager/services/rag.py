@@ -314,6 +314,7 @@ def _generate_completion(prompt: str) -> str:
         model=model,
         messages=[{"role": "user", "content": prompt}],
         temperature=0,
+        _cost_endpoint="rag",
     )
     return response_text(resp)
 

@@ -199,6 +199,9 @@ def create_completion(
         ... )
         >>> print(response.choices[0].message.content)
     """
+    # Extract cost-tracking metadata before passing kwargs to LiteLLM
+    cost_endpoint = kwargs.pop("_cost_endpoint", "unknown")
+
     # Load config if available (for routing/fallbacks)
     load_litellm_config()
 
@@ -216,7 +219,41 @@ def create_completion(
 
     # If config file exists, LiteLLM will use it for fallbacks
     # Otherwise, we rely on the resolved model and env vars
-    return completion(**params)
+    response = completion(**params)
+
+    # Record cost (fire-and-forget — never block the response)
+    _record_cost(model, response, cost_endpoint)
+
+    return response
+
+
+def _record_cost(model: str, response: Any, endpoint: str) -> None:
+    """Extract token usage from LiteLLM response and persist cost."""
+    try:
+        usage = getattr(response, "usage", None)
+        if usage is None:
+            return
+        tokens_in = getattr(usage, "prompt_tokens", 0) or 0
+        tokens_out = getattr(usage, "completion_tokens", 0) or 0
+        if tokens_in == 0 and tokens_out == 0:
+            return
+
+        from lab_manager.database import get_db_session
+        from lab_manager.services.cost_tracker import track_usage, _resolve_provider
+
+        provider = _resolve_provider(model)
+        with get_db_session() as db:
+            track_usage(
+                db,
+                provider=provider,
+                model=model,
+                tokens_in=tokens_in,
+                tokens_out=tokens_out,
+                endpoint=endpoint,
+            )
+            db.commit()
+    except Exception:
+        logger.debug("Failed to record AI cost (non-critical)", exc_info=True)
 
 
 def response_text(response: Any) -> str:

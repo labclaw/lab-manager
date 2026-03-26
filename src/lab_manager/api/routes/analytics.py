@@ -11,6 +11,7 @@ from sqlmodel import Session
 from lab_manager.api.deps import get_db
 from lab_manager.exceptions import NotFoundError
 from lab_manager.services import analytics as svc
+from lab_manager.services import cost_tracker  # noqa: F401 — used in ai-cost endpoint
 
 router = APIRouter()
 
@@ -87,3 +88,17 @@ def get_vendor_summary(vendor_id: int, db: Session = Depends(get_db)):
 @router.get("/documents/stats")
 def get_document_stats(db: Session = Depends(get_db)):
     return svc.document_processing_stats(db)
+
+
+@router.get("/ai-cost")
+def get_ai_cost(
+    days: int = Query(30, ge=1, le=365),
+    db: Session = Depends(get_db),
+):
+    """AI cost analytics: daily spend, model breakdown, totals."""
+    return {
+        "summary": cost_tracker.get_total_cost(db, days=days),
+        "daily": cost_tracker.get_daily_cost(db, days=days),
+        "by_model": cost_tracker.get_model_breakdown(db, days=days),
+        "by_endpoint": cost_tracker.get_endpoint_breakdown(db, days=days),
+    }
