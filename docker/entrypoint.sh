@@ -5,9 +5,11 @@ set -e
 echo "[entrypoint] Waiting for database..."
 MAX_RETRIES=30
 RETRY=0
-# Strip SQLAlchemy driver suffix (+psycopg) - pg_isready only understands postgresql://
-PG_URL="${DATABASE_URL/+psycopg/}"
-until pg_isready -d "$PG_URL" -q 2>/dev/null; do
+# Extract connection params without leaking the full URL in process args
+PGHOST="${PGHOST:-db}"
+PGPORT="${PGPORT:-5432}"
+PGUSER="${PGUSER:-labmanager}"
+until PGPASSWORD="${DATABASE_URL#*:}" pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -q 2>/dev/null; do
     RETRY=$((RETRY + 1))
     if [ "$RETRY" -ge "$MAX_RETRIES" ]; then
         echo "[entrypoint] ERROR: database not ready after ${MAX_RETRIES} attempts"
