@@ -233,49 +233,24 @@ async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
 // Auth
 export const auth = {
   login: (email: string, password: string) =>
-    fetch('/api/v1/auth/login', {
+    apiFetch<{ status: string; user: User }>('/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
-    }).then(async (res) => {
-      if (res.status === 401) throw new Error('Unauthorized')
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: res.statusText }))
-        throw new Error(err.detail || `HTTP ${res.status}`)
-      }
-      return res.json() as Promise<{ status: string; user: User }>
     }),
   me: () =>
-    fetch('/api/v1/auth/me').then(async (res) => {
-      if (res.status === 401) throw new Error('Unauthorized')
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: res.statusText }))
-        throw new Error(err.detail || `HTTP ${res.status}`)
-      }
-      return res.json() as Promise<{ user: User }>
-    }),
+    apiFetch<{ user: User }>('/auth/me'),
   logout: () =>
-    fetch('/api/v1/auth/logout', { method: 'POST' }).then(() => {}),
+    apiFetch<void>('/auth/logout', { method: 'POST' }),
 }
 
 // Setup
 export const setup = {
   status: () =>
-    fetch('/api/v1/setup/status').then(async (res) => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      return res.json() as Promise<{ needs_setup: boolean }>
-    }),
+    apiFetch<{ needs_setup: boolean }>('/setup/status'),
   complete: (data: { admin_name: string; admin_email: string; admin_password: string }) =>
-    fetch('/api/v1/setup/complete', {
+    apiFetch<{ status: string }>('/setup/complete', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-    }).then(async (res) => {
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: res.statusText }))
-        throw new Error(err.detail || `HTTP ${res.status}`)
-      }
-      return res.json() as Promise<{ status: string }>
     }),
 }
 
