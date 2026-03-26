@@ -403,18 +403,18 @@ function VendorsTab({ docs, navigate }: { docs: Document[]; navigate: ReturnType
           <TrendingUp className="size-5 text-primary" />
           <h3 className="text-[var(--foreground)] text-base font-bold">Vendor Concentration</h3>
         </div>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-[var(--background)] rounded-lg">
-            <div className="text-2xl font-bold text-[var(--foreground)]">{diversity.totalVendors}</div>
-            <div className="text-[11px] text-[var(--muted-foreground)] font-medium mt-1">Total Vendors</div>
+        <div className="grid grid-cols-3 gap-2 md:gap-4">
+          <div className="text-center p-3 md:p-4 bg-[var(--background)] rounded-lg">
+            <div className="text-xl md:text-2xl font-bold text-[var(--foreground)]">{diversity.totalVendors}</div>
+            <div className="text-[10px] md:text-[11px] text-[var(--muted-foreground)] font-medium mt-1">Vendors</div>
           </div>
-          <div className="text-center p-4 bg-[var(--background)] rounded-lg">
-            <div className={`text-2xl font-bold ${diversity.top3Pct > 50 ? 'text-amber-600' : 'text-emerald-600'}`}>{diversity.top3Pct}%</div>
-            <div className="text-[11px] text-[var(--muted-foreground)] font-medium mt-1">Top 3 Concentration</div>
+          <div className="text-center p-3 md:p-4 bg-[var(--background)] rounded-lg">
+            <div className={`text-xl md:text-2xl font-bold ${diversity.top3Pct > 50 ? 'text-amber-600' : 'text-emerald-600'}`}>{diversity.top3Pct}%</div>
+            <div className="text-[10px] md:text-[11px] text-[var(--muted-foreground)] font-medium mt-1">Top 3</div>
           </div>
-          <div className="text-center p-4 bg-[var(--background)] rounded-lg">
-            <div className="text-2xl font-bold text-[var(--foreground)]">{diversity.totalDocs}</div>
-            <div className="text-[11px] text-[var(--muted-foreground)] font-medium mt-1">Total Documents</div>
+          <div className="text-center p-3 md:p-4 bg-[var(--background)] rounded-lg">
+            <div className="text-xl md:text-2xl font-bold text-[var(--foreground)]">{diversity.totalDocs}</div>
+            <div className="text-[10px] md:text-[11px] text-[var(--muted-foreground)] font-medium mt-1">Documents</div>
           </div>
         </div>
       </div>
@@ -570,7 +570,7 @@ function DocumentsTab({ docs }: { docs: Document[] }) {
             <p className="text-xs text-[var(--muted-foreground)] mt-1">Documents with lowest confidence or extraction failures</p>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[360px] text-sm">
               <thead>
                 <tr className="border-t border-b border-primary/10 bg-[var(--background)]">
                   <th className="text-left px-6 py-2.5 text-[11px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Vendor</th>
@@ -620,7 +620,7 @@ function DocumentsTab({ docs }: { docs: Document[] }) {
             <p className="text-xs text-[var(--muted-foreground)] mt-1">Last 20 processed documents with model info</p>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[480px] text-sm">
               <thead>
                 <tr className="border-t border-b border-primary/10 bg-[var(--background)]">
                   <th className="text-left px-6 py-2.5 text-[11px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Vendor</th>
@@ -885,17 +885,17 @@ export function AnalyticsPage({ onError }: AnalyticsPageProps) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8">
+    <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
       {/* Header */}
       <div>
-        <h2 className="text-3xl font-bold text-[var(--foreground)] tracking-tight">Lab Intelligence</h2>
-        <p className="text-[var(--muted-foreground)] mt-2 text-sm">
-          Insights and analysis you cannot see on the Dashboard — AI performance, vendor risks, problem documents, inventory alerts.
+        <h2 className="text-2xl md:text-3xl font-bold text-[var(--foreground)] tracking-tight">Lab Intelligence</h2>
+        <p className="text-[var(--muted-foreground)] mt-1 md:mt-2 text-sm">
+          Insights and analysis you cannot see on the Dashboard.
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-6 border-b border-primary/10">
+      <div className="flex items-center gap-3 md:gap-6 border-b border-primary/10 overflow-x-auto">
         {TABS.map(tab => {
           const Icon = tab.icon
           return (
