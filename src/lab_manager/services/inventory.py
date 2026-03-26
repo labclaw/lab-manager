@@ -50,8 +50,13 @@ def _log_consumption(
     return entry
 
 
-def _get_inventory_or_404(db: Session, inventory_id: int) -> InventoryItem:
-    item = db.get(InventoryItem, inventory_id)
+def _get_inventory_or_404(
+    db: Session, inventory_id: int, *, for_update: bool = False
+) -> InventoryItem:
+    stmt = select(InventoryItem).where(InventoryItem.id == inventory_id)
+    if for_update:
+        stmt = stmt.with_for_update()
+    item = db.scalars(stmt).first()
     if not item:
         raise NotFoundError("Inventory item", inventory_id)
     return item
@@ -156,7 +161,7 @@ def consume(
 ) -> InventoryItem:
     """Reduce quantity on hand. Mark depleted if 0."""
     quantity = _to_decimal(quantity)
-    item = _get_inventory_or_404(db, inventory_id)
+    item = _get_inventory_or_404(db, inventory_id, for_update=True)
 
     if item.status in (InventoryStatus.disposed, InventoryStatus.depleted):
         raise ValidationError(f"Cannot consume from {item.status} item")
@@ -199,7 +204,7 @@ def transfer(
     db: Session,
 ) -> InventoryItem:
     """Move item to a different location."""
-    item = _get_inventory_or_404(db, inventory_id)
+    item = _get_inventory_or_404(db, inventory_id, for_update=True)
     old_location_id = item.location_id
     item.location_id = new_location_id
 
@@ -234,7 +239,7 @@ def adjust(
     new_quantity = _to_decimal(new_quantity)
     if new_quantity < Decimal("0"):
         raise ValidationError("Adjusted quantity cannot be negative")
-    item = _get_inventory_or_404(db, inventory_id)
+    item = _get_inventory_or_404(db, inventory_id, for_update=True)
     old_quantity = Decimal(str(item.quantity_on_hand))  # ensure Decimal
     delta = new_quantity - old_quantity
 
@@ -271,7 +276,7 @@ def dispose(
     db: Session,
 ) -> InventoryItem:
     """Mark item as disposed (expired, contaminated, etc)."""
-    item = _get_inventory_or_404(db, inventory_id)
+    item = _get_inventory_or_404(db, inventory_id, for_update=True)
 
     remaining = item.quantity_on_hand
     item.quantity_on_hand = Decimal("0")
