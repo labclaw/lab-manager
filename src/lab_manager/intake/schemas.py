@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
@@ -25,7 +26,7 @@ class ExtractedItem(BaseModel):
         None, description="Product catalog or item number"
     )
     description: Optional[str] = Field(None, description="Product description")
-    quantity: Optional[float] = Field(None, description="Quantity ordered/shipped")
+    quantity: Optional[Decimal] = Field(None, description="Quantity ordered/shipped")
     unit: Optional[str] = Field(None, description="Unit of measure (EA, UL, MG, etc.)")
     lot_number: Optional[str] = Field(None, description="Lot or batch number")
     batch_number: Optional[str] = Field(
@@ -35,7 +36,7 @@ class ExtractedItem(BaseModel):
     storage_temp: Optional[str] = Field(
         None, description="Storage temperature requirement"
     )
-    unit_price: Optional[float] = Field(None, description="Price per unit")
+    unit_price: Optional[Decimal] = Field(None, description="Price per unit")
 
 
 class ExtractedDocument(BaseModel):
