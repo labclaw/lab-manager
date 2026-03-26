@@ -86,7 +86,7 @@ describe('SettingsPage', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByText('v0.1.9')).toBeInTheDocument()
+      expect(screen.getByText('v0.2.0')).toBeInTheDocument()
     })
   })
 

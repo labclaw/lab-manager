@@ -2,6 +2,23 @@
 
 All notable changes to LabClaw Lab Manager will be documented in this file.
 
+## [0.2.0] - 2026-03-25
+
+First milestone release. Promotes the full 0.1.x development series (239 PRs, 400+ commits) to a stable baseline for multi-lab deployment.
+
+### Highlights
+- **52 API endpoints** across 11 route modules with session cookie + API key auth
+- **OCR document intake** with multi-VLM extraction, tiered local/API detection, consensus pipeline
+- **React frontend** with persistent chat, Cloud Brain skills, analytics, settings, review queue
+- **Production CI/CD**: GitHub Actions, GHCR Docker publish, CodeQL security scanning
+- **160 Playwright E2E tests** + 900+ backend unit/integration tests
+- **Cost-aware LLM routing** via LiteLLM with extraction eval harness and iterative refinement
+- **One-click vendor reorder** with 17+ vendor website integrations
+
+### Changes since v0.1.9
+- fix(ci): add retry loop to Docker publish verify step (#239)
+- fix(security): sanitize test fixtures and pin CI action SHAs (#238)
+
 ## [0.1.9] - 2026-03-26
 
 Consolidates all development since v0.1.7 (354 commits). The 0.1.8.x series was never formally tagged — this release captures everything.

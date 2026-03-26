@@ -275,7 +275,7 @@ export function SettingsPage({ onError }: Readonly<SettingsPageProps>) {
 
   const labName = config?.lab_name ?? 'My Lab'
   const labSubtitle = config?.lab_subtitle ?? ''
-  const version = config?.version ?? '0.1.9'
+  const version = config?.version ?? '0.2.0'
   const userName = userData?.user?.name ?? 'Admin'
   const userEmail = userData?.user?.email ?? ''
   const userRole = userData?.user?.role ?? 'admin'
