@@ -186,6 +186,17 @@ class TestNotificationsAPI:
 
     def _seed(self, client, db_session):
         """Seed notifications for the default staff id (0, set by middleware)."""
+        # Ensure staff record with id=0 exists for FK constraint
+        from sqlalchemy import text
+
+        db_session.execute(
+            text(
+                "INSERT INTO staff (id, name, role, is_active) "
+                "VALUES (0, 'system', 'admin', true) "
+                "ON CONFLICT (id) DO NOTHING"
+            )
+        )
+        db_session.flush()
         for i in range(3):
             svc.create_notification(
                 db_session,
