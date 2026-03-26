@@ -15,9 +15,10 @@ from sqlalchemy.orm import Session, selectinload
 from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
-from lab_manager.exceptions import NotFoundError
+from lab_manager.exceptions import NotFoundError, ValidationError
 from lab_manager.models.order import Order, OrderItem, OrderStatus
 from lab_manager.services.orders import build_duplicate_warning, find_duplicate_po
+from lab_manager.services.search import index_order_record
 
 router = APIRouter()
 
@@ -197,6 +198,7 @@ def create_order(body: OrderCreate, db: Session = Depends(get_db)):
     db.add(order)
     db.flush()
     db.refresh(order)
+    index_order_record(order)
 
     # Duplicate PO# check — warn but never block (OCR may re-scan same doc).
     # The warning is embedded in the response under _duplicate_warning so callers
@@ -231,6 +233,7 @@ def update_order(order_id: int, body: OrderUpdate, db: Session = Depends(get_db)
         setattr(order, key, value)
     db.flush()
     db.refresh(order)
+    index_order_record(order)
     return order
 
 
@@ -271,7 +274,11 @@ def list_order_items(
     return paginate(q, db, page, page_size)
 
 
-@router.post("/{order_id}/items", status_code=201)
+@router.post(
+    "/{order_id}/items",
+    status_code=201,
+    dependencies=[Depends(require_permission("create_orders"))],
+)
 def create_order_item(
     order_id: int, body: OrderItemCreate, db: Session = Depends(get_db)
 ):
@@ -289,7 +296,10 @@ def get_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)):
     return _get_order_item_or_raise(db, order_id, item_id)
 
 
-@router.patch("/{order_id}/items/{item_id}")
+@router.patch(
+    "/{order_id}/items/{item_id}",
+    dependencies=[Depends(require_permission("approve_orders"))],
+)
 def update_order_item(
     order_id: int, item_id: int, body: OrderItemUpdate, db: Session = Depends(get_db)
 ):
@@ -301,7 +311,11 @@ def update_order_item(
     return item
 
 
-@router.delete("/{order_id}/items/{item_id}", status_code=204)
+@router.delete(
+    "/{order_id}/items/{item_id}",
+    status_code=204,
+    dependencies=[Depends(require_permission("delete_records"))],
+)
 def delete_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)):
     item = _get_order_item_or_raise(db, order_id, item_id)
     db.delete(item)

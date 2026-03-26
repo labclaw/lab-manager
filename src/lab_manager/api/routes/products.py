@@ -19,6 +19,7 @@ from lab_manager.exceptions import ConflictError
 from lab_manager.models.inventory import InventoryItem
 from lab_manager.models.order import OrderItem
 from lab_manager.models.product import Product
+from lab_manager.services.search import index_product_record
 
 router = APIRouter()
 
@@ -151,6 +152,7 @@ def create_product(body: ProductCreate, db: Session = Depends(get_db)):
             )
         raise ConflictError("Duplicate or constraint violation")
     db.refresh(product)
+    index_product_record(product)
     return product
 
 
@@ -178,6 +180,7 @@ def update_product(product_id: int, body: ProductUpdate, db: Session = Depends(g
             "Constraint violation"
         )  # pragma: no cover — defensive fallback
     db.refresh(product)
+    index_product_record(product)
     return product
 
 
@@ -263,4 +266,5 @@ def enrich_product_endpoint(product_id: int, db: Session = Depends(get_db)):
 
     db.flush()
     db.refresh(product)
+    index_product_record(product)
     return product
