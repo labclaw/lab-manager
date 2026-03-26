@@ -227,7 +227,6 @@ export async function mockAllAPIs(page: Page) {
 // ── Custom test fixture with mocked APIs ─────────────────────────────────
 
 export const test = base.extend<{ authedPage: Page }>({
-  // eslint-disable-next-line react-hooks/rules-of-hooks -- `use` is a Playwright fixture callback, not a React hook
   authedPage: async ({ page }, use) => {
     await mockAllAPIs(page)
     await page.goto('/')
@@ -235,6 +234,7 @@ export const test = base.extend<{ authedPage: Page }>({
     await page.waitForSelector('text=Dashboard', { timeout: 10_000 }).catch(() => {
       // Fallback: wait for any nav or sidebar element
     })
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- `use` is a Playwright fixture callback, not a React hook
     await use(page)
   },
 })
