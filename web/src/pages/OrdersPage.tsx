@@ -92,27 +92,27 @@ export function OrdersPage({ onError }: OrdersPageProps) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-6 md:space-y-8">
       {/* Header */}
       <div>
-        <div className="flex justify-between items-end">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Orders</h2>
-            <p className="text-gray-500 mt-2 text-sm">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Orders</h2>
+            <p className="text-gray-500 mt-1 md:mt-2 text-sm">
               {allOrders.length > 0
                 ? `${activeCount} active, ${allOrders.length - activeCount} completed across ${allOrders.length} total orders.`
                 : 'No orders yet. Orders are created when documents are processed.'}
             </p>
           </div>
-          <button disabled className="bg-gradient-to-br from-primary to-primary-container text-white px-6 py-3 rounded-xl font-bold flex items-center shadow-lg opacity-50 cursor-not-allowed" title="Coming soon">
-            <ShoppingCart className="mr-2" />
+          <button disabled className="bg-gradient-to-br from-primary to-primary-container text-white px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold flex items-center shadow-lg opacity-50 cursor-not-allowed text-sm md:text-base" title="Coming soon">
+            <ShoppingCart className="mr-2 size-5" />
             New Requisition
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center space-x-8 border-b border-outline">
+      <div className="flex items-center space-x-4 md:space-x-8 border-b border-outline overflow-x-auto">
         {TABS.map((tab) => (
           <button
             type="button"
@@ -146,9 +146,9 @@ export function OrdersPage({ onError }: OrdersPageProps) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Featured Card (full width) */}
           {featured && (
-            <div className="lg:col-span-12 bg-surface-container-lowest border border-outline rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+            <div className="lg:col-span-12 bg-surface-container-lowest border border-outline rounded-xl p-4 md:p-8 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1.5 h-full bg-primary" />
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 mb-6 md:mb-8">
                 <div>
                   <div className="flex items-center gap-3 mb-1">
                     <h3 className="text-lg font-bold text-on-surface">
