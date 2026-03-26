@@ -416,7 +416,6 @@ class TestPaginationE2E:
         """Orders pagination works with page_size=4 over 10 orders."""
         client = authenticated_client
         vendor = _create_vendor(client)
-        po_prefix = f"PgOrd-{_suffix()}"
         for i in range(10):
             _create_order(client, vendor["id"])
 

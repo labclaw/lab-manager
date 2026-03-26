@@ -62,7 +62,7 @@ def _create_product(
 
     # min_stock_level is not in ProductCreate schema; set via PATCH
     if min_stock_level is not None:
-        patch_resp = client.patch(
+        client.patch(
             f"/api/v1/products/{product['id']}",
             json={"extra": {"min_stock_level_requested": min_stock_level}},
         )

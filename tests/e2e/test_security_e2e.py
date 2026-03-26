@@ -177,7 +177,6 @@ class TestLoginSecurityE2E:
         )
         # Should succeed or conflict (if setup already done)
         if resp.status_code in (200, 201):
-            data = resp.json()
             # The raw script tag must not appear unescaped in HTML context;
             # as JSON it is safely stored and returned.
             assert resp.status_code in (200, 201)
