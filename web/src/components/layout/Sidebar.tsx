@@ -32,6 +32,7 @@ interface SidebarProps {
   readonly reviewCount?: number
   readonly mobileOpen?: boolean
   readonly onMobileClose?: () => void
+  readonly userName?: string
 }
 
 const navItems = [
@@ -59,6 +60,7 @@ export function Sidebar({
   reviewCount = 0,
   mobileOpen = false,
   onMobileClose,
+  userName = 'User',
 }: SidebarProps) {
   // On mobile overlay, always show expanded regardless of collapsed state
   const showLabels = mobileOpen || !collapsed
@@ -147,7 +149,7 @@ export function Sidebar({
           </div>
           {showLabels && (
             <div className="overflow-hidden">
-              <p className="text-sm font-bold text-[var(--foreground)] truncate">Admin</p>
+              <p className="text-sm font-bold text-[var(--foreground)] truncate">{userName}</p>
             </div>
           )}
         </div>

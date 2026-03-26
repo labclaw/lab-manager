@@ -137,12 +137,15 @@ export default function App() {
           reviewCount={reviewCount}
           mobileOpen={mobileMenuOpen}
           onMobileClose={() => setMobileMenuOpen(false)}
+          userName={user.name}
         />
         <div className="flex-1 flex flex-col min-w-0">
           <Header
             title={PAGE_TITLES[location.pathname] ?? 'Lab Manager'}
             showSearch={location.pathname !== '/ask'}
             onMobileMenuToggle={() => setMobileMenuOpen(prev => !prev)}
+            userName={user.name}
+            alertCount={alertCount}
           />
           <main className="flex-1 overflow-y-auto p-3 md:p-6">
             <Routes>
