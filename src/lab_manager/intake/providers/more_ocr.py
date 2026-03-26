@@ -358,6 +358,218 @@ class CodexOCRProvider(OCRProvider):
 # ---------------------------------------------------------------------------
 
 
+class DotsMOCRProvider(OCRProvider):
+    """dots.mocr 3B — open-source Elo #1 (1124.7) on OmniDocBench.
+
+    From Rednote HiLab. MIT license. Native vLLM support.
+    3B params, ~6GB VRAM, document-aware OCR with layout understanding.
+    vLLM: vllm serve rednote-hilab/dots.mocr --tensor-parallel-size 1
+    """
+
+    name = "dots_mocr"
+    model_id = "rednote-hilab/dots.mocr"
+
+    def __init__(
+        self,
+        base_url: str = "http://localhost:8000/v1",
+        model: str = "rednote-hilab/dots.mocr",
+    ):
+        self.base_url = base_url
+        self.model = model
+
+    def extract_text(self, image_path: str) -> str:
+        import base64
+
+        from openai import OpenAI
+
+        try:
+            client = OpenAI(base_url=self.base_url, api_key="dummy")
+            b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
+            suffix = Path(image_path).suffix.lower().lstrip(".")
+            mime = "image/jpeg" if suffix in ("jpg", "jpeg") else f"image/{suffix}"
+
+            response = client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:{mime};base64,{b64}"},
+                            },
+                            {"type": "text", "text": OCR_PROMPT},
+                        ],
+                    }
+                ],
+                max_tokens=4096,
+            )
+            return getattr(response.choices[0].message, "content", "") or ""
+        except Exception as e:
+            log.warning("dots.mocr error: %s", e)
+            return ""
+
+
+class GLMOCRDedicatedProvider(OCRProvider):
+    """GLM-OCR 0.9B — fast lightweight OCR fallback.
+
+    Ultra-lightweight dedicated OCR model from Z.ai. Supports:
+    - Local mode: transformers AutoModelForCausalLM + AutoProcessor
+    - API mode: Z.ai API (same endpoint as GLM-5) with model="glm-ocr"
+    - vLLM mode: OpenAI-compatible endpoint
+
+    0.9B params, ~2GB VRAM, sub-second per page.
+    """
+
+    name = "glm_ocr_09b"
+    model_id = "zai-org/GLM-OCR"
+
+    def __init__(
+        self,
+        base_url: str = "http://localhost:8000/v1",
+        model: str = "zai-org/GLM-OCR",
+        mode: str = "vllm",
+        api_key: Optional[str] = None,
+    ):
+        self.base_url = base_url
+        self.model = model
+        self.mode = mode
+        self.api_key = api_key
+
+    def extract_text(self, image_path: str) -> str:
+        if self.mode == "api":
+            return self._extract_api(image_path)
+        return self._extract_vllm(image_path)
+
+    def _extract_vllm(self, image_path: str) -> str:
+        import base64
+
+        from openai import OpenAI
+
+        try:
+            client = OpenAI(base_url=self.base_url, api_key="dummy")
+            b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
+            suffix = Path(image_path).suffix.lower().lstrip(".")
+            mime = "image/jpeg" if suffix in ("jpg", "jpeg") else f"image/{suffix}"
+
+            response = client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:{mime};base64,{b64}"},
+                            },
+                            {"type": "text", "text": OCR_PROMPT},
+                        ],
+                    }
+                ],
+                max_tokens=4096,
+            )
+            return getattr(response.choices[0].message, "content", "") or ""
+        except Exception as e:
+            log.warning("GLM-OCR 0.9B vLLM error: %s", e)
+            return ""
+
+    def _extract_api(self, image_path: str) -> str:
+        import base64
+        import os
+
+        from openai import OpenAI
+
+        api_key = (
+            self.api_key
+            or os.environ.get("ZAI_API_KEY", "")
+            or os.environ.get("ZHIPU_API_KEY", "")
+        )
+        if not api_key:
+            log.warning("No Z.ai API key for GLM-OCR")
+            return ""
+
+        try:
+            client = OpenAI(
+                base_url="https://open.bigmodel.cn/api/paas/v4",
+                api_key=api_key,
+            )
+            b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
+            suffix = Path(image_path).suffix.lower().lstrip(".")
+            mime = "image/jpeg" if suffix in ("jpg", "jpeg") else f"image/{suffix}"
+
+            response = client.chat.completions.create(
+                model="glm-ocr",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:{mime};base64,{b64}"},
+                            },
+                            {"type": "text", "text": OCR_PROMPT},
+                        ],
+                    }
+                ],
+                max_tokens=4096,
+            )
+            return getattr(response.choices[0].message, "content", "") or ""
+        except Exception as e:
+            log.warning("GLM-OCR API error: %s", e)
+            return ""
+
+
+class PaddleOCRVL15Provider(OCRProvider):
+    """PaddleOCR-VL 1.5 via vLLM OpenAI-compatible endpoint.
+
+    Upgraded from PaddleOCR-VL (0.9B). Better accuracy on complex layouts.
+    109 languages, document-aware layout understanding.
+    """
+
+    name = "paddleocr_vl_15"
+    model_id = "PaddlePaddle/PaddleOCR-VL-1.5"
+
+    def __init__(
+        self,
+        base_url: str = "http://localhost:8000/v1",
+        model: str = "PaddlePaddle/PaddleOCR-VL-1.5",
+    ):
+        self.base_url = base_url
+        self.model = model
+
+    def extract_text(self, image_path: str) -> str:
+        import base64
+
+        from openai import OpenAI
+
+        try:
+            client = OpenAI(base_url=self.base_url, api_key="dummy")
+            b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
+            suffix = Path(image_path).suffix.lower().lstrip(".")
+            mime = "image/jpeg" if suffix in ("jpg", "jpeg") else f"image/{suffix}"
+
+            response = client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:{mime};base64,{b64}"},
+                            },
+                            {"type": "text", "text": OCR_PROMPT},
+                        ],
+                    }
+                ],
+                max_tokens=4096,
+            )
+            return getattr(response.choices[0].message, "content", "") or ""
+        except Exception as e:
+            log.warning("PaddleOCR-VL 1.5 error: %s", e)
+            return ""
+
+
 class DeepSeekOCRProvider(OCRProvider):
     """DeepSeek-OCR 3B via vLLM OpenAI-compatible endpoint.
 
@@ -521,6 +733,10 @@ class MistralOCR3Provider(OCRProvider):
 # Registry of all available OCR providers
 OCR_PROVIDERS = {
     # Local models (fast initial detection, no API cost)
+    # Default: dots.mocr 3B — open-source Elo #1 (1124.7)
+    "dots_mocr": "lab_manager.intake.providers.more_ocr:DotsMOCRProvider",
+    "glm_ocr_09b": "lab_manager.intake.providers.more_ocr:GLMOCRDedicatedProvider",
+    "paddleocr_vl_15": "lab_manager.intake.providers.more_ocr:PaddleOCRVL15Provider",
     "deepseek_ocr": "lab_manager.intake.providers.more_ocr:DeepSeekOCRProvider",
     "paddleocr_vl": "lab_manager.intake.providers.more_ocr:PaddleOCRVLProvider",
     "qwen3_vl": "lab_manager.intake.providers.qwen_vllm:QwenVLLMProvider",
