@@ -2,6 +2,7 @@
 
 import pytest
 from lab_manager.models.staff import Staff
+from lab_manager.models.vendor import Vendor
 
 
 @pytest.fixture
@@ -11,9 +12,10 @@ def _seed_staff(db_session):
     student = Staff(
         name="grad_student", email="student@lab.edu", role="member", is_active=True
     )
-    db_session.add_all([admin, student])
+    vendor = Vendor(name="TestVendor")
+    db_session.add_all([admin, student, vendor])
     db_session.flush()
-    return {"admin": admin, "student": student}
+    return {"admin": admin, "student": student, "vendor": vendor}
 
 
 @pytest.fixture
@@ -116,8 +118,9 @@ def test_get_request_other_student_forbidden(client, _seed_staff):
 # --- Test: Approve creates Order ---
 
 
-def test_approve_creates_order(student_client, admin_client):
-    resp = _create_request(student_client, catalog_number="PCR-96")
+def test_approve_creates_order(student_client, admin_client, _seed_staff):
+    vendor_id = _seed_staff["vendor"].id
+    resp = _create_request(student_client, catalog_number="PCR-96", vendor_id=vendor_id)
     req_id = resp.json()["id"]
 
     resp = admin_client.post(
@@ -145,8 +148,9 @@ def test_approve_creates_order(student_client, admin_client):
     assert items[0]["catalog_number"] == "PCR-96"
 
 
-def test_approve_not_pending_fails(student_client, admin_client):
-    resp = _create_request(student_client)
+def test_approve_not_pending_fails(student_client, admin_client, _seed_staff):
+    vendor_id = _seed_staff["vendor"].id
+    resp = _create_request(student_client, vendor_id=vendor_id)
     req_id = resp.json()["id"]
 
     # Approve once
@@ -212,8 +216,9 @@ def test_cancel_others_request_forbidden(client, _seed_staff):
     assert resp.status_code == 403
 
 
-def test_cancel_non_pending_fails(student_client, admin_client):
-    resp = _create_request(student_client)
+def test_cancel_non_pending_fails(student_client, admin_client, _seed_staff):
+    vendor_id = _seed_staff["vendor"].id
+    resp = _create_request(student_client, vendor_id=vendor_id)
     req_id = resp.json()["id"]
 
     admin_client.post(f"/api/v1/requests/{req_id}/approve", json={})
@@ -224,11 +229,12 @@ def test_cancel_non_pending_fails(student_client, admin_client):
 # --- Test: Stats ---
 
 
-def test_request_stats(student_client, admin_client):
+def test_request_stats(student_client, admin_client, _seed_staff):
+    vendor_id = _seed_staff["vendor"].id
     _create_request(student_client)
     _create_request(student_client)
 
-    resp2 = _create_request(student_client)
+    resp2 = _create_request(student_client, vendor_id=vendor_id)
     req_id = resp2.json()["id"]
     admin_client.post(f"/api/v1/requests/{req_id}/approve", json={})
 
