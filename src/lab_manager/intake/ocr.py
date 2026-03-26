@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import base64
 import logging
-import os
 import time
 from pathlib import Path
 
@@ -120,8 +119,8 @@ def _ocr_local(image_path: Path, settings) -> str:
 def _ocr_gemini(image_path: Path, settings) -> str:
     api_key = (
         settings.extraction_api_key
-        or os.environ.get("GEMINI_API_KEY", "")
-        or os.environ.get("GOOGLE_API_KEY", "")
+        or settings.gemini_api_key
+        or settings.google_api_key
     )
     if not api_key:
         raise RuntimeError("No Gemini OCR key configured")
@@ -152,9 +151,7 @@ def _ocr_gemini(image_path: Path, settings) -> str:
 def _ocr_nvidia(image_path: Path, settings, model: str) -> str:
     import httpx
 
-    api_key = settings.nvidia_build_api_key or os.environ.get(
-        "NVIDIA_BUILD_API_KEY", ""
-    )
+    api_key = settings.nvidia_build_api_key
     if not api_key:
         raise RuntimeError("No NVIDIA OCR key configured")
 
@@ -228,7 +225,7 @@ def _ocr_api(image_path: Path, settings) -> str:
         return _ocr_gemini(image_path, settings)
     except Exception as e:
         logger.warning("Gemini OCR failed, trying NVIDIA fallback: %s", e)
-        if settings.nvidia_build_api_key or os.environ.get("NVIDIA_BUILD_API_KEY", ""):
+        if settings.nvidia_build_api_key:
             return _ocr_nvidia(
                 image_path,
                 settings,
