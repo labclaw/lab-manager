@@ -7,7 +7,7 @@ from decimal import Decimal
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -216,7 +216,7 @@ def update_inventory_item(
         InventoryStatus.depleted,
     ):
         raise ValidationError(
-            f"Cannot modify inventory item with status '{item.status.value}'"
+            f"Cannot modify inventory item with status '{item.status}'"
         )
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
