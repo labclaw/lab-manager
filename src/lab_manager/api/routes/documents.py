@@ -12,6 +12,7 @@ from pydantic import BaseModel, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.document import Document, DocumentStatus
@@ -266,7 +267,11 @@ def _index_approved_doc(doc_id: int) -> None:
         db.close()
 
 
-@router.post("/upload", status_code=201)
+@router.post(
+    "/upload",
+    status_code=201,
+    dependencies=[Depends(require_permission("upload_documents"))],
+)
 def upload_document(
     file: UploadFile,
     request: Request,
@@ -440,7 +445,11 @@ def update_document(
     return doc
 
 
-@router.delete("/{document_id}", status_code=204)
+@router.delete(
+    "/{document_id}",
+    status_code=204,
+    dependencies=[Depends(require_permission("delete_records"))],
+)
 def delete_document(document_id: int, db: Session = Depends(get_db)):
     """Soft-delete: set status to 'deleted'."""
     doc = get_or_404(db, Document, document_id, "Document")
@@ -449,7 +458,10 @@ def delete_document(document_id: int, db: Session = Depends(get_db)):
     return None
 
 
-@router.post("/{document_id}/review")
+@router.post(
+    "/{document_id}/review",
+    dependencies=[Depends(require_permission("review_documents"))],
+)
 def review_document(
     document_id: int,
     body: ReviewAction,
