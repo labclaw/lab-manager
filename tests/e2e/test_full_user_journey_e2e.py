@@ -215,7 +215,7 @@ class TestFullUserJourney:
         user = data["user"]
         assert user["name"] == _ADMIN_NAME
         assert user["email"] == _ADMIN_EMAIL
-        assert user["role"] == "admin"
+        assert user["role"] == "pi"
 
     # -----------------------------------------------------------------------
     # 3. Config & Health
