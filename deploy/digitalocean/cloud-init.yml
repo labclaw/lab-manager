@@ -104,9 +104,11 @@ write_files:
       sed -i 's/^      //' .env
       chmod 600 .env
 
-      # Save admin password for MOTD
-      echo "$ADMIN_PASSWORD" > /opt/labclaw/.admin_password
-      chmod 600 /opt/labclaw/.admin_password
+      # Display admin password once (not stored to disk)
+      echo "===================================================="
+      echo "  ADMIN PASSWORD (save this — it will not be shown again):"
+      echo "  $ADMIN_PASSWORD"
+      echo "===================================================="
 
       # Deploy
       docker compose up -d --build
@@ -176,8 +178,8 @@ write_files:
         Config:   /opt/labclaw/lab-manager/.env
         Backups:  /opt/labclaw/backups/
 
-        Admin password is stored in: /opt/labclaw/.admin_password
-        View it:  cat /opt/labclaw/.admin_password
+        Admin password was displayed during setup.
+        Reset:  cd /opt/labclaw/lab-manager && ADMIN_PASSWORD=your-new-pw docker compose up -d
 
         To add a Gemini API key:
           1. Edit /opt/labclaw/lab-manager/.env
