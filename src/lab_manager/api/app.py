@@ -180,15 +180,24 @@ def create_app() -> FastAPI:
     settings = get_settings()
     # In dev mode (auth disabled), allow all origins for flexibility
     # In production (auth enabled), rely on reverse proxy for CORS
-    cors_origins = ["*"] if not settings.auth_enabled else []
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=cors_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-        expose_headers=["*"],
-    )
+    if settings.auth_enabled:
+        # Production: strict same-origin, reverse proxy handles CORS
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=[],
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+            allow_headers=["Authorization", "Content-Type"],
+        )
+    else:
+        # Development: allow all origins, but without credentials (spec forbids * + credentials)
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=False,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
     @app.middleware("http")
     async def request_size_guard(request: Request, call_next):

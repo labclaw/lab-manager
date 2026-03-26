@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import shlex
 import subprocess
 from typing import Optional
 
@@ -23,8 +24,9 @@ class ClaudeProvider(VLMProvider):
         self.timeout = timeout
 
     def extract_from_image(self, image_path: str, prompt: str) -> Optional[str]:
+        safe_path = shlex.quote(str(image_path))
         full_prompt = (
-            f"Read the image at {image_path} and follow these instructions:\n\n{prompt}"
+            f"Read the image at {safe_path} and follow these instructions:\n\n{prompt}"
         )
         try:
             result = subprocess.run(
