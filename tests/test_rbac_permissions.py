@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import os
+from datetime import datetime, timedelta, timezone
 
 import bcrypt as _bcrypt
+import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
+from sqlalchemy.pool import StaticPool
+from sqlmodel import Session, SQLModel, create_engine
 
 from lab_manager.api.auth import (
     ALL_PERMISSIONS,
@@ -16,6 +21,7 @@ from lab_manager.api.auth import (
     get_permissions,
     require_permission,
 )
+from lab_manager.config import get_settings
 
 
 def _hash_password(password: str) -> str:
@@ -296,15 +302,6 @@ class TestRoleHierarchy:
 # ---------------------------------------------------------------------------
 # RBAC lockout / login-counter integration tests
 # ---------------------------------------------------------------------------
-
-import os
-from datetime import datetime, timedelta, timezone
-
-import pytest
-from sqlalchemy.pool import StaticPool
-from sqlmodel import Session, SQLModel, create_engine
-
-from lab_manager.config import get_settings
 
 
 @pytest.fixture
