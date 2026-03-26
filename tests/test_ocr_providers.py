@@ -374,7 +374,7 @@ class TestOCRConfig:
                 _env_file=None,
             )
             assert s.ocr_tier == "auto"
-            assert s.ocr_local_model == "deepseek_ocr"
+            assert s.ocr_local_model == "dots_mocr"
             assert s.ocr_local_url == "http://localhost:8000/v1"
             assert s.mistral_api_key == ""
 
