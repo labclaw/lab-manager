@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy import select
 from sqlmodel import Session
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db
 from lab_manager.models.inventory import InventoryItem
 from lab_manager.models.product import Product
@@ -120,7 +121,7 @@ def _validate_vendor_row(row: dict, row_num: int) -> tuple[Optional[dict], list[
     return data, errors
 
 
-@router.post("/vendors")
+@router.post("/vendors", dependencies=[Depends(require_permission("manage_products"))])
 def import_vendors(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -266,7 +267,7 @@ def _validate_product_row(
     return data, errors
 
 
-@router.post("/products")
+@router.post("/products", dependencies=[Depends(require_permission("manage_products"))])
 def import_products(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -468,7 +469,9 @@ def _validate_inventory_row(
     return data, errors
 
 
-@router.post("/inventory")
+@router.post(
+    "/inventory", dependencies=[Depends(require_permission("manage_products"))]
+)
 def import_inventory(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
