@@ -431,3 +431,59 @@ export const ask = {
       body: JSON.stringify({ question }),
     }),
 }
+
+// Team management
+export interface TeamMember {
+  id: number
+  name: string
+  email: string | null
+  role: string
+  role_level: number
+  is_active: boolean
+  last_login_at: string | null
+  access_expires_at: string | null
+  invited_by: number | null
+  permissions?: string[]
+}
+
+export interface TeamInvitation {
+  id: number
+  email: string
+  name: string
+  role: string
+  token: string
+  status: string
+  created_at: string | null
+  expires_at: string | null
+}
+
+export const team = {
+  list: (page = 1, pageSize = 50, isActive?: boolean) => {
+    const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+    if (isActive != null) params.set('is_active', String(isActive))
+    return apiFetch<ApiResponse<TeamMember>>(`/team?${params}`)
+  },
+  get: (id: number) => apiFetch<TeamMember>(`/team/${id}`),
+  updateRole: (id: number, role: string) =>
+    apiFetch<TeamMember>(`/team/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    }),
+  deactivate: (id: number) =>
+    apiFetch<{ status: string; message: string }>(`/team/${id}`, {
+      method: 'DELETE',
+    }),
+  invite: (data: { email: string; name: string; role: string }) =>
+    apiFetch<TeamInvitation>('/team/invite', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  listInvitations: (page = 1, pageSize = 50) =>
+    apiFetch<ApiResponse<TeamInvitation>>(
+      `/team/invitations?page=${page}&page_size=${pageSize}`,
+    ),
+  cancelInvitation: (id: number) =>
+    apiFetch<{ status: string; message: string }>(`/team/invitations/${id}`, {
+      method: 'DELETE',
+    }),
+}

@@ -11,6 +11,7 @@ import {
   Upload,
   Brain,
   Sparkles,
+  Users,
   Settings,
   User,
   LogOut,
@@ -45,6 +46,7 @@ const navItems = [
   { path: '/orders', label: 'Orders', Icon: ShoppingCart },
   { path: '/upload', label: 'Upload', Icon: Upload },
   { path: '/cloud-brain', label: 'Cloud Brain', Icon: Sparkles },
+  { path: '/team', label: 'Team', Icon: Users },
 ]
 
 export function Sidebar({
