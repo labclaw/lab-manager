@@ -350,7 +350,7 @@ export const documents = {
   upload: (file: File) => {
     const form = new FormData()
     form.append('file', file)
-    return fetch(`${BASE}/documents/upload`, { method: 'POST', body: form })
+    return fetch(`${BASE}/documents/upload/`, { method: 'POST', body: form })
       .then(async (res) => {
         if (res.status === 401) throw new Error('Unauthorized')
         if (!res.ok) {
