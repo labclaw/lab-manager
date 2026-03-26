@@ -218,8 +218,11 @@ async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
   if (!(opts?.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json')
   }
-  // Do NOT add trailing slash - FastAPI routes don't use them
-  const normalizedUrl = url
+  // Ensure trailing slash on path (before query string) to match FastAPI routes
+  const qIdx = url.indexOf('?')
+  const path = qIdx >= 0 ? url.slice(0, qIdx) : url
+  const query = qIdx >= 0 ? url.slice(qIdx) : ''
+  const normalizedUrl = path.endsWith('/') ? `${path}${query}` : `${path}/${query}`
   const res = await fetch(`${BASE}${normalizedUrl}`, {
     ...opts,
     headers,
