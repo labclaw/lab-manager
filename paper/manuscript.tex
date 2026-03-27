@@ -51,21 +51,22 @@ records. We present Lab Manager, an open-source, AI-native laboratory
 operations platform that converts scanned documents into structured
 database records via multi-model consensus.
 
-The system employs a six-stage architecture: (0)~optical character
-recognition, (1)~parallel extraction by three frontier vision-language
-models (VLMs), (2)~field-level consensus voting with automatic conflict
-resolution, (3)~cross-model review where each model validates the merged
-extraction, (4)~rule-based validation, and (5)~human review for unresolved
+The system employs a five-stage architecture: (1)~optical character
+recognition, (2)~parallel extraction by three frontier vision-language
+models (VLMs), (3)~field-level consensus voting with automatic conflict
+resolution, (4)~cross-model review where each model validates the merged
+extraction, and (5)~rule-based validation with human review for unresolved
 conflicts. In a benchmark of 10 real documents from 10 vendors, individual
-VLMs achieved 80--90\% accuracy on vendor names and purchase order numbers,
-and the 2/3 majority consensus rule resolved all vendor name disagreements
+VLMs achieved 90\% accuracy on vendor names and purchase order numbers,
+while the consensus mechanism resolved most inter-model disagreements
 without human intervention.
 
 Deployed as a self-hosted Docker application, Lab Manager provides a
-complete laboratory operations stack---inventory management, order tracking,
+complete laboratory operations stack: inventory management, order tracking,
 vendor databases, full-text search, analytics, role-based access control,
-and audit trails---running in production at Massachusetts General Hospital
-and freely available under the Apache-2.0 license.
+and audit trails. The system runs in production at Harvard Medical
+School/Massachusetts General Hospital and is freely available under the
+Apache-2.0 license at \url{https://github.com/labclaw/lab-manager}.
 \end{abstract}
 
 % ============================================================
@@ -155,16 +156,16 @@ orders, analytics, and search indices.
 
 The system is built on a three-tier architecture: a PostgreSQL 17 database
 with 16 relational models, a FastAPI~\citep{fastapi2024} backend with 88
-REST API endpoints across 14 route modules, and a React frontend. The
-application provides Meilisearch for full-text search, role-based access
-control (RBAC) with 7 permission levels, a natural-language query interface
-(NL$\to$SQL via LiteLLM), CSV export, and a complete audit trail. Users
-deploy it as a single Docker Compose stack.
+REST API endpoints across 14 route modules, and a React frontend. The application provides Meilisearch for full-text search,
+role-based access control (RBAC) with 7 permission levels, a
+natural-language query interface (NL$\to$SQL via LiteLLM), CSV export,
+and a complete audit trail. Users deploy it as a single Docker Compose
+stack.
 
 \subsection{Multi-model consensus pipeline}
 \label{sec:pipeline}
 
-The document intake pipeline processes each uploaded image through six
+The document intake pipeline processes each uploaded image through five
 stages (Fig.~\ref{fig:pipeline}):
 
 \textbf{Stage 0: OCR.} Optical character recognition extracts raw text
@@ -370,13 +371,13 @@ enables deployment by non-technical users on Ubuntu or Debian systems.
 \section{Discussion}
 \label{sec:discussion}
 
-Lab Manager fills a persistent gap in laboratory informatics: the
-conversion of paper supply documents into structured, queryable data.
-LIMS and ELN systems provide mature data management infrastructure but
-assume that data arrives in structured form. Lab Manager automates the
-upstream step of \emph{document understanding}---turning scanned packing
-lists, invoices, and certificates of analysis into database records that
-feed directly into inventory, ordering, and analytics workflows.
+Lab Manager addresses a gap in the laboratory software landscape: the
+conversion of paper documents into structured, queryable data. While LIMS
+and ELN systems provide data management infrastructure, they assume data
+arrives in structured form. Lab Manager automates the critical upstream
+step of \emph{document understanding}, turning scanned packing lists and
+invoices into database records that feed into inventory, ordering, and
+analytics workflows.
 
 \textbf{Multi-model consensus as a design pattern.} The core architectural
 insight is that no single VLM is reliable enough for laboratory data, but
