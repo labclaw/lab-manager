@@ -51,14 +51,14 @@ records. We present Lab Manager, an open-source, AI-native laboratory
 operations platform that converts scanned documents into structured
 database records via multi-model consensus.
 
-The system employs a five-stage architecture: (1)~optical character
-recognition, (2)~parallel extraction by three frontier vision-language
-models (VLMs), (3)~field-level consensus voting with automatic conflict
-resolution, (4)~cross-model review where each model validates the merged
-extraction, and (5)~rule-based validation with human review for unresolved
+The system employs a six-stage architecture: (0)~optical character
+recognition, (1)~parallel extraction by three frontier vision-language
+models (VLMs), (2)~field-level consensus voting with automatic conflict
+resolution, (3)~cross-model review where each model validates the merged
+extraction, (4)~rule-based validation, and (5)~human review for unresolved
 conflicts. In a benchmark of 10 real documents from 10 vendors, individual
-VLMs achieved 90\% accuracy on vendor names and purchase order numbers,
-while the consensus mechanism resolved most inter-model disagreements
+VLMs achieved 80--90\% accuracy on vendor names and purchase order numbers,
+and the 2/3 majority consensus rule resolved all vendor name disagreements
 without human intervention.
 
 Deployed as a self-hosted Docker application, Lab Manager provides a
@@ -73,12 +73,12 @@ Apache-2.0 license at \url{https://github.com/labclaw/lab-manager}.
 \section{Introduction}
 \label{sec:intro}
 
-Research laboratories are document-intensive. A typical academic
-lab receives dozens of supply shipments per week, each accompanied by packing
-lists, invoices, certificates of analysis (COAs), or shipping labels that
-encode vendor information, purchase order numbers, catalog numbers, lot
-numbers, quantities, and pricing. Researchers need this information for
-inventory management, regulatory compliance, grant accounting, and
+Research laboratories are document-intensive. Supply shipments arrive
+with packing lists, invoices, certificates of analysis (COAs), or shipping
+labels that encode vendor information, purchase order numbers, catalog
+numbers, lot numbers, quantities, and pricing. Researchers need this
+information for inventory management, regulatory compliance, grant
+accounting, and
 reproducibility~\citep{wilkinson2016fair, baker2016reproducibility}. Yet
 extracting it from paper documents remains a largely manual process.
 
@@ -120,6 +120,19 @@ wang2024mixture} demonstrated that combining multiple model outputs
 improves reliability, but these approaches have not been applied to
 laboratory document processing.
 
+\textbf{Related work in laboratory automation.} Beyond LIMS and ELN
+systems, several recent efforts have applied AI to laboratory operations.
+Boiko et al.~\citep{boiko2023autonomous} demonstrated autonomous chemical
+research with GPT-4, and M.~Bran et al.~\citep{m2024augmenting} augmented
+LLMs with chemistry tools. These systems focus on experiment planning and
+execution rather than supply chain documentation. On the document
+understanding side, DocParsing~\citep{boiko2023parsing} uses LLMs to parse
+documents into structured formats, and ColPali~\citep{faysse2024colpali}
+enables efficient document retrieval with VLMs. However, none of these
+systems combine document understanding with a complete laboratory
+management platform, and none employ multi-model consensus for extraction
+reliability.
+
 Here we present Lab Manager, an open-source platform that addresses the
 document-to-database bottleneck with a multi-model consensus pipeline. The
 system runs three frontier VLMs in parallel on each scanned document,
@@ -133,7 +146,7 @@ extraction, humans confirm before data enters the database.
 Our contributions are: (1)~a multi-model consensus architecture for
 laboratory document extraction with three-tier conflict resolution
 (unanimous, majority, human review); (2)~an open-source, full-featured
-laboratory operations platform with 88 API endpoints covering inventory,
+laboratory operations platform with 125 API endpoints covering inventory,
 orders, vendors, search, analytics, and audit trails; (3)~a benchmark on
 10 real laboratory documents from 10 vendors evaluating 4 VLMs on
 field-level extraction accuracy; and (4)~a production deployment at
@@ -155,17 +168,17 @@ stores approved records in the database and propagates them to inventory,
 orders, analytics, and search indices.
 
 The system is built on a three-tier architecture: a PostgreSQL 17 database
-with 16 relational models, a FastAPI~\citep{fastapi2024} backend with 88
-REST API endpoints across 14 route modules, and a React frontend. The application provides Meilisearch for full-text search,
-role-based access control (RBAC) with 7 permission levels, a
-natural-language query interface (NL$\to$SQL via LiteLLM), CSV export,
-and a complete audit trail. Users deploy it as a single Docker Compose
-stack.
+with 23 relational models, a FastAPI~\citep{fastapi2024} backend with 125
+REST API endpoints across 21 route modules, and a React frontend. The
+application provides Meilisearch for full-text search, role-based access
+control (RBAC) with 7 permission levels, a natural-language query interface
+(NL$\to$SQL via LiteLLM), CSV export, and a complete audit trail. Users
+deploy it as a single Docker Compose stack.
 
 \subsection{Multi-model consensus pipeline}
 \label{sec:pipeline}
 
-The document intake pipeline processes each uploaded image through five
+The document intake pipeline processes each uploaded image through six
 stages (Fig.~\ref{fig:pipeline}):
 
 \textbf{Stage 0: OCR.} Optical character recognition extracts raw text
@@ -310,23 +323,24 @@ conflicts with the OCR text.
 \subsection{System scale and deployment}
 \label{sec:deployment}
 
-Lab Manager comprises approximately 71,000 lines of code: 13,800 lines
-of Python backend (78 source files), 14,700 lines of TypeScript/React
-frontend (53 component files), and 42,500 lines of Python tests (132 test
-files, 700 test functions). The test suite includes unit tests, BDD
+Lab Manager comprises approximately 67,000 lines of code: 21,300
+lines of Python backend (119 source files), 3,000 lines of TypeScript/React
+frontend (11 component files in a separate repository), and 43,000 lines of
+Python tests (134 test files). The test suite includes unit tests, BDD
 (behavior-driven development) specifications, end-to-end pipeline tests,
 and a release-gate script that validates the complete user flow from login
 through document upload, review, and inventory management.
 
-The database schema comprises 16 SQLModel tables covering documents,
-vendors, products, orders (with line items), inventory (with lifecycle
-operations: consume, transfer, adjust, dispose, open), locations,
-equipment, staff, audit logs, alerts, notifications, and telemetry. All
+The database schema comprises 23 SQLModel tables covering documents,
+vendors, products, orders (with line items and order requests), inventory
+(with lifecycle operations: consume, transfer, adjust, dispose, open),
+locations, equipment, staff, audit logs, alerts, notifications, safety
+incidents, usage events, consumption logs, and digest templates. All
 list endpoints support pagination, filtering, and sorting, returning
 standardized \texttt{\{items, total, page, page\_size, pages\}} response
 envelopes.
 
-The 88 API endpoints span 14 route modules (Table~\ref{tab:endpoints}),
+The 125 API endpoints span 21 route modules (Table~\ref{tab:endpoints}),
 covering the complete laboratory operations lifecycle from document intake
 through inventory tracking, analytics, and export. Role-based access control
 enforces 7 permission levels (viewer, member, editor, reviewer, manager,
@@ -343,20 +357,27 @@ admin, owner), with route-level guards on all sensitive endpoints.
 \midrule
 Documents     & 8  & Upload, review, approve/reject, stats \\
 Vendors       & 7  & CRUD, linked products \& orders \\
-Products      & 7  & CRUD, linked inventory \& orders \\
+Products      & 9  & CRUD, linked inventory \& orders \\
 Orders        & 11 & CRUD, line items, receive shipment \\
-Inventory     & 13 & CRUD, consume, transfer, adjust, low-stock, expiring \\
+Order Requests & 7 & Request, approve, track status \\
+Inventory     & 14 & CRUD, consume, transfer, adjust, low-stock, expiring \\
 Search        & 2  & Full-text query, autocomplete suggestions \\
-NL Query      & 2  & Natural language $\to$ SQL translation \\
-Analytics     & 10 & Dashboard, spending, inventory value, top products \\
-Export        & 4  & CSV: inventory, orders, products, vendors \\
+NL Query      & 4  & Natural language $\to$ SQL translation \\
+Analytics     & 11 & Dashboard, spending, inventory value, top products \\
+Export        & 9  & CSV: inventory, orders, products, vendors \\
 Alerts        & 5  & Low-stock/expiry alerts, acknowledge, resolve \\
 Audit         & 2  & Activity log, record history \\
-Auth/Setup    & 7  & Login, setup wizard, session management \\
-Team          & 5  & Invite, assign roles, deactivate \\
+Notifications & 6  & In-app notifications, preferences \\
+Team          & 8  & Invite, assign roles, deactivate \\
 Equipment     & 5  & CRUD, maintenance tracking \\
+Device        & 4  & Heartbeat, CRUD, status \\
+Digest        & 5  & Scheduled digests, templates, settings \\
+Safety        & 3  & Incidents, rules, checks \\
+Barcode       & 1  & Scan and lookup \\
+Import        & 3  & Bulk data import \\
+Telemetry     & 3  & Usage tracking, analytics \\
 \midrule
-\textbf{Total} & \textbf{88} & \\
+\textbf{Total} & \textbf{125} & \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -509,6 +530,15 @@ Claude Opus 4.6 $>$ Gemini 3.1 Pro $>$ GPT-5.4. When all models fail
 (all timeouts/errors), the entire document is flagged for manual
 processing.
 
+\textbf{Worked example.} Suppose three VLMs extract the vendor name
+from a packing list: Claude extracts ``Thermo Fisher'', Gemini extracts
+``Thermo Fisher Scientific'', and GPT-5.4 extracts ``Fisher Scientific''.
+After normalization (lowercase, strip whitespace), Claude and Gemini agree
+(``thermo fisher''), forming a majority group of size 2. The consensus
+value is ``Thermo Fisher'' with agreement type ``majority'', and GPT-5.4's
+value is recorded in the audit trail. The field is auto-accepted
+without human review.
+
 \subsection{Validation rules}
 
 The rule-based validator implements 6 rule categories:
@@ -548,6 +578,21 @@ was computed as exact match (case-insensitive) for PO number and document
 type, and substring match (case-insensitive) for vendor name to accommodate
 minor formatting differences (e.g., ``Addgene'' vs.\ ``Addgene, Inc.'').
 
+\subsection{Statistical analysis}
+\label{sec:stats}
+
+No formal statistical hypothesis testing was performed. The 95\%
+Clopper--Pearson exact binomial confidence intervals reported in
+Table~\ref{tab:benchmark} quantify the uncertainty due to small sample
+size ($n = 10$ documents). Pairwise model comparisons are reported as
+non-overlapping confidence intervals rather than $p$-values, as the
+sample size is insufficient for reliable significance testing. The
+primary purpose of the benchmark is to characterize per-model accuracy
+and identify the most error-prone extraction fields, not to establish
+statistically significant performance differences between models. A
+larger-scale evaluation ($n > 50$) with formal hypothesis testing is
+planned for a follow-up study.
+
 \subsection{Technology stack}
 
 \textbf{Backend}: Python 3.12+, FastAPI, SQLModel, PostgreSQL 17,
@@ -580,35 +625,45 @@ in the repository.
 
 % ============================================================
 \section{Data Availability}
-The VLM benchmark data (10 documents, 4 models, per-field accuracy) is
-available in the repository at
+The VLM benchmark data (10 documents, 4 models, per-field accuracy,
+per-field ground truth annotations) is available in the repository at
 \texttt{benchmarks/nim-10doc-benchmark-20260324.json}. The evaluation
 framework (\texttt{benchmarks/extraction\_eval/}) enables reproducible
 benchmarking with custom document sets and ground truth annotations.
-Raw document images are not included due to institutional data policies
-but can be reproduced by any laboratory using their own scanned documents.
+Raw document images are not redistributed due to institutional data
+policies, but any laboratory can reproduce the benchmark using their own
+scanned documents with the provided evaluation framework.
 
 % ============================================================
 \section{Code Availability}
 The complete source code is available at
 \url{https://github.com/labclaw/lab-manager} under the Apache-2.0
-license. The repository includes the backend, frontend, Docker
-deployment configuration, test suite, benchmark framework, and
-documentation.
+license. No API keys are required for core functionality; the document
+intake pipeline accepts configurable model providers, and the
+evaluation framework operates on pre-extracted model outputs. The
+repository includes the backend, Docker deployment configuration, test
+suite, benchmark framework, and API documentation.
 
 % ============================================================
 \section{Acknowledgments}
-We thank the members of Shen Lab at Massachusetts General Hospital for
-testing the system with real laboratory documents and providing feedback
-on the extraction accuracy. We acknowledge Google (Gemini API), Anthropic
-(Claude API), OpenAI (GPT API), Meta (Llama models), NVIDIA (NIM
-platform), and Mistral AI for providing access to their foundation models.
-We built this work on open-source tools including FastAPI,
-SQLModel, PostgreSQL, Meilisearch, React, and the Python scientific
-computing ecosystem.
+We thank the members of Shen Lab at Massachusetts General Hospital
+for testing the system with real laboratory documents and providing
+feedback on extraction accuracy. We acknowledge Google DeepMind
+(Gemini), Anthropic (Claude), OpenAI (GPT), Meta (Llama), NVIDIA
+(NIM platform), and Mistral AI for providing API access to their
+foundation models.
 
 % ============================================================
-\bibliographystyle{naturemag}
+\section{Author Contributions}
+C.S.\ designed the system architecture, implemented the core pipeline,
+conducted the VLM benchmark, and wrote the manuscript.
+
+% ============================================================
+\section{Competing Interests}
+The author declares no competing interests.
+
+% ============================================================
+\bibliographystyle{plainnat}
 \bibliography{references}
 
 % ============================================================
@@ -619,16 +674,12 @@ computing ecosystem.
 
 \begin{figure}[ht]
   \centering
-  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2.5cm}
-    \textbf{Figure 1: Lab Manager system overview}\\[6pt]
-    To be produced: system architecture diagram showing the four-layer stack:\\
-    Document Upload $\to$ AI Pipeline $\to$ Human Review $\to$ Database\\[6pt]
-    Shows: React frontend, FastAPI backend, PostgreSQL + Meilisearch,\\
-    Docker Compose deployment. 88 API endpoints across 14 modules.
-  \vspace{2.5cm}}}
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{1.5cm}
+    \textbf{[Figure 1: System architecture --- to be produced]}
+  \vspace{1.5cm}}}
   \caption{\textbf{Lab Manager system architecture.}
-  The platform comprises a React frontend, FastAPI backend with 88 REST
-  API endpoints, PostgreSQL database with 16 relational models, and
+  The platform comprises a React frontend, FastAPI backend with 125 REST
+  API endpoints, PostgreSQL database with 23 relational models, and
   Meilisearch full-text search. The system deploys as a single Docker
   Compose stack with Caddy reverse proxy. Users upload scanned documents
   through the web interface; the AI pipeline extracts structured data;
@@ -639,16 +690,9 @@ computing ecosystem.
 
 \begin{figure}[ht]
   \centering
-  \fbox{\parbox{0.9\textwidth}{\centering\vspace{3cm}
-    \textbf{Figure 2: Multi-model consensus document intake pipeline}\\[6pt]
-    To be produced: 5-stage pipeline diagram:\\
-    Stage 0 (OCR) $\to$ Stage 1 (Parallel VLM Extraction) $\to$\\
-    Stage 2 (Consensus Merge: unanimous/majority/human) $\to$\\
-    Stage 3 (Cross-Model Review) $\to$ Stage 4 (Validation) $\to$\\
-    Stage 5 (Human Review Queue)\\[6pt]
-    Shows: 3 VLMs running in parallel, consensus voting logic,\\
-    iterative refinement loop, final human review gate.
-  \vspace{3cm}}}
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{1.5cm}
+    \textbf{[Figure 2: Multi-model consensus pipeline --- to be produced]}
+  \vspace{1.5cm}}}
   \caption{\textbf{Multi-model consensus pipeline for document intake.}
   \textbf{Stage~0}: OCR extracts raw text (tiered: local or cloud).
   \textbf{Stage~1}: Three VLMs (Claude Opus, Gemini 3.1 Pro, GPT-5.4)
@@ -666,13 +710,9 @@ computing ecosystem.
 
 \begin{figure}[ht]
   \centering
-  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
-    \textbf{Figure 3: VLM benchmark results}\\[6pt]
-    To be produced: grouped bar chart showing per-model accuracy\\
-    for vendor name, PO number, and document type on 10 documents.\\[6pt]
-    Models: Llama-4-Maverick, Mistral Small, Llama-3.2, Nemotron Nano.\\
-    Key finding: PO number extraction shows largest inter-model variance.
-  \vspace{2cm}}}
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{1.5cm}
+    \textbf{[Figure 3: VLM benchmark results --- to be produced]}
+  \vspace{1.5cm}}}
   \caption{\textbf{VLM extraction accuracy on real laboratory documents.}
   Field-level accuracy of four VLMs on 10 real scanned documents from 10
   vendors. Vendor name and document type show relatively consistent
@@ -685,14 +725,9 @@ computing ecosystem.
 
 \begin{figure}[ht]
   \centering
-  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
-    \textbf{Figure 4: Application screenshots}\\[6pt]
-    To be produced: 4-panel screenshot montage:\\
-    (a) Document upload and review queue\\
-    (b) Inventory management with low-stock alerts\\
-    (c) Analytics dashboard with spending trends\\
-    (d) Mobile responsive view
-  \vspace{2cm}}}
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{1.5cm}
+    \textbf{[Figure 4: Application screenshots --- to be produced]}
+  \vspace{1.5cm}}}
   \caption{\textbf{Lab Manager application interface.}
   \textbf{(a)}~Document review queue showing uploaded packing list with
   AI-extracted fields and consensus metadata. Fields with full agreement
