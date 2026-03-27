@@ -24,6 +24,8 @@ import { ImportPage } from '@/pages/ImportPage'
 import { AlertsPage } from '@/pages/AlertsPage'
 import { RequestsPage } from '@/pages/RequestsPage'
 import { DevicesPage } from '@/pages/DevicesPage'
+import { ResearchPage } from '@/pages/ResearchPage'
+import { GinkgoPage } from '@/pages/GinkgoPage'
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -44,6 +46,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/team': 'Team',
   '/requests': 'Supply Requests',
   '/devices': 'Devices',
+  '/research': 'Research',
+  '/ginkgo': 'Ginkgo AI',
 }
 
 export default function App() {
@@ -157,6 +161,8 @@ export default function App() {
                 <Route path="settings" element={<SettingsPage onError={setError} />} />
                 <Route path="requests" element={<RequestsPage onError={setError} />} />
                 <Route path="cloud-brain" element={<CloudBrainPage onError={setError} />} />
+                <Route path="research" element={<ResearchPage onError={setError} />} />
+                <Route path="ginkgo" element={<GinkgoPage onError={setError} />} />
                 <Route path="team" element={<TeamPage onError={setError} />} />
                 <Route path="devices" element={<DevicesPage onError={setError} />} />
                 <Route path="*" element={<Navigate to="/" replace />} />

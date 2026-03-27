@@ -797,6 +797,7 @@ def create_app() -> FastAPI:
     )
     from lab_manager.api.routes import barcode  # noqa: E402
     from lab_manager.api.routes import devices  # noqa: E402
+    from lab_manager.api.routes import ginkgo  # noqa: E402
 
     # Auth is handled by auth_middleware — rate limiting via route decorators
     api_router = APIRouter()
@@ -853,6 +854,7 @@ def create_app() -> FastAPI:
     api_router.include_router(
         knowledge.router, prefix="/api/v1/knowledge", tags=["knowledge"]
     )
+    api_router.include_router(ginkgo.router, prefix="/api/v1/ginkgo", tags=["ginkgo"])
 
     from lab_manager.api.routes import chat as chat_routes
     from lab_manager.api.routes import team
@@ -861,10 +863,15 @@ def create_app() -> FastAPI:
     api_router.include_router(chat_routes.router, prefix="/api/v1/chat", tags=["chat"])
     app.include_router(api_router)
 
-    # WebSocket chat endpoint (outside api_router to avoid auth middleware issues)
+    # WebSocket chat endpoint — use a separate mounted sub-app to bypass
+    # the auth middleware cleanly (instead of mutating app.routes)
+    from starlette.applications import Starlette
     from starlette.routing import WebSocketRoute
 
-    app.routes.insert(0, WebSocketRoute("/ws/chat", chat_routes.websocket_chat))
+    ws_routes = Starlette(
+        routes=[WebSocketRoute("/chat", chat_routes.websocket_chat)],
+    )
+    app.mount("/ws", ws_routes)
 
     # --- Apply rate limiting decorators to GET /api/v1/ask endpoint ---
     # Rate limit: 10 requests per minute (same as POST)

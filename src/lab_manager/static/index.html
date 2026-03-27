@@ -356,36 +356,99 @@ tailwind.config = {
 
       <!-- ===== CHAT VIEW ===== -->
       <div id="view-chat" class="hidden">
-        <div class="flex flex-col h-[calc(100vh-140px)] bg-surface-dark border border-border-dark rounded-xl overflow-hidden">
-          <!-- Chat header -->
-          <div class="flex items-center justify-between px-5 py-3 border-b border-border-dark">
-            <div class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-primary text-xl">forum</span>
-              <h2 class="text-base font-semibold text-white">Lab Chat</h2>
-            </div>
-            <div id="chat-status" class="text-xs text-slate-500 flex items-center">
-              <span class="w-2 h-2 rounded-full bg-slate-600 inline-block mr-1.5"></span>Connecting...
-            </div>
-          </div>
-          <!-- Messages -->
-          <div id="chat-messages" class="flex-1 overflow-y-auto p-5 space-y-1"></div>
-          <!-- Input -->
-          <div class="border-t border-border-dark p-4" id="chat-input-wrapper" style="position:relative;">
-            <div class="flex items-center gap-3">
-              <div class="flex-1 relative">
-                <input type="text" id="chat-input"
-                  placeholder="Type a message... Use @mention to talk to AI staff"
-                  autocomplete="off"
-                  class="w-full px-4 py-2.5 bg-background-dark border border-border-dark rounded-xl text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                  onkeydown="handleChatKeydown(event)"
-                  oninput="handleChatInput(event)">
+        <div class="flex gap-4 h-[calc(100vh-140px)]">
+          <!-- Main chat panel -->
+          <div class="flex-1 flex flex-col bg-surface-dark border border-border-dark rounded-xl overflow-hidden">
+            <!-- Chat header -->
+            <div class="flex items-center justify-between px-5 py-3 border-b border-border-dark">
+              <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary text-xl">forum</span>
+                  <h2 class="text-base font-semibold text-white">LabClaw Lab IM</h2>
+                </div>
+                <!-- Notification bell -->
+                <button onclick="clearUnreadCount()" class="relative flex items-center justify-center w-8 h-8 rounded-lg hover:bg-primary/10 transition-colors">
+                  <span class="material-symbols-outlined text-base text-slate-400">notifications</span>
+                  <span id="chat-unread-badge" class="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] leading-none rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 hidden">0</span>
+                </button>
+                <!-- Online indicator -->
+                <div id="chat-status" class="text-xs text-slate-500 flex items-center">
+                  <span class="w-2 h-2 rounded-full bg-slate-600 inline-block mr-1.5"></span>Connecting...
+                </div>
               </div>
-              <button onclick="sendChatMessage()"
-                class="flex items-center gap-1.5 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/80 transition-colors flex-shrink-0">
-                <span class="material-symbols-outlined text-base">send</span>
-                Send
+              <!-- Reasoning chain button -->
+              <button onclick="runReasoning()" class="flex items-center gap-1.5 px-3 py-1.5 bg-accent-green/10 text-accent-green rounded-lg text-xs font-medium hover:bg-accent-green/20 transition-colors">
+                <span class="material-symbols-outlined text-sm">psychology</span>
+                Reasoning Chain
               </button>
             </div>
+            <!-- Messages -->
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-5 space-y-1"></div>
+            <!-- Input -->
+            <div class="border-t border-border-dark p-4" id="chat-input-wrapper" style="position:relative;">
+              <div class="flex items-center gap-3">
+                <div class="flex-1 relative">
+                  <input type="text" id="chat-input"
+                    placeholder="Type a message... Use @mention to talk to AI staff"
+                    autocomplete="off"
+                    class="w-full px-4 py-2.5 bg-background-dark border border-border-dark rounded-xl text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    onkeydown="handleChatKeydown(event)"
+                    oninput="handleChatInput(event)">
+                </div>
+                <button onclick="sendChatMessage()"
+                  class="flex items-center gap-1.5 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/80 transition-colors flex-shrink-0">
+                  <span class="material-symbols-outlined text-base">send</span>
+                  Send
+                </button>
+              </div>
+              <!-- Quick action buttons -->
+              <div class="flex items-center gap-2 mt-2">
+                <span class="text-xs text-slate-600">Quick:</span>
+                <button onclick="sendToAIStaff('Inventory-Manager')" class="px-2.5 py-1 text-xs bg-blue-500/10 text-blue-300 rounded-lg hover:bg-blue-500/20 transition-colors border border-blue-500/20">
+                  @Inventory-Manager
+                </button>
+                <button onclick="sendToAIStaff('Document-Processor')" class="px-2.5 py-1 text-xs bg-green-500/10 text-green-300 rounded-lg hover:bg-green-500/20 transition-colors border border-green-500/20">
+                  @Document-Processor
+                </button>
+                <button onclick="sendDigest()" class="px-2.5 py-1 text-xs bg-slate-500/10 text-slate-300 rounded-lg hover:bg-slate-500/20 transition-colors border border-slate-500/20">
+                  Send Digest
+                </button>
+              </div>
+            </div>
+          </div>
+          <!-- Right sidebar: Proactive AI Feed -->
+          <div class="w-72 bg-surface-dark border border-border-dark rounded-xl overflow-hidden flex flex-col flex-shrink-0">
+            <div class="p-3 border-b border-border-dark flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-slate-300">Proactive AI Feed</h3>
+              <div class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-accent-green inline-block"></span>
+                <span class="text-xs text-slate-500"><span id="chat-online-count">0</span> online</span>
+              </div>
+            </div>
+            <!-- AI Staff members -->
+            <div class="p-3 border-b border-border-dark space-y-2">
+              <div class="text-xs text-slate-600 uppercase tracking-wider font-medium mb-1">Digital Staff</div>
+              <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center">
+                  <span class="material-symbols-outlined text-blue-400 text-sm">smart_toy</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs text-slate-300 font-medium">Inventory Manager</div>
+                  <div class="text-[10px] text-accent-green">Online</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <span class="material-symbols-outlined text-green-400 text-sm">smart_toy</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs text-slate-300 font-medium">Document Processor</div>
+                  <div class="text-[10px] text-accent-green">Online</div>
+                </div>
+              </div>
+            </div>
+            <!-- Feed content -->
+            <div id="chat-feed-content" class="flex-1 overflow-y-auto p-3 space-y-2"></div>
           </div>
         </div>
       </div>

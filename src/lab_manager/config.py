@@ -138,6 +138,10 @@ class Settings(BaseSettings):
     # Logging
     log_format: str = "console"  # "console" or "json"
 
+    # Ginkgo AI Model API (public, self-service at models.ginkgobioworks.ai)
+    ginkgo_ai_api_key: str = ""
+    ginkgo_ai_base_url: str = "https://models.ginkgobioworks.ai"
+
     # File storage
     upload_dir: str = "uploads"
     scans_dir: str = ""

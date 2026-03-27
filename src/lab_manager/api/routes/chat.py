@@ -17,6 +17,11 @@ from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db
 from lab_manager.models.document import Document
+from lab_manager.services.reasoning import (
+    ReasoningChainConfig,
+    ReasoningRunRequest,
+    get_reasoning_service,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,13 +49,35 @@ def _add_message(msg: dict) -> dict:
     return msg
 
 
-def _broadcast(msg: dict) -> None:
-    """Send a JSON message to every connected WebSocket client."""
-    data = json.dumps(msg)
+async def _broadcast_async(msg: dict) -> None:
+    """Send a JSON message to every connected WebSocket client (async-safe)."""
+    data = json.dumps(msg, default=str)
     stale: list[WebSocket] = []
     for ws in _connected_clients:
         try:
-            asyncio.get_event_loop().create_task(ws.send_text(data))
+            await ws.send_text(data)
+        except Exception:
+            stale.append(ws)
+    for ws in stale:
+        if ws in _connected_clients:
+            _connected_clients.remove(ws)
+
+
+def _broadcast_sync(msg: dict) -> None:
+    """Fire-and-forget broadcast from sync context (REST handlers).
+
+    Schedules sends on the running event loop. Best-effort: if no loop is
+    available (e.g. test context), messages are only stored in history.
+    """
+    data = json.dumps(msg, default=str)
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return
+    stale: list[WebSocket] = []
+    for ws in _connected_clients:
+        try:
+            loop.create_task(ws.send_text(data))
         except Exception:
             stale.append(ws)
     for ws in stale:
@@ -92,7 +119,7 @@ def _handle_inventory_manager(query: str, db: Session | None = None) -> str:
         return answer or "No answer available."
     except Exception as e:
         logger.error("RAG error in chat: %s", e)
-        return f"Sorry, I couldn't process that query: {e}"
+        return "Sorry, I couldn't process that query. Please try again."
 
 
 # --- AI handler: Document Processor (returns document stats) ---
@@ -117,7 +144,7 @@ def _handle_document_processor(query: str, db: Session | None = None) -> str:
         return "\n".join(lines)
     except Exception as e:
         logger.error("Document stats error in chat: %s", e)
-        return f"Sorry, I couldn't retrieve document stats: {e}"
+        return "Sorry, I couldn't retrieve document stats. Please try again."
 
 
 _register_staff("inventory-manager", _handle_inventory_manager)
@@ -177,7 +204,7 @@ def send_message(body: ChatMessage, db: Session = Depends(get_db)):
         "timestamp": _now_iso(),
     }
     _add_message(msg)
-    _broadcast(msg)
+    _broadcast_sync(msg)
 
     # Check for @mention
     staff_key, query = _parse_mention(body.content)
@@ -187,7 +214,7 @@ def send_message(body: ChatMessage, db: Session = Depends(get_db)):
             answer = handler(query, db)
         except Exception as e:
             logger.error("Staff handler error: %s", e)
-            answer = f"Error processing request: {e}"
+            answer = "Error processing request. Please try again."
         ai_msg: dict = {
             "type": "ai_response",
             "from": staff_key.title().replace("-", " "),
@@ -195,7 +222,7 @@ def send_message(body: ChatMessage, db: Session = Depends(get_db)):
             "timestamp": _now_iso(),
         }
         _add_message(ai_msg)
-        _broadcast(ai_msg)
+        _broadcast_sync(ai_msg)
 
     return {"status": "ok"}
 
@@ -203,7 +230,82 @@ def send_message(body: ChatMessage, db: Session = Depends(get_db)):
 @router.get("/staff")
 def list_staff():
     """Return available digital staff members."""
-    return {"staff": get_digital_staff_names()}
+    staff_list = []
+    for key in sorted(_STAFF_HANDLERS.keys()):
+        staff_list.append(
+            {
+                "name": key.title().replace("-", " "),
+                "status": "online",
+            }
+        )
+    return {"staff": staff_list}
+
+
+# ---------------------------------------------------------------------------
+# Feed endpoint (for polling)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/feed")
+def get_feed(
+    since: Optional[str] = Query(None),
+    limit: int = Query(20, ge=1, le=100),
+):
+    """Get recent feed items (chat messages + AI alerts) for polling."""
+    messages = list(_chat_history[-limit:])
+
+    if since:
+        messages = [m for m in messages if m.get("timestamp", "") > since]
+
+    return {
+        "messages": messages,
+        "total": len(messages),
+        "online_count": len(_connected_clients),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Reasoning chain endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("/reasoning")
+def list_reasoning_chains():
+    """List all configured reasoning chains."""
+    svc = get_reasoning_service()
+    return {"chains": svc.list_chains()}
+
+
+@router.post("/reasoning")
+def create_reasoning_chain(body: ReasoningChainConfig):
+    """Create a new reasoning chain configuration. Admin only."""
+    svc = get_reasoning_service()
+    chain = svc.create_chain(body)
+    return chain
+
+
+@router.post("/reasoning/run")
+def run_reasoning_chain(
+    body: ReasoningRunRequest,
+    db: Session = Depends(get_db),
+):
+    """Execute a reasoning chain and return the result."""
+    svc = get_reasoning_service()
+    result = svc.run_chain(body.query, body.chain_id, db)
+
+    # Post result to chat history
+    ai_msg = {
+        "type": "ai_response",
+        "from": "AI-Inventory-Manager",
+        "content": result.get("summary", "Reasoning chain completed."),
+        "timestamp": _now_iso(),
+        "badge": "Auto-approved",
+        "badge_color": "green",
+        "reasoning": result,
+    }
+    _add_message(ai_msg)
+
+    return {"message": ai_msg, "chain_result": result}
 
 
 # ---------------------------------------------------------------------------
@@ -217,14 +319,12 @@ async def websocket_chat(ws: WebSocket):
     await ws.accept()
     _connected_clients.append(ws)
 
-    # Send history on connect
     try:
         await ws.send_text(json.dumps({"type": "history", "messages": _chat_history}))
     except Exception:
         _connected_clients.remove(ws)
         return
 
-    # System join message
     join_msg = {
         "type": "system",
         "from": "system",
@@ -232,7 +332,7 @@ async def websocket_chat(ws: WebSocket):
         "timestamp": _now_iso(),
     }
     _add_message(join_msg)
-    _broadcast(join_msg)
+    await _broadcast_async(join_msg)
 
     try:
         while True:
@@ -265,22 +365,21 @@ async def websocket_chat(ws: WebSocket):
                 "timestamp": _now_iso(),
             }
             _add_message(msg)
-            _broadcast(msg)
+            await _broadcast_async(msg)
 
             # Handle @mention for AI staff
             staff_key, query = _parse_mention(content)
             if staff_key and staff_key in _STAFF_HANDLERS and query:
-                # Send typing indicator
                 typing_msg = {
                     "type": "system",
                     "from": staff_key.title().replace("-", " "),
                     "content": "is typing...",
                     "timestamp": _now_iso(),
                 }
-                _broadcast(typing_msg)
+                await _broadcast_async(typing_msg)
 
                 # Run handler in thread pool to avoid blocking event loop
-                loop = asyncio.get_event_loop()
+                loop = asyncio.get_running_loop()
                 handler = _STAFF_HANDLERS[staff_key]
                 try:
                     from lab_manager.database import get_db_session
@@ -289,7 +388,7 @@ async def websocket_chat(ws: WebSocket):
                         answer = await loop.run_in_executor(None, handler, query, db)
                 except Exception as e:
                     logger.error("WS staff handler error: %s", e)
-                    answer = f"Error processing request: {e}"
+                    answer = "Error processing request. Please try again."
 
                 ai_msg = {
                     "type": "ai_response",
@@ -298,7 +397,7 @@ async def websocket_chat(ws: WebSocket):
                     "timestamp": _now_iso(),
                 }
                 _add_message(ai_msg)
-                _broadcast(ai_msg)
+                await _broadcast_async(ai_msg)
 
     except WebSocketDisconnect:
         pass
@@ -314,4 +413,4 @@ async def websocket_chat(ws: WebSocket):
             "timestamp": _now_iso(),
         }
         _add_message(leave_msg)
-        _broadcast(leave_msg)
+        await _broadcast_async(leave_msg)

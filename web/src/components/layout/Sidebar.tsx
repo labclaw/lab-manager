@@ -13,6 +13,7 @@ import {
   FileSpreadsheet,
   Brain,
   Sparkles,
+  BrainCircuit,
   Users,
   Settings,
   User,
@@ -53,6 +54,8 @@ const navItems = [
   { path: '/import', label: 'Bulk Import', Icon: FileSpreadsheet },
   { path: '/cloud-brain', label: 'Cloud Brain', Icon: Sparkles },
   { path: '/devices', label: 'Devices', Icon: Monitor },
+  { path: '/ginkgo', label: 'Ginkgo AI', Icon: FlaskConical },
+  { path: '/research', label: 'Research', Icon: BrainCircuit },
   { path: '/team', label: 'Team', Icon: Users },
 ]
 

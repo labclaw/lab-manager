@@ -1359,6 +1359,7 @@ dependencies = [
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "sqlmodel" },
     { name = "structlog" },
+    { name = "websockets" },
 ]
 
 [package.dev-dependencies]
@@ -1396,6 +1397,7 @@ requires-dist = [
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0" },
     { name = "sqlmodel", specifier = ">=0.0.22" },
     { name = "structlog", specifier = ">=24.0.0" },
+    { name = "websockets", specifier = ">=12.0" },
 ]
 
 [package.metadata.requires-dev]

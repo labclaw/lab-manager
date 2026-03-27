@@ -3,27 +3,40 @@
 
 let chatWs = null;
 let chatReconnectTimer = null;
+let chatUnreadCount = 0;
+let chatLastTimestamp = "";
+let _feedPollTimer = null;
+let _reconnectAttempts = 0;
+
+var WS_MAX_RETRIES = 10;
+var WS_BASE_DELAY = 1000;
+var WS_MAX_DELAY = 30000;
+
 const CHAT_STAFF = [
   "Inventory-Manager",
   "Document-Processor",
 ];
 
+const FEED_POLL_INTERVAL = 10000;
+var MAX_FEED_CARDS = 50;
+
 // --- WebSocket connection ---
 
 function connectChat() {
-  const proto = location.protocol === "https:" ? "wss:" : "ws:";
-  const url = proto + "//" + location.host + "/ws/chat";
+  var proto = location.protocol === "https:" ? "wss:" : "ws:";
+  var url = proto + "//" + location.host + "/ws/chat";
   chatWs = new WebSocket(url);
 
   chatWs.onopen = function () {
+    _reconnectAttempts = 0;
     renderChatStatus("connected");
   };
 
   chatWs.onmessage = function (evt) {
     try {
-      const data = JSON.parse(evt.data);
+      var data = JSON.parse(evt.data);
       if (data.type === "history") {
-        const container = document.getElementById("chat-messages");
+        var container = document.getElementById("chat-messages");
         if (container) {
           container.innerHTML = "";
           (data.messages || []).forEach(function (m) {
@@ -35,6 +48,7 @@ function connectChat() {
       }
       appendChatBubble(data, true);
       scrollChatToBottom();
+      updateUnreadCount(1);
     } catch (e) {
       console.error("Chat WS parse error:", e);
     }
@@ -42,7 +56,13 @@ function connectChat() {
 
   chatWs.onclose = function () {
     renderChatStatus("disconnected");
-    chatReconnectTimer = setTimeout(connectChat, 3000);
+    if (_reconnectAttempts >= WS_MAX_RETRIES) {
+      renderChatStatus("max_retries");
+      return;
+    }
+    var delay = Math.min(WS_BASE_DELAY * Math.pow(2, _reconnectAttempts), WS_MAX_DELAY);
+    _reconnectAttempts++;
+    chatReconnectTimer = setTimeout(connectChat, delay);
   };
 
   chatWs.onerror = function () {
@@ -51,6 +71,7 @@ function connectChat() {
 }
 
 function disconnectChat() {
+  _reconnectAttempts = WS_MAX_RETRIES + 1; // prevent reconnect after intentional close
   if (chatWs) {
     chatWs.close();
     chatWs = null;
@@ -59,17 +80,19 @@ function disconnectChat() {
     clearTimeout(chatReconnectTimer);
     chatReconnectTimer = null;
   }
+  stopFeedPoll();
 }
 
 function renderChatStatus(status) {
-  const el = document.getElementById("chat-status");
+  var el = document.getElementById("chat-status");
   if (!el) return;
-  const map = {
+  var map = {
     connected: { dot: "bg-accent-green", text: "Connected" },
     disconnected: { dot: "bg-yellow-500", text: "Reconnecting..." },
     error: { dot: "bg-red-500", text: "Connection error" },
+    max_retries: { dot: "bg-red-500", text: "Disconnected — click to retry" },
   };
-  const s = map[status] || map.disconnected;
+  var s = map[status] || map.disconnected;
   el.innerHTML =
     '<span class="w-2 h-2 rounded-full ' +
     s.dot +
@@ -77,15 +100,35 @@ function renderChatStatus(status) {
     s.text;
 }
 
+// --- Unread count badge ---
+
+function updateUnreadCount(delta) {
+  chatUnreadCount += delta;
+  var badge = document.getElementById("chat-unread-badge");
+  if (badge) {
+    if (chatUnreadCount > 0) {
+      badge.textContent = String(chatUnreadCount);
+      badge.classList.remove("hidden");
+    } else {
+      badge.classList.add("hidden");
+    }
+  }
+}
+
+function clearUnreadCount() {
+  chatUnreadCount = 0;
+  updateUnreadCount(0);
+}
+
 // --- Send message ---
 
 function sendChatMessage() {
-  const input = document.getElementById("chat-input");
+  var input = document.getElementById("chat-input");
   if (!input) return;
-  const content = input.value.trim();
+  var content = input.value.trim();
   if (!content) return;
 
-  const msg = {
+  var msg = {
     from: currentUser ? currentUser.name : "user",
     content: content,
   };
@@ -93,7 +136,6 @@ function sendChatMessage() {
   if (chatWs && chatWs.readyState === WebSocket.OPEN) {
     chatWs.send(JSON.stringify(msg));
   } else {
-    // Fallback to REST
     fetch("/api/v1/chat/message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -108,10 +150,10 @@ function sendChatMessage() {
 
 // --- @mention autocomplete ---
 
-let mentionActiveIndex = -1;
+var mentionActiveIndex = -1;
 
 function handleChatKeydown(e) {
-  const autocomplete = document.getElementById("mention-autocomplete");
+  var autocomplete = document.getElementById("mention-autocomplete");
   if (!autocomplete || autocomplete.classList.contains("hidden")) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -120,7 +162,7 @@ function handleChatKeydown(e) {
     return;
   }
 
-  const items = autocomplete.querySelectorAll(".mention-item");
+  var items = autocomplete.querySelectorAll(".mention-item");
   if (e.key === "ArrowDown") {
     e.preventDefault();
     mentionActiveIndex = Math.min(mentionActiveIndex + 1, items.length - 1);
@@ -147,15 +189,15 @@ function updateMentionHighlight(items) {
 }
 
 function handleChatInput(e) {
-  const input = e.target;
-  const val = input.value;
-  const cursorPos = input.selectionStart;
-  const textBeforeCursor = val.substring(0, cursorPos);
+  var input = e.target;
+  var val = input.value;
+  var cursorPos = input.selectionStart;
+  var textBeforeCursor = val.substring(0, cursorPos);
 
-  const atMatch = textBeforeCursor.match(/@([\w-]*)$/);
+  var atMatch = textBeforeCursor.match(/@([\w-]*)$/);
   if (atMatch) {
-    const filter = atMatch[1].toLowerCase();
-    const matches = CHAT_STAFF.filter(function (s) {
+    var filter = atMatch[1].toLowerCase();
+    var matches = CHAT_STAFF.filter(function (s) {
       return s.toLowerCase().indexOf(filter) === 0;
     });
     if (matches.length > 0) {
@@ -167,17 +209,17 @@ function handleChatInput(e) {
 }
 
 function showMentionAutocomplete(matches, inputEl) {
-  let ac = document.getElementById("mention-autocomplete");
+  var ac = document.getElementById("mention-autocomplete");
   if (!ac) {
     ac = document.createElement("div");
     ac.id = "mention-autocomplete";
     ac.className =
       "absolute bottom-full left-0 mb-1 bg-surface-dark border border-border-dark rounded-lg shadow-xl overflow-hidden z-50";
-    const wrapper = document.getElementById("chat-input-wrapper");
+    var wrapper = document.getElementById("chat-input-wrapper");
     if (wrapper) wrapper.appendChild(ac);
   }
   mentionActiveIndex = 0;
-  let html = "";
+  var html = "";
   matches.forEach(function (name) {
     html +=
       '<div class="mention-item px-3 py-2 text-sm text-slate-300 cursor-pointer hover:bg-primary/20 hover:text-primary transition-colors" data-name="' +
@@ -200,39 +242,154 @@ function showMentionAutocomplete(matches, inputEl) {
 }
 
 function hideMentionAutocomplete() {
-  const ac = document.getElementById("mention-autocomplete");
+  var ac = document.getElementById("mention-autocomplete");
   if (ac) ac.classList.add("hidden");
   mentionActiveIndex = -1;
 }
 
 function applyMention(name) {
-  const input = document.getElementById("chat-input");
+  var input = document.getElementById("chat-input");
   if (!input) return;
-  const val = input.value;
-  const cursorPos = input.selectionStart;
-  const textBefore = val.substring(0, cursorPos);
-  const textAfter = val.substring(cursorPos);
-  const replaced = textBefore.replace(/@[\w-]*$/, "@" + name + " ");
+  var val = input.value;
+  var cursorPos = input.selectionStart;
+  var textBefore = val.substring(0, cursorPos);
+  var textAfter = val.substring(cursorPos);
+  var replaced = textBefore.replace(/@[\w-]*$/, "@" + name + " ");
   input.value = replaced + textAfter;
   input.focus();
-  const newPos = replaced.length;
+  var newPos = replaced.length;
   input.setSelectionRange(newPos, newPos);
   hideMentionAutocomplete();
 }
 
-// --- Render ---
+// --- Quick action buttons ---
+
+function sendToAIStaff(staffName) {
+  var input = document.getElementById("chat-input");
+  if (!input) return;
+  input.value = "@" + staffName + " ";
+  input.focus();
+}
+
+function sendDigest() {
+  var input = document.getElementById("chat-input");
+  if (!input) return;
+  input.value = "@Inventory-Manager Give me a summary of current inventory status";
+  sendChatMessage();
+}
+
+// --- Feed polling ---
+
+function startFeedPoll() {
+  stopFeedPoll();
+  _feedPollTimer = setInterval(pollFeed, FEED_POLL_INTERVAL);
+}
+
+function stopFeedPoll() {
+  if (_feedPollTimer) {
+    clearInterval(_feedPollTimer);
+    _feedPollTimer = null;
+  }
+}
+
+function pollFeed() {
+  var url = "/api/v1/chat/feed?limit=10";
+  if (chatLastTimestamp) {
+    url += "&since=" + encodeURIComponent(chatLastTimestamp);
+  }
+  fetch(url)
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.messages && data.messages.length > 0) {
+        var feedContent = document.getElementById("chat-feed-content");
+        if (feedContent) {
+          data.messages.forEach(function (m) {
+            renderFeedCard(m, feedContent);
+          });
+        }
+        chatLastTimestamp = data.messages[data.messages.length - 1].timestamp || "";
+        updateUnreadCount(data.messages.length);
+      }
+      var onlineEl = document.getElementById("chat-online-count");
+      if (onlineEl) onlineEl.textContent = String(data.online_count || 0);
+    })
+    .catch(function () {});
+}
+
+function renderFeedCard(msg, container) {
+  var isAI = msg.type === "ai_response";
+  var borderColor = isAI ? "border-l-accent-green" : "border-l-primary";
+  var badge = isAI
+    ? '<span class="px-1.5 py-0.5 text-xs rounded bg-accent-green/20 text-accent-green">AI</span>'
+    : "";
+
+  var card = document.createElement("div");
+  card.className =
+    "bg-background-dark/50 border border-border-dark border-l-2 " +
+    borderColor +
+    " rounded-lg p-3 text-xs cursor-pointer hover:bg-primary/5 transition-colors";
+  card.innerHTML =
+    '<div class="flex items-center gap-1.5 mb-1">' +
+    badge +
+    '<span class="text-slate-500">' +
+    escapeHtml(msg.from || "") +
+    "</span>" +
+    "</div>" +
+    '<div class="text-slate-300 text-xs">' +
+    escapeHtml((msg.content || "").substring(0, 120)) +
+    "</div>";
+  card.addEventListener("click", function () {
+    clearUnreadCount();
+    showToast("Notification cleared", "success");
+  });
+  container.insertBefore(card, container.firstChild);
+  while (container.children.length > MAX_FEED_CARDS) {
+    container.removeChild(container.lastChild);
+  }
+}
+
+// --- Reasoning chain ---
+
+function runReasoning() {
+  var input = document.getElementById("chat-input");
+  var query = input ? input.value.trim() : "";
+  if (!query) query = "How many reagents do I need to reorder?";
+
+  fetch("/api/v1/chat/reasoning/run", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query: query }),
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.message) {
+        appendChatBubble(data.message, true);
+        scrollChatToBottom();
+      }
+      if (data.chain_result) {
+        showToast("Reasoning chain completed", "success");
+      }
+    })
+    .catch(function (e) {
+      console.error("Reasoning chain error:", e);
+      showToast("Reasoning chain failed", "error");
+    });
+}
+
+// --- Render chat bubble ---
 
 function appendChatBubble(msg, animate) {
-  const container = document.getElementById("chat-messages");
+  var container = document.getElementById("chat-messages");
   if (!container) return;
 
-  const isUser =
+  var isUser =
     msg.type === "message" &&
     msg.from === (currentUser ? currentUser.name : "user");
-  const isSystem = msg.type === "system";
-  const isAI = msg.type === "ai_response";
+  var isSystem = msg.type === "system";
+  var isAI = msg.type === "ai_response";
+  var hasReasoning = !!msg.reasoning;
 
-  const wrapper = document.createElement("div");
+  var wrapper = document.createElement("div");
   wrapper.className =
     "flex gap-2.5 mb-3" + (animate ? " chat-msg-enter" : "");
 
@@ -249,20 +406,31 @@ function appendChatBubble(msg, animate) {
       escapeHtml(msg.content) +
       "</div>";
   } else if (isAI) {
+    var reasoningBtn = hasReasoning
+      ? '<button onclick="runReasoning()" class="mt-2 px-2 py-1 text-xs bg-accent-green/10 text-accent-green rounded hover:bg-accent-green/20 transition-colors">View Reasoning Chain</button>'
+      : "";
+    var badgeColor = msg.badge_color === "green" ? "accent-green" : "blue-400";
+    var badgeTag = msg.badge
+      ? '<span class="px-1.5 py-0.5 text-xs rounded bg-' + badgeColor + '/20 text-' + badgeColor + '">' + escapeHtml(msg.badge) + "</span>"
+      : '<span class="px-1.5 py-0.5 text-xs rounded bg-accent-green/20 text-accent-green">AI</span>';
+
     wrapper.innerHTML =
       '<div class="w-8 h-8 rounded-full bg-accent-green/20 flex items-center justify-center flex-shrink-0 mt-0.5">' +
       '<span class="material-symbols-outlined text-accent-green text-base">smart_toy</span>' +
       "</div>" +
       '<div class="max-w-[70%]">' +
-      '<div class="text-xs text-accent-green font-medium mb-1">' +
+      '<div class="flex items-center gap-2 mb-1">' +
+      '<span class="text-xs text-accent-green font-medium">' +
       escapeHtml(msg.from) +
+      "</span>" +
+      badgeTag +
       "</div>" +
       '<div class="px-4 py-2.5 rounded-2xl rounded-bl-sm bg-surface-dark border border-border-dark text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">' +
       escapeHtml(msg.content) +
       "</div>" +
+      reasoningBtn +
       "</div>";
   } else {
-    // Other user's message
     wrapper.innerHTML =
       '<div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">' +
       '<span class="material-symbols-outlined text-primary text-base">person</span>' +
@@ -277,12 +445,11 @@ function appendChatBubble(msg, animate) {
       "</div>";
   }
 
-  // Timestamp tooltip
   if (!isSystem) {
-    const ts = msg.timestamp
+    var ts = msg.timestamp
       ? new Date(msg.timestamp).toLocaleTimeString()
       : "";
-    const bubble = wrapper.querySelector("div:last-child");
+    var bubble = wrapper.querySelector("div:last-child");
     if (bubble && ts) {
       bubble.title = ts;
     }
@@ -291,14 +458,8 @@ function appendChatBubble(msg, animate) {
   container.appendChild(wrapper);
 }
 
-function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = str;
-  return div.innerHTML;
-}
-
 function scrollChatToBottom() {
-  const container = document.getElementById("chat-messages");
+  var container = document.getElementById("chat-messages");
   if (container) {
     container.scrollTop = container.scrollHeight;
   }
@@ -307,6 +468,8 @@ function scrollChatToBottom() {
 // --- Load chat view ---
 
 function loadChat() {
+  _reconnectAttempts = 0;
   disconnectChat();
   connectChat();
+  startFeedPoll();
 }

@@ -626,3 +626,34 @@ export const notifications = {
       body: JSON.stringify(data),
     }),
 }
+
+// Ginkgo AI
+export interface GinkgoModel {
+  id: string
+  name: string
+  type: string
+  description: string
+}
+
+export interface GinkgoHealth {
+  status: string
+  message?: string
+  models?: number
+}
+
+export const ginkgo = {
+  models: () =>
+    apiFetch<GinkgoModel[]>('/ginkgo/models'),
+  analyze: (sequence: string, model: string, analysisType: string = 'masked_inference') =>
+    apiFetch<Record<string, unknown>>('/ginkgo/analyze', {
+      method: 'POST',
+      body: JSON.stringify({ sequence, model, analysis_type: analysisType }),
+    }),
+  batchAnalyze: (sequences: string[], model: string, analysisType: string = 'masked_inference') =>
+    apiFetch<Record<string, unknown>[]>('/ginkgo/batch-analyze', {
+      method: 'POST',
+      body: JSON.stringify({ sequences, model, analysis_type: analysisType }),
+    }),
+  health: () =>
+    apiFetch<GinkgoHealth>('/ginkgo/health'),
+}
