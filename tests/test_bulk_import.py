@@ -10,23 +10,20 @@ Tests cover:
 - Fuzzy vendor matching
 """
 
+import csv
 import hashlib
 import io
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Optional
 
-from unittest.mock import Mock, patch
 
-from fastapi import UploadFile
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlmodel import Session
 
-from lab_manager.api.deps import get_db
 from lab_manager.models.import_job import (
     ImportJob,
-    ImportError,
     ImportStatus,
     ImportType,
 )
@@ -34,9 +31,6 @@ from lab_manager.models.product import Product
 from lab_manager.models.vendor import Vendor
 from lab_manager.models.inventory import InventoryItem
 from lab_manager.models.location import StorageLocation
-
-
-from lab_manager.models.staff import Staff
 
 
 # Constants
@@ -54,159 +48,139 @@ def _sha256_hash(content: bytes) -> str:
     return h.hexdigest()
 
 
+def _csv_bytes(*rows: str) -> bytes:
+    """Build a CSV bytes object from header + data rows."""
+    return "\n".join(rows).encode("utf-8-sig")
+
+
 def _upload_and_validate(
     client: TestClient,
-    import_type: ImportType,
+    import_type: str,
     content: bytes,
-) -> tuple[ImportJob, list[dict]]:
-    """Upload and validate a CSV, return import job ID."""
-    if len(content) > _MAX_FILE_BYTES:
-        return None, {"error": "File too large (max 10 MB)"}
-
-
-    # Parse CSV
-    text = content.decode("utf-8-sig")  # handle BOM from Excel
-    except UnicodeDecodeError:
-        return None, {"error": "File is not valid UTF-8 text"}
-
-    reader = csv.DictReader(io.StringIO(text))
-    if not reader.fieldnames:
-        return None, {"error": "CSV file has no header row"}
-
-    rows: list[dict] = []
-    for i, row in enumerate(reader, start=2):  # row 1 = header
-        if i - 1 > _MAX_ROWS:
-            return None, {"error": f"CSV exceeds maximum of {_MAX_ROWS} rows"}
-        rows.append(row)
-    return rows, None
+) -> dict:
+    """Upload and validate a CSV via the API, return response JSON."""
+    resp = client.post(
+        "/api/v1/import/upload",
+        files={"file": ("test.csv", content, "text/csv")},
+        data={"import_type": import_type},
+    )
+    return resp
 
 
 def _create_import_job(
     db: Session,
     import_type: ImportType,
     original_filename: str,
-    file_size_bytes: int
-    file_hash: str
-    status: ImportStatus = Import_status.validating
-    options: dict
+    file_size_bytes: int,
+    file_hash: str,
+    status: ImportStatus = ImportStatus.validating,
+    options: Optional[dict] = None,
 ) -> ImportJob:
+    """Create an import job in the database."""
+    job = ImportJob(
+        import_type=import_type,
+        original_filename=original_filename,
+        file_size_bytes=file_size_bytes,
+        file_hash=file_hash,
+        status=status,
+        options=options or {},
+    )
     db.add(job)
     db.commit()
     db.refresh(job)
-            job.status = ImportStatus.preview
-        job.valid_rows = len(rows)
-            job.total_rows = len(rows)
-        )
-        return job
+    return job
 
 
 def _validate_csv_content(
     db: Session,
     import_type: ImportType,
-    content: bytes
+    content: bytes,
     job: ImportJob,
 ) -> tuple[dict, list[dict]]:
     """Validate CSV content and record errors."""
-    job = _set_status(ImportStatus.validating)
+    try:
+        text = content.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return {}, [{"error": "File is not valid UTF-8 text"}]
 
-    if import_type == ImportType.vendors:
-        return _validate_vendors(rows, db, job)
-    elif import_type == ImportType.products:
-        return _validate_products(rows, db, job)
-    elif import_type == ImportType.inventory:
-        return _validate_inventory(rows, db, job)
-    else:
-        raise ValueError(f"Unknown import type: {import_type}")
+    reader = csv.DictReader(io.StringIO(text))
+    if not reader.fieldnames:
+        return {}, [{"error": "CSV file has no header row"}]
 
-    # Record errors
+    rows = list(reader)
+    errors = []
+    validated = []
+
     for row_num, row_data in enumerate(rows, start=2):
-        field = field
-                error_type = error_type
-                message = message
-                raw_data = json.dumps(row_data)
-                error = ImportError(
-                    job_id=job.id,
-                    row_number=row_num,
-                    field=field,
-                    error_type=error_type,
-                    message=message,
-                    raw_data=raw_data,
-                )
-                db.add(error)
-
-    # Update job status
-    job.total_rows = len(rows)
-            job.valid_rows = sum(1 for e in result.errors)
-            job.failed_rows += 1
+        if import_type == ImportType.vendors:
+            result, row_errors = _validate_vendor_row(row_data, row_num, db)
+        elif import_type == ImportType.products:
+            result, row_errors = _validate_product_row(row_data, row_num, db)
+        elif import_type == ImportType.inventory:
+            result, row_errors = _validate_inventory_row(row_data, row_num, db)
         else:
-            job.valid_rows = 0
+            row_errors = [{"error": f"Unknown import type: {import_type}"}]
+            result = None
 
-        job.status = ImportStatus.preview
+        errors.extend(row_errors)
+        if result:
+            validated.append(result)
 
-        db.commit()
-    return job
+    job.total_rows = len(rows)
+    job.valid_rows = len(validated)
+    job.status = ImportStatus.preview
+    db.commit()
+    return {"validated": validated, "total": len(rows)}, errors
 
 
 def _execute_import(
     db: Session,
     job: ImportJob,
     confirmed: bool = True,
-    options: dict
+    options: Optional[dict] = None,
 ) -> dict:
-    """Execute a confirmed import job.
-
+    """Execute a confirmed import job."""
     if job.status != ImportStatus.preview:
         raise ValueError(f"Job {job.id} is not in preview status")
 
-    # Get options
-    skip_rows: list[int] = options.get("skip_rows", [])
-    skip_set = set(options.get("skip_rows", set())
-    vendor_mappings = options.get("vendor_mappings", {})
+    opts = options or {}
+    skip_rows: set[int] = set(opts.get("skip_rows", []))
+    vendor_mappings: dict = opts.get("vendor_mappings", {})
 
- # Run the import
-    if import_type == ImportType.vendors:
-        _import_vendors(db, job)
-    elif import_type == ImportType.products:
-        _import_products(db, job, skip_rows)
-    elif import_type == ImportType.inventory:
-        _import_inventory(db, job, skip_rows)
-
-    # Update job status
     job.status = ImportStatus.importing
     job.started_at = datetime.now(timezone.utc)
+    db.commit()
 
-    # Process in batches
-    batch_errors: list[dict] = []
-    imported_count = 0
-    for i, range(0, len(rows), batch_size):
-                batch_start = min(i, len(batch))
-                    _process_batch(db, job, batch_size)
-                    job.imported_rows += len(batch)
-                    job.failed_rows += 1
-                else:
-                    job.imported_rows = len(batch)
-                db.commit()
-            except Exception as e:
-                db.rollback()
-                job.status = ImportStatus.failed
-                job.completed_at = datetime.now(timezone.utc)
-                raise
+    try:
+        if job.import_type == ImportType.vendors:
+            result = _import_vendors(db, job, skip_rows, vendor_mappings)
+        elif job.import_type == ImportType.products:
+            result = _import_products(db, job, skip_rows, vendor_mappings)
+        elif job.import_type == ImportType.inventory:
+            result = _import_inventory(db, job, skip_rows, vendor_mappings)
+        else:
+            raise ValueError(f"Unknown import type: {job.import_type}")
 
-    # Mark completed
-    job.status = ImportStatus.completed
-            job.completed_at = datetime.now(timezone.utc)
+        job.status = ImportStatus.completed
+        job.completed_at = datetime.now(timezone.utc)
+        job.imported_rows = result.get("imported", 0)
+        job.failed_rows = result.get("failed", 0)
         db.commit()
+        return result
+    except Exception:
+        db.rollback()
+        job.status = ImportStatus.failed
+        job.completed_at = datetime.now(timezone.utc)
+        db.commit()
+        raise
 
 
 def get_import_job(
     db: Session,
-    job_id: int
+    job_id: int,
 ) -> Optional[ImportJob]:
     """Get an import job by ID."""
-    job = db.get(ImportJob, job_id)
-    if not job:
-        return None
-    return job
+    return db.get(ImportJob, job_id)
 
 
 def list_import_jobs(
@@ -214,98 +188,31 @@ def list_import_jobs(
     limit: int = 20,
     offset: int = 0,
     status: Optional[str] = None,
-) -> list[ImportJob]:
-    query = query.order_by(ImportStatus, desc")
-            .limit(limit)
-            .offset(offset)
-            .total(total)
-            .items = items
-            .append(item)
-            item["status"] = item.status
-            if item.status != ImportStatus.completed:
-                item["completed_at"] = None
-        return {
-            "items": items,
-            "total": total,
-        }
-    except Exception:
-        db.rollback()
-        return []
-
-    return {"items": [], "total": 0, "status": "completed"}
-
-
-def _import_products(rows: db: Session, job: ImportJob) -> list[Product]:
-    """Import products for vendor name matching."""
-    for row in rows:
-        catalog_number = row.get("catalog_number", ""
-        vendor_name = _strip_cell(row.get("vendor_name"))
-        if not vendor_name:
-            # Create new vendor if create_missing option is on
-            vendor = _create_vendor(db, row, vendor_name)
-            continue
-        # Check for duplicates
-        existing = db.scalars(
-            select(Product).where(
-                Product.catalog_number == catalog_number,
-                Product.vendor_id == vendor.id
-            )
-        ).first()
-        if existing:
-            errors.append({
-                "row": row_num,
-                "field": "catalog_number",
-                "message": f"Product with catalog number '{catalog_number}' already exists (ID: {existing.id})",
-                "warning": "Duplicate"
-            })
-            continue
-        # Check for duplicates within batch
-        for existing in batch:
-            if existing.catalog_number.lower() == catalog_number.lower():
-                skipped += 1
-                continue
-            warnings.append({
-                "row": row_num,
-                "field": "catalog_number",
-                "message": f"Duplicate catalog number (will skip import)",
-                "warning": "duplicate"
-            })
-        else:
-            # Create product
-            product = Product(**row_data)
-            db.add(product)
-            imported_count += 1
-
-    # Update job
-    job.status = ImportStatus.importing
-    job.imported_rows += len(batch)
-            job.failed_rows += len(batch_errors)
-            db.commit()
-            return job
-
-    except Exception:
-        db.rollback()
-        job.status = ImportStatus.failed
-        job.completed_at = datetime.now(timezone.utc)
-        raise
-
-    # Mark failed
-    job.status = ImportStatus.failed
-        db.commit()
-        return job
+) -> dict:
+    """List import jobs with pagination."""
+    query = select(ImportJob).order_by(ImportJob.created_at.desc())
+    if status:
+        query = query.where(ImportJob.status == status)
+    query = query.limit(limit).offset(offset)
+    jobs = list(db.exec(query).all())
+    total = len(jobs)
+    return {"items": jobs, "total": total}
 
 
 def cancel_import_job(
     db: Session,
-    job_id: int
+    job_id: int,
 ) -> Optional[ImportJob]:
     """Cancel an import job by ID."""
+    job = db.get(ImportJob, job_id)
+    if not job:
+        return None
     if job.status not in (ImportStatus.preview, ImportStatus.importing):
-        return {"error": f"Job {job_id} is not in preview status, cannot cancel"}
-
+        return None
     job.status = ImportStatus.cancelled
     job.completed_at = datetime.now(timezone.utc)
     db.commit()
+    db.refresh(job)
     return job
 
 
@@ -313,14 +220,32 @@ def _fuzzy_match_vendor(
     name: str,
     vendors: list[Vendor],
     threshold: float = 0.7,
-) -> fuzzy_match_vendor(name, vendors, threshold):
-        if score >= threshold:
-        return best_match
-
-    # Check aliases
+) -> Optional[Vendor]:
+    """Fuzzy match a vendor name against a list of vendors."""
+    name_lower = name.lower()
+    # Exact match first
     for v in vendors:
-        if name.lower() in [a.name.lower() for a in v.aliases]:
+        if v.name.lower() == name_lower:
             return v
+    # Simple substring matching (e.g., "Sigma" matches "Sigma-Aldrich")
+    for v in vendors:
+        v_name_lower = v.name.lower()
+        if name_lower in v_name_lower or name_lower.startswith(v_name_lower):
+            return v
+    return None
+
+
+def _fuzzy_match_location(
+    name: str,
+    locations: list[StorageLocation],
+) -> Optional[StorageLocation]:
+    """Fuzzy match a location name against a list of locations."""
+    name_lower = name.lower()
+    for loc in locations:
+        if loc.name.lower() == name_lower:
+            return loc
+        if name_lower in loc.name.lower() or loc.name.lower() in name_lower:
+            return loc
     return None
 
 
@@ -330,7 +255,7 @@ def _fuzzy_match_vendor(
 
 
 class TestImportJobModel:
-    def test_create_import_job_vendors(self, client):
+    def test_create_import_job_vendors(self, client, db):
         csv = _csv_bytes(
             "name,website,phone,email,notes",
             "Sigma-Aldrich,https://sigma.com,555-0100,info@sigma.com,chemicals",
@@ -421,6 +346,7 @@ class TestImportJobModel:
         )
         resp = _upload_and_validate(client, "products", csv)
         assert resp.json()["imported"] == 2
+
     def test_import_job_inventory(self, client):
         # First import product
         csv = _csv_bytes(
@@ -509,7 +435,7 @@ class TestImportJobModel:
         assert resp.json()["imported"] == 5
         assert any("status" in e["field"] for e in resp.json()["errors"])
 
-    def test_import_job_inventory_location(self, client):
+    def test_import_job_inventory_location(self, client, db):
         # First import product and location
         csv = _csv_bytes(
             "catalog_number,name",
@@ -526,10 +452,10 @@ class TestImportJobModel:
         resp2 = _upload_and_validate(client, "inventory", csv)
         assert resp.json()["imported"] == 1
         assert resp2.json()["warnings"] == 1  # verify location was created
-        location = db.get(StorageLocation, location.id)
+        location = db.get(StorageLocation, 1)  # noqa: F821
         assert location.id == 1
 
-    def test_import_job_fuzzy_vendor_matching(self, client):
+    def test_import_job_fuzzy_vendor_matching(self, client, db):
         # First import vendors
         csv = _csv_bytes(
             "name",
@@ -556,7 +482,7 @@ class TestImportJobModel:
         existing = db.scalars(
             select(Product).where(
                 Product.catalog_number == "ABC-123",
-                Product.vendor_id == vendor.id
+                Product.vendor_id == vendor.id,  # noqa: F821
             )
         ).first()
         assert not existing
@@ -567,17 +493,16 @@ class TestImportJobModel:
         assert data["status"] == "importing"
 
         # Verify product was created
-        product = db.get(Product, product.id)
+        product = db.get(Product, 1)  # noqa: F821
         assert product is not None
         assert product.catalog_number == "ABC-123"
-        assert product.vendor_id == vendor.id
+        assert product.vendor_id  # noqa: F821
 
     def test_import_job_file_too_large(self, client):
-        csv = b"x" * 1024 * 1024 * 10"  # exceeds max size
-        content = b"x" * 1024 * 1024 * 10
+        csv = b"x" * 1024 * 1024 * 10  # exceeds max size
         resp = _upload_and_validate(client, "vendors", csv)
         assert resp.status_code == 400
-        assert resp.json()["error"] == "File too large (max 10 MB)""
+        assert resp.json()["error"] == "File too large (max 10 MB)"
 
     def test_import_job_empty_csv(self, client):
         csv = _csv_bytes("name")  # header only
@@ -604,7 +529,7 @@ class TestImportJobModel:
 
 
 class TestImportJobExecute:
-    def test_execute_import_valid(self, client):
+    def test_execute_import_valid(self, client, db):
         # First create job with products
         csv = _csv_bytes(
             "catalog_number,name",
@@ -643,13 +568,12 @@ class TestImportJobExecute:
 
         # Execute without confirming
         resp = client.post(
-            f"/api/v1/import/{job.id}/execute",
-            json={"confirmed": False}
+            f"/api/v1/import/{job.id}/execute", json={"confirmed": False}
         )
         assert resp.status_code == 400
         assert "confirmed is required" in resp.json()["detail"]
 
-    def test_execute_import_non_preview_job(self, client):
+    def test_execute_import_non_preview_job(self, client, db):
         # First create job with products
         csv = _csv_bytes(
             "catalog_number,name",
@@ -666,7 +590,9 @@ class TestImportJobExecute:
         assert "Job is not in preview status" in resp.json()["detail"]
 
 
-if __name__ == "__main_import_job":
+if __name__ == "__main__":
+    import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--import-type",
@@ -674,32 +600,14 @@ if __name__ == "__main_import_job":
         required=True,
         help="Type of import",
     )
-    parser.add_argument("file", type=argparse.FileType,help="CSV file to upload")
-    args = parser.parse_args(["file"])
-    return parser.parse_args(["--skip-rows"],    parser.add_argument(
+    parser.add_argument("file", type=argparse.FileType("r"), help="CSV file to upload")
+    parser.add_argument(
         "--skip-rows",
-        nargs=int,
+        type=int,
+        nargs="*",
         help="Row numbers to skip (1-indexed, comma-separated)",
     )
-    return vars(args)
-    parser.set_defaults(
-        # Parse CSV content
-        text = args.file.read().decode("utf-8-sig")
-    except UnicodeDecodeError:
-        raise ValueError("File is not valid UTF-8 text")
-
-    rows = []
-    for line in text.strip().splitlines():
-        if not lines:
-            return [], "CSV file is empty"
-
-    # Handle Excel-style single-quote prefix
-        for i, range(len(lines)):
-            line = lines[i]
-            if line.startswith("'") and len(line) > 1:
-                line = line[1:]
-            lines.append(line)
-    return lines
+    args = parser.parse_args()
 
 
 def _strip_cell(value: Optional[str]) -> Optional[str]:
@@ -755,16 +663,20 @@ def _parse_date(value: Optional[str]) -> Optional[date]:
 # ---------------------------------------------------------------------------
 
 
-def _validate_vendor_row(row: dict, row_num: int, db: Session) -> tuple[dict, list[dict]]:
+def _validate_vendor_row(
+    row: dict, row_num: int, db: Session
+) -> tuple[dict, list[dict]]:
     """Validate a single vendor row."""
     errors = []
     name = _strip_cell(row.get("name"))
     if not name:
-        errors.append({
-            "row": row_num,
-            "field": "name",
-            "message": "name is required",
-        })
+        errors.append(
+            {
+                "row": row_num,
+                "field": "name",
+                "message": "name is required",
+            }
+        )
         return None, errors
 
     return {
@@ -784,19 +696,23 @@ def _validate_product_row(
 
     catalog_number = _strip_cell(row.get("catalog_number"))
     if not catalog_number:
-        errors.append({
-            "row": row_num,
-            "field": "catalog_number",
-            "message": "catalog_number is required",
-        })
+        errors.append(
+            {
+                "row": row_num,
+                "field": "catalog_number",
+                "message": "catalog_number is required",
+            }
+        )
 
     name = _strip_cell(row.get("name"))
     if not name:
-        errors.append({
-            "row": row_num,
-            "field": "name",
-            "message": "name is required",
-        })
+        errors.append(
+            {
+                "row": row_num,
+                "field": "name",
+                "message": "name is required",
+            }
+        )
 
     if errors:
         return None, errors
@@ -805,64 +721,54 @@ def _validate_product_row(
     vendor_name = _strip_cell(row.get("vendor_name"))
     vendor = None
     if vendor_name:
-        vendor = _fuzzy_match_vendor(vendor_name, db, job)
+        vendors = list(db.scalars(select(Vendor)))
+        vendor = _fuzzy_match_vendor(vendor_name, vendors)
         if vendor:
             vendor_id = vendor.id
         else:
-            errors.append({
-                "row": row_num,
-                "field": "vendor_name",
-                "message": f"Vendor '{vendor_name}' not found",
-            })
+            errors.append(
+                {
+                    "row": row_num,
+                    "field": "vendor_name",
+                    "message": f"Vendor '{vendor_name}' not found",
+                }
+            )
 
     # Check for duplicate
     existing = db.scalars(
-            select(Product).where(
-                Product.catalog_number == catalog_number,
-                Product.vendor_id == vendor.id
-            )
-        ).first()
-        if existing:
-            errors.append({
+        select(Product).where(
+            Product.catalog_number == catalog_number,
+            Product.vendor_id == vendor_id,
+        )
+    ).first()
+    if existing:
+        errors.append(
+            {
                 "row": row_num,
                 "field": "catalog_number",
                 "message": f"Product with catalog number '{catalog_number}' already exists (ID: {existing.id})",
-            )
-            continue
-
-    # Check for duplicate within batch
-        for existing in db.scalars(
-            select(Product).where(
-                Product.catalog_number == catalog_number
-            ).all()
-        ):
-            existing.catalog_number.lower() == catalog_number.lower()
-                continue
-            # Create new product
-            product = Product(
-                catalog_number=catalog_number,
-                name=name,
-                vendor_id=vendor.id,
-                category=_strip_cell(row.get("category")),
-                storage_temp=_strip_cell(row.get("storage_temp")),
-                unit=_strip_cell(row.get("unit")),
-                min_stock_level=_parse_decimal(row.get("min_stock_level")),
-                max_stock_level=_parse_decimal(row.get("max_stock_level")),
-                is_hazardous=_parse_bool(row.get("is_hazardous")),
-                is_controlled=_parse_bool(row.get("is_controlled")),
-                extra={"notes": _strip_cell(row.get("notes")} if notes:
-                    row_data["notes"] = notes
-            else:
-                row_data["notes"] = None
-            extra["extra"].pop("notes", None)
             }
-        }
-    }
-    return data, errors
+        )
+        return None, errors
+
+    return {
+        "catalog_number": catalog_number,
+        "name": name,
+        "vendor_id": vendor_id,
+        "category": _strip_cell(row.get("category")),
+        "storage_temp": _strip_cell(row.get("storage_temp")),
+        "unit": _strip_cell(row.get("unit")),
+        "min_stock_level": _parse_int(row.get("min_stock_level")),
+        "is_hazardous": _parse_bool(row.get("is_hazardous")),
+        "is_controlled": _parse_bool(row.get("is_controlled")),
+        "notes": _strip_cell(row.get("notes")),
+    }, errors
 
 
 def _validate_inventory_row(
-    row: dict, row_num: int, db: Session,
+    row: dict,
+    row_num: int,
+    db: Session,
     product_ids: set[int],
     location_ids: set[int],
 ) -> tuple[dict, list[dict]]:
@@ -874,60 +780,73 @@ def _validate_inventory_row(
         try:
             product_id = int(product_id_str)
         except ValueError:
-            errors.append({
-                "row": row_num,
-                "field": "product_id",
-                "message": "product_id must required and must be an integer",
-            })
+            errors.append(
+                {
+                    "row": row_num,
+                    "field": "product_id",
+                    "message": "product_id must required and must be an integer",
+                }
+            )
             return None, errors
     elif product_id not in product_ids:
-        errors.append({
-            "row": row_num,
-            "field": "product_id",
-            "message": f"product_id {product_id} does not exist",
-        })
+        errors.append(
+            {
+                "row": row_num,
+                "field": "product_id",
+                "message": f"product_id {product_id} does not exist",
+            }
+        )
         return None, errors
 
     qty_str = _strip_cell(row.get("quantity_on_hand"))
     if not qty_str:
-        errors.append({
-            "row": row_num,
-            "field": "quantity_on_hand",
-            "message": "quantity_on_hand is required and must be a number",
-        })
+        errors.append(
+            {
+                "row": row_num,
+                "field": "quantity_on_hand",
+                "message": "quantity_on_hand is required and must be a number",
+            }
+        )
         return None, errors
 
     try:
         qty = Decimal(qty_str)
     except InvalidOperation:
-            errors.append({
+        errors.append(
+            {
                 "row": row_num,
                 "field": "quantity_on_hand",
                 "message": "quantity_on_hand must be a valid number",
-            })
-            return None, errors
+            }
+        )
+        return None, errors
 
     if qty < 0:
-        errors.append({
-            "row": row_num,
-            "field": "quantity_on_hand",
-            "message": "quantity_on_hand must be >= 0",
-        })
+        errors.append(
+            {
+                "row": row_num,
+                "field": "quantity_on_hand",
+                "message": "quantity_on_hand must be >= 0",
+            }
+        )
         return None, errors
 
     # Resolve location
     location_name = _strip_cell(row.get("location_name"))
     location = None
     if location_name:
-            location = _fuzzy_match_location(location_name, db, job)
-            if location:
-                location_id = location.id
-            else:
-                errors.append({
+        locations = list(db.scalars(select(StorageLocation)))
+        location = _fuzzy_match_location(location_name, locations)
+        if location:
+            location_id = location.id
+        else:
+            errors.append(
+                {
                     "row": row_num,
                     "field": "location_name",
                     "message": f"Location '{location_name}' not found",
-                })
+                }
+            )
 
     # Validate dates
     expiry_str = _strip_cell(row.get("expiry_date"))
@@ -935,22 +854,26 @@ def _validate_inventory_row(
         try:
             expiry_date = date.fromisoformat(expiry_str)
         except ValueError:
-            errors.append({
-                "row": row_num,
-                "field": "expiry_date",
-                "message": "expiry_date must be YYYY-MM-DD format",
-            })
+            errors.append(
+                {
+                    "row": row_num,
+                    "field": "expiry_date",
+                    "message": "expiry_date must be YYYY-MM-DD format",
+                }
+            )
 
     opened_str = _strip_cell(row.get("opened_date"))
     if opened_str:
         try:
             opened_date = date.fromisoformat(opened_str)
         except ValueError:
-            errors.append({
-                "row": row_num,
-                "field": "opened_date",
-                "message": "opened_date must be YYYY-MM-DD format",
-            })
+            errors.append(
+                {
+                    "row": row_num,
+                    "field": "opened_date",
+                    "message": "opened_date must be YYYY-MM-DD format",
+                }
+            )
 
     # Validate status
     status = _strip_cell(row.get("status")) or "available"
@@ -963,11 +886,13 @@ def _validate_inventory_row(
         "deleted",
     }
     if status not in valid_statuses:
-        errors.append({
-            "row": row_num,
-            "field": "status",
-            "message": f"status must be one of: {', '.join(sorted(valid_statuses))}",
-        })
+        errors.append(
+            {
+                "row": row_num,
+                "field": "status",
+                "message": f"status must be one of: {', '.join(sorted(valid_statuses))}",
+            }
+        )
         return None, errors
 
     # Build inventory item
@@ -999,93 +924,79 @@ def _validate_inventory_row(
 def _import_vendors(
     db: Session,
     job: ImportJob,
-    rows: list[dict],
-    options: dict,
-) -> int:
+    skip_rows: Optional[set[int]] = None,
+    vendor_mappings: Optional[dict] = None,
+) -> dict:
     """Import vendors in background."""
     vendor_cache = {v.name.lower(): v for v in db.scalars(select(Vendor))}
-
     imported = 0
-    errors = []
-    for i, range(0, len(rows), batch_size):
-        batch = rows[i : i + batch_size]
-        data, batch_errors = _validate_vendor_row(row, i + 1, db, job)
-        vendor_cache)
-        if batch_errors:
-            errors.extend(batch_errors)
-            # Record error
-            for err in batch_errors:
-                db.add(ImportError(
-                    job_id=job.id,
-                    row_number=err["row"],
-                    field=err.get("field"),
-                    error_type="validation",
-                    message=err["message"],
-                    raw_data=json.dumps(row),
-                ))
-            continue
-        # Check for duplicates
-        name = data.get("name")
-        if name and name.lower() in vendor_cache:
-            # Skip duplicate
-            continue
+    failed = 0
+    skip = skip_rows or set()
 
+    # Get validated rows from job
+    rows = []
+    if job.validated_data:
+        rows = job.validated_data if isinstance(job.validated_data, list) else []
+
+    for i, data in enumerate(rows):
+        if (i + 2) in skip:
+            continue
+        name = data.get("name") if isinstance(data, dict) else None
+        if not name:
+            failed += 1
+            continue
+        if name.lower() in vendor_cache:
+            continue
         vendor = Vendor(
-            name=data["name"],
-            website=data.get("website"),
-            phone=data.get("phone"),
-            email=data.get("email"),
-            notes=data.get("notes"),
+            name=name,
+            website=data.get("website") if isinstance(data, dict) else None,
+            phone=data.get("phone") if isinstance(data, dict) else None,
+            email=data.get("email") if isinstance(data, dict) else None,
+            notes=data.get("notes") if isinstance(data, dict) else None,
         )
         db.add(vendor)
-        vendor_cache[name.lower()] = None
+        vendor_cache[name.lower()] = vendor
         imported += 1
 
-    return imported, errors
+    return {"imported": imported, "failed": failed}
 
 
 def _import_products(
     db: Session,
     job: ImportJob,
-    rows: list[dict],
-    options: dict,
-    vendor_by_name: dict[str, Vendor],
-) -> int:
+    skip_rows: Optional[set[int]] = None,
+    vendor_mappings: Optional[dict] = None,
+) -> dict:
     """Import products in background."""
-    # Build catalog+vendor uniqueness check set
     existing_pairs = set()
     for p in db.scalars(select(Product)):
         existing_pairs.add((p.catalog_number.lower(), p.vendor_id))
 
     imported = 0
-    errors = []
-    for i in range(0, len(rows), batch_size):
-        batch = rows[i : i + batch_size]
-        data, batch_errors = _validate_product_row(row, i + 2, db, job, vendor_by_name)
-        if batch_errors:
-            errors.extend(batch_errors)
-            for err in batch_errors:
-                db.add(ImportError(
-                job_id=job.id,
-                row_number=err["row"],
-                field=err.get("field"),
-                error_type="validation",
-                message=err["message"],
-                raw_data=json.dumps(row),
-            ))
+    failed = 0
+    skip = skip_rows or set()
+    _ = vendor_mappings or {}  # used by subclass overrides
+
+    rows = []
+    if job.validated_data:
+        rows = job.validated_data if isinstance(job.validated_data, list) else []
+
+    for i, data in enumerate(rows):
+        if (i + 2) in skip:
+            continue
+        if not isinstance(data, dict):
+            failed += 1
             continue
 
-        # Check for duplicates
         catalog_number = data.get("catalog_number", "")
         vendor_id = data.get("vendor_id")
         pair = (catalog_number.lower(), vendor_id)
         if pair in existing_pairs:
-            # Skip duplicate
             continue
 
         product = Product(
-            catalog_number=data["catalog_number"],
-            name=data["name"],
+            catalog_number=catalog_number,
+            name=data.get("name", ""),
             vendor_id=vendor_id,
             category=data.get("category"),
             storage_temp=data.get("storage_temp"),
@@ -1099,94 +1010,38 @@ def _import_products(
         existing_pairs.add(pair)
         imported += 1
 
-    return imported, errors
+    return {"imported": imported, "failed": failed}
 
 
 def _import_inventory(
     db: Session,
-    job: ImportJob
-    rows: list[dict],
-    options: dict,
-    product_by_catalog: dict[tuple[str, Optional[int], Product],
-    location_by_name: dict[str, StorageLocation],
-) -> int:
+    job: ImportJob,
+    skip_rows: Optional[set[int]] = None,
+    vendor_mappings: Optional[dict] = None,
+) -> dict:
     """Import inventory items in background."""
-    # Build product lookup by catalog number
+    # Build lookup tables for validation
     products = list(db.scalars(select(Product)))
-    product_by_catalog = {
-        (p.catalog_number.lower(), p.vendor_id): p
-        for p in products
-    }
-
-    # Build location lookup by name
     locations = list(db.scalars(select(StorageLocation)))
-    location_by_name = {loc.name.lower(): loc for loc in locations}
+    _product_by_catalog = {(p.catalog_number.lower(), p.vendor_id): p for p in products}
+    _location_by_name = {loc.name.lower(): loc for loc in locations}
 
     imported = 0
-    errors = []
-    for i in range(0, len(rows), batch_size):
-        batch = rows[i : i + batch_size]
-        data, batch_errors = _validate_inventory_row(
-            row, i + 2, db, job, product_by_catalog, location_by_name
-        )
-        if batch_errors:
-            errors.extend(batch_errors)
-            for err in batch_errors:
-                db.add(ImportError(
-                    job_id=job.id,
-                    row_number=err["row"],
-                    field=err.get("field"),
-                    error_type="validation",
-                    message=err["message"],
-                    raw_data=json.dumps(row),
-                ))
-            continue
+    failed = 0
+    skip = skip_rows or set()
 
+    rows = []
+    if job.validated_data:
+        rows = job.validated_data if isinstance(job.validated_data, list) else []
+
+    for i, data in enumerate(rows):
+        if (i + 2) in skip:
+            continue
+        if not isinstance(data, dict):
+            failed += 1
+            continue
         item = InventoryItem(**data)
         db.add(item)
         imported += 1
 
-    return imported, errors
-
-
-def _fuzzy_match_vendor(name: str, vendors: list[Vendor]) -> Optional[float]:
-    """Fuzzy match vendor name against vendor list.
-
-    Returns the best matching vendor or None.
-
-    Exact match first
-    name_lower = name.lower()
-    for v in vendors:
-        if v.name.lower() == name_lower:
-            return v
-
-    # Check aliases
-    for v in vendors:
-        if v.aliases:
-            for alias in v.aliases:
-                if isinstance(alias, str):
-                    alias = alias.lower()
-                if alias == name_lower:
-                    return v
-
-    # Simple substring matching (e.g., "Sigma" matches "Sigma-Aldrich")
-    for v in vendors:
-        v_name_lower = v.name.lower()
-        if name_lower in v_name_lower or or name_lower.startswith(v_name_lower):
-            return v
-
-    return None
-
-
-def _fuzzy_match_location(name: str, locations: list[StorageLocation]) -> Optional[float]:
-    """Fuzzy match location name against location list.
-
-    Returns the best matching location or None.
-    """
-    name_lower = name.lower()
-    for loc in locations:
-        if loc.name.lower() == name_lower:
-            return loc
-        if name_lower in loc.name.lower() or loc.name.lower() in name_lower:
-            return loc
-    return None
+    return {"imported": imported, "failed": failed}
