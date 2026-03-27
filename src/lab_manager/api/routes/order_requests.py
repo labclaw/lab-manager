@@ -9,6 +9,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db, get_or_404
@@ -86,10 +87,16 @@ def _get_current_staff(request: Request, db: Session) -> Staff:
     user_name = getattr(request.state, "user", "system")
     staff = db.scalars(select(Staff).where(Staff.name == user_name)).first()
     if not staff:
-        # In dev mode (auth_enabled=false), auto-create a staff record
-        staff = Staff(name=user_name, role="grad_student", is_active=True)
-        db.add(staff)
-        db.flush()
+        try:
+            staff = Staff(name=user_name, role="grad_student", is_active=True)
+            db.add(staff)
+            db.flush()
+        except IntegrityError:
+            # Concurrent request may have inserted this staff member
+            db.rollback()
+            staff = db.scalars(select(Staff).where(Staff.name == user_name)).first()
+            if not staff:
+                raise
     return staff
 
 
