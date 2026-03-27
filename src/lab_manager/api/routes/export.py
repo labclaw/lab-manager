@@ -103,57 +103,21 @@ def export_products(db: Session = Depends(get_db)):
         "is_hazardous",
         "is_controlled",
     ]
-    query = db.scalars(
-        select(Product).order_by(Product.id).execution_options(yield_per=100)
-    )
-
-    def generate():
-        output = io.StringIO()
-        writer = csv.DictWriter(output, fieldnames=fieldnames)
-        writer.writeheader()
-        yield output.getvalue()
-        output.truncate(0)
-        output.seek(0)
-
-        for product in query:
-            row = _escape_row({f: getattr(product, f, None) for f in fieldnames})
-            writer.writerow(row)
-            yield output.getvalue()
-            output.truncate(0)
-            output.seek(0)
-
-    return StreamingResponse(
-        generate(),
-        media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": 'attachment; filename="products.csv"'},
-    )
+    # Eagerly materialize all rows before returning StreamingResponse.
+    # The get_db() middleware closes the session after the handler returns,
+    # so lazy iteration via yield_per would fail with a closed-session error.
+    products = db.scalars(select(Product).order_by(Product.id)).all()
+    rows = [_escape_row({f: getattr(p, f, None) for f in fieldnames}) for p in products]
+    return _csv_response(rows, "products.csv")
 
 
 @router.get("/vendors")
 @router.get("/vendors.csv", include_in_schema=False)
 def export_vendors(db: Session = Depends(get_db)):
     fieldnames = ["id", "name", "website", "phone", "email", "notes"]
-    query = db.scalars(
-        select(Vendor).order_by(Vendor.id).execution_options(yield_per=100)
-    )
-
-    def generate():
-        output = io.StringIO()
-        writer = csv.DictWriter(output, fieldnames=fieldnames)
-        writer.writeheader()
-        yield output.getvalue()
-        output.truncate(0)
-        output.seek(0)
-
-        for vendor in query:
-            row = _escape_row({f: getattr(vendor, f, None) for f in fieldnames})
-            writer.writerow(row)
-            yield output.getvalue()
-            output.truncate(0)
-            output.seek(0)
-
-    return StreamingResponse(
-        generate(),
-        media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": 'attachment; filename="vendors.csv"'},
-    )
+    # Eagerly materialize all rows before returning StreamingResponse.
+    # The get_db() middleware closes the session after the handler returns,
+    # so lazy iteration via yield_per would fail with a closed-session error.
+    vendors = db.scalars(select(Vendor).order_by(Vendor.id)).all()
+    rows = [_escape_row({f: getattr(v, f, None) for f in fieldnames}) for v in vendors]
+    return _csv_response(rows, "vendors.csv")
