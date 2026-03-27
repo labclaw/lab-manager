@@ -114,3 +114,28 @@ def test_statement_timeout_enforced(pg_session):
     # pg_sleep(30) exceeds the 10s timeout
     with pytest.raises(Exception, match="cancel|timeout"):
         _execute_sql(pg_session, "SELECT pg_sleep(30)")
+
+
+def test_session_remains_writable_after_execute(pg_session):
+    """Caller's session must stay writable after _execute_sql.
+
+    Regression test: the fallback path used to SET TRANSACTION READ ONLY on
+    the caller's session, poisoning it so subsequent INSERT/UPDATE would fail
+    with 'cannot execute INSERT in a read-only transaction'.
+    """
+    from lab_manager.services.rag import _execute_sql
+
+    # Execute a read-only query via _execute_sql
+    _execute_sql(pg_session, "SELECT 1 AS val")
+
+    # The caller's session should still be writable
+    pg_session.execute(
+        text("INSERT INTO vendors (name, created_by) VALUES ('writable_test', 'test')")
+    )
+    pg_session.commit()
+
+    # Verify it was actually written
+    rows = pg_session.execute(
+        text("SELECT name FROM vendors WHERE name = 'writable_test'")
+    ).fetchall()
+    assert len(rows) == 1

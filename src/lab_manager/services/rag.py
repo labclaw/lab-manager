@@ -479,21 +479,17 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
             ]
             return _serialize_rows(rows)
     else:
-        # Fallback: main engine with application-level READ ONLY
-        db.execute(text("SET TRANSACTION READ ONLY"))
-        db.execute(text(f"SET LOCAL statement_timeout = {_TIMEOUT_LITERAL}"))
-        nested = db.begin_nested()
-        try:
-            result = db.execute(text(sql))
+        # Fallback: use a separate connection from the main engine to avoid
+        # contaminating the caller's session with SET TRANSACTION READ ONLY.
+        with get_engine().connect() as conn, conn.begin():
+            conn.execute(text("SET TRANSACTION READ ONLY"))
+            conn.execute(text(f"SET LOCAL statement_timeout = {_TIMEOUT_LITERAL}"))
+            result = conn.execute(text(sql))
             columns = list(result.keys())
             rows = [
                 dict(zip(columns, row)) for row in result.fetchmany(MAX_RESULT_ROWS)
             ]
-            nested.commit()
             return _serialize_rows(rows)
-        except Exception:
-            nested.rollback()
-            raise
 
 
 def _format_answer(question: str, sql: str, results: list[dict]) -> str:
