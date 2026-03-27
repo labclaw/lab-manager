@@ -76,7 +76,7 @@ class Settings(BaseSettings):
                 )
             elif pw.startswith("changeme"):
                 logger.warning(
-                    "ADMIN_PASSWORD is still set to a default-style value. "
+                    "ADMIN_PASSWORD is still a default value. "
                     "Change it to a strong password before deploying."
                 )
         return self
