@@ -790,6 +790,7 @@ def create_app() -> FastAPI:
         order_requests,
         orders,
         products,
+        protocols,
         safety,
         search,
         telemetry,
@@ -852,6 +853,9 @@ def create_app() -> FastAPI:
     )
     api_router.include_router(
         knowledge.router, prefix="/api/v1/knowledge", tags=["knowledge"]
+    )
+    api_router.include_router(
+        protocols.router, prefix="/api/v1/protocols", tags=["protocols"]
     )
 
     from lab_manager.api.routes import chat as chat_routes
