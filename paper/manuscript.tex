@@ -133,7 +133,7 @@ extraction, humans confirm before data enters the database.
 Our contributions are: (1)~a multi-model consensus architecture for
 laboratory document extraction with three-tier conflict resolution
 (unanimous, majority, human review); (2)~an open-source, full-featured
-laboratory operations platform with 88 API endpoints covering inventory,
+laboratory operations platform with 125 API endpoints covering inventory,
 orders, vendors, search, analytics, and audit trails; (3)~a benchmark on
 10 real laboratory documents from 10 vendors evaluating 4 VLMs on
 field-level extraction accuracy; and (4)~a production deployment at
@@ -155,8 +155,8 @@ stores approved records in the database and propagates them to inventory,
 orders, analytics, and search indices.
 
 The system is built on a three-tier architecture: a PostgreSQL 17 database
-with 16 relational models, a FastAPI~\citep{fastapi2024} backend with 88
-REST API endpoints across 14 route modules, and a React frontend. The
+with 23 relational models, a FastAPI~\citep{fastapi2024} backend with 125
+REST API endpoints across 21 route modules, and a React frontend. The
 application provides Meilisearch for full-text search, role-based access
 control (RBAC) with 7 permission levels, a natural-language query interface
 (NL$\to$SQL via LiteLLM), CSV export, and a complete audit trail. Users
@@ -310,23 +310,24 @@ conflicts with the OCR text.
 \subsection{System scale and deployment}
 \label{sec:deployment}
 
-Lab Manager comprises approximately 71,000 lines of code: 13,800 lines
-of Python backend (78 source files), 14,700 lines of TypeScript/React
-frontend (53 component files), and 42,500 lines of Python tests (132 test
-files, 700 test functions). The test suite includes unit tests, BDD
+Lab Manager comprises approximately 67,000 lines of code: 21,300
+lines of Python backend (119 source files), 3,000 lines of TypeScript/React
+frontend (11 component files in a separate repository), and 43,000 lines of
+Python tests (134 test files). The test suite includes unit tests, BDD
 (behavior-driven development) specifications, end-to-end pipeline tests,
 and a release-gate script that validates the complete user flow from login
 through document upload, review, and inventory management.
 
-The database schema comprises 16 SQLModel tables covering documents,
-vendors, products, orders (with line items), inventory (with lifecycle
-operations: consume, transfer, adjust, dispose, open), locations,
-equipment, staff, audit logs, alerts, notifications, and telemetry. All
+The database schema comprises 23 SQLModel tables covering documents,
+vendors, products, orders (with line items and order requests), inventory
+(with lifecycle operations: consume, transfer, adjust, dispose, open),
+locations, equipment, staff, audit logs, alerts, notifications, safety
+incidents, usage events, consumption logs, and digest templates. All
 list endpoints support pagination, filtering, and sorting, returning
 standardized \texttt{\{items, total, page, page\_size, pages\}} response
 envelopes.
 
-The 88 API endpoints span 14 route modules (Table~\ref{tab:endpoints}),
+The 125 API endpoints span 21 route modules (Table~\ref{tab:endpoints}),
 covering the complete laboratory operations lifecycle from document intake
 through inventory tracking, analytics, and export. Role-based access control
 enforces 7 permission levels (viewer, member, editor, reviewer, manager,
@@ -343,20 +344,27 @@ admin, owner), with route-level guards on all sensitive endpoints.
 \midrule
 Documents     & 8  & Upload, review, approve/reject, stats \\
 Vendors       & 7  & CRUD, linked products \& orders \\
-Products      & 7  & CRUD, linked inventory \& orders \\
+Products      & 9  & CRUD, linked inventory \& orders \\
 Orders        & 11 & CRUD, line items, receive shipment \\
-Inventory     & 13 & CRUD, consume, transfer, adjust, low-stock, expiring \\
+Order Requests & 7 & Request, approve, track status \\
+Inventory     & 14 & CRUD, consume, transfer, adjust, low-stock, expiring \\
 Search        & 2  & Full-text query, autocomplete suggestions \\
-NL Query      & 2  & Natural language $\to$ SQL translation \\
-Analytics     & 10 & Dashboard, spending, inventory value, top products \\
-Export        & 4  & CSV: inventory, orders, products, vendors \\
+NL Query      & 4  & Natural language $\to$ SQL translation \\
+Analytics     & 11 & Dashboard, spending, inventory value, top products \\
+Export        & 9  & CSV: inventory, orders, products, vendors \\
 Alerts        & 5  & Low-stock/expiry alerts, acknowledge, resolve \\
 Audit         & 2  & Activity log, record history \\
-Auth/Setup    & 7  & Login, setup wizard, session management \\
-Team          & 5  & Invite, assign roles, deactivate \\
+Notifications & 6  & In-app notifications, preferences \\
+Team          & 8  & Invite, assign roles, deactivate \\
 Equipment     & 5  & CRUD, maintenance tracking \\
+Device        & 4  & Heartbeat, CRUD, status \\
+Digest        & 5  & Scheduled digests, templates, settings \\
+Safety        & 3  & Incidents, rules, checks \\
+Barcode       & 1  & Scan and lookup \\
+Import        & 3  & Bulk data import \\
+Telemetry     & 3  & Usage tracking, analytics \\
 \midrule
-\textbf{Total} & \textbf{88} & \\
+\textbf{Total} & \textbf{125} & \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -633,11 +641,11 @@ The author declares no competing interests.
     To be produced: system architecture diagram showing the four-layer stack:\\
     Document Upload $\to$ AI Pipeline $\to$ Human Review $\to$ Database\\[6pt]
     Shows: React frontend, FastAPI backend, PostgreSQL + Meilisearch,\\
-    Docker Compose deployment. 88 API endpoints across 14 modules.
+    Docker Compose deployment. 125 API endpoints across 21 modules.
   \vspace{2.5cm}}}
   \caption{\textbf{Lab Manager system architecture.}
-  The platform comprises a React frontend, FastAPI backend with 88 REST
-  API endpoints, PostgreSQL database with 16 relational models, and
+  The platform comprises a React frontend, FastAPI backend with 125 REST
+  API endpoints, PostgreSQL database with 23 relational models, and
   Meilisearch full-text search. The system deploys as a single Docker
   Compose stack with Caddy reverse proxy. Users upload scanned documents
   through the web interface; the AI pipeline extracts structured data;
