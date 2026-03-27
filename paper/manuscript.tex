@@ -400,18 +400,25 @@ vendor identifiers. Each failure mode was addressed by adding explicit
 rules to the extraction prompt and corresponding checks to the rule-based
 validator.
 
-\textbf{Limitations.} The current benchmark is limited to 10 documents
-from 10 vendors; a larger evaluation across 100+ documents and 50+ vendors
-is needed to establish statistical confidence in accuracy metrics. The
-consensus pipeline requires 3 API calls per document, which increases cost
-and latency compared to single-model extraction; the tiered OCR strategy
-and local model options partially mitigate this. Handwritten text
-(particularly receiving dates) remains the primary failure mode for OCR,
-with even the best local model (Apple Vision OCR) achieving only 1/5
-accuracy on handwritten dates. The system has been tested with a limited
-set of document types common in biomedical research laboratories;
-generalization to chemistry, physics, or engineering supply documents
-requires validation.
+\textbf{Limitations.} The current benchmark evaluates individual
+VLMs on 10 documents but does not report end-to-end accuracy of the
+consensus pipeline; a follow-up evaluation quantifying consensus
+accuracy, human review rates, and error correction rates is needed.
+The benchmark is limited to 10 documents from 10 vendors; a larger
+evaluation across 100+ documents and 50+ vendors is needed to establish
+statistical confidence in accuracy metrics. The consensus pipeline
+requires 3 API calls per document, which increases cost and latency
+compared to single-model extraction; the tiered OCR strategy and local
+model options partially mitigate this. Handwritten text (particularly
+receiving dates) remains the primary failure mode for OCR, with even
+the best local model (Apple Vision OCR) achieving only 1/5 accuracy on
+handwritten dates. The system sends laboratory documents to three cloud
+VLM APIs, which raises data privacy concerns for labs handling
+confidential reagents or proprietary materials; an on-premise VLM
+deployment option would address this. The system has been tested with a
+limited set of document types common in biomedical research
+laboratories; generalization to chemistry, physics, or engineering
+supply documents requires validation.
 
 \textbf{Future directions.} We plan to expand the benchmark to 279
 real documents from the production deployment and report field-level
