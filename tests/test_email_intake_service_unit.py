@@ -48,6 +48,22 @@ def _make_part(
     return part
 
 
+def _make_db_with_auto_id():
+    """Create a mock DB session that auto-assigns IDs on flush."""
+    db = MagicMock()
+    _counter = 0
+
+    def flush_assign_id():
+        nonlocal _counter
+        if db.add.call_args:
+            _counter += 1
+            db.add.call_args[0][0].id = _counter
+
+    db.flush.side_effect = flush_assign_id
+    db.refresh.return_value = None
+    return db
+
+
 def _build_raw_email(
     from_addr: str = "vendor@example.com",
     subject: str = "Order shipped",
@@ -485,17 +501,18 @@ class TestProcessEmail:
         mock_save.return_value = (Path("/tmp/uploads/saved.pdf"), "saved.pdf")
 
         db = MagicMock()
-        doc_mock = MagicMock()
-        doc_mock.id = 42
-        doc_mock.file_name = "saved.pdf"
-        db.add.return_value = None
-        db.flush.return_value = None
+        doc_id_counter = 41
 
-        # After refresh, doc gets id
-        def set_id_side_effect(d):
-            d.id = 42
+        def flush_side_effect():
+            nonlocal doc_id_counter
+            # Set id on any Document that was added (simulates auto-increment)
+            for call in db.add.call_args_list:
+                doc = call[0][0]
+                doc_id_counter += 1
+                doc.id = doc_id_counter
 
-        db.refresh.side_effect = set_id_side_effect
+        db.flush.side_effect = flush_side_effect
+        db.refresh.return_value = None
 
         raw = _build_raw_email(
             from_addr="vendor@example.com",
@@ -526,9 +543,7 @@ class TestProcessEmail:
             (Path("/tmp/uploads/b.png"), "b_saved.png"),
         ]
 
-        db = MagicMock()
-        db.flush.return_value = None
-        db.refresh.return_value = None
+        db = _make_db_with_auto_id()
 
         raw = _build_raw_email(
             attachments=[
@@ -568,9 +583,7 @@ class TestProcessEmail:
         mock_settings.return_value = MagicMock(upload_dir="/tmp/uploads")
         mock_save.return_value = (Path("/tmp/uploads/doc.pdf"), "doc.pdf")
 
-        db = MagicMock()
-        db.flush.return_value = None
-        db.refresh.return_value = None
+        db = _make_db_with_auto_id()
 
         raw = _build_raw_email(
             from_addr="sales@fisher.com",
@@ -601,9 +614,7 @@ class TestProcessEmailJson:
         mock_settings.return_value = MagicMock(upload_dir="/tmp/uploads")
         mock_save.return_value = (Path("/tmp/uploads/doc.pdf"), "doc.pdf")
 
-        db = MagicMock()
-        db.flush.return_value = None
-        db.refresh.return_value = None
+        db = _make_db_with_auto_id()
 
         att_b64 = base64.b64encode(b"PDF data here").decode()
         docs = process_email_json(
@@ -626,9 +637,7 @@ class TestProcessEmailJson:
         mock_settings.return_value = MagicMock(upload_dir="/tmp/uploads")
         mock_save.return_value = (Path("/tmp/uploads/img.png"), "img.png")
 
-        db = MagicMock()
-        db.flush.return_value = None
-        db.refresh.return_value = None
+        db = _make_db_with_auto_id()
 
         att_b64 = base64.b64encode(b"\x89PNG\r\ndata").decode()
         docs = process_email_json(
@@ -646,9 +655,7 @@ class TestProcessEmailJson:
         mock_settings.return_value = MagicMock(upload_dir="/tmp/uploads")
         mock_save.return_value = (Path("/tmp/uploads/img.jpg"), "img.jpg")
 
-        db = MagicMock()
-        db.flush.return_value = None
-        db.refresh.return_value = None
+        db = _make_db_with_auto_id()
 
         att_b64 = base64.b64encode(b"\xff\xd8\xff data").decode()
         docs = process_email_json(
@@ -666,9 +673,7 @@ class TestProcessEmailJson:
         mock_settings.return_value = MagicMock(upload_dir="/tmp/uploads")
         mock_save.return_value = (Path("/tmp/uploads/scan.tiff"), "scan.tiff")
 
-        db = MagicMock()
-        db.flush.return_value = None
-        db.refresh.return_value = None
+        db = _make_db_with_auto_id()
 
         att_b64 = base64.b64encode(b"tiff-data").decode()
         docs = process_email_json(
@@ -686,9 +691,7 @@ class TestProcessEmailJson:
         mock_settings.return_value = MagicMock(upload_dir="/tmp/uploads")
         mock_save.return_value = (Path("/tmp/uploads/scan.tif"), "scan.tif")
 
-        db = MagicMock()
-        db.flush.return_value = None
-        db.refresh.return_value = None
+        db = _make_db_with_auto_id()
 
         att_b64 = base64.b64encode(b"tif-data").decode()
         docs = process_email_json(
@@ -706,9 +709,7 @@ class TestProcessEmailJson:
         mock_settings.return_value = MagicMock(upload_dir="/tmp/uploads")
         mock_save.return_value = (Path("/tmp/uploads/img.jpeg"), "img.jpeg")
 
-        db = MagicMock()
-        db.flush.return_value = None
-        db.refresh.return_value = None
+        db = _make_db_with_auto_id()
 
         att_b64 = base64.b64encode(b"jpeg-data").decode()
         docs = process_email_json(
@@ -783,9 +784,7 @@ class TestProcessEmailJson:
         mock_settings.return_value = MagicMock(upload_dir="/tmp/uploads")
         mock_save.return_value = (Path("/tmp/uploads/file.pdf"), "file.pdf")
 
-        db = MagicMock()
-        db.flush.return_value = None
-        db.refresh.return_value = None
+        db = _make_db_with_auto_id()
 
         att_b64 = base64.b64encode(b"data").decode()
         docs = process_email_json(
@@ -808,9 +807,7 @@ class TestProcessEmailJson:
             (Path("/tmp/uploads/c.jpg"), "c.jpg"),
         ]
 
-        db = MagicMock()
-        db.flush.return_value = None
-        db.refresh.return_value = None
+        db = _make_db_with_auto_id()
 
         docs = process_email_json(
             sender="t@t.com",
@@ -863,9 +860,7 @@ class TestProcessEmailJson:
         mock_settings.return_value = MagicMock(upload_dir="/tmp/uploads")
         mock_save.return_value = (Path("/tmp/uploads/doc.pdf"), "doc.pdf")
 
-        db = MagicMock()
-        db.flush.return_value = None
-        db.refresh.return_value = None
+        db = _make_db_with_auto_id()
 
         att_b64 = base64.b64encode(b"pdf").decode()
         process_email_json(
