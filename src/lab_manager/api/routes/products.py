@@ -67,8 +67,10 @@ class ProductCreate(BaseModel):
 
 
 class ProductUpdate(BaseModel):
-    catalog_number: Optional[str] = PydanticField(default=None, max_length=100)
-    name: Optional[str] = PydanticField(default=None, max_length=500)
+    catalog_number: Optional[str] = PydanticField(
+        default=None, min_length=1, max_length=100
+    )
+    name: Optional[str] = PydanticField(default=None, min_length=1, max_length=500)
     vendor_id: Optional[int] = None
     category: Optional[str] = PydanticField(default=None, max_length=100)
     cas_number: Optional[str] = PydanticField(default=None, max_length=30)
