@@ -49,7 +49,7 @@ class ImportJob(AuditMixin, table=True):
     )
     status: ImportStatus = Field(
         default=ImportStatus.uploading,
-        sa_column=Column(SQLEnum(ImportStatus), nullable=False, index=True),
+        sa_column=Column(SQLEnum(ImportStatus), nullable=False),
     )
 
     # File metadata
@@ -102,7 +102,6 @@ class ImportError(SQLModel, table=True):
             Integer,
             ForeignKey("import_jobs.id", ondelete="CASCADE"),
             nullable=False,
-            index=True,
         )
     )
     row_number: int = Field()  # 1-indexed row in CSV

@@ -58,8 +58,15 @@ def upgrade() -> None:
         sa.Column("imported_rows", sa.Integer(), server_default="0", nullable=True),
         sa.Column("failed_rows", sa.Integer(), server_default="0", nullable=True),
         sa.Column("options", sa.JSON(), server_default="{}", nullable=True),
+        sa.Column("preview_data", sa.JSON(), nullable=True),
         sa.Column("started_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column(
+            "created_by_id",
+            sa.Integer(),
+            sa.ForeignKey("staff.id", ondelete="SET NULL"),
+            nullable=True,
+        ),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -72,10 +79,12 @@ def upgrade() -> None:
             server_default=sa.func.now(),
             nullable=False,
         ),
-        sa.Column("created_by", sa.Integer(), nullable=True),
-        sa.Column("updated_by", sa.Integer(), nullable=True),
+        sa.Column("created_by", sa.String(100), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
+    # Indexes for import_jobs (match model __table_args__)
+    op.create_index("ix_import_jobs_status", "import_jobs", ["status"])
+    op.create_index("ix_import_jobs_created_at", "import_jobs", ["created_at"])
 
     # Create import_errors table
     op.create_table(
@@ -104,13 +113,15 @@ def upgrade() -> None:
     # Create indexes
     op.create_index("ix_import_errors_job_id", "import_errors", ["job_id"])
     op.create_index(
-        "ix_import_errors_job_row_number", "import_errors", ["job_id", "row_number"]
+        "ix_import_errors_job_row", "import_errors", ["job_id", "row_number"]
     )
 
 
 def downgrade() -> None:
-    op.drop_index("ix_import_errors_job_row_number", table_name="import_errors")
+    op.drop_index("ix_import_errors_job_row", table_name="import_errors")
     op.drop_index("ix_import_errors_job_id", table_name="import_errors")
+    op.drop_index("ix_import_jobs_created_at", table_name="import_jobs")
+    op.drop_index("ix_import_jobs_status", table_name="import_jobs")
     op.drop_table("import_errors")
     op.drop_table("import_jobs")
     op.execute("DROP TYPE import_status")
