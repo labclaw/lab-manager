@@ -62,19 +62,14 @@ describe('CloudBrainPage', () => {
     expect(screen.getByText('Scientific Writing')).toBeInTheDocument()
   })
 
-  it('renders quick action buttons', () => {
+  it('renders quick action buttons in chat container', () => {
     renderOffline()
 
+    // Quick actions now live inside ChatContainer (visible when no messages)
     expect(screen.getByText('Search PubMed')).toBeInTheDocument()
     expect(screen.getByText('Protein Lookup')).toBeInTheDocument()
     expect(screen.getByText('Drug Info')).toBeInTheDocument()
     expect(screen.getByText('Gene Analysis')).toBeInTheDocument()
-    // "Experiment Design" and "Write Section" also appear as category tags,
-    // so just verify we have 6 quick-action buttons total
-    const heading = screen.getByText('Quick Actions')
-    const section = heading.closest('div')!
-    const buttons = within(section).getAllByRole('button')
-    expect(buttons.length).toBe(6)
   })
 
   it('shows not connected status when Cloud Brain is offline', () => {
@@ -107,21 +102,25 @@ describe('CloudBrainPage', () => {
     expect(screen.getByText('Version')).toBeInTheDocument()
   })
 
-  it('shows query input when connected', () => {
+  it('shows chat input when connected', () => {
     renderOnline({ tool_count: 100 })
 
+    // ChatContainer uses "Ask Cloud Brain..." placeholder
     expect(
-      screen.getByPlaceholderText('Ask Cloud Brain a scientific question...'),
+      screen.getByPlaceholderText('Ask Cloud Brain...'),
     ).toBeInTheDocument()
   })
 
-  it('does not show query input when offline', () => {
+  it('shows chat input when offline (disabled)', () => {
     renderOffline()
 
-    expect(screen.getByText('Setup Required')).toBeInTheDocument()
+    // ChatContainer is always rendered but input is disabled when not connected
     expect(
-      screen.queryByPlaceholderText('Ask Cloud Brain a scientific question...'),
-    ).not.toBeInTheDocument()
+      screen.getByPlaceholderText('Ask Cloud Brain...'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByPlaceholderText('Ask Cloud Brain...'),
+    ).toBeDisabled()
   })
 
   it('renders API reference section', () => {
