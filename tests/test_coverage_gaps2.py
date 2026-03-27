@@ -31,63 +31,9 @@ class TestOcrExtract:
         result = extract_text_from_image(img)
         assert result == "OCR output text"
 
-
-# ---------------------------------------------------------------------------
-# intake/pipeline.py — _find_vendor, process_document
-# ---------------------------------------------------------------------------
-
-
-class TestPipeline:
-    def test_find_vendor_exact(self, db_session):
-        from lab_manager.intake.pipeline import _find_vendor
-        from lab_manager.models.vendor import Vendor
-
-        v = Vendor(name="Sigma-Aldrich")
-        db_session.add(v)
-        db_session.flush()
-
-        result = _find_vendor("Sigma-Aldrich", db_session)
-        assert result is not None
-        assert result.name == "Sigma-Aldrich"
-
-    def test_find_vendor_case_insensitive(self, db_session):
-        from lab_manager.intake.pipeline import _find_vendor
-        from lab_manager.models.vendor import Vendor
-
-        v = Vendor(name="Sigma-Aldrich")
-        db_session.add(v)
-        db_session.flush()
-
-        result = _find_vendor("sigma-aldrich", db_session)
-        assert result is not None
-
-    def test_find_vendor_partial(self, db_session):
-        from lab_manager.intake.pipeline import _find_vendor
-        from lab_manager.models.vendor import Vendor
-
-        v = Vendor(name="EMD Millipore Corporation")
-        db_session.add(v)
-        db_session.flush()
-
-        result = _find_vendor("EMD Millipore", db_session)
-        assert result is not None
-
-    def test_find_vendor_alias(self, db_session):
-        from lab_manager.intake.pipeline import _find_vendor
-        from lab_manager.models.vendor import Vendor
-
-        v = Vendor(name="Thermo Fisher", aliases=["ThermoFisher", "Life Technologies"])
-        db_session.add(v)
-        db_session.flush()
-
-        result = _find_vendor("Life Technologies", db_session)
-        assert result is not None
-
-    def test_find_vendor_not_found(self, db_session):
-        from lab_manager.intake.pipeline import _find_vendor
-
-        result = _find_vendor("NonexistentVendor12345", db_session)
-        assert result is None
+    # ---------------------------------------------------------------------------
+    # intake/pipeline.py — _find_vendor removed, vendor matching moved to services
+    # ---------------------------------------------------------------------------
 
     @patch("lab_manager.intake.pipeline.extract_text_from_image")
     @patch("lab_manager.intake.pipeline.extract_from_text")
