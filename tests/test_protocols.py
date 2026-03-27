@@ -127,7 +127,7 @@ def test_filter_by_category(client):
 
 def test_filter_by_status(client):
     client.post("/api/v1/protocols/", json={"title": "Draft"})
-    r2 = client.post(
+    client.post(
         "/api/v1/protocols/",
         json={"title": "Published", "status": "published"},
     )
