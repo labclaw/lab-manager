@@ -1,7 +1,5 @@
 """Bulk import job tracking models."""
 
-from __future__ import annotations
-
 import enum
 from datetime import datetime
 from typing import List, Optional
