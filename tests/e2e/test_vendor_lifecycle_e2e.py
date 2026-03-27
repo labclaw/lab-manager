@@ -342,13 +342,7 @@ class TestVendorLifecycleE2E:
         data = resp.json()
         assert isinstance(data, (list, dict))
 
-    def test_13_delete_vendor_with_linked_data_blocked(self, lifecycle_client):
-        """DELETE vendor with products returns 409 (FK constraint) or 204."""
-        vid = TestVendorLifecycleE2E.vendor_id
-        resp = lifecycle_client.delete(f"/api/v1/vendors/{vid}")
-        assert resp.status_code in (409, 204)
-
-    def test_14_export_vendor_csv_contains_data(self, lifecycle_client):
+    def test_13_export_vendor_csv_contains_data(self, lifecycle_client):
         """GET /export/vendors CSV contains our vendor."""
         import csv
         import io
@@ -362,6 +356,12 @@ class TestVendorLifecycleE2E:
         assert len(rows) >= 2
         names = [r[rows[0].index("name")] for r in rows[1:] if "name" in rows[0]]
         assert any(suffix in n for n in names)
+
+    def test_14_delete_vendor_with_linked_data_blocked(self, lifecycle_client):
+        """DELETE vendor with products returns 409 (FK constraint) or 204."""
+        vid = TestVendorLifecycleE2E.vendor_id
+        resp = lifecycle_client.delete(f"/api/v1/vendors/{vid}")
+        assert resp.status_code in (409, 204)
 
 
 # ---------------------------------------------------------------------------
