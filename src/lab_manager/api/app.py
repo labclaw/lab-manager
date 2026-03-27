@@ -93,7 +93,6 @@ _AUTH_ALLOWLIST_PREFIXES = (
     "/assets/",  # SPA build assets (JS/CSS bundles)
     "/icons/",  # Icon assets
     "/api/v1/team/join/",  # Invitation acceptance (public, token-verified)
-    "/ws/",  # WebSocket endpoints (chat, etc.)
 )
 
 # Session cookie config
@@ -852,17 +851,10 @@ def create_app() -> FastAPI:
         knowledge.router, prefix="/api/v1/knowledge", tags=["knowledge"]
     )
 
-    from lab_manager.api.routes import chat as chat_routes
     from lab_manager.api.routes import team
 
     api_router.include_router(team.router, prefix="/api/v1/team", tags=["team"])
-    api_router.include_router(chat_routes.router, prefix="/api/v1/chat", tags=["chat"])
     app.include_router(api_router)
-
-    # WebSocket chat endpoint (outside api_router to avoid auth middleware issues)
-    from starlette.routing import WebSocketRoute
-
-    app.routes.insert(0, WebSocketRoute("/ws/chat", chat_routes.websocket_chat))
 
     # --- Apply rate limiting decorators to GET /api/v1/ask endpoint ---
     # Rate limit: 10 requests per minute (same as POST)
