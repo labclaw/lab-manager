@@ -6,10 +6,11 @@ from decimal import Decimal
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.equipment import Equipment, EquipmentStatus
@@ -26,45 +27,68 @@ _SORTABLE = {
     "status",
 }
 
+_VALID_EQUIPMENT_STATUSES = {
+    EquipmentStatus.active,
+    EquipmentStatus.maintenance,
+    EquipmentStatus.broken,
+    EquipmentStatus.retired,
+    EquipmentStatus.decommissioned,
+    EquipmentStatus.deleted,
+}
+
 
 class EquipmentCreate(BaseModel):
-    name: str
-    manufacturer: Optional[str] = None
-    model: Optional[str] = None
-    serial_number: Optional[str] = None
-    system_id: Optional[str] = None
-    category: Optional[str] = None
-    description: Optional[str] = None
+    name: str = Field(max_length=500)
+    manufacturer: Optional[str] = Field(default=None, max_length=255)
+    model: Optional[str] = Field(default=None, max_length=255)
+    serial_number: Optional[str] = Field(default=None, max_length=255)
+    system_id: Optional[str] = Field(default=None, max_length=100)
+    category: Optional[str] = Field(default=None, max_length=100)
+    description: Optional[str] = Field(default=None, max_length=5000)
     location_id: Optional[int] = None
-    room: Optional[str] = None
+    room: Optional[str] = Field(default=None, max_length=100)
     estimated_value: Optional[Decimal] = Field(default=None, ge=0)
     status: str = EquipmentStatus.active
     is_api_controllable: bool = False
-    api_interface: Optional[str] = None
-    notes: Optional[str] = None
+    api_interface: Optional[str] = Field(default=None, max_length=100)
+    notes: Optional[str] = Field(default=None, max_length=5000)
     photos: list = []
     extracted_data: Optional[dict] = None
     extra: dict = {}
 
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        if v not in _VALID_EQUIPMENT_STATUSES:
+            raise ValueError(f"status must be one of {_VALID_EQUIPMENT_STATUSES}")
+        return v
+
 
 class EquipmentUpdate(BaseModel):
-    name: Optional[str] = None
-    manufacturer: Optional[str] = None
-    model: Optional[str] = None
-    serial_number: Optional[str] = None
-    system_id: Optional[str] = None
-    category: Optional[str] = None
-    description: Optional[str] = None
+    name: Optional[str] = Field(default=None, max_length=500)
+    manufacturer: Optional[str] = Field(default=None, max_length=255)
+    model: Optional[str] = Field(default=None, max_length=255)
+    serial_number: Optional[str] = Field(default=None, max_length=255)
+    system_id: Optional[str] = Field(default=None, max_length=100)
+    category: Optional[str] = Field(default=None, max_length=100)
+    description: Optional[str] = Field(default=None, max_length=5000)
     location_id: Optional[int] = None
-    room: Optional[str] = None
+    room: Optional[str] = Field(default=None, max_length=100)
     estimated_value: Optional[Decimal] = Field(default=None, ge=0)
     status: Optional[str] = None
     is_api_controllable: Optional[bool] = None
-    api_interface: Optional[str] = None
-    notes: Optional[str] = None
+    api_interface: Optional[str] = Field(default=None, max_length=100)
+    notes: Optional[str] = Field(default=None, max_length=5000)
     photos: Optional[list] = None
     extracted_data: Optional[dict] = None
     extra: Optional[dict] = None
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str | None) -> str | None:
+        if v is not None and v not in _VALID_EQUIPMENT_STATUSES:
+            raise ValueError(f"status must be one of {_VALID_EQUIPMENT_STATUSES}")
+        return v
 
 
 @router.get("/")
@@ -97,7 +121,11 @@ def list_equipment(
     return paginate(q, db, page, page_size)
 
 
-@router.post("/", status_code=201)
+@router.post(
+    "/",
+    status_code=201,
+    dependencies=[Depends(require_permission("log_equipment_usage"))],
+)
 def create_equipment(body: EquipmentCreate, db: Session = Depends(get_db)):
     equip = Equipment(**body.model_dump())
     db.add(equip)
@@ -111,7 +139,9 @@ def get_equipment(equipment_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, Equipment, equipment_id, "Equipment")
 
 
-@router.patch("/{equipment_id}")
+@router.patch(
+    "/{equipment_id}", dependencies=[Depends(require_permission("log_equipment_usage"))]
+)
 def update_equipment(
     equipment_id: int, body: EquipmentUpdate, db: Session = Depends(get_db)
 ):
@@ -123,10 +153,13 @@ def update_equipment(
     return equip
 
 
-@router.delete("/{equipment_id}")
+@router.delete(
+    "/{equipment_id}",
+    status_code=204,
+    dependencies=[Depends(require_permission("delete_records"))],
+)
 def delete_equipment(equipment_id: int, db: Session = Depends(get_db)):
     equip = get_or_404(db, Equipment, equipment_id, "Equipment")
     equip.status = EquipmentStatus.deleted
     db.flush()
-    db.refresh(equip)
-    return equip
+    return None

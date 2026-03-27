@@ -112,11 +112,10 @@ class GeminiAPIOCRProvider(OCRProvider):
         try:
             api_key = self.api_key
             if not api_key:
-                import os
+                from lab_manager.config import get_settings
 
-                api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get(
-                    "EXTRACTION_API_KEY", ""
-                )
+                _s = get_settings()
+                api_key = _s.gemini_api_key or _s.extraction_api_key
 
             client = genai.Client(api_key=api_key)
             image_bytes = Path(image_path).read_bytes()

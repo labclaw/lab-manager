@@ -5,11 +5,15 @@ import {
   BarChart3,
   FileText,
   ClipboardCheck,
+  ClipboardList,
   Package,
+  ScanBarcode,
   ShoppingCart,
   Upload,
+  FileSpreadsheet,
   Brain,
   Sparkles,
+  Users,
   Settings,
   User,
   LogOut,
@@ -29,6 +33,7 @@ interface SidebarProps {
   readonly reviewCount?: number
   readonly mobileOpen?: boolean
   readonly onMobileClose?: () => void
+  readonly userName?: string
 }
 
 const navItems = [
@@ -39,10 +44,14 @@ const navItems = [
   { path: '/review', label: 'Review Queue', Icon: ClipboardCheck },
   { path: '/vendors', label: 'Vendors', Icon: Building2 },
   { path: '/products', label: 'Products', Icon: FlaskConical },
+  { path: '/scan', label: 'Scan', Icon: ScanBarcode },
   { path: '/inventory', label: 'Inventory', Icon: Package },
   { path: '/orders', label: 'Orders', Icon: ShoppingCart },
+  { path: '/requests', label: 'Requests', Icon: ClipboardList },
   { path: '/upload', label: 'Upload', Icon: Upload },
+  { path: '/import', label: 'Bulk Import', Icon: FileSpreadsheet },
   { path: '/cloud-brain', label: 'Cloud Brain', Icon: Sparkles },
+  { path: '/team', label: 'Team', Icon: Users },
 ]
 
 export function Sidebar({
@@ -53,6 +62,7 @@ export function Sidebar({
   reviewCount = 0,
   mobileOpen = false,
   onMobileClose,
+  userName = 'User',
 }: SidebarProps) {
   // On mobile overlay, always show expanded regardless of collapsed state
   const showLabels = mobileOpen || !collapsed
@@ -141,7 +151,7 @@ export function Sidebar({
           </div>
           {showLabels && (
             <div className="overflow-hidden">
-              <p className="text-sm font-bold text-[var(--foreground)] truncate">Admin</p>
+              <p className="text-sm font-bold text-[var(--foreground)] truncate">{userName}</p>
             </div>
           )}
         </div>

@@ -1,0 +1,135 @@
+name: Merge Gate
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: merge-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  verify-ci:
+    name: merge-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Wait for all CI jobs to complete before running
+    needs: []
+
+    steps:
+      - name: Wait for required checks
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const sha = context.payload.pull_request.head.sha;
+
+            // Required checks that must pass before merge
+            const requiredChecks = [
+              'lint',
+              'typecheck',
+              'test (py3.12)',
+              'test (py3.13)',
+              'frontend (lint, type-check, build, test)',
+              'e2e (Playwright)',
+              'conventional-commits',
+            ];
+
+            core.info(`Checking status for SHA: ${sha}`);
+            core.info(`Required checks: ${requiredChecks.join(', ')}`);
+
+            // Poll for up to 25 minutes (150 * 10s)
+            const maxAttempts = 150;
+            const pollInterval = 10000; // 10 seconds
+
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              const { data: checkRuns } = await github.rest.checks.listForRef({
+                owner,
+                repo,
+                ref: sha,
+                per_page: 100,
+              });
+
+              const checkMap = new Map();
+              for (const run of checkRuns.check_runs) {
+                // Keep the latest run for each name
+                if (!checkMap.has(run.name) || new Date(run.started_at) > new Date(checkMap.get(run.name).started_at)) {
+                  checkMap.set(run.name, run);
+                }
+              }
+
+              let allComplete = true;
+              let anyFailed = false;
+              const status = [];
+
+              for (const name of requiredChecks) {
+                const run = checkMap.get(name);
+                if (!run) {
+                  status.push(`  - ${name}: NOT FOUND (waiting...)`);
+                  allComplete = false;
+                } else if (run.status !== 'completed') {
+                  status.push(`  - ${name}: ${run.status}`);
+                  allComplete = false;
+                } else if (run.conclusion === 'success' || run.conclusion === 'skipped') {
+                  status.push(`  - ${name}: ${run.conclusion}`);
+                } else {
+                  status.push(`  - ${name}: ${run.conclusion} (FAILED)`);
+                  anyFailed = true;
+                }
+              }
+
+              core.info(`\nAttempt ${attempt}/${maxAttempts}:`);
+              status.forEach(s => core.info(s));
+
+              if (anyFailed) {
+                core.setFailed('One or more required checks failed. Fix the code — do NOT bypass CI.');
+                return;
+              }
+
+              if (allComplete) {
+                core.info('\nAll required checks passed.');
+                return;
+              }
+
+              if (attempt < maxAttempts) {
+                core.info(`\nWaiting ${pollInterval/1000}s for remaining checks...`);
+                await new Promise(r => setTimeout(r, pollInterval));
+              }
+            }
+
+            core.setFailed('Timed out waiting for required checks to complete.');
+
+      - name: Add ci-verified label
+        if: success()
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const prNumber = context.payload.pull_request.number;
+
+            // Ensure label exists
+            try {
+              await github.rest.issues.getLabel({ owner, repo, name: 'ci-verified' });
+            } catch {
+              await github.rest.issues.createLabel({
+                owner,
+                repo,
+                name: 'ci-verified',
+                color: '0E8A16',
+                description: 'All required CI checks have passed',
+              });
+            }
+
+            await github.rest.issues.addLabels({
+              owner,
+              repo,
+              issue_number: prNumber,
+              labels: ['ci-verified'],
+            });
+
+            core.info(`Added 'ci-verified' label to PR #${prNumber}`);

@@ -18,14 +18,21 @@ import { SettingsPage } from '@/pages/SettingsPage'
 import { CloudBrainPage } from '@/pages/CloudBrainPage'
 import { VendorsPage } from '@/pages/VendorsPage'
 import { ProductsPage } from '@/pages/ProductsPage'
+import { ScanPage } from '@/pages/ScanPage'
+import { TeamPage } from '@/pages/TeamPage'
+import { ImportPage } from '@/pages/ImportPage'
+import { AlertsPage } from '@/pages/AlertsPage'
+import { RequestsPage } from '@/pages/RequestsPage'
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
   '/ask': 'Ask AI',
+  '/scan': 'Scan Barcode',
   '/inventory': 'Inventory',
   '/orders': 'Orders',
   '/documents': 'Documents',
   '/upload': 'Upload Documents',
+  '/import': 'Bulk Import',
   '/review': 'Review Queue',
   '/analytics': 'Analytics',
   '/alerts': 'Alerts',
@@ -33,19 +40,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/products': 'Products',
   '/settings': 'Settings',
   '/cloud-brain': 'Cloud Brain',
-}
-
-function AlertsPage() {
-  return (
-    <div className="text-center py-16 space-y-3">
-      <h3 className="text-lg font-display font-semibold text-[var(--foreground)]">
-        Alerts
-      </h3>
-      <p className="text-sm text-[var(--muted-foreground)]">
-        Alerts page
-      </p>
-    </div>
-  )
+  '/team': 'Team',
+  '/requests': 'Supply Requests',
 }
 
 export default function App() {
@@ -91,7 +87,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return
     alerts.list().then((res) => {
-      const unack = (res.items ?? []).filter((a) => !a.acknowledged)
+      const unack = (res.items ?? []).filter((a) => !a.is_acknowledged)
       setAlertCount(unack.length)
     }).catch(() => {})
 
@@ -131,18 +127,21 @@ export default function App() {
           reviewCount={reviewCount}
           mobileOpen={mobileMenuOpen}
           onMobileClose={() => setMobileMenuOpen(false)}
+          userName={user.name}
         />
         <div className="flex-1 flex flex-col min-w-0">
           <Header
             title={PAGE_TITLES[location.pathname] ?? 'Lab Manager'}
             showSearch={location.pathname !== '/ask'}
             onMobileMenuToggle={() => setMobileMenuOpen(prev => !prev)}
+            userName={user.name}
           />
           <main className="flex-1 overflow-y-auto p-3 md:p-6">
             <Routes>
               <Route path="/">
                 <Route index element={<DashboardPage onError={setError} />} />
                 <Route path="ask" element={<AskPage onError={setError} />} />
+                <Route path="scan" element={<ScanPage onError={setError} />} />
                 <Route path="inventory" element={<InventoryPage onError={setError} />} />
                 <Route path="orders" element={<OrdersPage onError={setError} />} />
                 <Route path="vendors" element={<VendorsPage onError={setError} />} />
@@ -150,10 +149,13 @@ export default function App() {
                 <Route path="documents" element={<DocumentsPage onError={setError} />} />
                 <Route path="analytics" element={<AnalyticsPage onError={setError} />} />
                 <Route path="upload" element={<UploadPage />} />
+                <Route path="import" element={<ImportPage onError={setError} />} />
                 <Route path="review" element={<ReviewPage onError={setError} />} />
-                <Route path="alerts" element={<AlertsPage />} />
+                <Route path="alerts" element={<AlertsPage onError={setError} />} />
                 <Route path="settings" element={<SettingsPage onError={setError} />} />
+                <Route path="requests" element={<RequestsPage onError={setError} />} />
                 <Route path="cloud-brain" element={<CloudBrainPage onError={setError} />} />
+                <Route path="team" element={<TeamPage onError={setError} />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>

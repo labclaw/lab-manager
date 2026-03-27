@@ -9,8 +9,9 @@ import {
   PackageCheck,
   ShoppingCart,
   FlaskConical,
-  ClipboardCheck,
   Package,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 
 interface OrdersPageProps {
@@ -40,14 +41,24 @@ const PROGRESS_STEPS = [
   { key: 'received', label: 'Received', icon: PackageCheck },
 ] as const
 
+const STATUS_BADGE_STYLES: Record<string, string> = {
+  pending: 'text-on-surface-variant bg-surface-container-high',
+  ordered: 'text-primary bg-primary/10',
+  shipped: 'text-blue-700 bg-blue-100',
+  out_for_delivery: 'text-amber-700 bg-amber-100',
+  received: 'text-green-700 bg-green-100',
+  cancelled: 'text-red-700 bg-red-100',
+}
+
 export function OrdersPage({ onError }: OrdersPageProps) {
   const [page, setPage] = useState(1)
   const [activeTab, setActiveTab] = useState<TabValue>('active')
+  const [expandedOrder, setExpandedOrder] = useState<number | null>(null)
   const pageSize = 20
 
   const { data: res, isLoading, error } = useQuery({
     queryKey: ['orders', page, activeTab],
-    queryFn: () => ordApi.list(page, pageSize),
+    queryFn: () => ordApi.list(page, pageSize, activeTab),
   })
 
   useEffect(() => {
@@ -56,16 +67,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
     }
   }, [error, onError])
 
-  const allOrders = res?.items ?? []
-
-  const activeCount = allOrders.filter((o) => o.status !== 'received' && o.status !== 'cancelled').length
-
-  // Filter by tab
-  const orders = allOrders.filter((o) => {
-    if (activeTab === 'active') return o.status !== 'received' && o.status !== 'cancelled'
-    if (activeTab === 'past') return o.status === 'received' || o.status === 'cancelled'
-    return false // drafts: none from API currently
-  })
+  const orders = res?.items ?? []
 
   const formatCurrency = (amount?: number) => {
     if (amount == null) return '\u2014'
@@ -83,6 +85,9 @@ export function OrdersPage({ onError }: OrdersPageProps) {
 
   const getProgressIndex = (status?: string) => STATUS_PROGRESS[status ?? ''] ?? 0
 
+  const getStatusBadgeStyle = (status?: string) =>
+    STATUS_BADGE_STYLES[status ?? ''] ?? 'text-on-surface-variant bg-surface-container-high'
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -99,15 +104,11 @@ export function OrdersPage({ onError }: OrdersPageProps) {
           <div>
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Orders</h2>
             <p className="text-gray-500 mt-1 md:mt-2 text-sm">
-              {allOrders.length > 0
-                ? `${activeCount} active, ${allOrders.length - activeCount} completed across ${allOrders.length} total orders.`
+              {orders.length > 0
+                ? `${orders.length} orders shown.`
                 : 'No orders yet. Orders are created when documents are processed.'}
             </p>
           </div>
-          <button disabled className="bg-gradient-to-br from-primary to-primary-container text-white px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold flex items-center shadow-lg opacity-50 cursor-not-allowed text-sm md:text-base" title="Coming soon">
-            <ShoppingCart className="mr-2 size-5" />
-            New Requisition
-          </button>
         </div>
       </div>
 
@@ -154,7 +155,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
                     <h3 className="text-lg font-bold text-on-surface">
                       Order #{featured.po_number ?? featured.id}
                     </h3>
-                    <span className="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${getStatusBadgeStyle(featured.status)}`}>
                       {featured.status ? formatEnum(featured.status) : 'Unknown'}
                     </span>
                   </div>
@@ -163,12 +164,14 @@ export function OrdersPage({ onError }: OrdersPageProps) {
                     {featured.vendor_name ?? 'Unknown'} {featured.order_date ? `\u00B7 ${formatDate(featured.order_date)}` : ''}
                   </p>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-primary text-sm font-semibold hover:underline cursor-pointer">View Invoice</span>
-                  <button disabled className="bg-surface-container-high text-[var(--muted-foreground)] px-5 py-2.5 rounded-xl font-bold text-sm opacity-50 cursor-not-allowed" title="No tracking info available">
-                    No Tracking Info
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setExpandedOrder(expandedOrder === featured.id ? null : featured.id)}
+                  className="bg-surface-container-high text-on-surface px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-surface-container transition-colors flex items-center gap-2"
+                >
+                  View Details
+                  {expandedOrder === featured.id ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                </button>
               </div>
 
               {/* Progress Tracker */}
@@ -203,6 +206,28 @@ export function OrdersPage({ onError }: OrdersPageProps) {
                   })}
                 </div>
               </div>
+
+              {/* Expandable Details */}
+              {expandedOrder === featured.id && (
+                <div className="mt-6 pt-6 border-t border-outline grid grid-cols-2 md:grid-cols-4 gap-4" data-testid="order-details">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1">PO Number</p>
+                    <p className="text-sm font-semibold text-on-surface">{featured.po_number ?? '\u2014'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1">Total Amount</p>
+                    <p className="text-sm font-semibold text-on-surface">{formatCurrency(featured.total_amount)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1">Items</p>
+                    <p className="text-sm font-semibold text-on-surface">{featured.item_count ?? '\u2014'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1">Vendor</p>
+                    <p className="text-sm font-semibold text-on-surface">{featured.vendor_name ?? '\u2014'}</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -218,12 +243,8 @@ export function OrdersPage({ onError }: OrdersPageProps) {
               >
                 <div className="flex justify-between items-start mb-6">
                   <div>
-                    <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded mb-2 inline-block ${
-                      isPending
-                        ? 'text-on-surface-variant bg-surface-container-high'
-                        : 'text-primary bg-primary/10'
-                    }`}>
-                      {isPending ? 'Pending Approval' : 'Processing'}
+                    <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded mb-2 inline-block ${getStatusBadgeStyle(order.status)}`}>
+                      {order.status ? formatEnum(order.status) : 'Unknown'}
                     </span>
                     <h3 className="text-lg font-bold text-on-surface">
                       Order #{order.po_number ?? order.id}
@@ -233,37 +254,18 @@ export function OrdersPage({ onError }: OrdersPageProps) {
                     </p>
                   </div>
                   <div className="h-12 w-12 rounded-xl bg-surface-container flex items-center justify-center group-hover:scale-110 transition-transform">
-                    {isPending ? (
-                      <ClipboardCheck className={`size-6 ${isPending ? 'text-on-surface-variant' : 'text-primary'}`} />
-                    ) : (
-                      <Package className={`size-6 ${isPending ? 'text-on-surface-variant' : 'text-primary'}`} />
-                    )}
+                    <Package className={`size-6 ${isPending ? 'text-on-surface-variant' : 'text-primary'}`} />
                   </div>
                 </div>
                 <div className="space-y-4">
-                  {isPending ? (
+                  {isPending && (
                     <div className="p-3 bg-surface-container-low rounded-lg text-[11px] text-on-surface-variant italic">
                       Awaiting sign-off from lab administrator
                     </div>
-                  ) : (
-                    <div className="flex justify-between items-end">
-                      <div className="w-2/3 h-1.5 bg-surface-container rounded-full overflow-hidden">
-                        <div className="h-full bg-primary w-[25%]" />
-                      </div>
-                      <span className="text-[10px] font-bold text-on-surface-variant">25% Progress</span>
-                    </div>
                   )}
-                  <div className="flex gap-4 pt-2 border-t border-outline">
-                    <button className={`flex-1 py-2 rounded-lg font-bold text-xs ${
-                      isPending
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'bg-surface-container-high text-primary'
-                    }`}>
-                      {isPending ? 'View Details' : 'Track'}
-                    </button>
-                    <button className="flex-1 text-on-surface-variant py-2 font-bold text-xs hover:text-on-surface transition-colors">
-                      Invoice
-                    </button>
+                  <div className="flex justify-between items-center text-sm text-on-surface-variant">
+                    <span>{formatCurrency(order.total_amount)}</span>
+                    <span>{order.item_count != null ? `${order.item_count} items` : ''}</span>
                   </div>
                 </div>
               </div>
@@ -274,9 +276,9 @@ export function OrdersPage({ onError }: OrdersPageProps) {
           <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
             <div className="bg-primary p-6 rounded-xl text-white flex flex-col justify-between shadow-lg">
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-widest opacity-80 mb-1">Total Monthly Spend</h4>
+                <h4 className="text-xs font-bold uppercase tracking-widest opacity-80 mb-1">Total Spend</h4>
                 <p className="text-2xl font-extrabold">
-                  {formatCurrency(allOrders.reduce((sum, o) => sum + (o.total_amount ?? 0), 0))}
+                  {formatCurrency(orders.reduce((sum, o) => sum + (o.total_amount ?? 0), 0))}
                 </p>
               </div>
             </div>
@@ -284,7 +286,7 @@ export function OrdersPage({ onError }: OrdersPageProps) {
               <div>
                 <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">Items in Transit</h4>
                 <p className="text-2xl font-extrabold text-on-surface">
-                  {allOrders.filter((o) => o.status === 'shipped').reduce((sum, o) => sum + (o.item_count ?? 0), 0)}
+                  {orders.filter((o) => o.status === 'shipped').reduce((sum, o) => sum + (o.item_count ?? 0), 0)}
                 </p>
               </div>
             </div>

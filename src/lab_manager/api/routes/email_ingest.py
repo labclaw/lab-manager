@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db
 
 logger = logging.getLogger(__name__)
@@ -43,7 +44,11 @@ def _trigger_extraction(doc_id: int) -> None:
     _run_extraction(doc_id)
 
 
-@router.post("/ingest", status_code=201)
+@router.post(
+    "/ingest",
+    status_code=201,
+    dependencies=[Depends(require_permission("upload_documents"))],
+)
 async def ingest_email(
     request: Request,
     background_tasks: BackgroundTasks,

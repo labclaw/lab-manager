@@ -5,7 +5,6 @@ services:
     image: caddy:2-alpine
     ports:
       - "80:80"
-      - "443:443"
     volumes:
       - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -15,6 +14,12 @@ services:
     depends_on:
       app:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
 
   db:
@@ -34,6 +39,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     mem_limit: 2g
     restart: unless-stopped
 
@@ -52,6 +58,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     mem_limit: 2g
     restart: unless-stopped
 
@@ -92,6 +99,12 @@ services:
       - backups:/backups/labmanager
       - ${SCANS_DIR:-./docker/empty/scans}:/app/scans:ro
       - ${DEVICES_DIR:-./docker/empty/devices}:/app/lab-devices:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
 
   # Cloudflare Tunnel — exposes the service to the internet

@@ -228,7 +228,7 @@ class TestExtractNvidia:
         from lab_manager.intake.extractor import _extract_nvidia
 
         monkeypatch.delenv("NVIDIA_BUILD_API_KEY", raising=False)
-        raw_json = json.dumps(SAMPLE_EXTRACTED.model_dump())
+        raw_json = json.dumps(SAMPLE_EXTRACTED.model_dump(mode="json"))
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {"choices": [{"message": {"content": raw_json}}]}
@@ -254,7 +254,7 @@ class TestExtractNvidia:
         from lab_manager.intake.extractor import _extract_nvidia
 
         monkeypatch.delenv("NVIDIA_BUILD_API_KEY", raising=False)
-        raw_json = json.dumps(SAMPLE_EXTRACTED.model_dump())
+        raw_json = json.dumps(SAMPLE_EXTRACTED.model_dump(mode="json"))
         resp_429 = MagicMock()
         resp_429.status_code = 429
         err_429 = httpx.HTTPStatusError("429", request=MagicMock(), response=resp_429)
@@ -294,7 +294,9 @@ class TestExtractNvidia:
         from lab_manager.intake.extractor import _extract_nvidia
 
         monkeypatch.delenv("NVIDIA_BUILD_API_KEY", raising=False)
-        raw_json = "```json\n" + json.dumps(SAMPLE_EXTRACTED.model_dump()) + "\n```"
+        raw_json = (
+            "```json\n" + json.dumps(SAMPLE_EXTRACTED.model_dump(mode="json")) + "\n```"
+        )
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {"choices": [{"message": {"content": raw_json}}]}

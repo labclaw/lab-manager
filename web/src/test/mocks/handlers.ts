@@ -38,8 +38,8 @@ const mockOrders = {
 
 const mockInventory = {
   items: [
-    { id: 1, product_name: 'Sodium Chloride', lot_number: 'LOT-ABC', quantity_on_hand: 5, unit: 'kg', status: 'available', expiry_date: '2027-01-15', product: { vendor: { name: 'Sigma-Aldrich' } } },
-    { id: 2, product_name: 'Ethanol 95%', lot_number: 'LOT-DEF', quantity_on_hand: 2, unit: 'L', status: 'opened', expiry_date: '2026-06-30', product: { vendor: { name: 'Fisher Scientific' } } },
+    { id: 1, product_id: 1, product_name: 'Sodium Chloride', catalog_number: 'S1234', category: 'Chemicals', vendor_name: 'Sigma-Aldrich', location_name: 'Shelf A1', lot_number: 'LOT-ABC', quantity_on_hand: 5, quantity_display: '5', unit: 'kg', status: 'available', expiry_date: '2027-01-15' },
+    { id: 2, product_id: 2, product_name: 'Ethanol 95%', catalog_number: 'E5678', category: 'Solvents', vendor_name: 'Fisher Scientific', location_name: null, lot_number: 'LOT-DEF', quantity_on_hand: 2, quantity_display: '2', unit: 'L', status: 'opened', expiry_date: '2026-06-30' },
   ],
   total: 2, page: 1, page_size: 20, pages: 1,
 }
@@ -62,10 +62,10 @@ const mockReviewQueue = {
 
 const mockAlerts = {
   items: [
-    { id: 1, alert_type: 'low_stock', severity: 'warning', message: 'Sodium Chloride below reorder level', is_acknowledged: false, created_at: '2026-03-19T10:00:00' },
-    { id: 2, alert_type: 'expiring_soon', severity: 'critical', message: 'Ethanol 95% expires in 3 days', is_acknowledged: false, created_at: '2026-03-19T08:00:00' },
+    { id: 1, alert_type: 'low_stock', severity: 'warning', message: 'Sodium Chloride below reorder level', entity_type: 'inventory', entity_id: 1, is_acknowledged: false, is_resolved: false, created_at: '2026-03-19T10:00:00' },
+    { id: 2, alert_type: 'expiring_soon', severity: 'critical', message: 'Ethanol 95% expires in 3 days', entity_type: 'inventory', entity_id: 2, is_acknowledged: false, is_resolved: false, created_at: '2026-03-19T08:00:00' },
   ],
-  total: 2, page: 1, page_size: 20, pages: 1,
+  total: 2, page: 1, page_size: 50, pages: 1,
 }
 
 const mockAlertsSummary = {
@@ -144,7 +144,32 @@ export const handlers = [
   http.get('/api/v1/products/:id/inventory/', () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20, pages: 0 })),
 
   // Orders
-  http.get('/api/v1/orders', () => HttpResponse.json(mockOrders)),
+  http.get('/api/v1/orders', ({ request }) => {
+    const url = new URL(request.url)
+    const statusGroup = url.searchParams.get('status_group')
+    if (statusGroup === 'active') {
+      return HttpResponse.json({
+        items: mockOrders.items.filter(o => o.status !== 'received' && o.status !== 'cancelled'),
+        total: mockOrders.items.filter(o => o.status !== 'received' && o.status !== 'cancelled').length,
+        page: 1, page_size: 20, pages: 1,
+      })
+    }
+    if (statusGroup === 'past') {
+      return HttpResponse.json({
+        items: mockOrders.items.filter(o => o.status === 'received' || o.status === 'cancelled'),
+        total: mockOrders.items.filter(o => o.status === 'received' || o.status === 'cancelled').length,
+        page: 1, page_size: 20, pages: 1,
+      })
+    }
+    if (statusGroup === 'drafts') {
+      return HttpResponse.json({
+        items: mockOrders.items.filter(o => o.status === 'draft'),
+        total: mockOrders.items.filter(o => o.status === 'draft').length,
+        page: 1, page_size: 20, pages: 1,
+      })
+    }
+    return HttpResponse.json(mockOrders)
+  }),
   http.get('/api/v1/orders/:id', ({ params }) => {
     const o = mockOrders.items.find(i => i.id === Number(params.id))
     return o ? HttpResponse.json(o) : new HttpResponse(null, { status: 404 })

@@ -2,20 +2,22 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.inventory import InventoryItem, InventoryStatus
 from lab_manager.models.product import Product
 from lab_manager.services import inventory as inv_svc
+from lab_manager.services.search import index_inventory_record
 from lab_manager.services.vendor_urls import get_reorder_url
 
 router = APIRouter()
@@ -107,9 +109,71 @@ class OpenBody(BaseModel):
     opened_by: str = Field(max_length=200)
 
 
+class InventoryItemResponse(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: int
+    product_id: int
+    location_id: Optional[int] = None
+    lot_number: Optional[str] = None
+    quantity_on_hand: Decimal
+    unit: Optional[str] = None
+    expiry_date: Optional[date] = None
+    opened_date: Optional[date] = None
+    status: str
+    notes: Optional[str] = None
+    received_by: Optional[str] = None
+    order_item_id: Optional[int] = None
+    extra: dict = {}
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
 # ---------------------------------------------------------------------------
 # Fixed-path routes MUST come before /{item_id} parameter routes
 # ---------------------------------------------------------------------------
+
+
+def _format_quantity(qty: Decimal | None) -> str:
+    """Format quantity: trim trailing zeros.  '1.0000' -> '1', '2.5000' -> '2.5'."""
+    if qty is None:
+        return "0"
+    if not hasattr(qty, "normalize"):
+        return str(qty)
+    # Use format to get fixed-point notation, then strip only decimal trailing zeros
+    s = f"{qty:f}"
+    if "." in s:
+        s = s.rstrip("0").rstrip(".")
+    return s
+
+
+def _flatten_item(item: InventoryItem) -> dict:
+    """Flatten inventory item with joined product/vendor/location names."""
+    product = item.product
+    vendor = getattr(product, "vendor", None) if product else None
+    location = item.location
+
+    return {
+        "id": item.id,
+        "product_id": item.product_id,
+        "product_name": getattr(product, "name", None) if product else None,
+        "catalog_number": getattr(product, "catalog_number", None) if product else None,
+        "category": getattr(product, "category", None) if product else None,
+        "vendor_name": getattr(vendor, "name", None) if vendor else None,
+        "location_id": item.location_id,
+        "location_name": getattr(location, "name", None) if location else None,
+        "lot_number": item.lot_number,
+        "quantity_on_hand": float(item.quantity_on_hand)
+        if item.quantity_on_hand is not None
+        else 0,
+        "quantity_display": _format_quantity(item.quantity_on_hand),
+        "unit": item.unit,
+        "expiry_date": item.expiry_date.isoformat() if item.expiry_date else None,
+        "opened_date": item.opened_date.isoformat() if item.opened_date else None,
+        "status": item.status,
+        "notes": item.notes,
+        "order_item_id": item.order_item_id,
+    }
 
 
 @router.get("/")
@@ -126,7 +190,8 @@ def list_inventory(
     db: Session = Depends(get_db),
 ):
     q = select(InventoryItem).options(
-        selectinload(InventoryItem.product).selectinload(Product.vendor)
+        selectinload(InventoryItem.product).selectinload(Product.vendor),
+        selectinload(InventoryItem.location),
     )
     if product_id is not None:
         q = q.where(InventoryItem.product_id == product_id)
@@ -142,15 +207,22 @@ def list_inventory(
             | ilike_col(InventoryItem.notes, search)
         )
     q = apply_sort(q, InventoryItem, sort_by, sort_dir, _INV_SORTABLE)
-    return paginate(q, db, page, page_size)
+    result = paginate(q, db, page, page_size)
+    result["items"] = [_flatten_item(item) for item in result["items"]]
+    return result
 
 
-@router.post("/", status_code=201)
+@router.post(
+    "/",
+    status_code=201,
+    dependencies=[Depends(require_permission("receive_shipments"))],
+)
 def create_inventory_item(body: InventoryItemCreate, db: Session = Depends(get_db)):
     item = InventoryItem(**body.model_dump())
     db.add(item)
     db.flush()
     db.refresh(item)
+    index_inventory_record(item)
     return item
 
 
@@ -171,24 +243,39 @@ def expiring(days: int = Query(30, ge=1), db: Session = Depends(get_db)):
 # ---------------------------------------------------------------------------
 
 
-@router.get("/{item_id}")
+@router.get("/{item_id}", response_model=InventoryItemResponse)
 def get_inventory_item(item_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, InventoryItem, item_id, "Inventory item")
 
 
-@router.patch("/{item_id}")
+@router.patch(
+    "/{item_id}", dependencies=[Depends(require_permission("receive_shipments"))]
+)
 def update_inventory_item(
     item_id: int, body: InventoryItemUpdate, db: Session = Depends(get_db)
 ):
     item = get_or_404(db, InventoryItem, item_id, "Inventory item")
+    if item.status in (
+        InventoryStatus.deleted,
+        InventoryStatus.disposed,
+        InventoryStatus.depleted,
+    ):
+        raise ValidationError(
+            f"Cannot modify inventory item with status '{item.status}'"
+        )
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
     db.flush()
     db.refresh(item)
+    index_inventory_record(item)
     return item
 
 
-@router.delete("/{item_id}", status_code=204)
+@router.delete(
+    "/{item_id}",
+    status_code=204,
+    dependencies=[Depends(require_permission("delete_records"))],
+)
 def delete_inventory_item(item_id: int, db: Session = Depends(get_db)):
     """Soft-delete: set status to 'deleted'."""
     item = get_or_404(db, InventoryItem, item_id, "Inventory item")
@@ -203,27 +290,37 @@ def item_history(item_id: int, db: Session = Depends(get_db)):
     return inv_svc.get_item_history(item_id, db)
 
 
-@router.post("/{item_id}/consume")
+@router.post(
+    "/{item_id}/consume", dependencies=[Depends(require_permission("log_consumption"))]
+)
 def consume_item(item_id: int, body: ConsumeBody, db: Session = Depends(get_db)):
     return inv_svc.consume(item_id, body.quantity, body.consumed_by, body.purpose, db)
 
 
-@router.post("/{item_id}/transfer")
+@router.post(
+    "/{item_id}/transfer", dependencies=[Depends(require_permission("log_consumption"))]
+)
 def transfer_item(item_id: int, body: TransferBody, db: Session = Depends(get_db)):
     return inv_svc.transfer(item_id, body.location_id, body.transferred_by, db)
 
 
-@router.post("/{item_id}/adjust")
+@router.post(
+    "/{item_id}/adjust", dependencies=[Depends(require_permission("log_consumption"))]
+)
 def adjust_item(item_id: int, body: AdjustBody, db: Session = Depends(get_db)):
     return inv_svc.adjust(item_id, body.new_quantity, body.reason, body.adjusted_by, db)
 
 
-@router.post("/{item_id}/dispose")
+@router.post(
+    "/{item_id}/dispose", dependencies=[Depends(require_permission("log_consumption"))]
+)
 def dispose_item(item_id: int, body: DisposeBody, db: Session = Depends(get_db)):
     return inv_svc.dispose(item_id, body.reason, body.disposed_by, db)
 
 
-@router.post("/{item_id}/open")
+@router.post(
+    "/{item_id}/open", dependencies=[Depends(require_permission("log_consumption"))]
+)
 def open_item(item_id: int, body: OpenBody, db: Session = Depends(get_db)):
     return inv_svc.open_item(item_id, body.opened_by, db)
 

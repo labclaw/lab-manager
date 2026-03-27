@@ -50,7 +50,7 @@ class TestSerializeValue:
         assert serialize_value(Custom()) == "custom-str"
 
     def test_decimal(self):
-        assert serialize_value(Decimal("1.5")) == 1.5
+        assert serialize_value(Decimal("1.5")) == "1.5"
 
     def test_date(self):
         assert serialize_value(date(2026, 1, 15)) == "2026-01-15"
@@ -401,8 +401,11 @@ class TestRagService:
             patch("lab_manager.services.rag._execute_sql") as mock_exec,
             patch("lab_manager.services.rag._format_answer") as mock_fmt,
         ):
-            mock_gen.return_value = "SELECT 1"
-            mock_exec.return_value = [{"col": 1}]
+            mock_gen.return_value = "SELECT name, qty FROM items"
+            mock_exec.return_value = [
+                {"name": "Sigma", "qty": 5},
+                {"name": "Thermo", "qty": 3},
+            ]
             mock_fmt.side_effect = Exception("format error")
             result = ask("How many?", db_session)
             assert "formatting failed" in result["answer"]
@@ -418,8 +421,11 @@ class TestRagService:
             patch("lab_manager.services.rag._execute_sql") as mock_exec,
             patch("lab_manager.services.rag._format_answer") as mock_fmt,
         ):
-            mock_gen.return_value = "SELECT count(*) FROM vendors"
-            mock_exec.return_value = [{"count": 5}]
+            mock_gen.return_value = "SELECT name, count FROM vendor_stats"
+            mock_exec.return_value = [
+                {"name": "Sigma", "count": 3},
+                {"name": "Thermo", "count": 2},
+            ]
             mock_fmt.return_value = "There are 5 vendors."
             result = ask("How many vendors?", db_session)
             assert result["answer"] == "There are 5 vendors."

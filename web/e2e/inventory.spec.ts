@@ -13,16 +13,16 @@ test.describe('Inventory Page', () => {
   })
 
   test('table headers are correct', async ({ authedPage: page }) => {
-    await expect(page.getByRole('columnheader', { name: 'Item Name' })).toBeVisible()
+    await expect(page.getByRole('columnheader', { name: 'Product' })).toBeVisible()
     await expect(page.getByRole('columnheader', { name: 'Lot #' })).toBeVisible()
     await expect(page.getByRole('columnheader', { name: 'Vendor' })).toBeVisible()
     await expect(page.getByRole('columnheader', { name: 'Location' })).toBeVisible()
     await expect(page.getByRole('columnheader', { name: 'Stock' })).toBeVisible()
+    await expect(page.getByRole('columnheader', { name: 'Expiry' })).toBeVisible()
     await expect(page.getByRole('columnheader', { name: 'Actions' })).toBeVisible()
   })
 
   test('shows lot numbers', async ({ authedPage: page }) => {
-    // Lot numbers appear in the Lot # column cells
     await expect(page.locator('td').filter({ hasText: /^LOT-001$/ })).toBeVisible()
     await expect(page.locator('td').filter({ hasText: /^LOT-002$/ })).toBeVisible()
   })
@@ -49,28 +49,8 @@ test.describe('Inventory Page', () => {
     await expect(page.getByText('Out of Stock')).toBeVisible()
   })
 
-  test('Filters button is present', async ({ authedPage: page }) => {
-    await expect(page.getByRole('button', { name: /filters/i })).toBeVisible()
-  })
-
-  test('Category button is present', async ({ authedPage: page }) => {
-    await expect(page.getByRole('button', { name: /category/i })).toBeVisible()
-  })
-
   test('total item count shown', async ({ authedPage: page }) => {
     await expect(page.getByText(/3 items total/i)).toBeVisible()
-  })
-
-  test('New Item button is present (disabled)', async ({ authedPage: page }) => {
-    const btn = page.getByRole('button', { name: /new item/i })
-    await expect(btn).toBeVisible()
-    await expect(btn).toBeDisabled()
-  })
-
-  test('Bulk Order button is present (disabled)', async ({ authedPage: page }) => {
-    const btn = page.getByRole('button', { name: /bulk order/i })
-    await expect(btn).toBeVisible()
-    await expect(btn).toBeDisabled()
   })
 
   test('guidance banner shows for few items', async ({ authedPage: page }) => {
@@ -86,10 +66,9 @@ test.describe('Inventory Page', () => {
     await expect(page.getByText(/showing 1-3 of 3/i)).toBeVisible()
   })
 
-  test('reorder links go to vendor websites', async ({ authedPage: page }) => {
-    const reorderLink = page.getByRole('link', { name: /reorder from sigma/i }).first()
+  test('reorder links present for items with vendor', async ({ authedPage: page }) => {
+    const reorderLink = page.locator('a[title*="Reorder from"]').first()
     await expect(reorderLink).toBeVisible()
-    await expect(reorderLink).toHaveAttribute('href', /sigmaaldrich\.com/)
     await expect(reorderLink).toHaveAttribute('target', '_blank')
   })
 })

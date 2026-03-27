@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from pathlib import PurePosixPath
 from typing import Literal, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, UploadFile
@@ -12,6 +11,7 @@ from pydantic import BaseModel, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.document import Document, DocumentStatus
@@ -45,16 +45,38 @@ _DOC_SORTABLE = {
 
 _VALID_STATUSES = {s.value for s in DocumentStatus}
 
-_BLOCKED_PREFIXES = ("/etc/", "/proc/", "/sys/", "/var/", "/root/", "/home/")
-
 
 def _validate_file_path(v: str) -> str:
-    """Check for path traversal and blocked system directories."""
-    parts = PurePosixPath(v).parts
-    if ".." in parts:
-        raise ValueError("Path traversal not allowed")
-    if any(v.startswith(b) for b in _BLOCKED_PREFIXES):
-        raise ValueError("Path traversal not allowed")
+    """Allowlist validation: path must resolve under upload_dir or scans_dir."""
+    from pathlib import Path
+    from urllib.parse import unquote
+
+    from lab_manager.config import get_settings
+
+    decoded = unquote(v)
+    p = Path(decoded)
+
+    settings = get_settings()
+    upload_root = Path(settings.upload_dir).resolve()
+    scans_root = (
+        Path(settings.scans_dir).expanduser().resolve() if settings.scans_dir else None
+    )
+
+    # If path is relative, resolve against upload_dir
+    if not p.is_absolute():
+        resolved = (upload_root / p).resolve()
+    else:
+        resolved = p.resolve()
+
+    allowed_roots = [upload_root]
+    if scans_root:
+        allowed_roots.append(scans_root)
+
+    if not any(
+        str(resolved).startswith(str(root) + "/") or resolved == root
+        for root in allowed_roots
+    ):
+        raise ValueError("File path must be under upload_dir or scans_dir")
     return v
 
 
@@ -166,7 +188,7 @@ def _run_extraction(doc_id: int) -> None:
             extracted = extract_from_text(ocr_text)
             doc.document_type = extracted.document_type
             doc.vendor_name = normalize_vendor(extracted.vendor_name)
-            doc.extracted_data = extracted.model_dump()
+            doc.extracted_data = extracted.model_dump(mode="json")
             doc.extraction_model = settings.extraction_model
             doc.extraction_confidence = extracted.confidence
             doc.status = DocumentStatus.needs_review
@@ -266,7 +288,11 @@ def _index_approved_doc(doc_id: int) -> None:
         db.close()
 
 
-@router.post("/upload", status_code=201)
+@router.post(
+    "/upload",
+    status_code=201,
+    dependencies=[Depends(require_permission("upload_documents"))],
+)
 def upload_document(
     file: UploadFile,
     request: Request,
@@ -274,7 +300,7 @@ def upload_document(
     db: Session = Depends(get_db),
 ):
     """Upload a document photo/PDF and trigger background extraction."""
-    from datetime import datetime
+    from datetime import datetime, timezone
     from pathlib import Path
 
     from lab_manager.config import get_settings
@@ -302,7 +328,7 @@ def upload_document(
 
     # Build unique filename with timestamp prefix (include microseconds for uniqueness)
     settings = get_settings()
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     timestamp = now.strftime("%Y%m%d_%H%M%S")
     usec = f"{now.microsecond:06d}"
     raw_name = file.filename or "unnamed"
@@ -310,7 +336,7 @@ def upload_document(
     import re
 
     safe_name = raw_name.replace("/", "_").replace("\\", "_").replace("\x00", "")
-    safe_name = re.sub(r"[^a-zA-Z0-9._-]", "_", safe_name)
+    safe_name = re.sub(r"[^\w.\-]", "_", safe_name, flags=re.UNICODE)
     if not safe_name or safe_name.startswith("."):
         safe_name = "upload" + safe_name
     saved_name = f"{timestamp}_{usec}_{safe_name}"
@@ -410,7 +436,9 @@ def list_documents(
     return paginate(q, db, page, page_size)
 
 
-@router.post("/", status_code=201)
+@router.post(
+    "/", status_code=201, dependencies=[Depends(require_permission("upload_documents"))]
+)
 def create_document(body: DocumentCreate, db: Session = Depends(get_db)):
     document = Document(**body.model_dump())
     db.add(document)
@@ -424,7 +452,9 @@ def get_document(document_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, Document, document_id, "Document")
 
 
-@router.patch("/{document_id}")
+@router.patch(
+    "/{document_id}", dependencies=[Depends(require_permission("review_documents"))]
+)
 def update_document(
     document_id: int, body: DocumentUpdate, db: Session = Depends(get_db)
 ):
@@ -440,7 +470,11 @@ def update_document(
     return doc
 
 
-@router.delete("/{document_id}", status_code=204)
+@router.delete(
+    "/{document_id}",
+    status_code=204,
+    dependencies=[Depends(require_permission("delete_records"))],
+)
 def delete_document(document_id: int, db: Session = Depends(get_db)):
     """Soft-delete: set status to 'deleted'."""
     doc = get_or_404(db, Document, document_id, "Document")
@@ -449,7 +483,10 @@ def delete_document(document_id: int, db: Session = Depends(get_db)):
     return None
 
 
-@router.post("/{document_id}/review")
+@router.post(
+    "/{document_id}/review",
+    dependencies=[Depends(require_permission("review_documents"))],
+)
 def review_document(
     document_id: int,
     body: ReviewAction,
@@ -464,6 +501,11 @@ def review_document(
         return JSONResponse(
             status_code=409,
             content={"detail": "Document is still being processed"},
+        )
+    if doc.status == DocumentStatus.pending:
+        return JSONResponse(
+            status_code=409,
+            content={"detail": "Document has not been processed yet"},
         )
     if doc.status in (
         DocumentStatus.approved,
@@ -549,7 +591,8 @@ def _create_order_from_doc(doc: Document, db: Session):
         invoice_number=data.get("invoice_number"),
         status=OrderStatus.received,
         document_id=doc.id,
-        received_by=data.get("received_by"),
+        received_by=data.get("received_by") or doc.reviewed_by,
+        received_date=date_type.today(),
     )
     if data.get("order_date"):
         try:
@@ -611,6 +654,7 @@ def _create_order_from_doc(doc: Document, db: Session):
                     quantity_on_hand=item.get("quantity") or 1,
                     unit=item.get("unit"),
                     status="available",
+                    expiry_date=item.get("expiry_date"),
                 )
             )
 

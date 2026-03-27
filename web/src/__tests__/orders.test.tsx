@@ -8,37 +8,50 @@ import { OrdersPage } from '@/pages/OrdersPage'
 
 const onError = vi.fn()
 
-// Mock data: order 1 = received (past tab), order 2 = pending (active tab)
-// Active tab is default; it filters out received/cancelled
-
 describe('OrdersPage', () => {
-  describe('AC1: Orders list loads from GET /orders with pagination', () => {
-    it('renders orders from the API on the active tab', async () => {
+  describe('AC1: Orders list loads from GET /orders with server-side status filtering', () => {
+    it('renders active orders (default tab sends status_group=active)', async () => {
       renderWithProviders(<OrdersPage onError={onError} />)
 
-      // Pending order (id=2) should appear on active tab
+      // Only pending order (id=2) should appear since active tab filters out received
       await waitFor(() => {
         expect(screen.getByText('Order #PO-2026-002')).toBeInTheDocument()
       })
       expect(screen.getByText('Fisher Scientific')).toBeInTheDocument()
+      // received order should NOT appear on active tab
+      expect(screen.queryByText('Order #PO-2026-001')).not.toBeInTheDocument()
     })
 
-    it('shows total count in header', async () => {
+    it('passes status_group to API', async () => {
+      let capturedUrl = ''
+      server.use(
+        http.get('/api/v1/orders', ({ request }) => {
+          capturedUrl = request.url
+          const url = new URL(request.url)
+          const statusGroup = url.searchParams.get('status_group')
+          if (statusGroup === 'active') {
+            return HttpResponse.json({
+              items: [{ id: 2, vendor_name: 'Fisher Scientific', po_number: 'PO-2026-002', status: 'pending', total_amount: 320.00, item_count: 2 }],
+              total: 1, page: 1, page_size: 20, pages: 1,
+            })
+          }
+          return HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20, pages: 0 })
+        }),
+      )
+
       renderWithProviders(<OrdersPage onError={onError} />)
 
-      // Header text: "X active, Y completed across Z total orders."
       await waitFor(() => {
-        expect(
-          screen.getByText(/1 active, 1 completed across 2 total orders/),
-        ).toBeInTheDocument()
+        expect(screen.getByText('Order #PO-2026-002')).toBeInTheDocument()
       })
+      expect(capturedUrl).toContain('status_group=active')
     })
 
-    it('shows received orders on the past tab', async () => {
+    it('shows received orders on the past tab with status_group=past', async () => {
       const user = userEvent.setup()
       renderWithProviders(<OrdersPage onError={onError} />)
 
-      // Wait for data to load
+      // Wait for active tab to load
       await waitFor(() => {
         expect(screen.getByText('Order #PO-2026-002')).toBeInTheDocument()
       })
@@ -53,7 +66,7 @@ describe('OrdersPage', () => {
     })
   })
 
-  describe('AC2: Shows vendor, PO number, status, amount, item count', () => {
+  describe('AC2: Shows vendor, PO number, status, amount', () => {
     it('shows vendor name for the active order', async () => {
       renderWithProviders(<OrdersPage onError={onError} />)
 
@@ -79,36 +92,161 @@ describe('OrdersPage', () => {
       })
     })
 
-    it('shows total monthly spend', async () => {
+    it('shows total spend (not monthly)', async () => {
       renderWithProviders(<OrdersPage onError={onError} />)
 
-      // Total = 450 + 320 = 770
       await waitFor(() => {
-        expect(screen.getByText('$770.00')).toBeInTheDocument()
+        expect(screen.getByText('Total Spend')).toBeInTheDocument()
+      })
+      // Only active orders visible: pending order = $320
+      await waitFor(() => {
+        expect(screen.getByText('$320.00')).toBeInTheDocument()
       })
     })
   })
 
-  describe('AC3: Status badges (pending=Pending Approval, etc.)', () => {
-    it('shows Pending Approval badge for pending orders in secondary cards', async () => {
-      // Need multiple active orders so pending one appears as secondary card
-      // Featured picks shipped/ordered first; pending falls to secondary
+  describe('AC3: No dead buttons or fake elements', () => {
+    it('does not show disabled New Requisition button', async () => {
+      renderWithProviders(<OrdersPage onError={onError} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Order #PO-2026-002')).toBeInTheDocument()
+      })
+
+      expect(screen.queryByText('New Requisition')).not.toBeInTheDocument()
+    })
+
+    it('does not show View Invoice span', async () => {
+      renderWithProviders(<OrdersPage onError={onError} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Order #PO-2026-002')).toBeInTheDocument()
+      })
+
+      expect(screen.queryByText('View Invoice')).not.toBeInTheDocument()
+    })
+
+    it('does not show Track button', async () => {
       server.use(
-        http.get('/api/v1/orders', () => {
-          return HttpResponse.json({
-            items: [
-              { id: 10, vendor_name: 'VWR', po_number: 'PO-SHIP-001', status: 'shipped', total_amount: 200.00, item_count: 2 },
-              { id: 11, vendor_name: 'Bio-Rad', po_number: 'PO-PEND-001', status: 'pending', total_amount: 150.00, item_count: 1 },
-            ],
-            total: 2, page: 1, page_size: 20, pages: 1,
-          })
+        http.get('/api/v1/orders', ({ request }) => {
+          const url = new URL(request.url)
+          const statusGroup = url.searchParams.get('status_group')
+          if (statusGroup === 'active') {
+            return HttpResponse.json({
+              items: [
+                { id: 10, vendor_name: 'VWR', po_number: 'PO-SHIP-001', status: 'shipped', total_amount: 200.00, item_count: 2 },
+                { id: 11, vendor_name: 'Bio-Rad', po_number: 'PO-PEND-001', status: 'pending', total_amount: 150.00, item_count: 1 },
+                { id: 12, vendor_name: 'Fisher', po_number: 'PO-ORD-001', status: 'ordered', total_amount: 100.00, item_count: 1 },
+              ],
+              total: 3, page: 1, page_size: 20, pages: 1,
+            })
+          }
+          return HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20, pages: 0 })
         }),
       )
 
       renderWithProviders(<OrdersPage onError={onError} />)
 
       await waitFor(() => {
-        expect(screen.getByText('Pending Approval')).toBeInTheDocument()
+        expect(screen.getByText('Order #PO-SHIP-001')).toBeInTheDocument()
+      })
+
+      expect(screen.queryByText('Track')).not.toBeInTheDocument()
+      expect(screen.queryByText('Invoice')).not.toBeInTheDocument()
+    })
+
+    it('does not show hardcoded 25% progress bar', async () => {
+      server.use(
+        http.get('/api/v1/orders', ({ request }) => {
+          const url = new URL(request.url)
+          const statusGroup = url.searchParams.get('status_group')
+          if (statusGroup === 'active') {
+            return HttpResponse.json({
+              items: [
+                { id: 10, vendor_name: 'VWR', po_number: 'PO-SHIP-001', status: 'shipped', total_amount: 200.00, item_count: 2 },
+                { id: 11, vendor_name: 'Bio-Rad', po_number: 'PO-ORD-001', status: 'ordered', total_amount: 150.00, item_count: 1 },
+              ],
+              total: 2, page: 1, page_size: 20, pages: 1,
+            })
+          }
+          return HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20, pages: 0 })
+        }),
+      )
+
+      renderWithProviders(<OrdersPage onError={onError} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Order #PO-SHIP-001')).toBeInTheDocument()
+      })
+
+      expect(screen.queryByText('25% Progress')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('AC4: View Details expands inline', () => {
+    it('shows View Details button that expands order info', async () => {
+      const user = userEvent.setup()
+      renderWithProviders(<OrdersPage onError={onError} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Order #PO-2026-002')).toBeInTheDocument()
+      })
+
+      // Click View Details
+      await user.click(screen.getByText('View Details'))
+
+      // Should show expanded details
+      await waitFor(() => {
+        expect(screen.getByTestId('order-details')).toBeInTheDocument()
+      })
+      expect(screen.getByText('PO Number')).toBeInTheDocument()
+      expect(screen.getByText('Total Amount')).toBeInTheDocument()
+    })
+
+    it('collapses details on second click', async () => {
+      const user = userEvent.setup()
+      renderWithProviders(<OrdersPage onError={onError} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Order #PO-2026-002')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByText('View Details'))
+      await waitFor(() => {
+        expect(screen.getByTestId('order-details')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByText('View Details'))
+      await waitFor(() => {
+        expect(screen.queryByTestId('order-details')).not.toBeInTheDocument()
+      })
+    })
+  })
+
+  describe('AC5: Status badges use actual status', () => {
+    it('shows actual status badge on secondary cards (not hardcoded labels)', async () => {
+      server.use(
+        http.get('/api/v1/orders', ({ request }) => {
+          const url = new URL(request.url)
+          const statusGroup = url.searchParams.get('status_group')
+          if (statusGroup === 'active') {
+            return HttpResponse.json({
+              items: [
+                { id: 10, vendor_name: 'VWR', po_number: 'PO-SHIP-001', status: 'shipped', total_amount: 200.00, item_count: 2 },
+                { id: 11, vendor_name: 'Bio-Rad', po_number: 'PO-PEND-001', status: 'pending', total_amount: 150.00, item_count: 1 },
+              ],
+              total: 2, page: 1, page_size: 20, pages: 1,
+            })
+          }
+          return HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20, pages: 0 })
+        }),
+      )
+
+      renderWithProviders(<OrdersPage onError={onError} />)
+
+      // Secondary card should show actual status 'Pending' (from formatEnum)
+      await waitFor(() => {
+        expect(screen.getAllByText('Pending').length).toBeGreaterThanOrEqual(1)
       })
     })
 
@@ -130,13 +268,18 @@ describe('OrdersPage', () => {
 
     it('shows shipped status badge with progress tracker for shipped orders', async () => {
       server.use(
-        http.get('/api/v1/orders', () => {
-          return HttpResponse.json({
-            items: [
-              { id: 10, vendor_name: 'VWR', po_number: 'PO-SHIP-001', status: 'shipped', total_amount: 100.00, item_count: 1 },
-            ],
-            total: 1, page: 1, page_size: 20, pages: 1,
-          })
+        http.get('/api/v1/orders', ({ request }) => {
+          const url = new URL(request.url)
+          const statusGroup = url.searchParams.get('status_group')
+          if (statusGroup === 'active') {
+            return HttpResponse.json({
+              items: [
+                { id: 10, vendor_name: 'VWR', po_number: 'PO-SHIP-001', status: 'shipped', total_amount: 100.00, item_count: 1 },
+              ],
+              total: 1, page: 1, page_size: 20, pages: 1,
+            })
+          }
+          return HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20, pages: 0 })
         }),
       )
 
@@ -153,7 +296,7 @@ describe('OrdersPage', () => {
     })
   })
 
-  describe('AC4: Loading state', () => {
+  describe('AC6: Loading state', () => {
     it('shows spinner while loading', () => {
       server.use(
         http.get('/api/v1/orders', async () => {
@@ -171,7 +314,7 @@ describe('OrdersPage', () => {
     })
   })
 
-  describe('AC5: Empty state when no orders', () => {
+  describe('AC7: Empty state when no orders', () => {
     it('shows empty state message when no active orders', async () => {
       server.use(
         http.get('/api/v1/orders', () => {

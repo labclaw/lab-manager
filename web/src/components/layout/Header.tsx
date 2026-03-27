@@ -1,15 +1,27 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Search, Bell, Menu } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Search, Menu } from 'lucide-react'
 import { search } from '@/lib/api'
+import { NotificationBell } from '@/components/NotificationBell'
 
 interface HeaderProps {
   readonly title: string
   readonly onSearch?: (query: string) => void
   readonly showSearch?: boolean
   readonly onMobileMenuToggle?: () => void
+  readonly userName?: string
 }
 
-export function Header({ title, onSearch, showSearch = true, onMobileMenuToggle }: HeaderProps) {
+const SEARCH_TYPE_ROUTES: Record<string, string> = {
+  inventory: '/inventory',
+  document: '/documents',
+  product: '/products',
+  vendor: '/vendors',
+  order: '/orders',
+}
+
+export function Header({ title, onSearch, showSearch = true, onMobileMenuToggle, userName = 'User' }: HeaderProps) {
+  const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
   const [suggestions, setSuggestions] = useState<Array<{ type: string; text: string; id: number }>>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -30,6 +42,15 @@ export function Header({ title, onSearch, showSearch = true, onMobileMenuToggle 
       setShowSuggestions(false)
     }
   }, [])
+
+  const handleSelectSuggestion = useCallback((suggestion: { type: string; text: string; id: number }) => {
+    setSearchQuery(suggestion.text)
+    setShowSuggestions(false)
+    const route = SEARCH_TYPE_ROUTES[suggestion.type]
+    if (route) {
+      navigate(`${route}?search=${encodeURIComponent(suggestion.text)}`)
+    }
+  }, [navigate])
 
   const handleSearchSubmit = useCallback((query: string) => {
     if (!query.trim()) return
@@ -85,11 +106,9 @@ export function Header({ title, onSearch, showSearch = true, onMobileMenuToggle 
                   key={`${s.type}-${s.id}`}
                   role="option"
                   className="px-4 py-2 text-sm text-[var(--foreground)] hover:bg-primary/10 cursor-pointer"
-                  onMouseDown={() => {
-                    setSearchQuery(s.text)
-                    handleSearchSubmit(s.text)
-                  }}
+                  onMouseDown={() => handleSelectSuggestion(s)}
                 >
+                  <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded mr-2">{s.type}</span>
                   {s.text}
                 </li>
               ))}
@@ -98,11 +117,9 @@ export function Header({ title, onSearch, showSearch = true, onMobileMenuToggle 
         </label>
       </div>
       <div className="flex items-center gap-2 md:gap-4">
-        <button className="flex items-center justify-center rounded-lg size-10 bg-[var(--card)] text-[var(--foreground)] hover:bg-primary/20 transition-colors">
-          <Bell className="size-5" />
-        </button>
+        <NotificationBell />
         <div className="hidden md:flex items-center gap-3 pl-4 border-l border-primary/10">
-          <span className="text-sm font-medium text-[var(--muted-foreground)]">Admin</span>
+          <span className="text-sm font-medium text-[var(--muted-foreground)]">{userName}</span>
         </div>
       </div>
     </header>

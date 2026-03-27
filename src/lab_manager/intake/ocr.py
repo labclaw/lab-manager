@@ -87,29 +87,62 @@ def _response_text(response) -> str:
 # ---------------------------------------------------------------------------
 
 
+# Local fallback chain: dots.mocr -> GLM-OCR 0.9B -> Gemini 3.1 Flash (API)
+LOCAL_FALLBACK_CHAIN = ["dots_mocr", "glm_ocr_09b", "gemini_flash"]
+
+# API fallback chain: Gemini 3.1 Flash -> Mistral OCR 3
+API_FALLBACK_CHAIN = ["gemini_flash", "mistral_ocr3"]
+
+
 def _ocr_local(image_path: Path, settings) -> str:
-    """Run OCR via a local vLLM model from the provider registry."""
+    """Run OCR via a local vLLM model with fallback chain.
+
+    Fallback chain: dots.mocr -> GLM-OCR 0.9B -> Gemini 3.1 Flash (API).
+    The primary provider is configured via settings.ocr_local_model.
+    """
     from lab_manager.intake.providers.more_ocr import OCR_PROVIDERS, get_provider
 
-    provider_name = getattr(settings, "ocr_local_model", "deepseek_ocr")
-    if provider_name not in OCR_PROVIDERS:
-        raise RuntimeError(
-            f"Unknown local OCR provider: {provider_name}. "
-            f"Available: {list(OCR_PROVIDERS.keys())}"
-        )
+    primary = getattr(settings, "ocr_local_model", "glm_ocr_09b")
 
-    provider = get_provider(provider_name, OCR_PROVIDERS)
+    # Build ordered chain: primary first, then remaining fallbacks
+    chain = [primary] + [p for p in LOCAL_FALLBACK_CHAIN if p != primary]
 
-    # Override base_url from settings if the provider supports it
     local_url = getattr(settings, "ocr_local_url", "")
-    if local_url and hasattr(provider, "base_url"):
-        provider.base_url = local_url
+    last_error: Exception | None = None
 
-    logger.info("OCR local: using %s for %s", provider_name, image_path.name)
-    text = provider.extract_text(str(image_path))
-    if not text:
-        raise RuntimeError(f"Local OCR ({provider_name}) returned empty text")
-    return text
+    for provider_name in chain:
+        if provider_name not in OCR_PROVIDERS:
+            logger.warning("Unknown local OCR provider: %s, skipping", provider_name)
+            continue
+
+        try:
+            provider = get_provider(provider_name, OCR_PROVIDERS)
+
+            # Override base_url from settings if the provider supports it
+            if local_url and hasattr(provider, "base_url"):
+                provider.base_url = local_url
+
+            logger.info("OCR local: trying %s for %s", provider_name, image_path.name)
+            text = provider.extract_text(str(image_path))
+            if text:
+                logger.info(
+                    "OCR local: %s succeeded for %s", provider_name, image_path.name
+                )
+                return text
+            logger.warning("OCR local: %s returned empty, trying next", provider_name)
+        except Exception as e:
+            last_error = e
+            logger.warning(
+                "OCR local: %s failed for %s: %s, trying next",
+                provider_name,
+                image_path.name,
+                e,
+            )
+
+    raise RuntimeError(
+        f"All local OCR providers failed for {image_path.name}. "
+        f"Chain: {chain}. Last error: {last_error}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -120,8 +153,8 @@ def _ocr_local(image_path: Path, settings) -> str:
 def _ocr_gemini(image_path: Path, settings) -> str:
     api_key = (
         settings.extraction_api_key
-        or os.environ.get("GEMINI_API_KEY", "")
-        or os.environ.get("GOOGLE_API_KEY", "")
+        or settings.gemini_api_key
+        or settings.google_api_key
     )
     if not api_key:
         raise RuntimeError("No Gemini OCR key configured")
@@ -152,9 +185,7 @@ def _ocr_gemini(image_path: Path, settings) -> str:
 def _ocr_nvidia(image_path: Path, settings, model: str) -> str:
     import httpx
 
-    api_key = settings.nvidia_build_api_key or os.environ.get(
-        "NVIDIA_BUILD_API_KEY", ""
-    )
+    api_key = settings.nvidia_build_api_key
     if not api_key:
         raise RuntimeError("No NVIDIA OCR key configured")
 
@@ -218,22 +249,55 @@ def _ocr_nvidia(image_path: Path, settings, model: str) -> str:
 
 
 def _ocr_api(image_path: Path, settings) -> str:
-    """Run OCR via cloud API with fallback chain: Gemini → NVIDIA."""
+    """Run OCR via cloud API with fallback chain: Gemini 3.1 Flash -> Mistral OCR 3 -> NVIDIA."""
+    from lab_manager.intake.providers.more_ocr import OCR_PROVIDERS, get_provider
+
     model = _get_ocr_model(settings)
 
     if _is_nvidia_model(model):
         return _ocr_nvidia(image_path, settings, model)
 
+    # Try API fallback chain: Gemini -> Mistral OCR 3
+    last_error: Exception | None = None
+    for provider_name in API_FALLBACK_CHAIN:
+        if provider_name not in OCR_PROVIDERS:
+            continue
+        try:
+            provider = get_provider(provider_name, OCR_PROVIDERS)
+            logger.info("OCR API: trying %s for %s", provider_name, image_path.name)
+            text = provider.extract_text(str(image_path))
+            if text:
+                logger.info(
+                    "OCR API: %s succeeded for %s", provider_name, image_path.name
+                )
+                return text
+            logger.warning("OCR API: %s returned empty, trying next", provider_name)
+        except Exception as e:
+            last_error = e
+            logger.warning(
+                "OCR API: %s failed for %s: %s, trying next",
+                provider_name,
+                image_path.name,
+                e,
+            )
+
+    # Final fallback: NVIDIA if key available
+    if settings.nvidia_build_api_key or os.environ.get("NVIDIA_BUILD_API_KEY", ""):
+        logger.info("OCR API: trying NVIDIA fallback for %s", image_path.name)
+        return _ocr_nvidia(
+            image_path,
+            settings,
+            "nvidia_nim/meta/llama-3.2-90b-vision-instruct",
+        )
+
+    # Legacy Gemini direct path (for backward compat when no provider-chain providers work)
     try:
         return _ocr_gemini(image_path, settings)
     except Exception as e:
-        logger.warning("Gemini OCR failed, trying NVIDIA fallback: %s", e)
-        if settings.nvidia_build_api_key or os.environ.get("NVIDIA_BUILD_API_KEY", ""):
-            return _ocr_nvidia(
-                image_path,
-                settings,
-                "nvidia_nim/meta/llama-3.2-90b-vision-instruct",
-            )
+        if last_error:
+            raise RuntimeError(
+                f"All API OCR providers failed for {image_path.name}. Last: {last_error}"
+            ) from e
         raise
 
 

@@ -102,20 +102,19 @@ export interface InventoryItem {
   id: number
   product_id?: number
   product_name?: string
-  product?: {
-    id: number
-    name: string
-    catalog_number?: string
-    vendor_id?: number
-    vendor?: { id: number; name: string }
-  }
+  catalog_number?: string
+  category?: string
+  vendor_name?: string
   location_id?: number
   location_name?: string
   lot_number?: string
   quantity_on_hand?: number
+  quantity_display?: string
   unit?: string
   expiry_date?: string
+  opened_date?: string
   status?: string
+  notes?: string
 }
 
 export interface ExtractedItem {
@@ -184,11 +183,19 @@ export interface DocumentStats {
 
 export interface Alert {
   id: number
-  type: string
-  message: string
+  alert_type: string
   severity: string
-  acknowledged: boolean
+  message: string
+  entity_type: string
+  entity_id: number
+  is_acknowledged: boolean
+  acknowledged_by?: string | null
+  acknowledged_at?: string | null
+  is_resolved: boolean
   created_at: string
+  updated_at?: string
+  /** @deprecated alias kept for badge counts in App.tsx */
+  acknowledged?: boolean
 }
 
 export interface AskEvidenceRow {
@@ -233,49 +240,24 @@ async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
 // Auth
 export const auth = {
   login: (email: string, password: string) =>
-    fetch('/api/v1/auth/login', {
+    apiFetch<{ status: string; user: User }>('/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
-    }).then(async (res) => {
-      if (res.status === 401) throw new Error('Unauthorized')
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: res.statusText }))
-        throw new Error(err.detail || `HTTP ${res.status}`)
-      }
-      return res.json() as Promise<{ status: string; user: User }>
     }),
   me: () =>
-    fetch('/api/v1/auth/me').then(async (res) => {
-      if (res.status === 401) throw new Error('Unauthorized')
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: res.statusText }))
-        throw new Error(err.detail || `HTTP ${res.status}`)
-      }
-      return res.json() as Promise<{ user: User }>
-    }),
+    apiFetch<{ user: User }>('/auth/me'),
   logout: () =>
-    fetch('/api/v1/auth/logout', { method: 'POST' }).then(() => {}),
+    apiFetch<void>('/auth/logout', { method: 'POST' }),
 }
 
 // Setup
 export const setup = {
   status: () =>
-    fetch('/api/v1/setup/status').then(async (res) => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      return res.json() as Promise<{ needs_setup: boolean }>
-    }),
+    apiFetch<{ needs_setup: boolean }>('/setup/status'),
   complete: (data: { admin_name: string; admin_email: string; admin_password: string }) =>
-    fetch('/api/v1/setup/complete', {
+    apiFetch<{ status: string }>('/setup/complete', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-    }).then(async (res) => {
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: res.statusText }))
-        throw new Error(err.detail || `HTTP ${res.status}`)
-      }
-      return res.json() as Promise<{ status: string }>
     }),
 }
 
@@ -347,6 +329,10 @@ export const inventory = {
     apiFetch<ApiResponse<InventoryItem>>('/inventory/low-stock'),
   expiring: () =>
     apiFetch<ApiResponse<InventoryItem>>('/inventory/expiring'),
+  barcodeLookup: (value: string) =>
+    apiFetch<ApiResponse<InventoryItem> & { match_type?: string }>(
+      `/barcode/lookup?value=${encodeURIComponent(value)}`,
+    ),
 }
 
 // Documents
@@ -371,7 +357,7 @@ export const documents = {
   upload: (file: File) => {
     const form = new FormData()
     form.append('file', file)
-    return fetch(`${BASE}/documents/upload`, { method: 'POST', body: form })
+    return fetch(`${BASE}/documents/upload/`, { method: 'POST', body: form })
       .then(async (res) => {
         if (res.status === 401) throw new Error('Unauthorized')
         if (!res.ok) {
@@ -425,5 +411,178 @@ export const ask = {
     apiFetch<AskResponse>('/ask', {
       method: 'POST',
       body: JSON.stringify({ question }),
+    }),
+}
+
+// Team management
+export interface TeamMember {
+  id: number
+  name: string
+  email: string | null
+  role: string
+  role_level: number
+  is_active: boolean
+  last_login_at: string | null
+  access_expires_at: string | null
+  invited_by: number | null
+  permissions?: string[]
+}
+
+export interface TeamInvitation {
+  id: number
+  email: string
+  name: string
+  role: string
+  token: string
+  status: string
+  created_at: string | null
+  expires_at: string | null
+}
+
+export const team = {
+  list: (page = 1, pageSize = 50, isActive?: boolean) => {
+    const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+    if (isActive != null) params.set('is_active', String(isActive))
+    return apiFetch<ApiResponse<TeamMember>>(`/team?${params}`)
+  },
+  get: (id: number) => apiFetch<TeamMember>(`/team/${id}`),
+  updateRole: (id: number, role: string) =>
+    apiFetch<TeamMember>(`/team/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    }),
+  deactivate: (id: number) =>
+    apiFetch<{ status: string; message: string }>(`/team/${id}`, {
+      method: 'DELETE',
+    }),
+  invite: (data: { email: string; name: string; role: string }) =>
+    apiFetch<TeamInvitation>('/team/invite', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  listInvitations: (page = 1, pageSize = 50) =>
+    apiFetch<ApiResponse<TeamInvitation>>(
+      `/team/invitations?page=${page}&page_size=${pageSize}`,
+    ),
+  cancelInvitation: (id: number) =>
+    apiFetch<{ status: string; message: string }>(`/team/invitations/${id}`, {
+      method: 'DELETE',
+    }),
+}
+
+// Order Requests (Supply Requests)
+export interface OrderRequest {
+  id: number
+  requested_by: number
+  product_id?: number
+  vendor_id?: number
+  catalog_number?: string
+  description?: string
+  quantity: number
+  unit?: string
+  estimated_price?: number
+  justification?: string
+  urgency: 'normal' | 'urgent'
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  reviewed_by?: number
+  review_note?: string
+  order_id?: number
+  created_at?: string
+  updated_at?: string
+  reviewed_at?: string
+}
+
+export interface RequestStats {
+  pending: number
+  approved: number
+  rejected: number
+  cancelled: number
+  total: number
+}
+
+export const orderRequests = {
+  list: (page = 1, pageSize = 20, status?: string, urgency?: string) => {
+    let qs = `?page=${page}&page_size=${pageSize}`
+    if (status) qs += `&status=${status}`
+    if (urgency) qs += `&urgency=${urgency}`
+    return apiFetch<ApiResponse<OrderRequest>>(`/requests${qs}`)
+  },
+  get: (id: number) => apiFetch<OrderRequest>(`/requests/${id}`),
+  create: (data: {
+    description?: string
+    catalog_number?: string
+    quantity?: number
+    unit?: string
+    estimated_price?: number
+    justification?: string
+    urgency?: string
+    product_id?: number
+    vendor_id?: number
+  }) =>
+    apiFetch<OrderRequest>('/requests', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  approve: (id: number, note?: string) =>
+    apiFetch<OrderRequest>(`/requests/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ note }),
+    }),
+  reject: (id: number, note?: string) =>
+    apiFetch<OrderRequest>(`/requests/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ note }),
+    }),
+  cancel: (id: number) =>
+    apiFetch<OrderRequest>(`/requests/${id}/cancel`, {
+      method: 'POST',
+    }),
+  stats: () => apiFetch<RequestStats>('/requests/stats'),
+}
+
+// Notifications
+export interface NotificationItem {
+  id: number
+  type: string
+  title: string
+  message: string
+  link?: string | null
+  is_read: boolean
+  read_at?: string | null
+  created_at?: string | null
+}
+
+export interface NotificationPreference {
+  id: number
+  staff_id: number
+  in_app: boolean
+  email_weekly: boolean
+  order_requests: boolean
+  document_reviews: boolean
+  inventory_alerts: boolean
+  team_changes: boolean
+}
+
+export const notifications = {
+  list: (unreadOnly = false, page = 1, pageSize = 20) =>
+    apiFetch<ApiResponse<NotificationItem>>(
+      `/notifications?unread_only=${unreadOnly}&page=${page}&page_size=${pageSize}`,
+    ),
+  unreadCount: () =>
+    apiFetch<{ unread_count: number }>('/notifications/count'),
+  markRead: (id: number) =>
+    apiFetch<NotificationItem>(`/notifications/${id}/read`, {
+      method: 'POST',
+    }),
+  markAllRead: () =>
+    apiFetch<{ marked: number }>('/notifications/read-all', {
+      method: 'POST',
+    }),
+  preferences: () =>
+    apiFetch<NotificationPreference>('/notifications/preferences'),
+  updatePreferences: (data: Partial<NotificationPreference>) =>
+    apiFetch<NotificationPreference>('/notifications/preferences', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
     }),
 }

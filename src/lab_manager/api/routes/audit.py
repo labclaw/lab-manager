@@ -8,11 +8,12 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db
 from lab_manager.api.pagination import paginate
 from lab_manager.models.audit import AuditLog
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_permission("view_audit_log"))])
 
 
 @router.get("/")

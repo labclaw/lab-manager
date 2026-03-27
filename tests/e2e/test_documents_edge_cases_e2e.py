@@ -109,7 +109,7 @@ class TestDocumentReview:
         create_resp = authenticated_client.post(
             "/api/v1/documents/",
             json={
-                "file_path": "/tmp/review-test.txt",
+                "file_path": "review-test.txt",
                 "file_name": "review-test.txt",
                 "document_type": "packing_list",
                 "status": "needs_review",
@@ -141,7 +141,7 @@ class TestDocumentReview:
         create_resp = authenticated_client.post(
             "/api/v1/documents/",
             json={
-                "file_path": "/tmp/review-invalid.txt",
+                "file_path": "review-invalid.txt",
                 "file_name": "review-invalid.txt",
                 "document_type": "packing_list",
                 "status": "needs_review",

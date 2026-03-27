@@ -133,7 +133,7 @@ def create_vendor_with_name(api, name):
 
 @when(parsers.parse('I search for "{query}"'))
 def search_query(api, query):
-    api.response = api.get("/api/v1/search", params={"q": query})
+    api.response = api.get("/api/v1/search/", params={"q": query})
 
 
 @when(parsers.parse('I request product with ID "{pid}"'))

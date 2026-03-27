@@ -58,8 +58,7 @@ def test_soft_delete_equipment(client):
     )
     eid = r.json()["id"]
     r = client.delete(f"/api/v1/equipment/{eid}")
-    assert r.status_code == 200
-    assert r.json()["status"] == "deleted"
+    assert r.status_code == 204
 
 
 def test_deleted_excluded_from_list(client):

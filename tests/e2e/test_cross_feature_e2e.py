@@ -54,13 +54,19 @@ def _create_order(client, vendor_id: int, *, status: str = "pending", **kwargs) 
     payload = {
         "po_number": f"PO-{suffix.upper()}",
         "vendor_id": vendor_id,
-        "status": status,
+        "status": "pending",
         **kwargs,
     }
     resp = client.post("/api/v1/orders/", json=payload)
     assert resp.status_code == 201, resp.text
     data = resp.json()
-    return data.get("order", data)
+    order = data.get("order", data)
+    if status != "pending":
+        oid = order["id"]
+        resp = client.patch(f"/api/v1/orders/{oid}", json={"status": status})
+        assert resp.status_code == 200, f"Transition to {status} failed: {resp.text}"
+        order["status"] = status
+    return order
 
 
 def _create_order_item(client, order_id: int, product_id: int, **kwargs) -> dict:

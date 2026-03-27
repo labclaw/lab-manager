@@ -8,10 +8,11 @@ from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
 from sqlmodel import Session
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db
 from lab_manager.services.rag import ask
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_permission("ask_ai"))])
 
 
 class AskRequest(BaseModel):

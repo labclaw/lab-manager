@@ -59,7 +59,11 @@ def parse_json_response(text: str) -> Optional[dict]:
     cleaned = text.strip()
     if cleaned.startswith("```"):
         lines = cleaned.split("\n")
-        lines = [line for line in lines if not line.strip().startswith("```")]
+        # Strip only the opening (```json) and closing (```) fence lines
+        if lines and lines[-1].strip() == "```":
+            lines = lines[1:-1]
+        elif lines:
+            lines = lines[1:]
         cleaned = "\n".join(lines)
     try:
         return json.loads(cleaned)

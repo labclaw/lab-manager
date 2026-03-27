@@ -6,6 +6,14 @@ set -e
 # This script runs once during Docker's initdb phase (first boot only).
 RO_PASS="${POSTGRES_RO_PASSWORD:-labmanager_ro}"
 
+# Validate required inputs — empty values break psql variable interpolation
+if [ -z "${POSTGRES_DB:-}" ]; then
+    echo "ERROR: POSTGRES_DB is not set" >&2; exit 1
+fi
+if [ -z "${POSTGRES_USER:-}" ]; then
+    echo "ERROR: POSTGRES_USER is not set" >&2; exit 1
+fi
+
 # Note: psql variable substitution does NOT work inside $$ (dollar-quoted)
 # blocks, so we use plain SQL here. The IF NOT EXISTS guard is omitted
 # because Docker's entrypoint only runs init scripts on first boot.

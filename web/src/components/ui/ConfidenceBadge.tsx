@@ -18,8 +18,9 @@ export function ConfidenceBadge({ confidence }: ConfidenceBadgeProps) {
     )
   }
 
-  const level = LEVELS.find((l) => confidence >= l.min) ?? LEVELS[LEVELS.length - 1]
-  const pct = Math.round(confidence * 100)
+  const clamped = Math.max(0, Math.min(1, confidence))
+  const level = LEVELS.find((l) => clamped >= l.min) ?? LEVELS[LEVELS.length - 1]
+  const pct = Math.round(clamped * 100)
 
   return (
     <span

@@ -12,12 +12,13 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db
-from lab_manager.services import analytics as svc
 from lab_manager.models.product import Product
 from lab_manager.models.vendor import Vendor
+from lab_manager.services import analytics as svc
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_permission("export_data"))])
 
 _DANGEROUS_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
 
@@ -55,7 +56,7 @@ def _csv_response(rows: list[dict], filename: str) -> StreamingResponse:
     buf.seek(0)
     return StreamingResponse(
         iter([buf.getvalue()]),
-        media_type="text/csv",
+        media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
@@ -123,7 +124,7 @@ def export_products(db: Session = Depends(get_db)):
 
     return StreamingResponse(
         generate(),
-        media_type="text/csv",
+        media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": 'attachment; filename="products.csv"'},
     )
 
@@ -153,6 +154,6 @@ def export_vendors(db: Session = Depends(get_db)):
 
     return StreamingResponse(
         generate(),
-        media_type="text/csv",
+        media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": 'attachment; filename="vendors.csv"'},
     )

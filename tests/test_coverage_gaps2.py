@@ -13,19 +13,17 @@ import pytest
 
 
 class TestOcrExtract:
-    @patch("lab_manager.intake.ocr.genai.Client")
+    @patch("lab_manager.intake.ocr._ocr_api")
+    @patch("lab_manager.intake.ocr._ocr_local")
     @patch("lab_manager.intake.ocr.get_settings")
-    def test_extract_text_from_image(self, mock_settings, mock_client_cls, tmp_path):
+    def test_extract_text_from_image(
+        self, mock_settings, mock_local, mock_api, tmp_path
+    ):
         from lab_manager.intake.ocr import extract_text_from_image
 
-        mock_settings.return_value.extraction_api_key = "key"
-        mock_settings.return_value.extraction_model = "gemini-2.5-flash"
-
-        mock_client = MagicMock()
-        mock_client_cls.return_value = mock_client
-        mock_response = MagicMock()
-        mock_response.text = "OCR output text"
-        mock_client.models.generate_content.return_value = mock_response
+        mock_settings.return_value.ocr_tier = "auto"
+        mock_local.return_value = ""  # local fails, falls back to API
+        mock_api.return_value = "OCR output text"
 
         img = tmp_path / "test.png"
         img.write_bytes(b"\x89PNG fake image data")
@@ -188,7 +186,9 @@ class TestRagInternals:
     def test_generate_sql_strips_markdown(self, mock_completion):
         from lab_manager.services.rag import _generate_sql
 
-        mock_completion.return_value = "```sql\nSELECT * FROM vendors\n```"
+        mock_resp = MagicMock()
+        mock_resp.choices[0].message.content = "```sql\nSELECT * FROM vendors\n```"
+        mock_completion.return_value = mock_resp
 
         sql = _generate_sql("List vendors")
         assert "SELECT" in sql
@@ -198,7 +198,9 @@ class TestRagInternals:
     def test_format_answer(self, mock_completion):
         from lab_manager.services.rag import _format_answer
 
-        mock_completion.return_value = "There are 5 vendors in the database."
+        mock_resp = MagicMock()
+        mock_resp.choices[0].message.content = "There are 5 vendors in the database."
+        mock_completion.return_value = mock_resp
 
         result = _format_answer("How many?", "SELECT 1", [{"c": 5}])
         assert "5 vendors" in result
@@ -207,7 +209,9 @@ class TestRagInternals:
     def test_generate_sql_openai_compatible_client(self, mock_completion):
         from lab_manager.services.rag import _generate_sql
 
-        mock_completion.return_value = "SELECT * FROM vendors"
+        mock_resp = MagicMock()
+        mock_resp.choices[0].message.content = "SELECT * FROM vendors"
+        mock_completion.return_value = mock_resp
 
         sql = _generate_sql("List vendors")
         assert sql == "SELECT * FROM vendors"
@@ -216,7 +220,9 @@ class TestRagInternals:
     def test_format_answer_openai_compatible_client(self, mock_completion):
         from lab_manager.services.rag import _format_answer
 
-        mock_completion.return_value = "There are 2 matching orders."
+        mock_resp = MagicMock()
+        mock_resp.choices[0].message.content = "There are 2 matching orders."
+        mock_completion.return_value = mock_resp
 
         result = _format_answer("How many?", "SELECT 1", [{"c": 2}])
         assert "2 matching orders" in result

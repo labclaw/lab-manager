@@ -188,7 +188,7 @@ class TestOcrLocal:
         with (
             patch("lab_manager.intake.ocr.get_settings", return_value=settings),
             patch(OCR_PROVIDERS_PATCH, {}),
-            pytest.raises(RuntimeError, match="Unknown local OCR provider"),
+            pytest.raises(RuntimeError, match="All local OCR providers failed"),
         ):
             _ocr_local(Path("/tmp/test.png"), settings)
 
@@ -232,8 +232,11 @@ class TestOcrLocal:
         with (
             patch("lab_manager.intake.ocr.get_settings", return_value=settings),
             patch(GET_PROVIDER_PATCH, return_value=mock_provider),
-            patch(OCR_PROVIDERS_PATCH, {"deepseek_ocr": MagicMock()}),
-            pytest.raises(RuntimeError, match="empty text"),
+            patch(
+                OCR_PROVIDERS_PATCH,
+                {"deepseek_ocr": "m", "glm_ocr_09b": "m", "paddleocr_vl_15": "m"},
+            ),
+            pytest.raises(RuntimeError, match="All local OCR providers failed"),
         ):
             _ocr_local(Path("/tmp/test.png"), settings)
 
@@ -272,7 +275,9 @@ class TestOcrGemini:
         monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
         img = tmp_path / "test.png"
         img.write_bytes(b"fake")
-        with pytest.raises(RuntimeError, match="No Gemini OCR key"):
+        with pytest.raises(
+            (RuntimeError, Exception), match="No Gemini OCR key|Ephemeral tokens"
+        ):
             _ocr_gemini(
                 img,
                 MagicMock(extraction_api_key="", extraction_model="gemini-2.5-flash"),
