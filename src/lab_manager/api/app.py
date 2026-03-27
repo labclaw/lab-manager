@@ -790,6 +790,7 @@ def create_app() -> FastAPI:
         order_requests,
         orders,
         products,
+        reports,
         safety,
         search,
         telemetry,
@@ -825,6 +826,9 @@ def create_app() -> FastAPI:
     api_router.include_router(ask.router, prefix="/api/v1/ask", tags=["ask"])
     api_router.include_router(
         analytics.router, prefix="/api/v1/analytics", tags=["analytics"]
+    )
+    api_router.include_router(
+        reports.router, prefix="/api/v1/reports", tags=["reports"]
     )
     api_router.include_router(export.router, prefix="/api/v1/export", tags=["export"])
     api_router.include_router(
