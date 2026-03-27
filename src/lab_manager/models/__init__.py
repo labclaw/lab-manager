@@ -23,6 +23,7 @@ from lab_manager.models.import_job import (
     ImportStatus,
 )
 from lab_manager.models.device import Device, DeviceStatus
+from lab_manager.models.knowledge import KnowledgeEntry, KnowledgeCategory
 
 __all__ = [
     "AuditMixin",
@@ -59,4 +60,6 @@ __all__ = [
     "ImportStatus",
     "Device",
     "DeviceStatus",
+    "KnowledgeEntry",
+    "KnowledgeCategory",
 ]
