@@ -218,6 +218,18 @@ def list_inventory(
     dependencies=[Depends(require_permission("receive_shipments"))],
 )
 def create_inventory_item(body: InventoryItemCreate, db: Session = Depends(get_db)):
+    # Validate foreign keys before insert — otherwise a non-existent
+    # product_id/location_id triggers an unhandled IntegrityError (500).
+    get_or_404(db, Product, body.product_id, "Product")
+    if body.location_id is not None:
+        from lab_manager.models.location import StorageLocation
+
+        get_or_404(db, StorageLocation, body.location_id, "Location")
+    if body.order_item_id is not None:
+        from lab_manager.models.order import OrderItem
+
+        get_or_404(db, OrderItem, body.order_item_id, "Order item")
+
     item = InventoryItem(**body.model_dump())
     db.add(item)
     db.flush()
