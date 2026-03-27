@@ -28,8 +28,7 @@ def _disable_auth():
     """Ensure auth is disabled for all tests in this module."""
     os.environ["AUTH_ENABLED"] = "false"
     get_settings.cache_clear()
-    yield
-    os.environ.pop("AUTH_ENABLED", None)
+    os.environ["AUTH_ENABLED"] = "false"
     get_settings.cache_clear()
 
 
@@ -642,5 +641,3 @@ class TestMultipleItemsSameProduct:
 # ===================================================================
 #  13. Barcode format validation helpers
 # ===================================================================
-
-
