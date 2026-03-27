@@ -111,11 +111,18 @@ LongDocURL~\citep{deng2025longdocurl} have revealed that even
 frontier models like GPT-4o~\citep{achiam2023gpt4} and
 Gemini~\citep{team2024gemini} leave significant gaps in structured
 extraction accuracy. Claude~\citep{anthropic2024claude} and similar
-models further advance these capabilities. However, no single model is
-reliable enough for laboratory data, where errors in lot numbers,
-quantities, or vendor identities can have downstream consequences for
-regulatory compliance and experimental reproducibility. Prior work on
-multi-model aggregation~\citep{wang2023self, jiang2023llm,
+models further advance these capabilities.
+
+However, these systems target general document understanding and are not
+designed for the specific challenges of laboratory supply documents:
+vendor identification from packing lists that lack explicit company
+headers, extraction of lot numbers from certificates of analysis with
+non-standard layouts, and quantity parsing from invoices where ``1,000''
+may mean 1.000 (one unit, three decimal places) rather than one thousand.
+Furthermore, no single model is reliable enough for laboratory data, where
+errors in lot numbers, quantities, or vendor identities can have downstream
+consequences for regulatory compliance and experimental reproducibility.
+Prior work on multi-model aggregation~\citep{wang2023self, jiang2023llm,
 wang2024mixture} demonstrated that combining multiple model outputs
 improves reliability, but these approaches have not been applied to
 laboratory document processing.
