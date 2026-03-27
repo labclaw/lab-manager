@@ -110,9 +110,9 @@ def predict_batch(product_ids: list[int], db: Session) -> list[dict]:
     results = [predict_depletion(pid, db) for pid in product_ids]
     # Sort: items with days_until_empty come first (ascending), nulls last.
     results.sort(
-        key=lambda r: r["days_until_empty"]
-        if r["days_until_empty"] is not None
-        else float("inf")
+        key=lambda r: (
+            r["days_until_empty"] if r["days_until_empty"] is not None else float("inf")
+        )
     )
     return results
 
