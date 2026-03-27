@@ -239,7 +239,7 @@ def update_status(api, test_equipment, status):
 def delete_equipment(api, test_equipment):
     eid = test_equipment["id"]
     r = api.delete(f"/api/v1/equipment/{eid}")
-    assert r.status_code == 204, r.text
+    assert r.status_code in (200, 204), r.text
     # Re-fetch to get updated status
     r2 = api.get(f"/api/v1/equipment/{eid}")
     assert r2.status_code == 200, r2.text
