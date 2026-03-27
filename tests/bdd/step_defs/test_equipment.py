@@ -237,9 +237,13 @@ def update_status(api, test_equipment, status):
 
 @when("I delete the equipment", target_fixture="test_equipment")
 def delete_equipment(api, test_equipment):
-    r = api.delete(f"/api/v1/equipment/{test_equipment['id']}")
-    assert r.status_code == 200, r.text
-    return r.json()
+    eid = test_equipment["id"]
+    r = api.delete(f"/api/v1/equipment/{eid}")
+    assert r.status_code == 204, r.text
+    # Re-fetch to get updated status
+    r2 = api.get(f"/api/v1/equipment/{eid}")
+    assert r2.status_code == 200, r2.text
+    return r2.json()
 
 
 @when(
