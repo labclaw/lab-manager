@@ -665,7 +665,7 @@ class TestFormatAnswer:
         results = [{"id": i} for i in range(100)]
         _format_answer("show all", "SELECT * FROM t", results)
         # The prompt should only include first 50 rows
-        call_args = mock_gen.call_args[0][0]
+        mock_gen.call_args[0][0]
         assert "50" in str(len(results[:50])) or True  # truncation in prompt
 
 
@@ -984,7 +984,7 @@ class TestAsk:
         mock_comp.return_value = "plan text"
 
         db = MagicMock()
-        result1 = ask("list vendors", db)
+        ask("list vendors", db)
         key = _cache_key("list vendors")
         assert key in _CACHE
 
@@ -1018,8 +1018,8 @@ class TestAsk:
         # The plan+completion calls happen once, second ask returns cached
 
     def test_long_question_truncated(self):
-        db = MagicMock()
-        long_q = "x" * (MAX_QUESTION_LENGTH + 100)
+        MagicMock()
+        "x" * (MAX_QUESTION_LENGTH + 100)
         # We can't easily test truncation without full mock chain,
         # but the question should be accepted (not rejected)
         # Just verify the constant exists

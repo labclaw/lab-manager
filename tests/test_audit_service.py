@@ -1,8 +1,7 @@
 """Tests for audit service — user context, auditing helpers, and audit log creation."""
 
-from datetime import datetime, timezone
 
-from sqlmodel import Session, select
+from sqlmodel import select
 
 from lab_manager.models.audit import AuditLog, log_change
 from lab_manager.models.vendor import Vendor
@@ -147,7 +146,7 @@ class TestAuditOnCreate:
         logs = db_session.exec(select(AuditLog)).all()
         assert len(logs) >= 1
 
-        create_log = next((l for l in logs if l.action == "create"), None)
+        create_log = next((log for log in logs if log.action == "create"), None)
         assert create_log is not None
         assert create_log.table_name == "vendors"
         assert create_log.changed_by == "test-user"

@@ -977,7 +977,7 @@ class TestSuggest:
 
         # Return 5 hits for each of 3 indexes (15 total)
         def fake_search(query, opts):
-            limit = opts.get("limit", 10)
+            opts.get("limit", 10)
             if opts.get("attributesToRetrieve", []) == ["id", "name", "catalog_number"]:
                 return {
                     "hits": [
@@ -1052,7 +1052,7 @@ class TestGetSearchClient:
             auth_enabled=False,
         )
         get_search_client.cache_clear()
-        client = get_search_client()
+        get_search_client()
         mock_client_cls.assert_called_once_with("http://meili:7700", "secret-key")
 
     @patch("lab_manager.services.search.meilisearch.Client")
@@ -1066,7 +1066,7 @@ class TestGetSearchClient:
             auth_enabled=False,
         )
         get_search_client.cache_clear()
-        client = get_search_client()
+        get_search_client()
         mock_client_cls.assert_called_once_with("http://localhost:7700", None)
 
     @patch("lab_manager.services.search.meilisearch.Client")

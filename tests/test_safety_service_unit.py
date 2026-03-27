@@ -576,7 +576,7 @@ class TestCheckInventorySafetyAllGood:
 
     def test_non_hazardous_product_no_warnings(self):
         """Non-hazardous products should never generate warnings."""
-        p = _make_product(
+        _make_product(
             id=10,
             name="SafeChem",
             is_hazardous=False,

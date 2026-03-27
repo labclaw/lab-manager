@@ -371,7 +371,7 @@ class TestVendorSummary:
 
     def test_vendor_summary_with_data(self, db_session):
         v = _create_vendor(db_session, "Sigma")
-        p = _create_product(db_session, v.id, "P1", "C-1")
+        _create_product(db_session, v.id, "P1", "C-1")
         o = _create_order(db_session, v.id, "PO-1", date(2025, 3, 1))
         _create_order_item(db_session, o.id, "C-1", "P1", 2, 50.0)
         db_session.commit()

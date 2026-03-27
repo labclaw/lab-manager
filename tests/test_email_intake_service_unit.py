@@ -868,7 +868,7 @@ class TestProcessEmailJson:
         db.refresh.return_value = None
 
         att_b64 = base64.b64encode(b"pdf").decode()
-        docs = process_email_json(
+        process_email_json(
             sender="procurement@lab.edu",
             subject="Order #5566",
             body_html="<p>See attached</p>",

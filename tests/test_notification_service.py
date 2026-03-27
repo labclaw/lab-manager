@@ -557,7 +557,7 @@ class TestCrossFunctionIntegration:
         n1 = svc.create_notification(
             db_session, staff.id, "info", "Title 1", "Message 1"
         )
-        n2 = svc.create_notification(
+        svc.create_notification(
             db_session, staff.id, "alert", "Title 2", "Message 2", link="/test"
         )
         assert svc.get_unread_count(db_session, staff.id) == 2

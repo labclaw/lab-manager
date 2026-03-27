@@ -44,14 +44,15 @@ def _escape_row(row: dict) -> dict:
     return {k: _escape_cell(v) for k, v in row.items()}
 
 
-def _csv_response(rows: list[dict], filename: str) -> StreamingResponse:
+def _csv_response(
+    rows: list[dict], filename: str, fieldnames: list[str] | None = None
+) -> StreamingResponse:
     """Build a StreamingResponse with CSV content from a list of dicts."""
     buf = io.StringIO()
-    if not rows:
-        buf.write("")
-    else:
-        writer = csv.DictWriter(buf, fieldnames=rows[0].keys())
-        writer.writeheader()
+    fn = fieldnames or (list(rows[0].keys()) if rows else [])
+    writer = csv.DictWriter(buf, fieldnames=fn)
+    writer.writeheader()
+    if rows:
         writer.writerows([_escape_row(r) for r in rows])
     buf.seek(0)
     return StreamingResponse(
@@ -105,7 +106,7 @@ def export_products(db: Session = Depends(get_db)):
     ]
     products = db.scalars(select(Product).order_by(Product.id)).all()
     rows = [_escape_row({f: getattr(p, f, None) for f in fieldnames}) for p in products]
-    return _csv_response(rows, "products.csv")
+    return _csv_response(rows, "products.csv", fieldnames=fieldnames)
 
 
 @router.get("/vendors")
@@ -114,4 +115,4 @@ def export_vendors(db: Session = Depends(get_db)):
     fieldnames = ["id", "name", "website", "phone", "email", "notes"]
     vendors = db.scalars(select(Vendor).order_by(Vendor.id)).all()
     rows = [_escape_row({f: getattr(v, f, None) for f in fieldnames}) for v in vendors]
-    return _csv_response(rows, "vendors.csv")
+    return _csv_response(rows, "vendors.csv", fieldnames=fieldnames)

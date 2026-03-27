@@ -114,7 +114,7 @@ class TestExtractAttachment:
         ]
         initial_len = len(attachments)
 
-        msg = MIMEMultipart()
+        MIMEMultipart()
         att = MIMEApplication(b"data", _subtype="pdf")
         att.add_header("Content-Disposition", "attachment", filename="extra.pdf")
         _extract_attachment(att, attachments)
@@ -145,7 +145,7 @@ class TestExtractAttachment:
         attachments: list[Attachment] = []
         big_data = b"x" * (_MAX_ATTACHMENT_BYTES + 1)
 
-        msg = MIMEMultipart()
+        MIMEMultipart()
         att = MIMEApplication(big_data, _subtype="pdf")
         att.add_header("Content-Disposition", "attachment", filename="huge.pdf")
         _extract_attachment(att, attachments)
@@ -155,7 +155,7 @@ class TestExtractAttachment:
     def test_extracts_valid_attachment(self):
         """Normal attachment is extracted correctly."""
         attachments: list[Attachment] = []
-        msg = MIMEMultipart()
+        MIMEMultipart()
         att = MIMEApplication(b"pdf-data", _subtype="pdf")
         att.add_header("Content-Disposition", "attachment", filename="doc.pdf")
         _extract_attachment(att, attachments)
@@ -168,7 +168,7 @@ class TestExtractAttachment:
     def test_no_filename_defaults_to_unnamed(self):
         """Attachment without filename gets a default name."""
         attachments: list[Attachment] = []
-        msg = MIMEMultipart()
+        MIMEMultipart()
         att = MIMEApplication(b"data", _subtype="pdf")
         # No Content-Disposition header
         _extract_attachment(att, attachments)

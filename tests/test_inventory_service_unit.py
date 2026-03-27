@@ -366,7 +366,7 @@ class TestReceiveItems:
     def test_receive_order_item_belongs_to_different_order(self, db_session):
         v1 = _make_vendor(db_session, "V1")
         v2 = _make_vendor(db_session, "V2")
-        p1 = _make_product(db_session, v1, catalog="C1", name="P1")
+        _make_product(db_session, v1, catalog="C1", name="P1")
         p2 = _make_product(db_session, v2, catalog="C2", name="P2")
         order1 = _make_order(db_session, v1)
         order2 = _make_order(db_session, v2)
