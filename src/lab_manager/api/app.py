@@ -784,7 +784,6 @@ def create_app() -> FastAPI:
         export,
         import_routes,
         inventory,
-        knowledge,
         notifications,
         order_requests,
         orders,
@@ -846,9 +845,6 @@ def create_app() -> FastAPI:
     )
     api_router.include_router(
         devices.router, prefix="/api/v1/devices", tags=["devices"]
-    )
-    api_router.include_router(
-        knowledge.router, prefix="/api/v1/knowledge", tags=["knowledge"]
     )
 
     from lab_manager.api.routes import team
