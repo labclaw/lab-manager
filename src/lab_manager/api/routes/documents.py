@@ -359,8 +359,8 @@ def upload_document(
     )
     db.add(doc)
     db.flush()
-    # Commit before the background task runs so a fresh session can see the row.
-    db.commit()
+    # flush() writes to DB within the current transaction; get_db() middleware
+    # will commit when this handler returns successfully.
     db.refresh(doc)
 
     # Trigger background OCR + extraction
@@ -533,8 +533,8 @@ def review_document(
         doc.review_notes = body.review_notes
 
     db.flush()
-    # Commit before background indexing so the indexer sees approved state and related records.
-    db.commit()
+    # flush() writes to DB within the current transaction; get_db() middleware
+    # will commit when this handler returns successfully.
     db.refresh(doc)
     if body.action == "approve":
         background_tasks.add_task(_index_approved_doc, doc.id)
