@@ -16,6 +16,12 @@ from lab_manager.models.equipment import Equipment, EquipmentStatus
 from lab_manager.models.order_request import OrderRequest, RequestStatus, RequestUrgency
 from lab_manager.models.notification import Notification, NotificationPreference
 from lab_manager.models.usage_event import UsageEvent
+from lab_manager.models.import_job import (
+    ImportJob,
+    ImportErrorRecord,
+    ImportType,
+    ImportStatus,
+)
 
 __all__ = [
     "AuditMixin",
@@ -46,4 +52,8 @@ __all__ = [
     "RequestUrgency",
     "Notification",
     "NotificationPreference",
+    "ImportJob",
+    "ImportErrorRecord",
+    "ImportType",
+    "ImportStatus",
 ]
