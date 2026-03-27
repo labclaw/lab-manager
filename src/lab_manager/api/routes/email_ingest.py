@@ -92,10 +92,11 @@ async def _handle_json_email(
     try:
         body = await request.json()
         payload = EmailIngestPayload(**body)
-    except Exception as e:
+    except Exception:
+        logger.warning("Rejected invalid JSON email ingest payload", exc_info=True)
         return JSONResponse(
             status_code=422,
-            content={"detail": f"Invalid JSON payload: {e}"},
+            content={"detail": "Invalid JSON payload"},
         )
 
     if not payload.attachments:

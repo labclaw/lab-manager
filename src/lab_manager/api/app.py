@@ -25,6 +25,7 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 import lab_manager.services.audit as _audit_svc  # noqa: F401
 from lab_manager.api.admin import setup_admin
 from lab_manager.api.deps import get_db
+from lab_manager.api.validation import is_valid_email_address
 from lab_manager.config import get_settings
 from lab_manager.database import get_engine
 from lab_manager.exceptions import BusinessError
@@ -707,7 +708,7 @@ def create_app() -> FastAPI:
                 status_code=422,
                 content={"detail": "Name must be between 1 and 200 characters"},
             )
-        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", admin_email):
+        if not is_valid_email_address(admin_email):
             return JSONResponse(
                 status_code=422,
                 content={"detail": "Invalid email address"},
