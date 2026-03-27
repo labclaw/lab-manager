@@ -295,7 +295,20 @@ def item_history(item_id: int, db: Session = Depends(get_db)):
     "/{item_id}/consume", dependencies=[Depends(require_permission("log_consumption"))]
 )
 def consume_item(item_id: int, body: ConsumeBody, db: Session = Depends(get_db)):
-    return inv_svc.consume(item_id, body.quantity, body.consumed_by, body.purpose, db)
+    item = inv_svc.consume(item_id, body.quantity, body.consumed_by, body.purpose, db)
+    result = {
+        "id": item.id,
+        "product_id": item.product_id,
+        "quantity_on_hand": float(item.quantity_on_hand),
+        "status": item.status,
+    }
+    # Attach safety reminder for hazardous products
+    product = getattr(item, "product", None)
+    if product and getattr(product, "is_hazardous", False):
+        from lab_manager.services.safety import get_product_safety_info
+
+        result["safety_reminder"] = get_product_safety_info(product)
+    return result
 
 
 @router.post(
