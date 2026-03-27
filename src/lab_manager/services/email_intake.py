@@ -197,7 +197,7 @@ def process_email(raw_email: str, db: Session) -> list[Document]:
     1. Parse email (sender, subject, date, body)
     2. Extract supported attachments (PDFs, images)
     3. For each attachment: create Document record with source="email"
-    4. Return created documents in ``processing`` state; caller triggers extraction
+    4. Queue for OCR/extraction (same as upload flow)
 
     Args:
         raw_email: Raw MIME email string.

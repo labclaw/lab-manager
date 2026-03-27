@@ -523,14 +523,12 @@ class TestEmailPoller:
                 "lab_manager.database.get_db_session",
                 side_effect=fake_db_session,
             ),
-            patch("lab_manager.api.routes.documents._run_extraction") as mock_extract,
         ):
             from lab_manager.services.email_poller import poll_once
 
             result = poll_once()
 
         assert result == 1
-        mock_extract.assert_called_once()
 
         # Clean up env
         os.environ.pop("EMAIL_IMAP_HOST", None)

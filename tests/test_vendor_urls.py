@@ -1,18 +1,8 @@
 """Tests for vendor URL registry and reorder URL generation."""
 
-from urllib.parse import urlparse
-
 import pytest
 
 from lab_manager.services.vendor_urls import VENDOR_SEARCH_URLS, get_reorder_url
-
-
-def _assert_hostname_in(url: str, expected_domain: str) -> None:
-    """Assert that *expected_domain* appears in the URL's netloc (hostname)."""
-    parsed = urlparse(url)
-    assert expected_domain in parsed.netloc, (
-        f"Expected domain {expected_domain!r} in hostname {parsed.netloc!r} of URL {url!r}"
-    )
 
 
 class TestVendorSearchUrls:
@@ -40,7 +30,6 @@ class TestGetReorderUrl:
     def test_exact_match_sigma(self):
         url = get_reorder_url("Sigma-Aldrich", "S1234")
         assert url == "https://www.sigmaaldrich.com/US/en/search/S1234"
-        _assert_hostname_in(url, "sigmaaldrich.com")
 
     def test_exact_match_thermo(self):
         url = get_reorder_url("Thermo Fisher", "A12345")
@@ -59,23 +48,23 @@ class TestGetReorderUrl:
     def test_case_insensitive(self):
         url = get_reorder_url("ADDGENE", "12345")
         assert url is not None
-        _assert_hostname_in(url, "addgene.org")
+        assert "addgene.org" in url
 
     def test_invitrogen_maps_to_thermofisher(self):
         url = get_reorder_url("Invitrogen", "INV-001")
         assert url is not None
-        _assert_hostname_in(url, "thermofisher.com")
+        assert "thermofisher.com" in url
         assert "INV-001" in url
 
     def test_milliporesigma_maps_to_sigmaaldrich(self):
         url = get_reorder_url("MilliporeSigma", "M5678")
         assert url is not None
-        _assert_hostname_in(url, "sigmaaldrich.com")
+        assert "sigmaaldrich.com" in url
 
     def test_unknown_vendor_falls_back_to_google(self):
         url = get_reorder_url("Unknown Vendor Inc", "XYZ-999")
         assert url is not None
-        _assert_hostname_in(url, "google.com")
+        assert "google.com/search" in url
         assert "Unknown Vendor Inc" in url
         assert "XYZ-999" in url
 
@@ -95,7 +84,7 @@ class TestGetReorderUrl:
     def test_mcmaster_carr(self):
         url = get_reorder_url("McMaster-Carr", "91251A")
         assert url is not None
-        _assert_hostname_in(url, "mcmaster.com")
+        assert "mcmaster.com" in url
         assert "91251A" in url
 
 
@@ -131,7 +120,7 @@ class TestGetReorderUrlEndpoint:
         data = resp.json()
         assert data["vendor"] == "Sigma-Aldrich"
         assert data["catalog_number"] == "S1234"
-        _assert_hostname_in(data["url"], "sigmaaldrich.com")
+        assert "sigmaaldrich.com" in data["url"]
         assert "S1234" in data["url"]
 
     def test_reorder_url_unknown_vendor_google_fallback(self, client):
@@ -157,7 +146,7 @@ class TestGetReorderUrlEndpoint:
         resp = client.get(f"/api/v1/inventory/{item_id}/reorder-url")
         assert resp.status_code == 200
         data = resp.json()
-        _assert_hostname_in(data["url"], "google.com")
+        assert "google.com/search" in data["url"]
 
     def test_reorder_url_no_vendor_returns_none(self, client):
         # Product with no vendor

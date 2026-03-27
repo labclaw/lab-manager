@@ -188,8 +188,6 @@ def test_must_start_with_select_show():
         ("SELECT * FROM information_schema.tables", "forbidden"),
         ("SELECT * FROM pg_authid", "forbidden"),
         ("SELECT * FROM pg_roles", "forbidden"),
-        ("SELECT * FROM staff", "not allowed"),
-        ("SELECT * FROM audit_log", "not allowed"),
         ("SELECT * FROM some_unlisted_table", "not allowed"),
     ],
     ids=[
@@ -198,8 +196,6 @@ def test_must_start_with_select_show():
         "information_schema",
         "pg_authid",
         "pg_roles",
-        "staff",
-        "audit_log",
         "arbitrary_table",
     ],
 )

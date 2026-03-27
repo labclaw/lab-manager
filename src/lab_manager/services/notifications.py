@@ -23,8 +23,6 @@ from typing import Any
 
 import httpx
 
-from lab_manager.config import get_settings
-
 log = logging.getLogger(__name__)
 
 
@@ -198,60 +196,3 @@ class NotificationDispatcher:
     def channels(self) -> list[str]:
         """Return names of registered channels."""
         return [ch.name for ch, _ in self._channels]
-
-
-def _alert_payload(alert: Any) -> dict[str, Any]:
-    """Normalize ORM alerts and dict alerts into dispatcher payloads."""
-    if isinstance(alert, dict):
-        return alert
-    return {
-        "id": getattr(alert, "id", None),
-        "type": getattr(alert, "alert_type", "unknown"),
-        "severity": getattr(alert, "severity", "info"),
-        "message": getattr(alert, "message", ""),
-        "entity_type": getattr(alert, "entity_type", "?"),
-        "entity_id": getattr(alert, "entity_id", "?"),
-        "created_at": getattr(alert, "created_at", None),
-    }
-
-
-def build_configured_dispatcher() -> NotificationDispatcher:
-    """Build a dispatcher from configured outbound channels."""
-    settings = get_settings()
-    dispatcher = NotificationDispatcher()
-
-    severities = {
-        severity.strip().lower()
-        for severity in settings.notification_severities.split(",")
-        if severity.strip()
-    } or {"critical", "warning"}
-
-    if settings.slack_webhook_url:
-        dispatcher.add_channel(
-            SlackChannel(webhook_url=settings.slack_webhook_url),
-            severities=severities,
-        )
-
-    if settings.notification_webhook_url:
-        dispatcher.add_channel(
-            WebhookChannel(url=settings.notification_webhook_url),
-            severities=severities,
-        )
-
-    return dispatcher
-
-
-def dispatch_alerts(alerts: list[Any]) -> dict[str, int]:
-    """Dispatch alerts to configured outbound channels.
-
-    Returns per-channel success counts. If no channels are configured, returns
-    an empty dict without raising.
-    """
-    if not alerts:
-        return {}
-
-    dispatcher = build_configured_dispatcher()
-    if not dispatcher.channels:
-        return {}
-
-    return dispatcher.notify_batch([_alert_payload(alert) for alert in alerts])

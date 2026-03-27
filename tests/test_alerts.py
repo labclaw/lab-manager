@@ -1,15 +1,11 @@
 """Test alerts system — alert checks, persistence, and API routes."""
 
 from datetime import date, timedelta
-from unittest.mock import patch
 
-from sqlalchemy import select, update
 from lab_manager.models.alert import Alert
 from lab_manager.models.document import Document
 from lab_manager.models.inventory import InventoryItem
-from lab_manager.models.notification import Notification
 from lab_manager.models.product import Product
-from lab_manager.models.staff import Staff
 from lab_manager.models.vendor import Vendor
 from lab_manager.services.alerts import (
     check_all_alerts,
@@ -29,21 +25,6 @@ def _seed_vendor(db):
     db.commit()
     db.refresh(v)
     return v
-
-
-def _ensure_system_staff(db):
-    existing = db.scalars(select(Staff).where(Staff.id == 0)).first()
-    if existing:
-        return existing
-
-    staff = Staff(name="system", email="system-alerts@lab.test", role="admin")
-    db.add(staff)
-    db.flush()
-    if staff.id != 0:
-        db.execute(update(Staff).where(Staff.id == staff.id).values(id=0))
-        db.flush()
-        db.expire_all()
-    return db.scalars(select(Staff).where(Staff.id == 0)).one()
 
 
 def test_check_expired(db_session):
@@ -204,29 +185,6 @@ def test_alerts_check_api(client):
     data = resp.json()
     assert "new_alerts" in data
     assert "summary" in data
-
-
-def test_alerts_check_api_fans_out_notifications(client, db_session):
-    """POST /api/v1/alerts/check should create in-app notifications for new alerts."""
-    _ensure_system_staff(db_session)
-    client.post(
-        "/api/v1/documents/",
-        json={
-            "file_path": "uploads/check-fanout.jpg",
-            "file_name": "check-fanout.jpg",
-            "status": "pending",
-        },
-    )
-
-    with patch("lab_manager.api.routes.alerts.dispatch_alerts") as mock_dispatch:
-        mock_dispatch.return_value = {}
-        resp = client.post("/api/v1/alerts/check")
-
-    assert resp.status_code == 200
-    assert mock_dispatch.called
-    notifications = db_session.scalars(select(Notification)).all()
-    assert len(notifications) >= 1
-    assert all(n.link == "/alerts" for n in notifications)
 
 
 def test_alerts_list_api(client):

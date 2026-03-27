@@ -22,18 +22,16 @@ DEFAULT_POLL_INTERVAL = 300
 
 
 def _get_imap_config() -> dict:
-    """Read IMAP configuration from environment.
-
-    Password is read directly from env at connect time and never stored
-    in the returned dict to prevent accidental logging of credentials.
-    """
+    """Read IMAP configuration from environment."""
     host = os.environ.get("EMAIL_IMAP_HOST", "")
     user = os.environ.get("EMAIL_IMAP_USER", "")
+    password = os.environ.get("EMAIL_IMAP_PASSWORD", "")
     folder = os.environ.get("EMAIL_FOLDER", "INBOX")
     interval = int(os.environ.get("EMAIL_POLL_INTERVAL", str(DEFAULT_POLL_INTERVAL)))
     return {
         "host": host,
         "user": user,
+        "password": password,
         "folder": folder,
         "interval": interval,
     }
@@ -41,9 +39,8 @@ def _get_imap_config() -> dict:
 
 def _connect_imap(config: dict) -> imaplib.IMAP4_SSL:
     """Connect and authenticate to IMAP server."""
-    password = os.environ.get("EMAIL_IMAP_PASSWORD", "")
     conn = imaplib.IMAP4_SSL(config["host"])
-    conn.login(config["user"], password)
+    conn.login(config["user"], config["password"])
     return conn
 
 
@@ -75,7 +72,6 @@ def poll_once() -> int:
     Returns:
         Number of documents created.
     """
-    from lab_manager.api.routes.documents import _run_extraction
     from lab_manager.database import get_db_session
     from lab_manager.services.email_intake import process_email
 
@@ -95,16 +91,11 @@ def poll_once() -> int:
 
             for raw_email in raw_emails:
                 try:
-                    doc_ids: list[int] = []
                     with get_db_session() as db:
                         docs = process_email(raw_email, db)
-                        doc_ids = [doc.id for doc in docs if doc.id is not None]
-
-                    total_docs += len(doc_ids)
-                    for doc_id in doc_ids:
-                        _run_extraction(doc_id)
-                    if doc_ids:
-                        logger.info("Processed email -> %d document(s)", len(doc_ids))
+                        total_docs += len(docs)
+                        if docs:
+                            logger.info("Processed email -> %d document(s)", len(docs))
                 except Exception:
                     logger.exception("Failed to process email")
         finally:

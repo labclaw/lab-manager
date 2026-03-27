@@ -48,7 +48,6 @@ docs/lims-market-research*.md
 docs/competitor*.md
 docs/deployment-saas*.md
 docs/platform-support*.md
-paper/
 
 # Data files (large, not tracked)
 lab-docs/
@@ -71,5 +70,3 @@ docs/full-audit-report.md
 docs/pipeline-results-summary.md
 docs/audit_analysis_report.md
 docs/comprehensive-research-report.md
-paper/
-paper/

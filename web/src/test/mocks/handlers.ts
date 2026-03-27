@@ -1,12 +1,7 @@
 import { http, HttpResponse } from 'msw'
 
 // Default mock data
-const mockUser = {
-  id: 1,
-  name: 'Dr. Aris Thorne',
-  email: 'aris@example.com',
-  role: 'admin',
-}
+const mockUser = { id: 1, name: 'Dr. Aris Thorne' }
 
 const mockDashboard = {
   total_documents: 42,
@@ -80,31 +75,6 @@ const mockAlertsSummary = {
   unacknowledged: 10,
 }
 
-const mockNotifications = {
-  items: [
-    {
-      id: 1,
-      type: 'low_stock',
-      title: 'Low stock alert',
-      message: 'Sodium Chloride is below reorder level',
-      is_read: false,
-      created_at: '2026-03-19T10:00:00Z',
-    },
-    {
-      id: 2,
-      type: 'document_review',
-      title: 'Document ready for review',
-      message: 'A new invoice needs attention',
-      is_read: false,
-      created_at: '2026-03-19T09:00:00Z',
-    },
-  ],
-  total: 2,
-  page: 1,
-  page_size: 20,
-  pages: 1,
-}
-
 const mockSearchResults = {
   items: [
     { id: 1, type: 'product', name: 'Sodium Chloride', description: 'NaCl, laboratory grade' },
@@ -144,17 +114,7 @@ export const handlers = [
   http.get('/api/v1/setup/status', () => HttpResponse.json({ needs_setup: false })),
 
   // Config
-  http.get('/api/v1/config', () =>
-    HttpResponse.json({
-      lab_name: 'Research Lab',
-      lab_subtitle: 'Neuroscience Department',
-      version: '0.1.10',
-      ocr_model: 'nvidia_nim/meta/llama-3.2-90b-vision-instruct',
-      extraction_model: 'nvidia_nim/z-ai/glm5',
-      rag_model: 'nvidia_nim/z-ai/glm5-turbo',
-      ocr_tier: 'auto',
-    }),
-  ),
+  http.get('/api/v1/config', () => HttpResponse.json({ lab_name: 'Research Lab', lab_subtitle: 'Neuroscience Department', version: '0.1.9' })),
 
   // Analytics
   http.get('/api/v1/analytics/dashboard', () => HttpResponse.json(mockDashboard)),
@@ -254,31 +214,4 @@ export const handlers = [
   http.post('/api/v1/alerts/check', () => HttpResponse.json({ new_alerts: 3, summary: mockAlertsSummary })),
   http.post('/api/v1/alerts/:id/acknowledge', () => HttpResponse.json({ status: 'ok' })),
   http.post('/api/v1/alerts/:id/resolve', () => HttpResponse.json({ status: 'ok' })),
-
-  // Notifications
-  http.get('/api/v1/notifications/count/', () =>
-    HttpResponse.json({ unread_count: mockNotifications.items.filter((item) => !item.is_read).length }),
-  ),
-  http.get('/api/v1/notifications/', () => HttpResponse.json(mockNotifications)),
-  http.post('/api/v1/notifications/:id/read/', ({ params }) => {
-    const item = mockNotifications.items.find((entry) => entry.id === Number(params.id))
-    return item
-      ? HttpResponse.json({ ...item, is_read: true })
-      : new HttpResponse(null, { status: 404 })
-  }),
-  http.post('/api/v1/notifications/read-all/', () =>
-    HttpResponse.json({ marked: mockNotifications.items.length }),
-  ),
-  http.get('/api/v1/notifications/preferences/', () =>
-    HttpResponse.json({
-      id: 1,
-      staff_id: 1,
-      in_app: true,
-      email_weekly: false,
-      order_requests: true,
-      document_reviews: true,
-      inventory_alerts: true,
-      team_changes: false,
-    }),
-  ),
 ]

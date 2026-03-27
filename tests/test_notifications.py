@@ -1,6 +1,5 @@
 """Tests for proactive notification service."""
 
-from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 
@@ -9,8 +8,6 @@ from lab_manager.services.notifications import (
     NotificationChannel,
     NotificationDispatcher,
     SlackChannel,
-    build_configured_dispatcher,
-    dispatch_alerts,
     WebhookChannel,
 )
 
@@ -208,61 +205,3 @@ class TestNotificationDispatcher:
         dispatcher = NotificationDispatcher()
         results = dispatcher.notify(_make_alert())
         assert results == {}
-
-
-class TestConfiguredDispatch:
-    @patch("lab_manager.services.notifications.get_settings")
-    def test_build_configured_dispatcher_uses_settings(self, mock_get_settings):
-        mock_get_settings.return_value = SimpleNamespace(
-            slack_webhook_url="https://hooks.slack.com/test",
-            notification_webhook_url="https://example.com/hook",
-            notification_severities="critical, warning",
-        )
-
-        dispatcher = build_configured_dispatcher()
-
-        assert dispatcher.channels == ["slack", "webhook"]
-
-    @patch("lab_manager.services.notifications.NotificationDispatcher.notify_batch")
-    @patch("lab_manager.services.notifications.get_settings")
-    def test_dispatch_alerts_returns_empty_when_unconfigured(
-        self, mock_get_settings, mock_notify_batch
-    ):
-        mock_get_settings.return_value = SimpleNamespace(
-            slack_webhook_url="",
-            notification_webhook_url="",
-            notification_severities="critical,warning",
-        )
-
-        result = dispatch_alerts([_make_alert()])
-
-        assert result == {}
-        mock_notify_batch.assert_not_called()
-
-    @patch("lab_manager.services.notifications.NotificationDispatcher.notify_batch")
-    @patch("lab_manager.services.notifications.get_settings")
-    def test_dispatch_alerts_normalizes_orm_like_alerts(
-        self, mock_get_settings, mock_notify_batch
-    ):
-        mock_get_settings.return_value = SimpleNamespace(
-            slack_webhook_url="https://hooks.slack.com/test",
-            notification_webhook_url="",
-            notification_severities="critical",
-        )
-        mock_notify_batch.return_value = {"slack": 1}
-        orm_like = SimpleNamespace(
-            id=7,
-            alert_type="low_stock",
-            severity="warning",
-            message="Low stock",
-            entity_type="product",
-            entity_id=3,
-            created_at=None,
-        )
-
-        result = dispatch_alerts([orm_like])
-
-        assert result == {"slack": 1}
-        payloads = mock_notify_batch.call_args.args[0]
-        assert payloads[0]["type"] == "low_stock"
-        assert payloads[0]["entity_id"] == 3

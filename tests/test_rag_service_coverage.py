@@ -85,27 +85,6 @@ class TestFallbackSearch:
             result = _fallback_search("query")
             assert result["answer"] == "No results found via text search either."
 
-    def test_fallback_uses_db_lookup_for_vendor_questions(self):
-        from types import SimpleNamespace
-
-        from lab_manager.services.rag import _fallback_search
-
-        mock_db = MagicMock()
-        mock_db.exec.return_value.all.return_value = [
-            SimpleNamespace(
-                id=1,
-                name="E2E RAG Vendor",
-                email="rag@example.com",
-                website=None,
-            )
-        ]
-
-        with patch(SEARCH_PATCH, return_value=[]):
-            result = _fallback_search("What vendors exist in the database?", db=mock_db)
-
-        assert result["source"] == "search"
-        assert result["raw_results"][0]["name"] == "E2E RAG Vendor"
-
 
 class TestAsk:
     def setup_method(self):

@@ -28,16 +28,7 @@ router = APIRouter()
 # Invitation tokens expire after 7 days (seconds).
 _INVITE_MAX_AGE = 7 * 24 * 3600
 
-_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{1,63}$")
-
-_MAX_EMAIL_LEN = 254  # RFC 5321 limit
-
-
-def _is_valid_email(email: str) -> bool:
-    """Validate email format. Length-gated to prevent ReDoS."""
-    if len(email) > _MAX_EMAIL_LEN:
-        return False
-    return bool(_EMAIL_RE.match(email))
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 def _get_invite_serializer() -> URLSafeTimedSerializer:
@@ -88,7 +79,7 @@ def create_invitation(
         raise HTTPException(
             status_code=422, detail="Name must be between 1 and 200 characters"
         )
-    if not _is_valid_email(email):
+    if not _EMAIL_RE.match(email) or len(email) > 255:
         raise HTTPException(status_code=422, detail="Invalid email address")
     if role not in ROLE_LEVELS:
         raise HTTPException(status_code=422, detail=f"Invalid role: {role}")

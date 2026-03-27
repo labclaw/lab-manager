@@ -1337,7 +1337,7 @@ wheels = [
 
 [[package]]
 name = "lab-manager"
-version = "0.1.10"
+version = "0.1.9"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },

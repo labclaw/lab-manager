@@ -193,7 +193,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="LabClaw Lab Manager",
         description="Lab inventory management with OCR document intake",
-        version="0.1.10",
+        version="0.1.9",
         redirect_slashes=False,
         **docs_kwargs,
     )
@@ -707,13 +707,12 @@ def create_app() -> FastAPI:
                 status_code=422,
                 content={"detail": "Name must be between 1 and 200 characters"},
             )
-        if len(admin_email) > 254 or not re.match(
-            r"^[^@\s]+@[^@\s]+\.[^@\s]{1,63}$", admin_email
-        ):
+        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", admin_email):
             return JSONResponse(
                 status_code=422,
                 content={"detail": "Invalid email address"},
             )
+        if len(admin_email) > 255:
             return JSONResponse(
                 status_code=422,
                 content={"detail": "Email must be 255 characters or fewer"},

@@ -62,14 +62,19 @@ describe('CloudBrainPage', () => {
     expect(screen.getByText('Scientific Writing')).toBeInTheDocument()
   })
 
-  it('renders quick action buttons in chat container', () => {
+  it('renders quick action buttons', () => {
     renderOffline()
 
-    // Quick actions now live inside ChatContainer (visible when no messages)
     expect(screen.getByText('Search PubMed')).toBeInTheDocument()
     expect(screen.getByText('Protein Lookup')).toBeInTheDocument()
     expect(screen.getByText('Drug Info')).toBeInTheDocument()
     expect(screen.getByText('Gene Analysis')).toBeInTheDocument()
+    // "Experiment Design" and "Write Section" also appear as category tags,
+    // so just verify we have 6 quick-action buttons total
+    const heading = screen.getByText('Quick Actions')
+    const section = heading.closest('div')!
+    const buttons = within(section).getAllByRole('button')
+    expect(buttons.length).toBe(6)
   })
 
   it('shows not connected status when Cloud Brain is offline', () => {
@@ -102,25 +107,21 @@ describe('CloudBrainPage', () => {
     expect(screen.getByText('Version')).toBeInTheDocument()
   })
 
-  it('shows chat input when connected', () => {
+  it('shows query input when connected', () => {
     renderOnline({ tool_count: 100 })
 
-    // ChatContainer uses "Ask Cloud Brain..." placeholder
     expect(
-      screen.getByPlaceholderText('Ask Cloud Brain...'),
+      screen.getByPlaceholderText('Ask Cloud Brain a scientific question...'),
     ).toBeInTheDocument()
   })
 
-  it('shows chat input when offline (disabled)', () => {
+  it('does not show query input when offline', () => {
     renderOffline()
 
-    // ChatContainer is always rendered but input is disabled when not connected
+    expect(screen.getByText('Setup Required')).toBeInTheDocument()
     expect(
-      screen.getByPlaceholderText('Ask Cloud Brain...'),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByPlaceholderText('Ask Cloud Brain...'),
-    ).toBeDisabled()
+      screen.queryByPlaceholderText('Ask Cloud Brain a scientific question...'),
+    ).not.toBeInTheDocument()
   })
 
   it('renders API reference section', () => {

@@ -16,8 +16,7 @@ describe('SettingsPage', () => {
     expect(screen.getByText('AI Configuration')).toBeInTheDocument()
     expect(screen.getByText('Notifications')).toBeInTheDocument()
     expect(screen.getByText('Data Management')).toBeInTheDocument()
-    expect(screen.getByText('System Info')).toBeInTheDocument()
-    expect(screen.getByText('Danger Zone')).toBeInTheDocument()
+    expect(screen.getByText('About')).toBeInTheDocument()
   })
 
   it('renders lab profile fields', () => {
@@ -26,19 +25,19 @@ describe('SettingsPage', () => {
     })
 
     expect(screen.getByLabelText('Lab Name')).toBeInTheDocument()
-    expect(screen.getByLabelText('Subtitle / Department')).toBeInTheDocument()
     expect(screen.getByLabelText('Institution')).toBeInTheDocument()
     expect(screen.getByLabelText('PI Name')).toBeInTheDocument()
+    expect(screen.getByLabelText('PI Email')).toBeInTheDocument()
   })
 
-  it('renders AI configuration cards', () => {
+  it('renders AI configuration dropdowns', () => {
     renderWithProviders(<SettingsPage onError={onError} />, {
       initialEntries: ['/settings'],
     })
 
-    expect(screen.getByText('OCR Model')).toBeInTheDocument()
-    expect(screen.getByText('Extraction Model')).toBeInTheDocument()
-    expect(screen.getByText('RAG Model')).toBeInTheDocument()
+    expect(screen.getByLabelText('OCR Model')).toBeInTheDocument()
+    expect(screen.getByLabelText('Extraction Model')).toBeInTheDocument()
+    expect(screen.getByLabelText('RAG Model')).toBeInTheDocument()
   })
 
   it('renders notification toggles', () => {
@@ -63,17 +62,13 @@ describe('SettingsPage', () => {
     expect(screen.getByText('Export Vendors (CSV)')).toBeInTheDocument()
   })
 
-  it('renders system info section with version and stats', async () => {
+  it('renders about section with API endpoints count', () => {
     renderWithProviders(<SettingsPage onError={onError} />, {
       initialEntries: ['/settings'],
     })
 
-    expect(screen.getByText('Version')).toBeInTheDocument()
-
-    await waitFor(() => {
-      expect(screen.getByText('Total Documents')).toBeInTheDocument()
-      expect(screen.getByText('Approved')).toBeInTheDocument()
-    })
+    expect(screen.getByText('API Endpoints')).toBeInTheDocument()
+    expect(screen.getByText('82')).toBeInTheDocument()
   })
 
   it('shows Coming Soon badges for disabled features', () => {
@@ -91,7 +86,7 @@ describe('SettingsPage', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByText('v0.1.10')).toBeInTheDocument()
+      expect(screen.getByText('v0.1.9')).toBeInTheDocument()
     })
   })
 
@@ -112,9 +107,8 @@ describe('SettingsPage', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByText('Dr. Aris Thorne')).toBeInTheDocument()
-      expect(screen.getByText('aris@example.com')).toBeInTheDocument()
-      expect(screen.getByText('admin')).toBeInTheDocument()
+      const nameInput = screen.getByLabelText('Name') as HTMLInputElement
+      expect(nameInput.value).toBe('Dr. Aris Thorne')
     })
   })
 
@@ -155,21 +149,18 @@ describe('SettingsPage', () => {
     })
 
     expect(screen.getByLabelText('Lab Name')).toBeDisabled()
-    expect(screen.getByLabelText('Subtitle / Department')).toBeDisabled()
     expect(screen.getByLabelText('Institution')).toBeDisabled()
     expect(screen.getByLabelText('PI Name')).toBeDisabled()
+    expect(screen.getByLabelText('PI Email')).toBeDisabled()
   })
 
-  it('renders AI configuration as read-only cards', async () => {
+  it('all AI config dropdowns are disabled', () => {
     renderWithProviders(<SettingsPage onError={onError} />, {
       initialEntries: ['/settings'],
     })
 
-    await waitFor(() => {
-      expect(screen.getByText('Llama 3.2 90B Vision')).toBeInTheDocument()
-      expect(screen.getByText('GLM-5')).toBeInTheDocument()
-      expect(screen.getByText('GLM-5 Turbo')).toBeInTheDocument()
-      expect(screen.getByText('AUTO')).toBeInTheDocument()
-    })
+    expect(screen.getByLabelText('OCR Model')).toBeDisabled()
+    expect(screen.getByLabelText('Extraction Model')).toBeDisabled()
+    expect(screen.getByLabelText('RAG Model')).toBeDisabled()
   })
 })
