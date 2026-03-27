@@ -361,6 +361,18 @@ def test_inventory_soft_delete(client):
     assert resp.json()["status"] == "deleted"
 
 
+def test_update_deleted_inventory_returns_422(client):
+    pid = _make_product(client, "UPD-DEL-INV")
+    resp = client.post(
+        "/api/v1/inventory/",
+        json={"product_id": pid, "quantity_on_hand": 5, "status": "available"},
+    )
+    iid = resp.json()["id"]
+    client.delete(f"/api/v1/inventory/{iid}")
+    resp = client.patch(f"/api/v1/inventory/{iid}", json={"quantity_on_hand": 10})
+    assert resp.status_code == 422
+
+
 def test_inventory_list_filters(client):
     pr = client.post(
         "/api/v1/products/", json={"catalog_number": "FP1", "name": "FilterProd"}
