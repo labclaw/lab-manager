@@ -97,7 +97,7 @@ def test_list_devices(client):
 
 def test_list_devices_filter_by_status(client):
     # Create two devices
-    r1 = client.post(
+    client.post(
         "/api/v1/devices/heartbeat",
         json=_heartbeat_payload(device_id=str(uuid.uuid4()), hostname="online-host"),
     )
