@@ -140,6 +140,12 @@ tailwind.config = {
         <span class="material-symbols-outlined text-xl">dashboard</span>
         Dashboard
       </a>
+      <a href="#feed" data-nav="feed"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-primary/5 text-slate-400">
+        <span class="material-symbols-outlined text-xl">notifications</span>
+        Feed
+        <span id="feed-count" class="hidden ml-auto min-w-[20px] h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1.5"></span>
+      </a>
       <a href="#documents" data-nav="documents"
         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-primary/5 text-slate-400">
         <span class="material-symbols-outlined text-xl">description</span>
@@ -220,6 +226,27 @@ tailwind.config = {
             <div class="text-xs text-slate-500 uppercase tracking-wider font-medium mb-4">Document Types</div>
             <div id="type-chart"></div>
           </div>
+        </div>
+      </div>
+
+      <!-- ===== FEED VIEW ===== -->
+      <div id="view-feed" class="hidden">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-lg font-semibold text-white">Feed</h2>
+            <p class="text-sm text-slate-500">Alerts, activity, and AI-suggested actions</p>
+          </div>
+          <div class="flex gap-2">
+            <select id="feed-type-filter" onchange="loadFeed()" class="bg-surface-dark border border-border-dark rounded-lg px-3 py-1.5 text-sm text-slate-300">
+              <option value="">All types</option>
+              <option value="alert">Alerts</option>
+              <option value="activity">Activity</option>
+              <option value="suggestion">Suggestions</option>
+            </select>
+          </div>
+        </div>
+        <div class="bg-surface-dark border border-border-dark rounded-xl overflow-hidden">
+          <div id="feed-items"></div>
         </div>
       </div>
 
@@ -426,6 +453,7 @@ tailwind.config = {
 <!-- ==================== JS MODULES ==================== -->
 <script src="/static/js/api.js"></script>
 <script src="/static/js/dashboard.js"></script>
+<script src="/static/js/feed.js"></script>
 <script src="/static/js/documents.js"></script>
 <script src="/static/js/review.js"></script>
 <script src="/static/js/inventory.js"></script>

@@ -2,6 +2,7 @@
 "use strict";
 
 const VIEWS = ["dashboard", "documents", "review", "inventory", "orders", "upload", "chat"];
+const VIEWS = ["dashboard", "feed", "documents", "review", "inventory", "orders", "upload"];
 
 // --- Setup wizard (first-run) ---
 async function handleSetup(e) {
@@ -133,6 +134,7 @@ function handleRoute() {
 
   // Load data for active view
   if (view === "dashboard") loadStats();
+  if (view === "feed") loadFeed();
   if (view === "documents") loadDocuments();
   if (view === "review") loadReviewQueue();
   if (view === "inventory") loadInventory();
