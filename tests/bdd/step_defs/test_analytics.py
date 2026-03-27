@@ -263,7 +263,7 @@ def create_docs_for_analytics(api, n):
             "/api/v1/documents/",
             json={
                 "file_name": f"analytics_doc_{i}.jpg",
-                "file_path": f"/uploads/analytics_doc_{i}.jpg",
+                "file_path": f"uploads/analytics_doc_{i}.jpg",
                 "status": "approved",
             },
         )
