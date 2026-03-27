@@ -84,10 +84,10 @@ class ImportJob(AuditMixin, table=True):
     )
 
     # Relationships
-    errors: List["ImportError"] = Relationship(back_populates="job")
+    errors: List["ImportErrorRecord"] = Relationship(back_populates="job")
 
 
-class ImportError(SQLModel, table=True):
+class ImportErrorRecord(SQLModel, table=True):
     """Individual row-level errors from an import job."""
 
     __tablename__ = "import_errors"
