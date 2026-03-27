@@ -75,6 +75,7 @@ def poll_once() -> int:
     Returns:
         Number of documents created.
     """
+    from lab_manager.api.routes.documents import _run_extraction
     from lab_manager.database import get_db_session
     from lab_manager.services.email_intake import process_email
 
@@ -94,11 +95,16 @@ def poll_once() -> int:
 
             for raw_email in raw_emails:
                 try:
+                    doc_ids: list[int] = []
                     with get_db_session() as db:
                         docs = process_email(raw_email, db)
-                        total_docs += len(docs)
-                        if docs:
-                            logger.info("Processed email -> %d document(s)", len(docs))
+                        doc_ids = [doc.id for doc in docs if doc.id is not None]
+
+                    total_docs += len(doc_ids)
+                    for doc_id in doc_ids:
+                        _run_extraction(doc_id)
+                    if doc_ids:
+                        logger.info("Processed email -> %d document(s)", len(doc_ids))
                 except Exception:
                     logger.exception("Failed to process email")
         finally:

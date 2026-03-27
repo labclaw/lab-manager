@@ -6,10 +6,11 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
 from sqlmodel import Session
 
 from lab_manager.models.notification import Notification, NotificationPreference
+from lab_manager.models.staff import Staff
 
 log = logging.getLogger(__name__)
 
@@ -113,3 +114,61 @@ def update_preferences(
     db.flush()
     db.refresh(pref)
     return pref
+
+
+def _alert_title(alert_type: str, severity: str) -> str:
+    """Build a compact notification title for an alert."""
+    title_type = alert_type.replace("_", " ").title()
+    title_severity = severity.capitalize()
+    return f"{title_severity} Alert: {title_type}"
+
+
+def create_alert_notifications(db: Session, alerts: list[object]) -> int:
+    """Create in-app notifications for newly created alerts.
+
+    Sends one notification per alert per active staff member whose preferences
+    allow in-app inventory alerts. Staff with no explicit preferences are
+    treated as opted-in by default.
+    """
+    if not alerts:
+        return 0
+
+    staff_ids = (
+        db.execute(
+            select(Staff.id)
+            .outerjoin(
+                NotificationPreference,
+                NotificationPreference.staff_id == Staff.id,
+            )
+            .where(Staff.is_active.is_(True))
+            .where(
+                or_(
+                    NotificationPreference.id.is_(None),
+                    (
+                        NotificationPreference.in_app.is_(True)
+                        & NotificationPreference.inventory_alerts.is_(True)
+                    ),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    created = 0
+    for staff_id in staff_ids:
+        for alert in alerts:
+            create_notification(
+                db,
+                staff_id=staff_id,
+                type="alert",
+                title=_alert_title(
+                    getattr(alert, "alert_type", "unknown"),
+                    getattr(alert, "severity", "info"),
+                ),
+                message=getattr(alert, "message", ""),
+                link="/alerts",
+            )
+            created += 1
+
+    return created

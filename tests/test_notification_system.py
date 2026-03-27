@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import pytest
+from sqlalchemy import select
 
+from lab_manager.models.alert import Alert
+from lab_manager.models.notification import Notification
 from lab_manager.models.staff import Staff
 from lab_manager.services import notification_service as svc
 
@@ -174,6 +177,54 @@ class TestPreferences:
         pref = svc.get_preferences(db_session, staff_member.id)
         assert pref.id == original_id
         assert pref.staff_id == staff_member.id
+
+
+class TestAlertFanout:
+    def test_create_alert_notifications_defaults_to_opt_in(
+        self, db_session, staff_member
+    ):
+        alert = Alert(
+            alert_type="low_stock",
+            severity="warning",
+            message="PBS is low",
+            entity_type="product",
+            entity_id=1,
+        )
+        db_session.add(alert)
+        db_session.flush()
+
+        created = svc.create_alert_notifications(db_session, [alert])
+
+        assert created == 1
+        assert svc.get_unread_count(db_session, staff_member.id) == 1
+        notif = db_session.scalars(
+            select(Notification).where(Notification.staff_id == staff_member.id)
+        ).one()
+        assert notif.type == "alert"
+        assert notif.link == "/alerts"
+
+    def test_create_alert_notifications_respects_disabled_preferences(
+        self, db_session, staff_member
+    ):
+        svc.update_preferences(
+            db_session,
+            staff_member.id,
+            {"in_app": False, "inventory_alerts": False},
+        )
+        alert = Alert(
+            alert_type="expired",
+            severity="critical",
+            message="Expired reagent",
+            entity_type="inventory",
+            entity_id=2,
+        )
+        db_session.add(alert)
+        db_session.flush()
+
+        created = svc.create_alert_notifications(db_session, [alert])
+
+        assert created == 0
+        assert svc.get_unread_count(db_session, staff_member.id) == 0
 
 
 # ---------------------------------------------------------------------------

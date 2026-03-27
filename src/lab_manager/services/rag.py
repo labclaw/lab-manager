@@ -71,17 +71,6 @@ CREATE TABLE products (
     created_by VARCHAR(100)
 );
 
-CREATE TABLE staff (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(200) NOT NULL,
-    email VARCHAR(255) UNIQUE,
-    role VARCHAR(50) DEFAULT 'member',
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMPTZ,
-    updated_at TIMESTAMPTZ,
-    created_by VARCHAR(100)
-);
-
 CREATE TABLE locations (
     id SERIAL PRIMARY KEY,
     name VARCHAR(200) NOT NULL,
@@ -195,15 +184,6 @@ CREATE TABLE alerts (
     created_by VARCHAR(100)
 );
 
-CREATE TABLE audit_log (
-    id SERIAL PRIMARY KEY,
-    table_name VARCHAR(100) NOT NULL,
-    record_id INTEGER NOT NULL,
-    action VARCHAR(20) NOT NULL,
-    changed_by VARCHAR(100),
-    changes JSON,
-    timestamp TIMESTAMPTZ NOT NULL
-);
 """
 
 NL_TO_SQL_PROMPT = """\
@@ -216,7 +196,8 @@ DATABASE SCHEMA:
 RULES:
 - Output ONLY the SQL query, nothing else. No markdown, no explanation.
 - Only SELECT queries. Never use INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE, GRANT, or REVOKE.
-- Only query these tables: vendors, products, staff, locations, documents, orders, order_items, inventory, consumption_log, alerts, audit_log.
+- Only query these tables: vendors, products, locations, documents, orders, order_items, inventory, consumption_log, alerts.
+- Never access staff, audit_log, or any other administrative/security tables.
 - Do NOT access system catalogs (pg_shadow, pg_authid, information_schema, pg_catalog).
 - Do NOT call functions with side effects (pg_terminate_backend, set_config, dblink, lo_import, etc.).
 - Use JOINs when the question involves related tables (e.g., vendor name for a product).
@@ -292,7 +273,6 @@ _DANGEROUS_KEYWORDS = re.compile(
 _ALLOWED_TABLES = {
     "vendors",
     "products",
-    "staff",
     "locations",
     "documents",
     "orders",
@@ -300,7 +280,6 @@ _ALLOWED_TABLES = {
     "inventory",
     "consumption_log",
     "alerts",
-    "audit_log",
 }
 
 # Allow only SELECT (including WITH/CTE)

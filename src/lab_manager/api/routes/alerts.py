@@ -14,6 +14,8 @@ from lab_manager.api.pagination import paginate
 from lab_manager.models.alert import Alert
 from lab_manager.models.base import utcnow
 from lab_manager.services.alerts import get_alert_summary, persist_alerts
+from lab_manager.services.notification_service import create_alert_notifications
+from lab_manager.services.notifications import dispatch_alerts
 
 router = APIRouter()
 
@@ -60,6 +62,8 @@ def run_alert_check(request: Request, db: Session = Depends(get_db)):
     Rate limited to 5 requests per minute via slowapi.
     """
     created, current = persist_alerts(db)
+    create_alert_notifications(db, created)
+    dispatch_alerts(created)
     summary = get_alert_summary(db, alerts=current)
     return {
         "new_alerts": len(created),
