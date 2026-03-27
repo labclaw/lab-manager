@@ -322,7 +322,7 @@ def open_item(
     db: Session,
 ) -> InventoryItem:
     """Mark item as opened (track opened_date for stability)."""
-    item = _get_inventory_or_404(db, inventory_id)
+    item = _get_inventory_or_404(db, inventory_id, for_update=True)
 
     if item.opened_date is not None:
         raise ValidationError("Item is already opened")
