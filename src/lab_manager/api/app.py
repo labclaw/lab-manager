@@ -856,6 +856,7 @@ def create_app() -> FastAPI:
 
     from lab_manager.api.routes import chat as chat_routes
     from lab_manager.api.routes import reservations as res_routes  # noqa: E402
+    from lab_manager.api.routes import eln  # noqa: E402
     from lab_manager.api.routes import team
 
     api_router.include_router(
@@ -863,6 +864,7 @@ def create_app() -> FastAPI:
     )
     api_router.include_router(team.router, prefix="/api/v1/team", tags=["team"])
     api_router.include_router(chat_routes.router, prefix="/api/v1/chat", tags=["chat"])
+    api_router.include_router(eln.router, prefix="/api/v1/eln", tags=["eln"])
     app.include_router(api_router)
 
     # WebSocket chat endpoint (outside api_router to avoid auth middleware issues)

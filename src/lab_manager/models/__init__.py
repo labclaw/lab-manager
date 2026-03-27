@@ -25,6 +25,7 @@ from lab_manager.models.import_job import (
 from lab_manager.models.reservation import Reservation, ReservationStatus
 from lab_manager.models.device import Device, DeviceStatus
 from lab_manager.models.knowledge import KnowledgeEntry, KnowledgeCategory
+from lab_manager.models.eln import ELNEntry, ELNAttachment, ELNTag, ELNContentType
 
 __all__ = [
     "AuditMixin",
@@ -63,6 +64,10 @@ __all__ = [
     "DeviceStatus",
     "KnowledgeEntry",
     "KnowledgeCategory",
+    "ELNEntry",
+    "ELNAttachment",
+    "ELNTag",
+    "ELNContentType",
     "Reservation",
-    "ReservationStatus",
+    "ReservationStatus", (feat(eln): multimodal electronic lab notebook with attachments and tags)
 ]
