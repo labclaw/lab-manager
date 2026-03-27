@@ -707,12 +707,13 @@ def create_app() -> FastAPI:
                 status_code=422,
                 content={"detail": "Name must be between 1 and 200 characters"},
             )
-        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", admin_email):
+        if len(admin_email) > 254 or not re.match(
+            r"^[^@\s]+@[^@\s]+\.[^@\s]{1,63}$", admin_email
+        ):
             return JSONResponse(
                 status_code=422,
                 content={"detail": "Invalid email address"},
             )
-        if len(admin_email) > 255:
             return JSONResponse(
                 status_code=422,
                 content={"detail": "Email must be 255 characters or fewer"},
