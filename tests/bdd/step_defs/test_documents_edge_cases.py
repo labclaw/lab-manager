@@ -79,7 +79,7 @@ def create_test_doc(api, status):
         "/api/v1/documents/",
         json={
             "file_name": f"test_doc_{seq}.jpg",
-            "file_path": f"test_doc_{seq}.jpg",
+            "file_path": f"/tmp/lab-manager-test-uploads/test_doc_{seq}.jpg",
             "status": status,
         },
     )
@@ -99,7 +99,7 @@ def create_test_doc_no_data(api, status):
         "/api/v1/documents/",
         json={
             "file_name": f"no_data_doc_{seq}.jpg",
-            "file_path": f"no_data_doc_{seq}.jpg",
+            "file_path": f"/tmp/lab-manager-test-uploads/no_data_doc_{seq}.jpg",
             "status": status,
         },
     )
@@ -115,7 +115,7 @@ def create_docs_with_type(api, n, doc_type):
             "/api/v1/documents/",
             json={
                 "file_name": f"type_doc_{seq}.jpg",
-                "file_path": f"type_doc_{seq}.jpg",
+                "file_path": f"/tmp/lab-manager-test-uploads/type_doc_{seq}.jpg",
                 "status": "pending",
                 "document_type": doc_type,
             },
@@ -132,7 +132,7 @@ def create_named_doc(api, fname):
         "/api/v1/documents/",
         json={
             "file_name": fname,
-            "file_path": fname,
+            "file_path": f"/tmp/lab-manager-test-uploads/{fname}",
             "status": "pending",
         },
     )
@@ -174,7 +174,7 @@ def create_doc_invalid_status(api, status):
         "/api/v1/documents/",
         json={
             "file_name": "invalid_status.jpg",
-            "file_path": "invalid_status.jpg",
+            "file_path": "/tmp/lab-manager-test-uploads/invalid_status.jpg",
             "status": status,
         },
     )

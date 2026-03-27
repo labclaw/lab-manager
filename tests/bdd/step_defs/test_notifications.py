@@ -85,6 +85,16 @@ def ctx():
     return {}
 
 
+@pytest.fixture
+def prefs_response():
+    """Default so pytest-bdd can resolve this fixture in all scenarios.
+
+    Overridden by the 'When I request notification preferences' step via
+    target_fixture in the scenarios that actually use it.
+    """
+    return {}
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -281,11 +291,14 @@ def check_unread_zero(api):
     assert r.json()["unread_count"] == 0
 
 
-@then(parsers.parse("{field} should be {value}"))
-def check_pref_bool(prefs_response, field, value):
-    expected = value.lower() == "true"
-    actual = prefs_response[field]
-    assert actual == expected, f"Expected {field}={expected}, got {actual}"
+@then("in_app should be true")
+def check_in_app_true(prefs_response):
+    assert prefs_response["in_app"] is True
+
+
+@then("email_weekly should be false")
+def check_email_weekly_false(prefs_response):
+    assert prefs_response["email_weekly"] is False
 
 
 @then(parsers.parse("{field} should still be {value}"))
@@ -300,11 +313,6 @@ def check_status_200(new_prefs_response):
     assert new_prefs_response["status_code"] == 200
 
 
-@then("in_app should be true")
-def check_in_app_true(new_prefs_response):
+@then("in_app should be true for new staff")
+def check_in_app_true_new_staff(new_prefs_response):
     assert new_prefs_response["data"].in_app is True
-
-
-@then("in_app should be true for prefs")
-def check_in_app_true_prefs(prefs_response):
-    assert prefs_response["in_app"] is True

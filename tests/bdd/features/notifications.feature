@@ -1,61 +1,69 @@
-# 通知系统 — 事件通知和订阅
-Feature: Notifications and Event Subscriptions
+# Notifications — in-app notification system
+Feature: In-app Notifications
   As a lab manager
-  I want to receive notifications for important events
-  So that I don't miss critical lab updates
+  I want to receive and manage in-app notifications
+  So that I can stay informed about important events
 
-  Background:
-    Given I am authenticated as staff "user1"
+  # List notifications
+  Scenario: List notifications for a staff member
+    Given a staff member "alice" exists with role "admin"
+    And 3 notifications exist for the staff member
+    When I request the notification list
+    Then the response should contain 3 items
+    And the total should be 3
 
-  # 库存预警
-  Scenario: Receive low stock notification
-    Given I am subscribed to low stock alerts
-    And product "Antibody-A" has quantity 5 with reorder level 10
-    When the daily check runs
-    Then I should receive a notification
-    And notification should mention "Antibody-A"
+  # Filter unread
+  Scenario: Filter notifications to unread only
+    Given a staff member "alice" exists with role "admin"
+    And 3 notifications exist for the staff member
+    And 1 of those notifications are read
+    When I request the notification list with unread_only true
+    Then the response should contain 2 items
 
-  Scenario: Receive expiring product notification
-    Given I am subscribed to expiration alerts
-    And product "Enzyme" expires in 7 days
-    When the expiration check runs
-    Then I should receive a notification
-    And notification should show expiration date
+  # Unread count
+  Scenario: Get unread notification count
+    Given a staff member "alice" exists with role "admin"
+    And 2 unread notifications exist for the staff member
+    When I request the unread count
+    Then the count should be 2
 
-  # 订单状态
-  Scenario: Receive order shipped notification
-    Given I placed order "ORD-001"
-    And I am subscribed to order updates
-    When the order status changes to "shipped"
-    Then I should receive a notification
-    And notification should include tracking info
+  Scenario: Unread count is zero when no notifications
+    Given a staff member "alice" exists with role "admin"
+    When I request the unread count
+    Then the count should be 0
 
-  Scenario: Receive order delivered notification
-    Given order "ORD-001" is in transit
-    When the order is marked delivered
-    Then I should receive a notification
-    And I can confirm receipt
+  # Mark single read
+  Scenario: Mark a single notification as read
+    Given a staff member "alice" exists with role "admin"
+    And an unread notification exists for the staff member
+    When I mark the notification as read
+    Then the notification should be marked as read
 
-  # 通知偏好
-  Scenario: Set notification delivery method
-    When I set delivery method to "email"
-    Then notifications should be sent via email
+  # Mark all read
+  Scenario: Mark all notifications as read
+    Given a staff member "alice" exists with role "admin"
+    And 3 unread notifications exist for the staff member
+    When I mark all notifications as read
+    Then the marked count should be 3
+    And the unread count should be 0
 
-  Scenario: Set notification frequency
-    When I set frequency to "daily digest"
-    Then I should receive one daily summary
-    And not individual notifications
+  # Default preferences
+  Scenario: Get default notification preferences
+    Given a staff member "alice" exists with role "admin"
+    When I request notification preferences
+    Then in_app should be true
+    And email_weekly should be false
 
-  # 批量通知
-  Scenario: Bulk notification for multiple low stock items
-    Given 5 products are below reorder level
-    When the daily check runs
-    Then I should receive a single summary
-    And all 5 products should be listed
+  # Update preferences
+  Scenario: Update notification preferences
+    Given a staff member "alice" exists with role "admin"
+    And notification preferences exist for the staff member
+    When I update preferences with email_weekly true and inventory_alerts false
+    Then email_weekly should still be true
+    And inventory_alerts should still be false
 
-  # 通知历史
-  Scenario: View notification history
-    Given I received 10 notifications
-    When I request notification history
-    Then I should see all 10 notifications
-    And they should be sorted by date
+  # Preferences created on first access
+  Scenario: Preferences are created on first access
+    When I request notification preferences for a new staff member
+    Then the response status should be 200
+    And in_app should be true for new staff
