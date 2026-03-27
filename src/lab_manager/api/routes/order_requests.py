@@ -40,8 +40,8 @@ _MAX_QUANTITY = 1_000_000
 class OrderRequestCreate(BaseModel):
     product_id: Optional[int] = None
     vendor_id: Optional[int] = None
-    catalog_number: Optional[str] = Field(default=None, max_length=100)
-    description: Optional[str] = Field(default=None, max_length=1000)
+    catalog_number: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    description: Optional[str] = Field(default=None, min_length=1, max_length=1000)
     quantity: Decimal = Field(
         default=Decimal("1"), gt=0, le=Decimal(str(_MAX_QUANTITY))
     )
