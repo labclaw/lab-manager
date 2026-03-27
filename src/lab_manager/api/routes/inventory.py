@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db, get_or_404
-from lab_manager.exceptions import ValidationError
+from lab_manager.exceptions import ValidationError as BusinessValidationError
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.inventory import InventoryItem, InventoryStatus
 from lab_manager.models.product import Product
@@ -35,6 +35,25 @@ _INV_SORTABLE = {
 }
 
 _VALID_INV_STATUSES = {s.value for s in InventoryStatus}
+
+# Allowed status transitions via PATCH.  Dedicated lifecycle endpoints
+# (consume, dispose, open) handle their own transitions with side-effects
+# (logging, quantity changes).  PATCH should only allow status changes
+# that don't require those side-effects.
+_ALLOWED_PATCH_TRANSITIONS: dict[str, set[str]] = {
+    InventoryStatus.available.value: {
+        InventoryStatus.available.value,
+        InventoryStatus.expired.value,
+    },
+    InventoryStatus.opened.value: {
+        InventoryStatus.opened.value,
+        InventoryStatus.expired.value,
+    },
+    InventoryStatus.expired.value: {
+        InventoryStatus.expired.value,
+        InventoryStatus.disposed.value,
+    },
+}
 
 
 # ---------------------------------------------------------------------------
@@ -257,13 +276,21 @@ def update_inventory_item(
 ):
     item = get_or_404(db, InventoryItem, item_id, "Inventory item")
     if item.status in (
-        InventoryStatus.deleted,
-        InventoryStatus.disposed,
-        InventoryStatus.depleted,
+        InventoryStatus.deleted.value,
+        InventoryStatus.disposed.value,
+        InventoryStatus.depleted.value,
     ):
-        raise ValidationError(
+        raise BusinessValidationError(
             f"Cannot modify inventory item with status '{item.status}'"
         )
+    new_status = body.model_dump(exclude_unset=True).get("status")
+    if new_status is not None:
+        current = item.status if isinstance(item.status, str) else item.status.value
+        allowed = _ALLOWED_PATCH_TRANSITIONS.get(current, set())
+        if new_status not in allowed:
+            raise BusinessValidationError(
+                f"Cannot transition status from '{current}' to '{new_status}'"
+            )
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
     db.flush()
