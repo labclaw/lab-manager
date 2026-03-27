@@ -13,12 +13,15 @@ from __future__ import annotations
 import imaplib
 import logging
 import os
-import time
+import threading
 
 logger = logging.getLogger(__name__)
 
 # Default polling interval: 5 minutes
 DEFAULT_POLL_INTERVAL = 300
+
+# Global shutdown event — set by stop_poller() to break the poll loop
+_shutdown_event = threading.Event()
 
 
 def _get_imap_config() -> dict:
@@ -122,9 +125,10 @@ def poll_once() -> int:
 
 
 def run_poller() -> None:
-    """Run the email poller in a loop. Blocks forever.
+    """Run the email poller in a loop. Blocks until stop_poller() is called.
 
     Intended to be started in a background thread or separate process.
+    Graceful shutdown: call stop_poller() from another thread.
     """
     config = _get_imap_config()
     password = _get_imap_password()
@@ -137,6 +141,7 @@ def run_poller() -> None:
         logger.warning("Email poller not starting: EMAIL_IMAP_PASSWORD required")
         return
 
+    _shutdown_event.clear()
     interval = config["interval"]
     logger.info(
         "Email poller starting: host=%s, user=%s, folder=%s, interval=%ds",
@@ -146,11 +151,23 @@ def run_poller() -> None:
         interval,
     )
 
-    while True:
+    while not _shutdown_event.is_set():
         try:
             count = poll_once()
             if count:
                 logger.info("Poll cycle: created %d document(s)", count)
         except Exception:
             logger.exception("Error in poll cycle")
-        time.sleep(interval)
+        # Use event.wait() instead of time.sleep() so stop_poller() can
+        # break out immediately instead of waiting up to `interval` seconds.
+        _shutdown_event.wait(timeout=interval)
+
+    logger.info("Email poller stopped")
+
+
+def stop_poller() -> None:
+    """Signal the email poller to stop. Returns immediately.
+
+    The poller thread will exit within one poll cycle.
+    """
+    _shutdown_event.set()
