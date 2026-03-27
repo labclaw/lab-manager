@@ -22,6 +22,7 @@ from lab_manager.models.import_job import (
     ImportType,
     ImportStatus,
 )
+from lab_manager.models.device import Device, DeviceStatus
 
 __all__ = [
     "AuditMixin",
@@ -56,4 +57,6 @@ __all__ = [
     "ImportErrorRecord",
     "ImportType",
     "ImportStatus",
+    "Device",
+    "DeviceStatus",
 ]
