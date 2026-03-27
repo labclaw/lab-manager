@@ -54,17 +54,6 @@ def upgrade() -> None:
     op.create_index("ix_reservation_equipment_id", "reservation", ["equipment_id"])
     op.create_index("ix_reservation_start_time", "reservation", ["start_time"])
 
-    op.create_foreign_key(
-        "fk_reservation_equipment_id",
-        "equipment",
-        "id",
-    )
-    op.create_foreign_key(
-        "fk_reservation_staff_id",
-        "staff",
-        "id",
-    )
-
 
 def downgrade() -> None:
     op.drop_table("reservation")
