@@ -353,7 +353,7 @@ class TestOCRConfigDefaults:
         with patch.dict(
             "os.environ",
             {"AUTH_ENABLED": "false", "ADMIN_SECRET_KEY": ""},
-            clear=False,
+            clear=True,
         ):
             from importlib import reload
 
@@ -372,7 +372,7 @@ class TestOCRConfigDefaults:
         with patch.dict(
             "os.environ",
             {"AUTH_ENABLED": "false", "ADMIN_SECRET_KEY": ""},
-            clear=False,
+            clear=True,
         ):
             from importlib import reload
 
