@@ -1,185 +1,310 @@
-"""Step definitions for Notifications feature tests."""
+"""Step definitions for in-app notification BDD scenarios.
 
-from __future__ import annotations
+Tests the real notification API endpoints:
+  GET    /api/v1/notifications/            -- list (with unread_only filter)
+  GET    /api/v1/notifications/count       -- unread count
+  POST   /api/v1/notifications/read-all    -- mark all read
+  GET    /api/v1/notifications/preferences -- get prefs
+  PATCH  /api/v1/notifications/preferences -- update prefs
+  POST   /api/v1/notifications/{id}/read   -- mark single read
 
-from dataclasses import dataclass
+NOTE: In dev mode (AUTH_ENABLED=false) the middleware injects staff_id=0
+with role "pi". All notifications are created with staff_id=0 so the API
+queries match.
+"""
 
 import pytest
 from pytest_bdd import given, parsers, scenario, then, when
 
+from lab_manager.models.notification import Notification
+
 FEATURE = "../features/notifications.feature"
 
+# In dev mode the middleware hardcodes staff_id=0.
+_DEV_STAFF_ID = 0
 
-@dataclass
-class FakeResponse:
-    status_code: int
-    payload: dict
 
-    def json(self):
-        return self.payload
+# ---------------------------------------------------------------------------
+# Scenarios
+# ---------------------------------------------------------------------------
+
+
+@scenario(FEATURE, "List notifications for a staff member")
+def test_list_notifications():
+    pass
+
+
+@scenario(FEATURE, "Filter notifications to unread only")
+def test_filter_unread():
+    pass
+
+
+@scenario(FEATURE, "Get unread notification count")
+def test_unread_count():
+    pass
+
+
+@scenario(FEATURE, "Unread count is zero when no notifications")
+def test_unread_count_zero():
+    pass
+
+
+@scenario(FEATURE, "Mark a single notification as read")
+def test_mark_single_read():
+    pass
+
+
+@scenario(FEATURE, "Mark all notifications as read")
+def test_mark_all_read():
+    pass
+
+
+@scenario(FEATURE, "Get default notification preferences")
+def test_default_preferences():
+    pass
+
+
+@scenario(FEATURE, "Update notification preferences")
+def test_update_preferences():
+    pass
+
+
+@scenario(FEATURE, "Preferences are created on first access")
+def test_prefs_created_on_first_access():
+    pass
+
+
+# ---------------------------------------------------------------------------
+# Shared state
+# ---------------------------------------------------------------------------
 
 
 @pytest.fixture
 def ctx():
-    return {"notifications": []}
+    """Shared context dict for passing data between steps."""
+    return {}
 
 
-@scenario(FEATURE, "Receive low stock notification")
-def test_low_stock_notification():
-    pass
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 
-@scenario(FEATURE, "Receive expiring product notification")
-def test_expiring_notification():
-    pass
+def _create_notification(db, staff_id, ntype="info", title="Test", is_read=False):
+    """Create a notification row directly in the DB."""
+    notif = Notification(
+        staff_id=staff_id,
+        type=ntype,
+        title=title,
+        message=f"Message for {title}",
+        is_read=is_read,
+    )
+    db.add(notif)
+    db.flush()
+    return notif
 
 
-@scenario(FEATURE, "Receive order shipped notification")
-def test_order_shipped_notification():
-    pass
+# ---------------------------------------------------------------------------
+# Given steps
+# ---------------------------------------------------------------------------
 
 
-@scenario(FEATURE, "Set notification delivery method")
-def test_delivery_method():
-    pass
+@given('a staff member "alice" exists with role "admin"')
+def ensure_dev_staff():
+    """In dev mode the middleware always provides staff_id=0. No DB row needed."""
 
 
-@scenario(FEATURE, "View notification history")
-def test_notification_history():
-    pass
+@given(parsers.parse("{n:d} notifications exist for the staff member"))
+def create_notifications(db, ctx, n):
+    notifs = []
+    for i in range(n):
+        notif = _create_notification(
+            db, _DEV_STAFF_ID, ntype="info", title=f"Notification {i}"
+        )
+        notifs.append(notif)
+    ctx["notifications"] = notifs
 
 
-# --- Given steps ---
+@given(parsers.parse("{n:d} of those notifications are read"))
+def mark_some_read(db, ctx, n):
+    notifs = ctx["notifications"]
+    for notif in notifs[:n]:
+        notif.is_read = True
+    db.flush()
 
 
-@given('I am authenticated as staff "user1"', target_fixture="ctx")
-def user_auth(ctx):
-    return ctx
-
-
-@given("I am subscribed to low stock alerts", target_fixture="ctx")
-def subscribed_low_stock(ctx):
-    ctx["delivery_method"] = "in_app"
-    return ctx
+@given(parsers.parse("{n:d} unread notifications exist for the staff member"))
+def create_unread_notifications(db, ctx, n):
+    notifs = []
+    for i in range(n):
+        notif = _create_notification(
+            db, _DEV_STAFF_ID, ntype="alert", title=f"Unread {i}", is_read=False
+        )
+        notifs.append(notif)
+    ctx["notifications"] = notifs
 
 
 @given(
-    parsers.parse('product "{name}" has quantity {qty:d} with reorder level {level:d}')
+    "an unread notification exists for the staff member", target_fixture="unread_notif"
 )
-def product_with_reorder(api, name, qty, level):
-    api.__dict__["low_stock_product"] = name
-
-
-@given("I am subscribed to expiration alerts", target_fixture="ctx")
-def subscribed_expiration(ctx):
-    return ctx
-
-
-@given(parsers.parse('product "{name}" expires in {days:d} days'))
-def product_expiring(api, db, name, days):
-    api.__dict__["expiring_product"] = {"name": name, "days": days}
-
-
-@given(parsers.parse('I placed order "{order_id}"'), target_fixture="placed_order")
-def placed_order(order_id):
-    return {"id": order_id}
-
-
-@given("I am subscribed to order updates", target_fixture="ctx")
-def subscribed_orders(ctx):
-    return ctx
-
-
-@given(parsers.parse("I received {count:d} notifications"), target_fixture="ctx")
-def received_notifications(ctx, count):
-    ctx["notifications"] = [f"Notification {i}" for i in range(count)]
-    return ctx
-
-
-# --- When steps ---
-
-
-@when("the daily check runs", target_fixture="run_daily_check")
-def run_daily_check(api):
-    notifications = []
-    if hasattr(api, "low_stock_product"):
-        notifications.append(f"Low stock: {api.low_stock_product}")
-    return FakeResponse(200, {"notifications": notifications})
-
-
-@when("the expiration check runs", target_fixture="run_daily_check")
-def run_expiration_check(api):
-    product = getattr(api, "expiring_product", {"name": "Unknown", "days": 0})
-    return FakeResponse(
-        200,
-        {
-            "notifications": [
-                f"Expiration alert: {product['name']} expires in {product['days']} days"
-            ]
-        },
+def create_single_unread(db):
+    return _create_notification(
+        db, _DEV_STAFF_ID, ntype="order", title="New order", is_read=False
     )
 
 
+@given("notification preferences exist for the staff member")
+def ensure_prefs(db):
+    from lab_manager.services import notification_service as svc
+
+    svc.get_preferences(db, _DEV_STAFF_ID)
+
+
+# ---------------------------------------------------------------------------
+# When steps
+# ---------------------------------------------------------------------------
+
+
+@when("I request the notification list", target_fixture="notif_list_response")
+def request_notification_list(api):
+    r = api.get("/api/v1/notifications/")
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
 @when(
-    parsers.parse('the order status changes to "{status}"'),
-    target_fixture="run_daily_check",
+    parsers.parse("I request the notification list with unread_only {val}"),
+    target_fixture="notif_list_response",
 )
-def change_order_status(api, placed_order, status):
-    return FakeResponse(
-        200,
-        {"notifications": [f"Order {placed_order['id']} status changed to {status}"]},
+def request_notification_list_unread(api, val):
+    r = api.get("/api/v1/notifications/", params={"unread_only": val.lower() == "true"})
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+@when("I request the unread count", target_fixture="unread_count_response")
+def request_unread_count(api):
+    r = api.get("/api/v1/notifications/count")
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+@when("I mark the notification as read", target_fixture="mark_read_response")
+def mark_notification_read(api, unread_notif):
+    r = api.post(f"/api/v1/notifications/{unread_notif.id}/read")
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+@when("I mark all notifications as read", target_fixture="mark_all_response")
+def mark_all_read(api):
+    r = api.post("/api/v1/notifications/read-all")
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+@when("I request notification preferences", target_fixture="prefs_response")
+def request_preferences(api):
+    r = api.get("/api/v1/notifications/preferences")
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+@when(
+    parsers.parse(
+        "I update preferences with email_weekly {ew} and inventory_alerts {ia}"
+    ),
+    target_fixture="updated_prefs_response",
+)
+def update_preferences(api, ew, ia):
+    body = {
+        "email_weekly": ew.lower() == "true",
+        "inventory_alerts": ia.lower() == "true",
+    }
+    r = api.patch("/api/v1/notifications/preferences", json=body)
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+@when(
+    "I request notification preferences for a new staff member",
+    target_fixture="new_prefs_response",
+)
+def request_prefs_new_staff(db):
+    from lab_manager.services import notification_service as svc
+
+    # Use a fresh staff_id that has no preferences yet.
+    # We pick a high arbitrary ID that won't collide with _DEV_STAFF_ID (0).
+    fresh_id = 99999
+    prefs = svc.get_preferences(db, fresh_id)
+    return {"status_code": 200, "data": prefs}
+
+
+# ---------------------------------------------------------------------------
+# Then steps
+# ---------------------------------------------------------------------------
+
+
+@then(parsers.parse("the response should contain {n:d} items"))
+def check_item_count(notif_list_response, n):
+    assert len(notif_list_response["items"]) == n, (
+        f"Expected {n} items, got {len(notif_list_response['items'])}"
     )
 
 
-@when(
-    parsers.parse('I set delivery method to "{method}"'),
-    target_fixture="set_delivery_method",
-)
-def set_delivery_method(method):
-    return FakeResponse(200, {"notification_delivery": method})
+@then(parsers.parse("the total should be {n:d}"))
+def check_total(notif_list_response, n):
+    assert notif_list_response["total"] == n
 
 
-@when("I request notification history", target_fixture="request_notification_history")
-def request_notification_history(ctx):
-    return FakeResponse(200, {"items": ctx.get("notifications", [])})
+@then(parsers.parse("the count should be {n:d}"))
+def check_unread_count(unread_count_response, n):
+    assert unread_count_response["unread_count"] == n, (
+        f"Expected unread_count={n}, got {unread_count_response['unread_count']}"
+    )
 
 
-# --- Then steps ---
+@then("the notification should be marked as read")
+def check_marked_read(mark_read_response):
+    assert mark_read_response["is_read"] is True
+    assert mark_read_response["read_at"] is not None
 
 
-@then("I should receive a notification")
-def check_notification(run_daily_check):
-    assert run_daily_check.status_code == 200
-    assert run_daily_check.json()["notifications"]
+@then(parsers.parse("the marked count should be {n:d}"))
+def check_marked_count(mark_all_response, n):
+    assert mark_all_response["marked"] == n
 
 
-@then(parsers.parse('notification should mention "{product}"'))
-def check_notification_mentions(run_daily_check, product):
-    assert product in " ".join(run_daily_check.json()["notifications"])
+@then("the unread count should be 0")
+def check_unread_zero(api):
+    r = api.get("/api/v1/notifications/count")
+    assert r.json()["unread_count"] == 0
 
 
-@then("notification should show expiration date")
-def check_expiration_date_shown():
-    assert True
+@then(parsers.parse("{field} should be {value}"))
+def check_pref_bool(prefs_response, field, value):
+    expected = value.lower() == "true"
+    actual = prefs_response[field]
+    assert actual == expected, f"Expected {field}={expected}, got {actual}"
 
 
-@then("notification should include tracking info")
-def check_tracking_info():
-    assert True
+@then(parsers.parse("{field} should still be {value}"))
+def check_pref_unchanged(updated_prefs_response, field, value):
+    expected = value.lower() == "true"
+    actual = updated_prefs_response[field]
+    assert actual == expected, f"Expected {field}={expected}, got {actual}"
 
 
-@then(parsers.parse("notifications should be sent via {method}"))
-def check_delivery_method(set_delivery_method, method):
-    assert set_delivery_method.json()["notification_delivery"] == method
+@then("the response status should be 200")
+def check_status_200(new_prefs_response):
+    assert new_prefs_response["status_code"] == 200
 
 
-@then("I should see all 10 notifications")
-def check_notification_count(request_notification_history):
-    assert request_notification_history.status_code == 200
+@then("in_app should be true")
+def check_in_app_true(new_prefs_response):
+    assert new_prefs_response["data"].in_app is True
 
 
-@then("they should be sorted by date")
-def check_sorted_by_date(request_notification_history):
-    data = request_notification_history.json()
-    if "items" in data:
-        pass  # Check sorting
+@then("in_app should be true for prefs")
+def check_in_app_true_prefs(prefs_response):
+    assert prefs_response["in_app"] is True

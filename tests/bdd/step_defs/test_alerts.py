@@ -1,4 +1,12 @@
-"""Step definitions for alerts and monitoring BDD scenarios."""
+"""Step definitions for alerts and monitoring BDD scenarios.
+
+Tests the real alert API endpoints:
+  GET    /api/v1/alerts/                    — list (with type/severity/resolved filters)
+  GET    /api/v1/alerts/summary             — alert summary
+  POST   /api/v1/alerts/check               — trigger alert check
+  POST   /api/v1/alerts/{id}/acknowledge    — acknowledge alert
+  POST   /api/v1/alerts/{id}/resolve        — resolve alert
+"""
 
 import itertools
 from datetime import date, timedelta
@@ -17,7 +25,9 @@ FEATURE = "../features/alerts.feature"
 _vendor_seq = itertools.count(1)
 
 
-# --- Scenarios ---
+# ---------------------------------------------------------------------------
+# Scenarios
+# ---------------------------------------------------------------------------
 
 
 @scenario(FEATURE, "Detect expiring reagents")
@@ -50,7 +60,34 @@ def test_alert_summary_counts():
     pass
 
 
-# --- Shared state ---
+@scenario(FEATURE, "Alert check on clean database")
+def test_alert_check_clean():
+    pass
+
+
+@scenario(FEATURE, "Filter alerts by type")
+def test_filter_by_type():
+    pass
+
+
+@scenario(FEATURE, "Filter alerts by severity")
+def test_filter_by_severity():
+    pass
+
+
+@scenario(FEATURE, "Acknowledge non-existent alert returns 404")
+def test_ack_not_found():
+    pass
+
+
+@scenario(FEATURE, "Resolve non-existent alert returns 404")
+def test_resolve_not_found():
+    pass
+
+
+# ---------------------------------------------------------------------------
+# Shared state
+# ---------------------------------------------------------------------------
 
 
 @pytest.fixture
@@ -59,11 +96,12 @@ def ctx():
     return {}
 
 
-# --- Helpers ---
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 
 def _create_vendor(db):
-    """Create a vendor with a unique name directly in the DB."""
     vendor = Vendor(name=f"Test Vendor {next(_vendor_seq)}")
     db.add(vendor)
     db.flush()
@@ -71,7 +109,6 @@ def _create_vendor(db):
 
 
 def _create_product(db, vendor_id, catalog_number, min_stock_level=None):
-    """Create a product directly in the DB."""
     product = Product(
         name=f"Product {catalog_number}",
         catalog_number=catalog_number,
@@ -86,7 +123,6 @@ def _create_product(db, vendor_id, catalog_number, min_stock_level=None):
 def _create_inventory_item(
     db, product_id, quantity, expiry_date=None, lot_number="LOT001"
 ):
-    """Create an inventory item directly in the DB."""
     item = InventoryItem(
         product_id=product_id,
         quantity_on_hand=quantity,
@@ -103,7 +139,6 @@ def _create_inventory_item(
 def _create_alert(
     db, alert_type="expiring_soon", severity="warning", is_resolved=False, entity_id=1
 ):
-    """Create an alert directly in the DB."""
     alert = Alert(
         alert_type=alert_type,
         severity=severity,
@@ -117,7 +152,9 @@ def _create_alert(
     return alert
 
 
-# --- Given steps ---
+# ---------------------------------------------------------------------------
+# Given steps
+# ---------------------------------------------------------------------------
 
 
 @given("an inventory item expiring in 7 days", target_fixture="expiring_item")
@@ -219,7 +256,26 @@ def create_pending_documents(db, n):
     db.flush()
 
 
-# --- When steps ---
+@given("alerts of different types exist")
+def create_mixed_type_alerts(db, ctx):
+    a1 = _create_alert(db, alert_type="low_stock", severity="warning", entity_id=4100)
+    a2 = _create_alert(
+        db, alert_type="expiring_soon", severity="warning", entity_id=4101
+    )
+    ctx["type_alerts"] = [a1, a2]
+
+
+@given("alerts of different severities exist")
+def create_mixed_severity_alerts(db, ctx):
+    a1 = _create_alert(db, alert_type="expired", severity="critical", entity_id=4200)
+    a2 = _create_alert(db, alert_type="low_stock", severity="warning", entity_id=4201)
+    a3 = _create_alert(db, alert_type="pending_review", severity="info", entity_id=4202)
+    ctx["severity_alerts"] = [a1, a2, a3]
+
+
+# ---------------------------------------------------------------------------
+# When steps
+# ---------------------------------------------------------------------------
 
 
 @when("I run the alert check", target_fixture="check_response")
@@ -257,7 +313,45 @@ def request_alert_summary(api):
     return r.json()
 
 
-# --- Then steps ---
+@when(
+    parsers.parse('I list alerts filtered by type "{alert_type}"'),
+    target_fixture="filtered_type_response",
+)
+def list_alerts_by_type(api, alert_type):
+    r = api.get("/api/v1/alerts/", params={"alert_type": alert_type, "resolved": False})
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+@when(
+    parsers.parse('I list alerts filtered by severity "{severity}"'),
+    target_fixture="filtered_severity_response",
+)
+def list_alerts_by_severity(api, severity):
+    r = api.get("/api/v1/alerts/", params={"severity": severity, "resolved": False})
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+@when(
+    parsers.parse("I try to acknowledge alert with id {aid:d}"),
+    target_fixture="error_response",
+)
+def try_ack_missing(api, aid):
+    return api.post(f"/api/v1/alerts/{aid}/acknowledge")
+
+
+@when(
+    parsers.parse("I try to resolve alert with id {aid:d}"),
+    target_fixture="error_response",
+)
+def try_resolve_missing(api, aid):
+    return api.post(f"/api/v1/alerts/{aid}/resolve")
+
+
+# ---------------------------------------------------------------------------
+# Then steps
+# ---------------------------------------------------------------------------
 
 
 @then("an expiry alert should be created")
@@ -304,6 +398,11 @@ def check_resolved(resolve_response):
     assert resolve_response["is_resolved"] is True
 
 
+@then("the alert should also be acknowledged")
+def check_resolved_also_ack(resolve_response):
+    assert resolve_response["is_acknowledged"] is True
+
+
 @then(parsers.parse("the summary should show {n:d} total active alerts"))
 def check_summary_total(summary_response, n):
     assert summary_response["total"] == n, (
@@ -318,3 +417,31 @@ def check_summary_breakdown(summary_response):
     assert "expiring_soon" in by_type
     assert "low_stock" in by_type
     assert "pending_review" in by_type
+
+
+@then("the check should return 0 new alerts")
+def check_zero_new_alerts(check_response):
+    assert check_response["new_alerts"] == 0
+
+
+@then(parsers.parse('all returned alerts should have type "{atype}"'))
+def check_all_type(filtered_type_response, atype):
+    for item in filtered_type_response["items"]:
+        assert item["alert_type"] == atype, (
+            f"Expected type '{atype}', got '{item['alert_type']}'"
+        )
+
+
+@then(parsers.parse('all returned alerts should have severity "{sev}"'))
+def check_all_severity(filtered_severity_response, sev):
+    for item in filtered_severity_response["items"]:
+        assert item["severity"] == sev, (
+            f"Expected severity '{sev}', got '{item['severity']}'"
+        )
+
+
+@then(parsers.parse("the alert response status should be {code:d}"))
+def check_error_status(error_response, code):
+    assert error_response.status_code == code, (
+        f"Expected status {code}, got {error_response.status_code}: {error_response.text}"
+    )
