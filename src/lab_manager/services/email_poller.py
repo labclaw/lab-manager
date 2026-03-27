@@ -22,16 +22,18 @@ DEFAULT_POLL_INTERVAL = 300
 
 
 def _get_imap_config() -> dict:
-    """Read IMAP configuration from environment."""
+    """Read IMAP configuration from environment.
+
+    Password is read directly from env at connect time and never stored
+    in the returned dict to prevent accidental logging of credentials.
+    """
     host = os.environ.get("EMAIL_IMAP_HOST", "")
     user = os.environ.get("EMAIL_IMAP_USER", "")
-    password = os.environ.get("EMAIL_IMAP_PASSWORD", "")
     folder = os.environ.get("EMAIL_FOLDER", "INBOX")
     interval = int(os.environ.get("EMAIL_POLL_INTERVAL", str(DEFAULT_POLL_INTERVAL)))
     return {
         "host": host,
         "user": user,
-        "password": password,
         "folder": folder,
         "interval": interval,
     }
@@ -39,8 +41,9 @@ def _get_imap_config() -> dict:
 
 def _connect_imap(config: dict) -> imaplib.IMAP4_SSL:
     """Connect and authenticate to IMAP server."""
+    password = os.environ.get("EMAIL_IMAP_PASSWORD", "")
     conn = imaplib.IMAP4_SSL(config["host"])
-    conn.login(config["user"], config["password"])
+    conn.login(config["user"], password)
     return conn
 
 
