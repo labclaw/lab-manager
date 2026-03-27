@@ -797,6 +797,7 @@ def create_app() -> FastAPI:
     )
     from lab_manager.api.routes import barcode  # noqa: E402
     from lab_manager.api.routes import devices  # noqa: E402
+    from lab_manager.api.routes import voice_notes  # noqa: E402
 
     # Auth is handled by auth_middleware — rate limiting via route decorators
     api_router = APIRouter()
@@ -852,6 +853,9 @@ def create_app() -> FastAPI:
     )
     api_router.include_router(
         knowledge.router, prefix="/api/v1/knowledge", tags=["knowledge"]
+    )
+    api_router.include_router(
+        voice_notes.router, prefix="/api/v1/voice-notes", tags=["voice-notes"]
     )
 
     from lab_manager.api.routes import chat as chat_routes

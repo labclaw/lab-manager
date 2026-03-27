@@ -25,6 +25,7 @@ from lab_manager.models.import_job import (
 from lab_manager.models.reservation import Reservation, ReservationStatus
 from lab_manager.models.device import Device, DeviceStatus
 from lab_manager.models.knowledge import KnowledgeEntry, KnowledgeCategory
+from lab_manager.models.voice_note import VoiceNote
 
 __all__ = [
     "AuditMixin",
@@ -65,4 +66,5 @@ __all__ = [
     "KnowledgeCategory",
     "Reservation",
     "ReservationStatus",
+    "VoiceNote",
 ]
