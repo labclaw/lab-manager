@@ -75,9 +75,6 @@ class ProductUpdate(BaseModel):
     storage_temp: Optional[str] = PydanticField(default=None, max_length=50)
     unit: Optional[str] = PydanticField(default=None, max_length=50)
     hazard_info: Optional[str] = PydanticField(default=None, max_length=255)
-    hazard_class: Optional[str] = PydanticField(default=None, max_length=100)
-    msds_url: Optional[str] = PydanticField(default=None, max_length=500)
-    requires_safety_review: Optional[bool] = None
     extra: Optional[dict] = None
 
     @field_validator("cas_number")
@@ -102,9 +99,6 @@ class ProductResponse(BaseModel):
     storage_temp: Optional[str] = None
     unit: Optional[str] = None
     hazard_info: Optional[str] = None
-    hazard_class: Optional[str] = None
-    msds_url: Optional[str] = None
-    requires_safety_review: bool = False
     extra: dict = {}
     created_at: datetime | None = None
     updated_at: datetime | None = None
@@ -269,67 +263,6 @@ def enrich_product_endpoint(product_id: int, db: Session = Depends(get_db)):
     for enrich_key, model_field in field_map.items():
         if enrich_key in data and getattr(product, model_field) is None:
             setattr(product, model_field, data[enrich_key])
-
-    db.flush()
-    db.refresh(product)
-    index_product_record(product)
-    return product
-
-
-@router.get("/{product_id}/msds")
-def get_product_msds(product_id: int, db: Session = Depends(get_db)):
-    """Return MSDS/SDS info for a product. Auto-lookup if CAS exists."""
-    from lab_manager.services.msds import get_safety_alert, lookup_msds
-
-    product = get_or_404(db, Product, product_id, "Product")
-
-    result: dict = {
-        "product_id": product_id,
-        "name": product.name,
-        "cas_number": product.cas_number,
-        "msds_url": product.msds_url,
-        "hazard_class": product.hazard_class,
-        "requires_safety_review": product.requires_safety_review,
-        "signal_word": None,
-        "safety_alert": None,
-    }
-
-    # If CAS exists but no MSDS data yet, do an auto-lookup.
-    if product.cas_number and not product.msds_url:
-        msds_data = lookup_msds(product.cas_number)
-        result["msds_url"] = msds_data.get("msds_url")
-        result["hazard_class"] = msds_data.get("hazard_class")
-        result["signal_word"] = msds_data.get("signal_word")
-        result["requires_safety_review"] = msds_data.get(
-            "requires_safety_review", False
-        )
-
-    if result["hazard_class"]:
-        result["safety_alert"] = get_safety_alert(product.name, result["hazard_class"])
-
-    return result
-
-
-@router.post("/{product_id}/lookup-msds", response_model=ProductResponse)
-def lookup_product_msds(product_id: int, db: Session = Depends(get_db)):
-    """Trigger MSDS lookup and update product record with results."""
-    from lab_manager.services.msds import lookup_msds
-
-    product = get_or_404(db, Product, product_id, "Product")
-
-    if not product.cas_number:
-        from lab_manager.exceptions import ValidationError
-
-        raise ValidationError("Product has no CAS number -- cannot look up MSDS data")
-
-    msds_data = lookup_msds(product.cas_number)
-
-    if msds_data.get("msds_url") and not product.msds_url:
-        product.msds_url = msds_data["msds_url"]
-    if msds_data.get("hazard_class") and not product.hazard_class:
-        product.hazard_class = msds_data["hazard_class"]
-    if msds_data.get("requires_safety_review"):
-        product.requires_safety_review = True
 
     db.flush()
     db.refresh(product)
