@@ -540,6 +540,46 @@ export const orderRequests = {
   stats: () => apiFetch<RequestStats>('/requests/stats'),
 }
 
+// Devices
+export interface Device {
+  id: number
+  device_id: string
+  hostname: string
+  ip_address?: string | null
+  tailscale_ip?: string | null
+  platform?: string | null
+  os_version?: string | null
+  status: 'online' | 'offline' | 'error'
+  last_heartbeat_at?: string | null
+  first_seen_at?: string
+  cpu_percent?: number | null
+  memory_percent?: number | null
+  memory_total_mb?: number | null
+  disk_percent?: number | null
+  disk_total_gb?: number | null
+  tailscale_online: boolean
+  tailscale_exit_node: boolean
+  notes?: string | null
+  extra?: Record<string, unknown>
+}
+
+export const devices = {
+  list: (page = 1, pageSize = 50, status?: string, search?: string) => {
+    let qs = `?page=${page}&page_size=${pageSize}`
+    if (status) qs += `&status=${status}`
+    if (search) qs += `&search=${encodeURIComponent(search)}`
+    return apiFetch<ApiResponse<Device>>(`/devices${qs}`)
+  },
+  get: (id: number) => apiFetch<Device>(`/devices/${id}`),
+  update: (id: number, data: { notes?: string; extra?: Record<string, unknown> }) =>
+    apiFetch<Device>(`/devices/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  markOffline: (id: number) =>
+    apiFetch<Device>(`/devices/${id}/offline`, { method: 'POST' }),
+}
+
 // Notifications
 export interface NotificationItem {
   id: number
