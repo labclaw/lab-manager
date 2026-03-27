@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -94,7 +95,7 @@ def create_voice_note(
         getattr(
             request.app.state,
             "upload_dir",
-            Path("/tmp/lab-manager-uploads").resolve(),
+            Path(tempfile.gettempdir()) / "lab-manager-uploads",
         )
     )
     voice_dir = upload_dir / "voice_notes"
