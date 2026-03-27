@@ -51,14 +51,14 @@ records. We present Lab Manager, an open-source, AI-native laboratory
 operations platform that converts scanned documents into structured
 database records via multi-model consensus.
 
-The system employs a five-stage architecture: (1)~optical character
-recognition, (2)~parallel extraction by three frontier vision-language
-models (VLMs), (3)~field-level consensus voting with automatic conflict
-resolution, (4)~cross-model review where each model validates the merged
-extraction, and (5)~rule-based validation with human review for unresolved
+The system employs a six-stage architecture: (0)~optical character
+recognition, (1)~parallel extraction by three frontier vision-language
+models (VLMs), (2)~field-level consensus voting with automatic conflict
+resolution, (3)~cross-model review where each model validates the merged
+extraction, (4)~rule-based validation, and (5)~human review for unresolved
 conflicts. In a benchmark of 10 real documents from 10 vendors, individual
-VLMs achieved 90\% accuracy on vendor names and purchase order numbers,
-while the consensus mechanism resolved most inter-model disagreements
+VLMs achieved 80--90\% accuracy on vendor names and purchase order numbers,
+and the 2/3 majority consensus rule resolved all vendor name disagreements
 without human intervention.
 
 Deployed as a self-hosted Docker application, Lab Manager provides a
@@ -156,16 +156,16 @@ orders, analytics, and search indices.
 
 The system is built on a three-tier architecture: a PostgreSQL 17 database
 with 16 relational models, a FastAPI~\citep{fastapi2024} backend with 88
-REST API endpoints across 14 route modules, and a React frontend. The application provides Meilisearch for full-text search,
-role-based access control (RBAC) with 7 permission levels, a
-natural-language query interface (NL$\to$SQL via LiteLLM), CSV export,
-and a complete audit trail. Users deploy it as a single Docker Compose
-stack.
+REST API endpoints across 14 route modules, and a React frontend. The
+application provides Meilisearch for full-text search, role-based access
+control (RBAC) with 7 permission levels, a natural-language query interface
+(NL$\to$SQL via LiteLLM), CSV export, and a complete audit trail. Users
+deploy it as a single Docker Compose stack.
 
 \subsection{Multi-model consensus pipeline}
 \label{sec:pipeline}
 
-The document intake pipeline processes each uploaded image through five
+The document intake pipeline processes each uploaded image through six
 stages (Fig.~\ref{fig:pipeline}):
 
 \textbf{Stage 0: OCR.} Optical character recognition extracts raw text
@@ -606,6 +606,15 @@ platform), and Mistral AI for providing access to their foundation models.
 We built this work on open-source tools including FastAPI,
 SQLModel, PostgreSQL, Meilisearch, React, and the Python scientific
 computing ecosystem.
+
+% ============================================================
+\section{Author Contributions}
+C.S.\ designed the system architecture, implemented the core pipeline,
+conducted the VLM benchmark, and wrote the manuscript.
+
+% ============================================================
+\section{Competing Interests}
+The author declares no competing interests.
 
 % ============================================================
 \bibliographystyle{naturemag}
