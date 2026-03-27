@@ -22,7 +22,6 @@ from lab_manager.models.import_job import (
     ImportType,
     ImportStatus,
 )
-from lab_manager.models.reservation import Reservation, ReservationStatus
 from lab_manager.models.device import Device, DeviceStatus
 from lab_manager.models.knowledge import KnowledgeEntry, KnowledgeCategory
 
@@ -63,6 +62,4 @@ __all__ = [
     "DeviceStatus",
     "KnowledgeEntry",
     "KnowledgeCategory",
-    "Reservation",
-    "ReservationStatus",
 ]
