@@ -630,7 +630,7 @@ class TestWarnDefaultAdminPassword:
     def test_warns_on_changeme_password(self, caplog):
         with caplog.at_level(logging.WARNING, logger="lab_manager.config"):
             _make(auth_enabled=True, admin_password="changeme123")
-        assert any("default-style value" in r.message for r in caplog.records)
+        assert any("default value" in r.message for r in caplog.records)
 
     def test_no_warning_on_strong_password(self, caplog):
         with caplog.at_level(logging.WARNING, logger="lab_manager.config"):
