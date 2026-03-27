@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from '@/test/utils'
@@ -42,7 +42,6 @@ describe('CloudBrainChat', () => {
   })
 
   it('does not populate input when quick action is clicked while disconnected', async () => {
-    const user = userEvent.setup()
     renderWithProviders(<CloudBrainChat connected={false} />)
 
     const chip = screen.getByText('Protein Lookup')
