@@ -247,83 +247,150 @@ describe('Header', () => {
   })
 
   describe('AC7: Notification bell shows unread badge and dropdown', () => {
-    it('shows unread count badge when alertCount > 0', () => {
-      renderWithProviders(<Header {...defaultProps} alertCount={5} />)
-      expect(screen.getByText('5')).toBeInTheDocument()
+    it('shows unread count badge when unread notifications exist', async () => {
+      vi.useRealTimers()
+      server.use(
+        http.get('/api/v1/notifications/count/', () =>
+          HttpResponse.json({ unread_count: 5 }),
+        ),
+      )
+
+      renderWithProviders(<Header {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('5')).toBeInTheDocument()
+      })
     })
 
-    it('does not show badge when alertCount is 0', () => {
-      renderWithProviders(<Header {...defaultProps} alertCount={0} />)
+    it('does not show badge when unread count is 0', async () => {
+      vi.useRealTimers()
+      server.use(
+        http.get('/api/v1/notifications/count/', () =>
+          HttpResponse.json({ unread_count: 0 }),
+        ),
+      )
+
+      renderWithProviders(<Header {...defaultProps} />)
       const bellButton = screen.getByLabelText('Notifications')
-      // No badge child with a number
-      expect(bellButton.querySelector('span')).toBeNull()
+
+      await waitFor(() => {
+        expect(bellButton.querySelector('span')).toBeNull()
+      })
     })
 
-    it('caps badge at 99+', () => {
-      renderWithProviders(<Header {...defaultProps} alertCount={150} />)
-      expect(screen.getByText('99+')).toBeInTheDocument()
+    it('caps badge at 99+', async () => {
+      vi.useRealTimers()
+      server.use(
+        http.get('/api/v1/notifications/count/', () =>
+          HttpResponse.json({ unread_count: 150 }),
+        ),
+      )
+
+      renderWithProviders(<Header {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('99+')).toBeInTheDocument()
+      })
     })
 
     it('opens notification dropdown on bell click', async () => {
       vi.useRealTimers()
       const user = userEvent.setup()
       server.use(
-        http.get('/api/v1/alerts/', () =>
+        http.get('/api/v1/notifications/count/', () =>
+          HttpResponse.json({ unread_count: 1 }),
+        ),
+        http.get('/api/v1/notifications/', () =>
           HttpResponse.json({
             items: [
-              { id: 1, type: 'low_stock', severity: 'warning', message: 'Low stock alert', acknowledged: false, created_at: '2026-03-19T10:00:00' },
+              {
+                id: 1,
+                type: 'low_stock',
+                title: 'Low stock alert',
+                message: 'Sodium Chloride is below reorder level',
+                is_read: false,
+                created_at: '2026-03-19T10:00:00Z',
+              },
             ],
             total: 1,
           }),
         ),
       )
 
-      renderWithProviders(<Header {...defaultProps} alertCount={1} />)
+      renderWithProviders(<Header {...defaultProps} />)
       const bellButton = screen.getByLabelText('Notifications')
       await user.click(bellButton)
 
       await waitFor(() => {
         expect(screen.getByText('Notifications')).toBeInTheDocument()
-        expect(screen.getByText('View all')).toBeInTheDocument()
+        expect(screen.getByText('Low stock alert')).toBeInTheDocument()
+        expect(screen.getByText('Sodium Chloride is below reorder level')).toBeInTheDocument()
       })
     })
 
-    it('shows "No new notifications" when alert list is empty', async () => {
+    it('shows "No notifications" when the list is empty', async () => {
       vi.useRealTimers()
       const user = userEvent.setup()
       server.use(
-        http.get('/api/v1/alerts/', () =>
-          HttpResponse.json({ items: [], total: 0 }),
+        http.get('/api/v1/notifications/count/', () =>
+          HttpResponse.json({ unread_count: 0 }),
+        ),
+        http.get('/api/v1/notifications/', () =>
+          HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20, pages: 0 }),
         ),
       )
 
-      renderWithProviders(<Header {...defaultProps} alertCount={0} />)
+      renderWithProviders(<Header {...defaultProps} />)
       const bellButton = screen.getByLabelText('Notifications')
       await user.click(bellButton)
 
       await waitFor(() => {
-        expect(screen.getByText('No new notifications')).toBeInTheDocument()
+        expect(screen.getByText('No notifications')).toBeInTheDocument()
       })
     })
 
-    it('"View all" navigates to /alerts', async () => {
+    it('marks all notifications read from the dropdown', async () => {
       vi.useRealTimers()
       const user = userEvent.setup()
       server.use(
-        http.get('/api/v1/alerts/', () =>
-          HttpResponse.json({ items: [], total: 0 }),
+        http.get('/api/v1/notifications/count/', () =>
+          HttpResponse.json({ unread_count: 2 }),
+        ),
+        http.get('/api/v1/notifications/', () =>
+          HttpResponse.json({
+            items: [
+              {
+                id: 1,
+                type: 'low_stock',
+                title: 'Low stock alert',
+                message: 'Sodium Chloride is below reorder level',
+                is_read: false,
+                created_at: '2026-03-19T10:00:00Z',
+              },
+            ],
+            total: 1,
+            page: 1,
+            page_size: 20,
+            pages: 1,
+          }),
+        ),
+        http.post('/api/v1/notifications/read-all/', () =>
+          HttpResponse.json({ marked: 1 }),
         ),
       )
 
-      renderWithProviders(<Header {...defaultProps} alertCount={0} />)
+      renderWithProviders(<Header {...defaultProps} />)
       await user.click(screen.getByLabelText('Notifications'))
 
       await waitFor(() => {
-        expect(screen.getByText('View all')).toBeInTheDocument()
+        expect(screen.getByText('Mark all read')).toBeInTheDocument()
       })
 
-      await user.click(screen.getByText('View all'))
-      expect(mockNavigate).toHaveBeenCalledWith('/alerts')
+      await user.click(screen.getByText('Mark all read'))
+
+      await waitFor(() => {
+        expect(screen.queryByText('Mark all read')).not.toBeInTheDocument()
+      })
     })
   })
 
