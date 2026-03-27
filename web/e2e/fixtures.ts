@@ -202,7 +202,7 @@ export async function mockAllAPIs(page: Page) {
 
   // Config
   await page.route(/\/api\/v1\/config/, (route) =>
-    route.fulfill(json({ lab_name: 'Research Lab', lab_subtitle: 'Neuroscience Department', version: '0.1.9' })),
+    route.fulfill(json({ lab_name: 'Research Lab', lab_subtitle: 'Neuroscience Department', version: '0.1.10' })),
   )
 
   // Search
