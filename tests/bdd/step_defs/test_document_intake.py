@@ -59,7 +59,7 @@ def create_documents_from_table(api, datatable):
             "/api/v1/documents/",
             json={
                 "file_name": row["file_name"],
-                "file_path": row["file_name"],
+                "file_path": f"/tmp/lab-manager-test-uploads/{row['file_name']}",
                 "status": row["status"],
                 "vendor_name": row["vendor_name"],
             },
@@ -95,7 +95,7 @@ def create_doc_with_extracted_data(api, ctx, status, datatable):
         "/api/v1/documents/",
         json={
             "file_name": f"doc_{status}.jpg",
-            "file_path": f"doc_{status}.jpg",
+            "file_path": f"/tmp/lab-manager-test-uploads/doc_{status}.jpg",
             "status": status,
             "document_type": doc_type,
             "vendor_name": vendor_name,
@@ -141,7 +141,7 @@ def create_doc_simple(api, status):
         "/api/v1/documents/",
         json={
             "file_name": f"doc_{status}_simple.jpg",
-            "file_path": f"doc_{status}_simple.jpg",
+            "file_path": f"/tmp/lab-manager-test-uploads/doc_{status}_simple.jpg",
             "status": status,
         },
     )
@@ -160,7 +160,7 @@ def create_bulk_documents(api, count, status):
             "/api/v1/documents/",
             json={
                 "file_name": f"bulk_{status}_{i}.jpg",
-                "file_path": f"bulk_{status}_{i}.jpg",
+                "file_path": f"/tmp/lab-manager-test-uploads/bulk_{status}_{i}.jpg",
                 "status": status,
             },
         )
@@ -177,11 +177,17 @@ def create_bulk_documents(api, count, status):
     target_fixture="create_response",
 )
 def create_document(api, file_name, file_path):
+    # Normalize path to be under upload_dir
+    import os
+    from pathlib import Path
+
+    upload_dir = os.environ.get("UPLOAD_DIR", "/tmp/lab-manager-test-uploads")
+    safe_path = str(Path(upload_dir) / Path(file_path).name)
     r = api.post(
         "/api/v1/documents/",
         json={
             "file_name": file_name,
-            "file_path": file_path,
+            "file_path": safe_path,
         },
     )
     return r
