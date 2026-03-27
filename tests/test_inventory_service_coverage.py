@@ -390,6 +390,17 @@ class TestOpenItem:
         assert len(logs) == 1
         assert logs[0].action == ConsumptionAction.open
 
+    @pytest.mark.parametrize(
+        "status",
+        [InventoryStatus.disposed, InventoryStatus.deleted],
+    )
+    def test_open_rejects_inactive_status(self, db_session, status):
+        inv = self._setup_inventory(db_session)
+        inv.status = status
+        db_session.flush()
+        with pytest.raises(ValidationError, match="Cannot open"):
+            open_item(inv.id, "Alice", db_session)
+
 
 # ---- transfer ----
 
