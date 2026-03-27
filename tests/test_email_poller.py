@@ -424,12 +424,12 @@ class TestRunPoller:
         monkeypatch.setenv("EMAIL_IMAP_USER", "lab@test.com")
         run_poller()
 
-    @patch("lab_manager.services.email_poller.time.sleep")
+    @patch("lab_manager.services.email_poller._shutdown_event")
     @patch("lab_manager.services.email_poller.poll_once")
     def test_loops_with_configured_interval(
-        self, mock_poll_once, mock_sleep, monkeypatch
+        self, mock_poll_once, mock_event, monkeypatch
     ):
-        """Loops calling poll_once and sleeping for configured interval."""
+        """Loops calling poll_once and waiting for configured interval."""
         monkeypatch.setenv("EMAIL_IMAP_HOST", "imap.example.com")
         monkeypatch.setenv("EMAIL_IMAP_USER", "lab@test.com")
         monkeypatch.setenv("EMAIL_IMAP_PASSWORD", "pass")
@@ -438,25 +438,27 @@ class TestRunPoller:
         # Stop after 3 iterations
         call_count = 0
 
-        def stop_after_3(_interval):
+        def stop_after_3(timeout):
             nonlocal call_count
             call_count += 1
             if call_count >= 3:
                 raise KeyboardInterrupt
+            return True
 
         mock_poll_once.return_value = 0
-        mock_sleep.side_effect = stop_after_3
+        mock_event.is_set.return_value = False
+        mock_event.wait.side_effect = stop_after_3
 
         with pytest.raises(KeyboardInterrupt):
             run_poller()
 
         assert mock_poll_once.call_count == 3
-        mock_sleep.assert_called_with(10)
+        mock_event.wait.assert_called_with(timeout=10)
 
-    @patch("lab_manager.services.email_poller.time.sleep")
+    @patch("lab_manager.services.email_poller._shutdown_event")
     @patch("lab_manager.services.email_poller.poll_once")
     def test_continues_after_poll_exception(
-        self, mock_poll_once, mock_sleep, monkeypatch
+        self, mock_poll_once, mock_event, monkeypatch
     ):
         """Continues looping even when poll_once raises an exception."""
         monkeypatch.setenv("EMAIL_IMAP_HOST", "imap.example.com")
@@ -466,15 +468,17 @@ class TestRunPoller:
 
         iteration = 0
 
-        def stop_after_3_sleeps(_interval):
+        def stop_after_3_waits(timeout):
             nonlocal iteration
             iteration += 1
             if iteration >= 3:
                 raise KeyboardInterrupt
+            return True
 
         # First poll raises, second succeeds
         mock_poll_once.side_effect = [Exception("transient failure"), 5]
-        mock_sleep.side_effect = stop_after_3_sleeps
+        mock_event.is_set.return_value = False
+        mock_event.wait.side_effect = stop_after_3_waits
 
         with pytest.raises(KeyboardInterrupt):
             run_poller()
@@ -482,10 +486,10 @@ class TestRunPoller:
         # Should have called poll_once at least twice (exception + success)
         assert mock_poll_once.call_count >= 2
 
-    @patch("lab_manager.services.email_poller.time.sleep")
+    @patch("lab_manager.services.email_poller._shutdown_event")
     @patch("lab_manager.services.email_poller.poll_once")
     def test_uses_default_interval_when_not_set(
-        self, mock_poll_once, mock_sleep, monkeypatch
+        self, mock_poll_once, mock_event, monkeypatch
     ):
         """Uses DEFAULT_POLL_INTERVAL when EMAIL_POLL_INTERVAL not set."""
         monkeypatch.setenv("EMAIL_IMAP_HOST", "imap.example.com")
@@ -493,9 +497,10 @@ class TestRunPoller:
         monkeypatch.setenv("EMAIL_IMAP_PASSWORD", "pass")
 
         mock_poll_once.return_value = 0
-        mock_sleep.side_effect = [KeyboardInterrupt]
+        mock_event.is_set.return_value = False
+        mock_event.wait.side_effect = [KeyboardInterrupt]
 
         with pytest.raises(KeyboardInterrupt):
             run_poller()
 
-        mock_sleep.assert_called_once_with(DEFAULT_POLL_INTERVAL)
+        mock_event.wait.assert_called_once_with(timeout=DEFAULT_POLL_INTERVAL)
