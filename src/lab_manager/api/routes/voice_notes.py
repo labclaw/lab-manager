@@ -95,7 +95,7 @@ def create_voice_note(
         getattr(
             request.app.state,
             "upload_dir",
-            Path(tempfile.gettempdir()) / "lab-manager-uploads",
+            Path(tempfile.gettempdir()) / "lab-manager-uploads",  # nosec B108
         )
     )
     voice_dir = upload_dir / "voice_notes"
