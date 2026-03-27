@@ -133,23 +133,27 @@ def create_alert_notifications(db: Session, alerts: list[object]) -> int:
     if not alerts:
         return 0
 
-    staff_ids = db.execute(
-        select(Staff.id)
-        .outerjoin(
-            NotificationPreference,
-            NotificationPreference.staff_id == Staff.id,
-        )
-        .where(Staff.is_active.is_(True))
-        .where(
-            or_(
-                NotificationPreference.id.is_(None),
-                (
-                    NotificationPreference.in_app.is_(True)
-                    & NotificationPreference.inventory_alerts.is_(True)
-                ),
+    staff_ids = (
+        db.execute(
+            select(Staff.id)
+            .outerjoin(
+                NotificationPreference,
+                NotificationPreference.staff_id == Staff.id,
+            )
+            .where(Staff.is_active.is_(True))
+            .where(
+                or_(
+                    NotificationPreference.id.is_(None),
+                    (
+                        NotificationPreference.in_app.is_(True)
+                        & NotificationPreference.inventory_alerts.is_(True)
+                    ),
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     created = 0
     for staff_id in staff_ids:

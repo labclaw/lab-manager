@@ -180,7 +180,9 @@ class TestPreferences:
 
 
 class TestAlertFanout:
-    def test_create_alert_notifications_defaults_to_opt_in(self, db_session, staff_member):
+    def test_create_alert_notifications_defaults_to_opt_in(
+        self, db_session, staff_member
+    ):
         alert = Alert(
             alert_type="low_stock",
             severity="warning",
