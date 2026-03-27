@@ -120,6 +120,19 @@ wang2024mixture} demonstrated that combining multiple model outputs
 improves reliability, but these approaches have not been applied to
 laboratory document processing.
 
+\textbf{Related work in laboratory automation.} Beyond LIMS and ELN
+systems, several recent efforts have applied AI to laboratory operations.
+Boiko et al.~\citep{boiko2023autonomous} demonstrated autonomous chemical
+research with GPT-4, and M.~Bran et al.~\citep{m2024augmenting} augmented
+LLMs with chemistry tools. These systems focus on experiment planning and
+execution rather than supply chain documentation. On the document
+understanding side, DocParsing~\citep{boiko2023parsing} uses LLMs to parse
+documents into structured formats, and ColPali~\citep{faysse2024colpali}
+enables efficient document retrieval with VLMs. However, none of these
+systems combine document understanding with a complete laboratory
+management platform, and none employ multi-model consensus for extraction
+reliability.
+
 Here we present Lab Manager, an open-source platform that addresses the
 document-to-database bottleneck with a multi-model consensus pipeline. The
 system runs three frontier VLMs in parallel on each scanned document,
