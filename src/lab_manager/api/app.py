@@ -796,6 +796,7 @@ def create_app() -> FastAPI:
         vendors,
     )
     from lab_manager.api.routes import barcode  # noqa: E402
+    from lab_manager.api.routes import decision_queue  # noqa: E402
     from lab_manager.api.routes import devices  # noqa: E402
 
     # Auth is handled by auth_middleware — rate limiting via route decorators
@@ -863,6 +864,9 @@ def create_app() -> FastAPI:
     )
     api_router.include_router(team.router, prefix="/api/v1/team", tags=["team"])
     api_router.include_router(chat_routes.router, prefix="/api/v1/chat", tags=["chat"])
+    api_router.include_router(
+        decision_queue.router, prefix="/api/v1/queue", tags=["queue"]
+    )
     app.include_router(api_router)
 
     # WebSocket chat endpoint (outside api_router to avoid auth middleware issues)

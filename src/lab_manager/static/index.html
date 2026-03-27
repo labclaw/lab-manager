@@ -140,6 +140,12 @@ tailwind.config = {
         <span class="material-symbols-outlined text-xl">dashboard</span>
         Dashboard
       </a>
+      <a href="#queue" data-nav="queue"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-primary/5 text-slate-400">
+        <span class="material-symbols-outlined text-xl">pending_actions</span>
+        Decision Queue
+        <span id="queue-badge" class="hidden ml-auto min-w-[20px] h-5 flex items-center justify-center px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">0</span>
+      </a>
       <a href="#documents" data-nav="documents"
         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-primary/5 text-slate-400">
         <span class="material-symbols-outlined text-xl">description</span>
@@ -221,6 +227,36 @@ tailwind.config = {
             <div id="type-chart"></div>
           </div>
         </div>
+      </div>
+
+      <!-- ===== QUEUE VIEW ===== -->
+      <div id="view-queue" class="hidden">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-lg font-semibold text-white mb-1">Decision Queue</h2>
+            <p class="text-sm text-slate-500">All items needing your attention in one place.</p>
+          </div>
+          <span id="queue-total" class="text-sm text-slate-500"></span>
+        </div>
+        <!-- Filter tabs -->
+        <div class="flex items-center gap-2 mb-4">
+          <button data-queue-filter="all" onclick="setQueueFilter(this, 'all')"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium border bg-primary text-white border-primary transition-colors">All</button>
+          <button data-queue-filter="alert" onclick="setQueueFilter(this, 'alert')"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium border bg-surface-dark text-slate-400 border-border-dark transition-colors flex items-center gap-1.5">
+            Alerts <span id="queue-count-alerts" class="text-[10px]">0</span>
+          </button>
+          <button data-queue-filter="order_request" onclick="setQueueFilter(this, 'order_request')"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium border bg-surface-dark text-slate-400 border-border-dark transition-colors flex items-center gap-1.5">
+            Approvals <span id="queue-count-requests" class="text-[10px]">0</span>
+          </button>
+          <button data-queue-filter="document" onclick="setQueueFilter(this, 'document')"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium border bg-surface-dark text-slate-400 border-border-dark transition-colors flex items-center gap-1.5">
+            Reviews <span id="queue-count-documents" class="text-[10px]">0</span>
+          </button>
+        </div>
+        <!-- Queue items -->
+        <div id="queue-items"></div>
       </div>
 
       <!-- ===== DOCUMENTS VIEW ===== -->
@@ -432,6 +468,7 @@ tailwind.config = {
 <script src="/static/js/orders.js"></script>
 <script src="/static/js/upload.js"></script>
 <script src="/static/js/chat.js"></script>
+<script src="/static/js/queue.js"></script>
 <script src="/static/js/app.js"></script>
 <script>
 // Global search handler (navigates to documents view with search)
