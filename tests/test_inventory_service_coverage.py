@@ -474,6 +474,22 @@ class TestTransfer:
         assert len(logs) == 1
         assert logs[0].action == ConsumptionAction.transfer
 
+    @pytest.mark.parametrize(
+        "status",
+        [
+            InventoryStatus.disposed,
+            InventoryStatus.depleted,
+            InventoryStatus.deleted,
+            InventoryStatus.expired,
+        ],
+    )
+    def test_transfer_rejects_inactive_status(self, db_session, status):
+        inv, new_loc = self._setup_inventory(db_session)
+        inv.status = status
+        db_session.flush()
+        with pytest.raises(ValidationError, match="Cannot transfer"):
+            transfer(inv.id, new_loc.id, "Alice", db_session)
+
 
 # ---- get_stock_level ----
 
