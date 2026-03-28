@@ -603,23 +603,27 @@ class TestRagExecuteSql:
     def test_execute_sql_main_engine_fallback(self, mock_engine, mock_ro_engine):
         from lab_manager.services.rag import _execute_sql
 
-        # Same engine means no dedicated readonly
+        # Same engine means no dedicated readonly — fallback uses
+        # get_engine().connect() on a separate connection.
         mock_shared = MagicMock()
         mock_engine.return_value = mock_shared
         mock_ro_engine.return_value = mock_shared
 
-        db = MagicMock()
+        mock_conn = MagicMock()
+        mock_shared.connect.return_value.__enter__ = MagicMock(return_value=mock_conn)
+        mock_shared.connect.return_value.__exit__ = MagicMock(return_value=False)
+        mock_conn.begin.return_value.__enter__ = MagicMock()
+        mock_conn.begin.return_value.__exit__ = MagicMock(return_value=False)
+
         mock_result = MagicMock()
         mock_result.keys.return_value = ["count"]
         mock_result.fetchmany.return_value = [(5,)]
-        db.execute.return_value = mock_result
-        mock_nested = MagicMock()
-        db.begin_nested.return_value = mock_nested
+        mock_conn.execute.return_value = mock_result
 
+        db = MagicMock()
         rows = _execute_sql(db, "SELECT count(*) FROM vendors")
         assert len(rows) == 1
         assert rows[0]["count"] == 5
-        mock_nested.commit.assert_called_once()
 
     @patch("lab_manager.database.get_readonly_engine")
     @patch("lab_manager.database.get_engine")
@@ -630,15 +634,18 @@ class TestRagExecuteSql:
         mock_engine.return_value = mock_shared
         mock_ro_engine.return_value = mock_shared
 
-        db = MagicMock()
-        mock_nested = MagicMock()
-        db.begin_nested.return_value = mock_nested
-        # First two calls are SET TRANSACTION and SET LOCAL, third is the query
-        db.execute.side_effect = [None, None, RuntimeError("query failed")]
+        mock_conn = MagicMock()
+        mock_shared.connect.return_value.__enter__ = MagicMock(return_value=mock_conn)
+        mock_shared.connect.return_value.__exit__ = MagicMock(return_value=False)
+        mock_conn.begin.return_value.__enter__ = MagicMock()
+        mock_conn.begin.return_value.__exit__ = MagicMock(return_value=False)
 
+        # First two calls are SET TRANSACTION and SET LOCAL, third is the query
+        mock_conn.execute.side_effect = [None, None, RuntimeError("query failed")]
+
+        db = MagicMock()
         with pytest.raises(RuntimeError, match="query failed"):
             _execute_sql(db, "SELECT 1")
-        mock_nested.rollback.assert_called_once()
 
 
 # ---------------------------------------------------------------------------
