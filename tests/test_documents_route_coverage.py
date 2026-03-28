@@ -1308,13 +1308,13 @@ class TestDocumentCRUDEndpoints:
         resp = crud_client.patch(
             f"/api/v1/documents/{doc.id}",
             json={
-                "status": "approved",
+                "status": "processing",
                 "vendor_name": "Sigma-Aldrich",
             },
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert data["status"] == "approved"
+        assert data["status"] == "processing"
         # vendor_name should be normalized
         assert data["vendor_name"] == "Sigma-Aldrich"
 
