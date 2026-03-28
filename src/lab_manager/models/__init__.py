@@ -69,5 +69,5 @@ __all__ = [
     "ELNTag",
     "ELNContentType",
     "Reservation",
-    "ReservationStatus", (feat(eln): multimodal electronic lab notebook with attachments and tags)
+    "ReservationStatus",
 ]
