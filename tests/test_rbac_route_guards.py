@@ -331,6 +331,14 @@ class TestAnalyticsGuards:
         resp = pi_client.get("/api/v1/analytics/dashboard")
         assert resp.status_code == 200
 
+    def test_visitor_cannot_view_document_stats(self, visitor_client):
+        resp = visitor_client.get("/api/v1/documents/stats")
+        assert resp.status_code == 403
+
+    def test_pi_can_view_document_stats(self, pi_client):
+        resp = pi_client.get("/api/v1/documents/stats")
+        assert resp.status_code == 200
+
 
 # ---------------------------------------------------------------------------
 # Audit

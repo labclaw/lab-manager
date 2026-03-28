@@ -377,7 +377,7 @@ def upload_document(
     return doc
 
 
-@router.get("/stats")
+@router.get("/stats", dependencies=[Depends(require_permission("view_analytics"))])
 def document_stats(db: Session = Depends(get_db)):
     """Dashboard stats."""
     total = db.execute(select(func.count(Document.id))).scalar()
