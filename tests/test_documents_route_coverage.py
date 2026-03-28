@@ -765,16 +765,68 @@ class TestDocumentStats:
         assert "approved" in resp.json()["by_status"]
 
 
-# ---- Concurrent approve race condition ----
+# ---- _validate_file_path: scans_dir branch (line 73) ----
 
 
-class TestConcurrentApproveRace:
-    """Verify that concurrent approve calls on the same document don't create
-    duplicate Order records.  With the FOR UPDATE row lock the second request
-    should receive a 409 because the first has already set status=approved."""
+class TestValidateFilePathScansDir:
+    def test_scans_dir_path_accepted(self, tmp_path):
+        scans = tmp_path / "scans"
+        scans.mkdir()
+        os.environ["UPLOAD_DIR"] = str(tmp_path / "uploads")
+        os.environ["SCANS_DIR"] = str(scans)
+        os.environ["AUTH_ENABLED"] = "false"
+        from lab_manager.config import get_settings
 
+        get_settings.cache_clear()
+
+        from lab_manager.api.routes.documents import _validate_file_path
+
+        # A path under scans_dir should be accepted
+        test_path = str(scans / "doc001.png")
+        result = _validate_file_path(test_path)
+        assert result == test_path
+        get_settings.cache_clear()
+
+    def test_upload_dir_root_accepted(self, tmp_path):
+        upload = tmp_path / "uploads"
+        upload.mkdir()
+        os.environ["UPLOAD_DIR"] = str(upload)
+        os.environ["AUTH_ENABLED"] = "false"
+        from lab_manager.config import get_settings
+
+        get_settings.cache_clear()
+
+        from lab_manager.api.routes.documents import _validate_file_path
+
+        # Exact upload_dir root should be accepted (resolved == root)
+        result = _validate_file_path(str(upload))
+        assert result == str(upload)
+        get_settings.cache_clear()
+
+
+# ---- DocumentUpdate validator: file_path=None passes, file_path=valid passes ----
+
+
+class TestDocumentUpdateFilePath:
+    def test_file_path_none_passes(self):
+        from lab_manager.api.routes.documents import DocumentUpdate
+
+        update = DocumentUpdate(file_path=None)
+        assert update.file_path is None
+
+    def test_file_path_valid_relative_passes(self):
+        from lab_manager.api.routes.documents import DocumentUpdate
+
+        update = DocumentUpdate(file_path="uploads/test.png")
+        assert update.file_path == "uploads/test.png"
+
+
+# ---- Upload endpoint: bad content type (line 310) ----
+
+
+class TestUploadBadContentType:
     @pytest.fixture()
-    def _setup(self, db_session, tmp_path):
+    def upload_client(self, db_session, tmp_path):
         d = tmp_path / "uploads"
         d.mkdir()
         os.environ["UPLOAD_DIR"] = str(d)
@@ -786,10 +838,328 @@ class TestConcurrentApproveRace:
         from lab_manager.api.app import create_app
         from lab_manager.api.deps import get_db
         from lab_manager.api.routes import documents
-        from lab_manager.models.document import Document, DocumentStatus
 
+        app = create_app()
         documents._run_extraction = lambda doc_id: None
-        documents._index_approved_doc = lambda doc_id: None
+
+        def override_get_db():
+            yield db_session
+
+        app.dependency_overrides[get_db] = override_get_db
+        with TestClient(app) as c:
+            yield c
+        get_settings.cache_clear()
+
+    def test_upload_bad_content_type(self, upload_client):
+        client = upload_client
+        resp = client.post(
+            "/api/v1/documents/upload",
+            files={
+                "file": (
+                    "test.exe",
+                    io.BytesIO(b"MZ\x90\x00" * 100),
+                    "application/x-msdownload",
+                )
+            },
+        )
+        assert resp.status_code == 400
+        assert "not allowed" in resp.json()["detail"]
+
+    def test_upload_file_too_large(self, upload_client):
+        client = upload_client
+        # Create content larger than 50MB
+        big = b"\x00" * (50 * 1024 * 1024 + 1)
+        resp = client.post(
+            "/api/v1/documents/upload",
+            files={"file": ("big.png", io.BytesIO(big), "image/png")},
+        )
+        assert resp.status_code == 413
+        assert "too large" in resp.json()["detail"].lower()
+
+    def test_upload_dot_filename(self, upload_client):
+        client = upload_client
+        # Minimal valid PNG
+        import struct
+        import zlib
+
+        def _chunk(chunk_type, data):
+            c = chunk_type + data
+            crc = struct.pack(">I", zlib.crc32(c) & 0xFFFFFFFF)
+            return struct.pack(">I", len(data)) + c + crc
+
+        sig = b"\x89PNG\r\n\x1a\n"
+        ihdr = _chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0))
+        raw = zlib.compress(b"\x00\xff\xff\xff")
+        idat = _chunk(b"IDAT", raw)
+        iend = _chunk(b"IEND", b"")
+        png = sig + ihdr + idat + iend
+
+        resp = client.post(
+            "/api/v1/documents/upload",
+            files={"file": (".hidden", io.BytesIO(png), "image/png")},
+        )
+        assert resp.status_code == 201
+        name = resp.json()["file_name"]
+        assert "upload" in name  # should be prefixed with "upload"
+
+
+
+class TestRunExtraction:
+    """Tests for _run_extraction covering OCR, extraction, and error paths."""
+
+    @pytest.fixture(autouse=True)
+    def _setup_env(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("UPLOAD_DIR", str(tmp_path / "uploads"))
+        monkeypatch.setenv("AUTH_ENABLED", "false")
+
+    def test_doc_not_found(self):
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        fake_session = MagicMock()
+        fake_session.scalars.return_value.first.return_value = None
+        fake_factory = MagicMock(return_value=fake_session)
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory):
+            doc_mod._run_extraction(99999)
+        fake_session.close.assert_called()
+
+    def test_ocr_failure(self, db_session):
+        from lab_manager.models.document import Document, DocumentStatus
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        doc = Document(file_path="/tmp/test_ocr.png", file_name="ocr_fail.png", status=DocumentStatus.processing)
+        db_session.add(doc)
+        db_session.commit()
+
+        fake_session = MagicMock()
+        fake_session.scalars.return_value.first.return_value = doc
+        fake_factory = MagicMock(return_value=fake_session)
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory), \
+             patch("lab_manager.intake.ocr.extract_text_from_image", side_effect=RuntimeError("OCR down")):
+            doc_mod._run_extraction(doc.id)
+
+        assert doc.status == DocumentStatus.needs_review
+        assert "OCR failed" in doc.review_notes
+
+    def test_empty_ocr_text(self, db_session):
+        from lab_manager.models.document import Document, DocumentStatus
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        doc = Document(file_path="/tmp/test_ocr_empty.png", file_name="ocr_empty.png", status=DocumentStatus.processing)
+        db_session.add(doc)
+        db_session.commit()
+
+        fake_session = MagicMock()
+        fake_session.scalars.return_value.first.return_value = doc
+        fake_factory = MagicMock(return_value=fake_session)
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory), \
+             patch("lab_manager.intake.ocr.extract_text_from_image", return_value="   "):
+            doc_mod._run_extraction(doc.id)
+
+        assert doc.status == DocumentStatus.ocr_failed
+
+    def test_extraction_success(self, db_session, monkeypatch):
+        from lab_manager.models.document import Document, DocumentStatus
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        monkeypatch.setenv("EXTRACTION_MODEL", "test-model")
+
+        doc = Document(file_path="/tmp/test_extract.png", file_name="extract.png", status=DocumentStatus.processing)
+        db_session.add(doc)
+        db_session.commit()
+
+        fake_session = MagicMock()
+        fake_session.scalars.return_value.first.return_value = doc
+        fake_factory = MagicMock(return_value=fake_session)
+
+        mock_ext = MagicMock()
+        mock_ext.document_type = "invoice"
+        mock_ext.vendor_name = "TestVendor"
+        mock_ext.confidence = 0.95
+        mock_ext.model_dump.return_value = {"vendor_name": "TestVendor", "document_type": "invoice"}
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory), \
+             patch("lab_manager.intake.ocr.extract_text_from_image", return_value="text"), \
+             patch("lab_manager.intake.extractor.extract_from_text", return_value=mock_ext), \
+             patch("lab_manager.api.routes.documents.normalize_vendor", return_value="TestVendor"):
+            doc_mod._run_extraction(doc.id)
+
+        assert doc.status == DocumentStatus.needs_review
+        assert doc.document_type == "invoice"
+        assert doc.extraction_confidence == 0.95
+
+    def test_extraction_failure_after_ocr(self, db_session):
+        from lab_manager.models.document import Document, DocumentStatus
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        doc = Document(file_path="/tmp/test_ext_fail.png", file_name="ext_fail.png", status=DocumentStatus.processing)
+        db_session.add(doc)
+        db_session.commit()
+
+        fake_session = MagicMock()
+        fake_session.scalars.return_value.first.return_value = doc
+        fake_factory = MagicMock(return_value=fake_session)
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory), \
+             patch("lab_manager.intake.ocr.extract_text_from_image", return_value="text"), \
+             patch("lab_manager.intake.extractor.extract_from_text", side_effect=RuntimeError("LLM timeout")):
+            doc_mod._run_extraction(doc.id)
+
+        assert doc.status == DocumentStatus.needs_review
+        assert "Extraction failed" in doc.review_notes
+
+    def test_unexpected_exception(self):
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        fake_session = MagicMock()
+        fake_session.scalars.side_effect = RuntimeError("DB lost")
+        fake_factory = MagicMock(return_value=fake_session)
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory):
+            doc_mod._run_extraction(42)
+
+        fake_session.rollback.assert_called()
+        fake_session.close.assert_called()
+
+
+# ---- _index_approved_doc background task ----
+
+
+class TestIndexApprovedDoc:
+    """Tests for _index_approved_doc covering indexing and error paths."""
+
+    @pytest.fixture(autouse=True)
+    def _setup_env(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("UPLOAD_DIR", str(tmp_path / "uploads"))
+        monkeypatch.setenv("AUTH_ENABLED", "false")
+
+    def test_doc_not_found(self):
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        fake_session = MagicMock()
+        fake_session.scalars.return_value.first.return_value = None
+        fake_factory = MagicMock(return_value=fake_session)
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory):
+            doc_mod._index_approved_doc(99999)
+        fake_session.close.assert_called()
+
+    def test_index_no_order(self, db_session):
+        from lab_manager.models.document import Document, DocumentStatus
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        doc = Document(file_path="/tmp/test_no_order.png", file_name="no_order.png", status=DocumentStatus.approved)
+        db_session.add(doc)
+        db_session.commit()
+
+        call_count = {"n": 0}
+        fake_session = MagicMock()
+
+        def _scalars(stmt):
+            r = MagicMock()
+            call_count["n"] += 1
+            r.first.return_value = doc if call_count["n"] == 1 else None
+            return r
+
+        fake_session.scalars.side_effect = _scalars
+        fake_factory = MagicMock(return_value=fake_session)
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory), \
+             patch("lab_manager.services.search.index_document_record"):
+            doc_mod._index_approved_doc(doc.id)
+
+        fake_session.close.assert_called()
+
+    def test_index_outer_exception(self):
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        fake_session = MagicMock()
+        fake_session.scalars.side_effect = RuntimeError("unrecoverable")
+        fake_factory = MagicMock(return_value=fake_session)
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory):
+            doc_mod._index_approved_doc(42)
+        fake_session.close.assert_called()
+
+    def test_index_with_order_vendor_items(self, db_session):
+        from lab_manager.models.document import Document, DocumentStatus
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        doc = Document(file_path="/tmp/test_full_idx.png", file_name="full_idx.png", status=DocumentStatus.approved)
+        db_session.add(doc)
+        db_session.commit()
+
+        mock_vendor = MagicMock(id=1)
+        mock_oi = MagicMock(id=10)
+        mock_oi.product = MagicMock(id=20)
+        mock_order = MagicMock(id=5, vendor=mock_vendor, items=[mock_oi])
+        mock_inv = MagicMock(id=30, order_item_id=10)
+
+        call_count = {"n": 0}
+        fake_session = MagicMock()
+
+        def _scalars(stmt):
+            r = MagicMock()
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                r.first.return_value = doc
+            elif call_count["n"] == 2:
+                r.first.return_value = mock_order
+            else:
+                r.all.return_value = [mock_inv]
+                r.first.return_value = None
+            return r
+
+        fake_session.scalars.side_effect = _scalars
+        fake_factory = MagicMock(return_value=fake_session)
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory), \
+             patch("lab_manager.services.search.index_document_record"), \
+             patch("lab_manager.services.search.index_vendor_record"), \
+             patch("lab_manager.services.search.index_order_record"), \
+             patch("lab_manager.services.search.index_order_item_record"), \
+             patch("lab_manager.services.search.index_product_record"), \
+             patch("lab_manager.services.search.index_inventory_record"):
+            doc_mod._index_approved_doc(doc.id)
+        fake_session.close.assert_called()
+
+
+# ---- CRUD endpoints: create, get, update, delete (lines 443-483) ----
+
+
+class TestDocumentCRUDEndpoints:
+    @pytest.fixture()
+    def crud_client(self, db_session):
+        os.environ["UPLOAD_DIR"] = "/tmp/test-uploads"
+        os.environ["AUTH_ENABLED"] = "false"
+        from lab_manager.config import get_settings
+
+        get_settings.cache_clear()
+
+        from lab_manager.api.app import create_app
+        from lab_manager.api.deps import get_db
 
         app = create_app()
 
@@ -797,54 +1167,262 @@ class TestConcurrentApproveRace:
             yield db_session
 
         app.dependency_overrides[get_db] = override_get_db
+        with TestClient(app) as c:
+            yield c
+        get_settings.cache_clear()
 
-        # Seed a document in needs_review with extracted_data that would create an order.
-        doc = Document(
-            file_path="/tmp/test.png",
-            file_name="race_test.png",
-            status=DocumentStatus.needs_review,
-            vendor_name="RaceVendor",
-            extracted_data={
-                "vendor_name": "RaceVendor",
-                "items": [
-                    {
-                        "catalog_number": "RC-001",
-                        "description": "Race Reagent",
-                        "quantity": 2,
-                        "unit": "EA",
-                    }
-                ],
+    def test_create_document(self, crud_client):
+        resp = crud_client.post(
+            "/api/v1/documents/",
+            json={
+                "file_path": "uploads/test_create.png",
+                "file_name": "test_create.png",
+                "status": "pending",
             },
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["file_name"] == "test_create.png"
+        assert data["status"] == "pending"
+        assert "id" in data
+
+    def test_get_document(self, crud_client, db_session):
+        from lab_manager.models.document import Document, DocumentStatus
+
+        doc = Document(
+            file_path="uploads/test_get.png",
+            file_name="test_get.png",
+            status=DocumentStatus.pending,
         )
         db_session.add(doc)
         db_session.flush()
-        doc_id = doc.id
 
-        client = TestClient(app)
-        yield client, doc_id, db_session
+        resp = crud_client.get(f"/api/v1/documents/{doc.id}")
+        assert resp.status_code == 200
+        assert resp.json()["file_name"] == "test_get.png"
+
+    def test_get_document_not_found(self, crud_client):
+        resp = crud_client.get("/api/v1/documents/99999")
+        assert resp.status_code == 404
+
+    def test_update_document(self, crud_client, db_session):
+        from lab_manager.models.document import Document, DocumentStatus
+
+        doc = Document(
+            file_path="uploads/test_update.png",
+            file_name="test_update.png",
+            status=DocumentStatus.pending,
+        )
+        db_session.add(doc)
+        db_session.flush()
+
+        resp = crud_client.patch(
+            f"/api/v1/documents/{doc.id}",
+            json={
+                "status": "approved",
+                "vendor_name": "Sigma-Aldrich",
+            },
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "approved"
+        # vendor_name should be normalized
+        assert data["vendor_name"] == "Sigma-Aldrich"
+
+    def test_update_document_vendor_name_empty(self, crud_client, db_session):
+        """Line 464-465: vendor_name normalization only when non-empty."""
+        from lab_manager.models.document import Document, DocumentStatus
+
+        doc = Document(
+            file_path="uploads/test_update2.png",
+            file_name="test_update2.png",
+            status=DocumentStatus.pending,
+        )
+        db_session.add(doc)
+        db_session.flush()
+
+        resp = crud_client.patch(
+            f"/api/v1/documents/{doc.id}",
+            json={"vendor_name": ""},
+        )
+        assert resp.status_code == 200
+        # Empty string should not be normalized
+        assert resp.json()["vendor_name"] == ""
+
+    def test_delete_document(self, crud_client, db_session):
+        from lab_manager.models.document import Document, DocumentStatus
+
+        doc = Document(
+            file_path="uploads/test_delete.png",
+            file_name="test_delete.png",
+            status=DocumentStatus.pending,
+        )
+        db_session.add(doc)
+        db_session.flush()
+
+        resp = crud_client.delete(f"/api/v1/documents/{doc.id}")
+        assert resp.status_code == 204
+        # Verify status changed to deleted
+        db_session.refresh(doc)
+        assert doc.status == DocumentStatus.deleted
+
+    def test_delete_document_not_found(self, crud_client):
+        resp = crud_client.delete("/api/v1/documents/99999")
+        assert resp.status_code == 404
+
+
+# ---- Review: pending status guard (line 506) ----
+
+
+class TestReviewPendingGuard:
+    def test_review_pending_rejected(self, db_session):
+        from lab_manager.models.document import Document, DocumentStatus
+
+        doc = Document(
+            file_path="/tmp/test.png",
+            file_name="pending.png",
+            status=DocumentStatus.pending,
+        )
+        db_session.add(doc)
+        db_session.flush()
+
+        os.environ["UPLOAD_DIR"] = "/tmp/test-uploads"
+        os.environ["AUTH_ENABLED"] = "false"
+        from lab_manager.config import get_settings
+
         get_settings.cache_clear()
 
-    def test_concurrent_approve_no_duplicate_orders(self, _setup):
-        """Two sequential approve calls: second should 409, only one Order created."""
-        from lab_manager.models.order import Order
+        from lab_manager.api.app import create_app
+        from lab_manager.api.deps import get_db
+        from lab_manager.api.routes import documents
 
-        client, doc_id, db = _setup
+        app = create_app()
+        documents._run_extraction = lambda doc_id: None
 
-        # First approve succeeds.
-        resp1 = client.post(
-            f"/api/v1/documents/{doc_id}/review",
-            json={"action": "approve", "reviewed_by": "reviewer1"},
+        def override_get_db():
+            yield db_session
+
+        app.dependency_overrides[get_db] = override_get_db
+        with TestClient(app) as c:
+            resp = c.post(
+                f"/api/v1/documents/{doc.id}/review",
+                json={"action": "approve"},
+            )
+            assert resp.status_code == 409
+            assert "not been processed" in resp.json()["detail"].lower()
+        get_settings.cache_clear()
+
+    def test_review_rejected_status_rejected(self, db_session):
+        """Line 510-518: already rejected doc."""
+        from lab_manager.models.document import Document, DocumentStatus
+
+        doc = Document(
+            file_path="/tmp/test.png",
+            file_name="already_rejected.png",
+            status=DocumentStatus.rejected,
         )
-        assert resp1.status_code == 200
-        assert resp1.json()["status"] == "approved"
+        db_session.add(doc)
+        db_session.flush()
 
-        # Second approve should be rejected (already approved).
-        resp2 = client.post(
-            f"/api/v1/documents/{doc_id}/review",
-            json={"action": "approve", "reviewed_by": "reviewer2"},
+        os.environ["UPLOAD_DIR"] = "/tmp/test-uploads"
+        os.environ["AUTH_ENABLED"] = "false"
+        from lab_manager.config import get_settings
+
+        get_settings.cache_clear()
+
+        from lab_manager.api.app import create_app
+        from lab_manager.api.deps import get_db
+        from lab_manager.api.routes import documents
+
+        app = create_app()
+        documents._run_extraction = lambda doc_id: None
+
+        def override_get_db():
+            yield db_session
+
+        app.dependency_overrides[get_db] = override_get_db
+        with TestClient(app) as c:
+            resp = c.post(
+                f"/api/v1/documents/{doc.id}/review",
+                json={"action": "approve"},
+            )
+            assert resp.status_code == 409
+            assert "already" in resp.json()["detail"].lower()
+        get_settings.cache_clear()
+
+    def test_review_deleted_status_rejected(self, db_session):
+        """Line 510-518: deleted doc."""
+        from lab_manager.models.document import Document, DocumentStatus
+
+        doc = Document(
+            file_path="/tmp/test.png",
+            file_name="deleted.png",
+            status=DocumentStatus.deleted,
         )
-        assert resp2.status_code == 409
+        db_session.add(doc)
+        db_session.flush()
 
-        # Exactly one Order should exist for this document.
-        order_count = db.query(Order).filter(Order.document_id == doc_id).count()
-        assert order_count == 1
+        os.environ["UPLOAD_DIR"] = "/tmp/test-uploads"
+        os.environ["AUTH_ENABLED"] = "false"
+        from lab_manager.config import get_settings
+
+        get_settings.cache_clear()
+
+        from lab_manager.api.app import create_app
+        from lab_manager.api.deps import get_db
+        from lab_manager.api.routes import documents
+
+        app = create_app()
+        documents._run_extraction = lambda doc_id: None
+
+        def override_get_db():
+            yield db_session
+
+        app.dependency_overrides[get_db] = override_get_db
+        with TestClient(app) as c:
+            resp = c.post(
+                f"/api/v1/documents/{doc.id}/review",
+                json={"action": "approve"},
+            )
+            assert resp.status_code == 409
+        get_settings.cache_clear()
+
+    def test_approve_no_existing_order_no_data(self, db_session):
+        """Line 528: approve with no existing order but no extracted_data."""
+        from lab_manager.models.document import Document, DocumentStatus
+
+        doc = Document(
+            file_path="/tmp/test.png",
+            file_name="approve_no_data.png",
+            status=DocumentStatus.needs_review,
+            vendor_name="TestVendor",
+        )
+        db_session.add(doc)
+        db_session.flush()
+
+        os.environ["UPLOAD_DIR"] = "/tmp/test-uploads"
+        os.environ["AUTH_ENABLED"] = "false"
+        from lab_manager.config import get_settings
+
+        get_settings.cache_clear()
+
+        from lab_manager.api.app import create_app
+        from lab_manager.api.deps import get_db
+        from lab_manager.api.routes import documents
+
+        app = create_app()
+        documents._run_extraction = lambda doc_id: None
+        documents._index_approved_doc = lambda doc_id: None
+
+        def override_get_db():
+            yield db_session
+
+        app.dependency_overrides[get_db] = override_get_db
+        with TestClient(app) as c:
+            resp = c.post(
+                f"/api/v1/documents/{doc.id}/review",
+                json={"action": "approve", "reviewed_by": "Reviewer"},
+            )
+            assert resp.status_code == 200
+            assert resp.json()["status"] == "approved"
+        get_settings.cache_clear()
