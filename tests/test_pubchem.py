@@ -232,6 +232,152 @@ class TestPubChemService:
 
         assert result == {}
 
+    @patch("lab_manager.services.pubchem.httpx.get")
+    def test_fetch_properties_empty_property_list(self, mock_get):
+        """Given a valid response with empty Properties list, returns empty dict."""
+        response = MagicMock()
+        response.status_code = 200
+        response.json.return_value = {"PropertyTable": {"Properties": []}}
+        response.raise_for_status = MagicMock()
+        mock_get.return_value = response
+
+        from lab_manager.services.pubchem import enrich_product
+
+        result = enrich_product("ethanol")
+
+        assert result == {}
+
+    @patch("lab_manager.services.pubchem.httpx.get")
+    def test_fetch_properties_unexpected_exception(self, mock_get):
+        """Given an unexpected exception (not timeout/HTTP), returns empty dict."""
+        mock_get.side_effect = ValueError("Something unexpected broke")
+
+        from lab_manager.services.pubchem import enrich_product
+
+        result = enrich_product("ethanol")
+
+        assert result == {}
+
+    @patch("lab_manager.services.pubchem.httpx.get")
+    def test_fetch_cas_non_200_status(self, mock_get):
+        """When CAS synonyms endpoint returns non-200, cas_number is absent."""
+        props_response = MagicMock()
+        props_response.status_code = 200
+        props_response.json.return_value = {
+            "PropertyTable": {
+                "Properties": [
+                    {
+                        "CID": 702,
+                        "MolecularWeight": 46.07,
+                        "MolecularFormula": "C2H6O",
+                        "CanonicalSMILES": "CCO",
+                        "IUPACName": "ethanol",
+                    }
+                ]
+            }
+        }
+        props_response.raise_for_status = MagicMock()
+
+        cas_response = MagicMock()
+        cas_response.status_code = 503  # Service unavailable
+
+        mock_get.side_effect = [props_response, cas_response]
+
+        from lab_manager.services.pubchem import enrich_product
+
+        result = enrich_product("ethanol")
+
+        assert result["pubchem_cid"] == 702
+        assert "cas_number" not in result
+
+    @patch("lab_manager.services.pubchem.httpx.get")
+    def test_fetch_cas_empty_synonyms_list(self, mock_get):
+        """When synonyms response has empty Information list, cas_number is absent."""
+        props_response = MagicMock()
+        props_response.status_code = 200
+        props_response.json.return_value = {
+            "PropertyTable": {
+                "Properties": [
+                    {
+                        "CID": 702,
+                        "MolecularWeight": 46.07,
+                        "MolecularFormula": "C2H6O",
+                        "CanonicalSMILES": "CCO",
+                        "IUPACName": "ethanol",
+                    }
+                ]
+            }
+        }
+        props_response.raise_for_status = MagicMock()
+
+        cas_response = MagicMock()
+        cas_response.status_code = 200
+        cas_response.json.return_value = {"InformationList": {"Information": []}}
+
+        mock_get.side_effect = [props_response, cas_response]
+
+        from lab_manager.services.pubchem import enrich_product
+
+        result = enrich_product("ethanol")
+
+        assert result["pubchem_cid"] == 702
+        assert "cas_number" not in result
+
+    @patch("lab_manager.services.pubchem.httpx.get")
+    def test_fetch_cas_exception(self, mock_get):
+        """When fetching CAS raises an exception, cas_number is absent but other fields remain."""
+        props_response = MagicMock()
+        props_response.status_code = 200
+        props_response.json.return_value = {
+            "PropertyTable": {
+                "Properties": [
+                    {
+                        "CID": 702,
+                        "MolecularWeight": 46.07,
+                        "MolecularFormula": "C2H6O",
+                        "CanonicalSMILES": "CCO",
+                        "IUPACName": "ethanol",
+                    }
+                ]
+            }
+        }
+        props_response.raise_for_status = MagicMock()
+
+        # Second call (CAS fetch) raises an exception
+        mock_get.side_effect = [props_response, httpx.ConnectError("Network down")]
+
+        from lab_manager.services.pubchem import enrich_product
+
+        result = enrich_product("ethanol")
+
+        assert result["pubchem_cid"] == 702
+        assert "cas_number" not in result
+
+    def test_cache_eviction(self):
+        """When cache exceeds _CACHE_MAX, oldest entry is evicted."""
+        from lab_manager.services.pubchem import (
+            _CACHE,
+            _CACHE_MAX,
+            _cache_put,
+            clear_cache,
+        )
+
+        clear_cache()
+
+        # Fill cache to max
+        for i in range(_CACHE_MAX):
+            _cache_put(f"key_{i}", {"value": i})
+
+        assert len(_CACHE) == _CACHE_MAX
+
+        # Adding one more should evict the oldest (key_0)
+        _cache_put("extra", {"value": "new"})
+        assert len(_CACHE) == _CACHE_MAX
+        assert "key_0" not in _CACHE
+        assert "extra" in _CACHE
+
+        clear_cache()
+
 
 # ---------------------------------------------------------------------------
 # API endpoint tests
