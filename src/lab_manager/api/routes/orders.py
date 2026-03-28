@@ -281,7 +281,7 @@ def delete_order(order_id: int, db: Session = Depends(get_db)):
         OrderStatus.received,
         OrderStatus.cancelled,
     ):
-        raise ValidationError(f"Cannot delete order with status '{order.status.value}'")
+        raise ValidationError(f"Cannot delete order with status '{order.status}'")
     order.status = OrderStatus.deleted
     db.flush()
     return None
