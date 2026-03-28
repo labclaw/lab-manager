@@ -79,7 +79,9 @@ def receive_items(
     items_received: list of dicts with keys:
         order_item_id, quantity, lot_number (optional), expiry_date (optional)
     """
-    order = db.get(Order, order_id)
+    order = db.scalars(
+        select(Order).where(Order.id == order_id).with_for_update()
+    ).first()
     if not order:
         raise NotFoundError("Order", order_id)
 
