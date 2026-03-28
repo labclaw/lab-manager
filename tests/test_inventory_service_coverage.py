@@ -5,6 +5,7 @@ from decimal import Decimal
 
 import pytest
 from sqlalchemy import select
+from sqlmodel import Session
 
 from lab_manager.exceptions import NotFoundError, ValidationError
 from lab_manager.models.consumption import ConsumptionAction, ConsumptionLog
@@ -186,6 +187,30 @@ class TestReceiveItems:
                 received_by="Bob",
                 db=db_session,
             )
+
+    def test_receive_rejects_already_received_after_reload(self, db_engine):
+        with Session(db_engine) as db:
+            order, oi, _, _ = _make_order_with_item(db)
+            receive_items(
+                order_id=order.id,
+                items_received=[{"order_item_id": oi.id, "quantity": 5}],
+                location_id=None,
+                received_by="Alice",
+                db=db,
+            )
+            db.commit()
+            order_id = order.id
+            order_item_id = oi.id
+
+        with Session(db_engine) as db:
+            with pytest.raises(ValidationError, match="already received"):
+                receive_items(
+                    order_id=order_id,
+                    items_received=[{"order_item_id": order_item_id, "quantity": 5}],
+                    location_id=None,
+                    received_by="Bob",
+                    db=db,
+                )
 
     def test_receive_rejects_cancelled_order(self, db_session):
         order, oi, _, _ = _make_order_with_item(db_session)

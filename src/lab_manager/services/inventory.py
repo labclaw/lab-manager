@@ -90,9 +90,8 @@ def receive_items(
         OrderStatus.cancelled,
         OrderStatus.deleted,
     ):
-        raise ValidationError(
-            f"Cannot receive order that is already {order.status.value}"
-        )
+        status_label = getattr(order.status, "value", order.status)
+        raise ValidationError(f"Cannot receive order that is already {status_label}")
 
     created = []
     today = datetime.now(timezone.utc).date()
