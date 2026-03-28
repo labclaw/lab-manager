@@ -414,7 +414,7 @@ def document_stats(db: Session = Depends(get_db)):
     }
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(require_permission("view_documents"))])
 def list_documents(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=500),
@@ -456,7 +456,7 @@ def create_document(body: DocumentCreate, db: Session = Depends(get_db)):
     return document
 
 
-@router.get("/{document_id}")
+@router.get("/{document_id}", dependencies=[Depends(require_permission("view_documents"))])
 def get_document(document_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, Document, document_id, "Document")
 
