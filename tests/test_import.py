@@ -223,6 +223,16 @@ class TestImportInventory:
 
 
 class TestImportEdgeCases:
+    def test_import_delegates_commit_to_middleware(self, client):
+        """Import routes should use flush(), not commit() — middleware handles commit."""
+        csv = _csv_bytes("name", "MiddlewareTest")
+        resp = _upload(client, "vendors", csv)
+        assert resp.status_code == 200
+        # Verify the record was persisted (middleware committed)
+        list_resp = client.get("/api/v1/vendors/")
+        names = [v["name"] for v in list_resp.json()["items"]]
+        assert "MiddlewareTest" in names
+
     def test_bom_handling(self, client):
         """UTF-8 BOM prefix should be handled gracefully."""
         content = b"\xef\xbb\xbf" + _csv_bytes("name", "BOM Vendor")
