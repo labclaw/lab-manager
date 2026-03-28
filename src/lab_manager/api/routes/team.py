@@ -129,7 +129,7 @@ def create_invitation(
         expires_at=datetime.now(timezone.utc) + _dt.timedelta(seconds=_INVITE_MAX_AGE),
     )
     db.add(invitation)
-    db.commit()
+    db.flush()
     db.refresh(invitation)
 
     logger.info(
@@ -191,7 +191,7 @@ def cancel_invitation(
             status_code=400, detail="Only pending invitations can be cancelled"
         )
     invitation.status = "cancelled"
-    db.commit()
+    db.flush()
     logger.info(
         "Invitation cancelled: id=%s by staff_id=%s",
         invitation_id,
@@ -274,7 +274,7 @@ def update_member(
 
     member.role = role
     member.role_level = target_level
-    db.commit()
+    db.flush()
     db.refresh(member)
     logger.info(
         "Role updated: staff_id=%s -> role=%s by staff_id=%s",
@@ -321,7 +321,7 @@ def deactivate_member(
         )
 
     member.is_active = False
-    db.commit()
+    db.flush()
     logger.info(
         "Member deactivated: staff_id=%s by staff_id=%s",
         member_id,
@@ -410,7 +410,7 @@ def accept_invitation(
     invitation.status = "accepted"
     invitation.accepted_at = datetime.now(timezone.utc)
 
-    db.commit()
+    db.flush()
     db.refresh(staff)
 
     logger.info(
