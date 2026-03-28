@@ -69,6 +69,7 @@ ALL_PERMISSIONS: frozenset[str] = frozenset(
         "ask_ai",
         "manage_alerts",
         "acknowledge_alerts",
+        "manage_devices",
     }
 )
 
