@@ -22,15 +22,7 @@ from lab_manager.models.import_job import (
     ImportType,
     ImportStatus,
 )
-from lab_manager.models.reservation import Reservation, ReservationStatus
 from lab_manager.models.device import Device, DeviceStatus
-from lab_manager.models.knowledge import KnowledgeEntry, KnowledgeCategory
-from lab_manager.models.protocol import (
-    Protocol,
-    ProtocolExecution,
-    ProtocolStatus,
-    ExecutionStatus,
-)
 
 __all__ = [
     "AuditMixin",
@@ -67,12 +59,4 @@ __all__ = [
     "ImportStatus",
     "Device",
     "DeviceStatus",
-    "KnowledgeEntry",
-    "KnowledgeCategory",
-    "Reservation",
-    "ReservationStatus",
-    "Protocol",
-    "ProtocolExecution",
-    "ProtocolStatus",
-    "ExecutionStatus",
 ]
