@@ -36,8 +36,7 @@ def reprocess_failed(delay: float = 8.0, batch_size: int = 0):
                 )
             )
             .filter(
-                (Document.extracted_data.is_(None))
-                | (Document.vendor_name.is_(None))
+                (Document.extracted_data.is_(None)) | (Document.vendor_name.is_(None))
             )
             .order_by(Document.id)
         )

@@ -235,3 +235,48 @@ class TestImportEdgeCases:
         resp = _upload(client, "vendors", csv)
         data = resp.json()
         assert data["imported"] == 1
+
+
+class TestImportPartialSuccess:
+    """Valid rows must be imported even when other rows have errors."""
+
+    def test_vendors_partial_success(self, client):
+        csv = _csv_bytes(
+            "name,website",
+            "GoodVendor,https://good.com",
+            ",",  # row 3: empty name -> error
+            "AnotherGood,https://another.com",
+        )
+        resp = _upload(client, "vendors", csv)
+        data = resp.json()
+        assert data["imported"] == 2
+        assert len(data["errors"]) >= 1
+        assert any("required" in e["message"] for e in data["errors"])
+
+    def test_products_partial_success(self, client):
+        _upload(client, "vendors", _csv_bytes("name", "TestVendor"))
+        csv = _csv_bytes(
+            "catalog_number,name,vendor_id",
+            "GOOD-001,Good Product,1",
+            ",Bad Product,1",  # missing catalog_number
+            "GOOD-002,Another Good,1",
+        )
+        resp = _upload(client, "products", csv)
+        data = resp.json()
+        assert data["imported"] == 2
+        assert len(data["errors"]) >= 1
+
+    def test_inventory_partial_success(self, client):
+        _upload(
+            client, "products", _csv_bytes("catalog_number,name", "INV-PS,PS Product")
+        )
+        csv = _csv_bytes(
+            "product_id,quantity_on_hand,status",
+            "1,5,available",
+            "9999,10,available",  # bad product_id
+            "1,3,available",
+        )
+        resp = _upload(client, "inventory", csv)
+        data = resp.json()
+        assert data["imported"] == 2
+        assert len(data["errors"]) >= 1
