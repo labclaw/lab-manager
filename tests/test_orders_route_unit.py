@@ -901,7 +901,7 @@ class TestUpdateOrder:
         db.get.return_value = order
 
         body = OrderUpdate(po_number="PO-NEW")
-        result = update_order(order_id=1, body=body, db=db)
+        update_order(order_id=1, body=body, db=db)
 
         assert order.po_number == "PO-NEW"
         db.flush.assert_called_once()
@@ -916,7 +916,7 @@ class TestUpdateOrder:
         db.get.return_value = order
 
         body = OrderUpdate(status="shipped")
-        result = update_order(order_id=1, body=body, db=db)
+        update_order(order_id=1, body=body, db=db)
 
         assert order.status == "shipped"
 
@@ -1149,7 +1149,7 @@ class TestCreateOrderItem:
         db.get.return_value = order
 
         body = OrderItemCreate(catalog_number="CAT-001", quantity=Decimal("5"))
-        result = create_order_item(order_id=1, body=body, db=db)
+        create_order_item(order_id=1, body=body, db=db)
 
         db.add.assert_called_once()
         db.flush.assert_called_once()
@@ -1282,7 +1282,7 @@ class TestUpdateOrderItem:
         db.scalars.return_value.first.return_value = item
 
         body = OrderItemUpdate(quantity=Decimal("5"))
-        result = update_order_item(order_id=1, item_id=10, body=body, db=db)
+        update_order_item(order_id=1, item_id=10, body=body, db=db)
 
         assert item.quantity == Decimal("5")
         db.flush.assert_called_once()

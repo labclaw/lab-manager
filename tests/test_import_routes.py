@@ -166,7 +166,8 @@ class TestImportVendors:
         r = client.post("/api/v1/import/vendors", files=_csv_upload(csv))
         assert r.status_code == 200
         data = r.json()
-        assert data["imported"] == 0
+        # Valid rows are imported even when other rows have errors
+        assert data["imported"] == 1
         assert len(data["errors"]) >= 1
 
     def test_import_vendors_mixed_valid_invalid_and_dedup(self, client):
@@ -181,9 +182,10 @@ class TestImportVendors:
         assert r.status_code == 200
         data = r.json()
         # Row 2 (ExistingVendor) is deduped => skipped, row 3 (empty) error,
-        # but errors short-circuit so imported=0 and skipped is not incremented
-        # because the error row causes an early return.
-        assert data["imported"] == 0
+        # row 4 (NewVendor) is valid => imported. Valid rows are imported
+        # even when other rows have errors.
+        assert data["imported"] == 1
+        assert data["skipped"] == 1
         assert len(data["errors"]) >= 1
 
     def test_import_vendors_all_optional_fields(self, client):

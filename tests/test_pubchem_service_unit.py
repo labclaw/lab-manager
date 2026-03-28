@@ -856,7 +856,7 @@ class TestEnrichProduct:
         enrich_product("test", catalog_number=None)
         # Second call without catalog_number should hit cache
         # because cache key is "test|" for both
-        result = enrich_product("test")
+        enrich_product("test")
 
         assert mock_fetch.call_count == 1
 

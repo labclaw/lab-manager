@@ -336,7 +336,7 @@ class TestCreateKnowledge:
         from lab_manager.api.routes.knowledge import create_knowledge
 
         db = _make_db()
-        created_entry = _make_entry(title="New Entry", content="Some content")
+        _make_entry(title="New Entry", content="Some content")
         db.refresh.return_value = None
 
         # After flush+refresh, simulate the entry getting an id
@@ -346,7 +346,7 @@ class TestCreateKnowledge:
         db.refresh.side_effect = side_effect_refresh
 
         body = KnowledgeCreate(title="New Entry", content="Some content")
-        result = create_knowledge(body=body, db=db)
+        create_knowledge(body=body, db=db)
 
         db.add.assert_called_once()
         db.flush.assert_called_once()
@@ -495,7 +495,7 @@ class TestUpdateKnowledge:
         db.get.return_value = entry
 
         body = KnowledgeUpdate(title="New Title")
-        result = update_knowledge(entry_id=1, body=body, db=db)
+        update_knowledge(entry_id=1, body=body, db=db)
 
         assert entry.title == "New Title"
         db.flush.assert_called_once()

@@ -380,14 +380,14 @@ class TestCsvResponseEmptyRows:
         assert resp.status_code == 200
         body = _read_streaming_response(resp)
         # fieldnames defaults to [] when no rows and no fieldnames
-        lines = body.strip().split("\r\n")
+        body.strip().split("\r\n")
         # Empty fieldnames means header line is just the newline
         assert body.strip() == ""
 
     def test_empty_rows_count(self):
         resp = _csv_response([], "test.csv", fieldnames=["x"])
         body = _read_streaming_response(resp)
-        lines = [l for l in body.strip().split("\r\n") if l]
+        lines = [line for line in body.strip().split("\r\n") if line]
         assert len(lines) == 1  # header only
 
 
@@ -523,7 +523,7 @@ class TestExportInventory:
         with patch("lab_manager.api.routes.export.svc") as mock_svc:
             mock_svc.inventory_report.return_value = []
             resp = export_inventory(location_id=None, db=mock_db)
-        body = _read_streaming_response(resp)
+        _read_streaming_response(resp)
         # No rows, filename is inventory.csv, fieldnames derived from empty list
         assert "inventory.csv" in resp.headers["content-disposition"]
 
@@ -574,7 +574,7 @@ class TestExportOrders:
         mock_db = MagicMock()
         with patch("lab_manager.api.routes.export.svc") as mock_svc:
             mock_svc.order_history.return_value = []
-            resp = export_orders(vendor_id=3, date_from=None, date_to=None, db=mock_db)
+            export_orders(vendor_id=3, date_from=None, date_to=None, db=mock_db)
         mock_svc.order_history.assert_called_once_with(
             mock_db, vendor_id=3, date_from=None, date_to=None
         )
@@ -585,7 +585,7 @@ class TestExportOrders:
             mock_svc.order_history.return_value = []
             df = date(2026, 1, 1)
             dt = date(2026, 3, 27)
-            resp = export_orders(vendor_id=None, date_from=df, date_to=dt, db=mock_db)
+            export_orders(vendor_id=None, date_from=df, date_to=dt, db=mock_db)
         mock_svc.order_history.assert_called_once_with(
             mock_db, vendor_id=None, date_from=df, date_to=dt
         )

@@ -280,7 +280,7 @@ class TestCreateEquipment:
             category="nmr",
         )
 
-        result = create_equipment(body, db)
+        create_equipment(body, db)
 
         db.add.assert_called_once()
         db.flush.assert_called_once()
@@ -294,7 +294,7 @@ class TestCreateEquipment:
         db = MagicMock()
         body = EquipmentCreate(name="Default Status Equip")
 
-        result = create_equipment(body, db)
+        create_equipment(body, db)
 
         added_obj = db.add.call_args[0][0]
         assert added_obj.status == EquipmentStatus.active
@@ -303,7 +303,7 @@ class TestCreateEquipment:
         db = MagicMock()
         body = EquipmentCreate(name="Broken Equip", status=EquipmentStatus.broken)
 
-        result = create_equipment(body, db)
+        create_equipment(body, db)
 
         added_obj = db.add.call_args[0][0]
         assert added_obj.status == EquipmentStatus.broken
@@ -316,7 +316,7 @@ class TestCreateEquipment:
             api_interface="http",
         )
 
-        result = create_equipment(body, db)
+        create_equipment(body, db)
 
         added_obj = db.add.call_args[0][0]
         assert added_obj.is_api_controllable is True
@@ -329,7 +329,7 @@ class TestCreateEquipment:
             photos=["/img/front.jpg", "/img/back.jpg"],
         )
 
-        result = create_equipment(body, db)
+        create_equipment(body, db)
 
         added_obj = db.add.call_args[0][0]
         assert len(added_obj.photos) == 2
@@ -341,7 +341,7 @@ class TestCreateEquipment:
             extracted_data={"source_model": "gemini-3.1-flash-preview"},
         )
 
-        result = create_equipment(body, db)
+        create_equipment(body, db)
 
         added_obj = db.add.call_args[0][0]
         assert added_obj.extracted_data["source_model"] == "gemini-3.1-flash-preview"
@@ -390,7 +390,7 @@ class TestUpdateEquipment:
         mock_get.return_value = equip
 
         body = EquipmentUpdate(name="New Name")
-        result = update_equipment(1, body, db)
+        update_equipment(1, body, db)
 
         assert equip.name == "New Name"
         db.flush.assert_called_once()
@@ -707,7 +707,7 @@ class TestEdgeCases:
     @patch("lab_manager.api.routes.equipment.get_or_404")
     def test_update_clears_optional_string_to_none(self, mock_get):
         """Setting an optional string field to None should clear it."""
-        db = MagicMock()
+        MagicMock()
         equip = _make_equipment(id=1, manufacturer="Existing")
         mock_get.return_value = equip
 

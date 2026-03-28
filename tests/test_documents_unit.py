@@ -558,7 +558,7 @@ class TestCreateDocument:
             file_path="uploads/test.pdf",
             file_name="test.pdf",
         )
-        result = create_document(body=body, db=db)
+        create_document(body=body, db=db)
 
         db.add.assert_called_once()
         db.flush.assert_called_once()
@@ -619,7 +619,7 @@ class TestUpdateDocument:
         db.get.return_value = doc
 
         body = DocumentUpdate(file_name="new.pdf")
-        result = update_document(document_id=1, body=body, db=db)
+        update_document(document_id=1, body=body, db=db)
 
         assert doc.file_name == "new.pdf"
         db.flush.assert_called_once()
@@ -793,7 +793,7 @@ class TestReviewDocument:
         bg_tasks = MagicMock()
         body = ReviewAction(action="approve", reviewed_by="admin")
 
-        result = review_document(
+        review_document(
             document_id=1, body=body, background_tasks=bg_tasks, db=db
         )
         assert doc.status == DocumentStatus.approved
@@ -813,7 +813,7 @@ class TestReviewDocument:
             action="reject", reviewed_by="scientist", review_notes="Bad data"
         )
 
-        result = review_document(
+        review_document(
             document_id=1, body=body, background_tasks=bg_tasks, db=db
         )
         assert doc.status == DocumentStatus.rejected
@@ -848,7 +848,7 @@ class TestReviewDocument:
         bg_tasks = MagicMock()
         body = ReviewAction(action="approve")
 
-        result = review_document(
+        review_document(
             document_id=1, body=body, background_tasks=bg_tasks, db=db
         )
         assert doc.status == "pending"
@@ -863,7 +863,7 @@ class TestReviewDocument:
         bg_tasks = MagicMock()
         body = ReviewAction(action="reject")
 
-        result = review_document(
+        review_document(
             document_id=1, body=body, background_tasks=bg_tasks, db=db
         )
         assert doc.status == "approved"
@@ -878,7 +878,7 @@ class TestReviewDocument:
         bg_tasks = MagicMock()
         body = ReviewAction(action="approve")
 
-        result = review_document(
+        review_document(
             document_id=1, body=body, background_tasks=bg_tasks, db=db
         )
         assert doc.status == "rejected"
@@ -893,7 +893,7 @@ class TestReviewDocument:
         bg_tasks = MagicMock()
         body = ReviewAction(action="approve")
 
-        result = review_document(
+        review_document(
             document_id=1, body=body, background_tasks=bg_tasks, db=db
         )
         assert doc.status == "deleted"

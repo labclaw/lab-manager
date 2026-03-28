@@ -676,7 +676,7 @@ class TestAuditFlushCycle:
             select(AuditLog).where(AuditLog.action == "create")
         ).all()
         assert len(logs) >= 1
-        create_log = [l for l in logs if l.table_name == "vendors"][-1]
+        create_log = [log for log in logs if log.table_name == "vendors"][-1]
         assert create_log.changed_by == "creator"
         assert create_log.changes.get("name") == "FlushTest"
         set_current_user(None)
@@ -696,7 +696,7 @@ class TestAuditFlushCycle:
             select(AuditLog).where(AuditLog.action == "update")
         ).all()
         assert len(logs) >= 1
-        update_log = [l for l in logs if l.table_name == "vendors"][-1]
+        update_log = [log for log in logs if log.table_name == "vendors"][-1]
         assert update_log.changed_by == "updater"
         assert "name" in update_log.changes
         set_current_user(None)
@@ -716,7 +716,7 @@ class TestAuditFlushCycle:
             select(AuditLog).where(AuditLog.action == "delete")
         ).all()
         assert len(logs) >= 1
-        delete_log = [l for l in logs if l.table_name == "vendors"][-1]
+        delete_log = [log for log in logs if log.table_name == "vendors"][-1]
         assert delete_log.changed_by == "deleter"
         assert delete_log.changes.get("name") == "ToDelete"
         set_current_user(None)
@@ -730,7 +730,7 @@ class TestAuditFlushCycle:
         logs = db_session.exec(
             select(AuditLog).where(AuditLog.action == "create")
         ).all()
-        create_log = [l for l in logs if l.table_name == "vendors"][-1]
+        create_log = [log for log in logs if log.table_name == "vendors"][-1]
         assert create_log.changed_by is None
 
     def test_audit_log_not_audited(self, db_session):
@@ -754,10 +754,10 @@ class TestAuditFlushCycle:
         logs = db_session.exec(
             select(AuditLog).where(AuditLog.action == "create")
         ).all()
-        vendor_logs = [l for l in logs if l.table_name == "vendors"]
+        vendor_logs = [log for log in logs if log.table_name == "vendors"]
         # There should be logs for V1, V2, V3 (plus any from earlier tests
         # if session is reused, but we match by changes.name)
-        names_in_changes = [l.changes.get("name") for l in vendor_logs]
+        names_in_changes = [log.changes.get("name") for log in vendor_logs]
         assert "V1" in names_in_changes
         assert "V2" in names_in_changes
         assert "V3" in names_in_changes
@@ -772,7 +772,7 @@ class TestAuditFlushCycle:
         logs = db_session.exec(
             select(AuditLog).where(AuditLog.action == "create")
         ).all()
-        create_log = [l for l in logs if l.table_name == "vendors"][-1]
+        create_log = [log for log in logs if log.table_name == "vendors"][-1]
         assert create_log.record_id == v.id
         set_current_user(None)
 

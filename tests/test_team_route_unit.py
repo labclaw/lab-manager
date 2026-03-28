@@ -216,7 +216,7 @@ class TestCreateInvitation:
         mock_serializer.return_value = serializer
 
         db = _make_db()
-        invitation = _make_invitation(id=10, token="signed-token")
+        _make_invitation(id=10, token="signed-token")
         db.refresh.side_effect = lambda obj: setattr(obj, "id", 10)
         caller = _make_caller(role="pi", role_level=0)
 
@@ -716,7 +716,7 @@ class TestUpdateMember:
         db.get.return_value = member
         caller = _make_caller(role="pi", role_level=0)
 
-        result = update_member(member_id=3, role="postdoc", staff=caller, db=db)
+        update_member(member_id=3, role="postdoc", staff=caller, db=db)
         assert member.role == "postdoc"
         assert member.role_level == 2
         db.commit.assert_called_once()
@@ -767,7 +767,7 @@ class TestUpdateMember:
         db.get.return_value = member
         caller = _make_caller(role="grad_student", role_level=3)
 
-        result = update_member(member_id=3, role="tech", staff=caller, db=db)
+        update_member(member_id=3, role="tech", staff=caller, db=db)
         assert member.role == "tech"
 
     def test_update_returns_member_info(self):
@@ -789,7 +789,7 @@ class TestUpdateMember:
         db.get.return_value = member
         caller = _make_caller(role="pi", role_level=0)
 
-        result = update_member(member_id=3, role="grad_student", staff=caller, db=db)
+        update_member(member_id=3, role="grad_student", staff=caller, db=db)
         assert member.role == "grad_student"
         assert member.role_level == 3
 
@@ -1082,7 +1082,7 @@ class TestAcceptInvitation:
         """Password of exactly 8 chars should pass the length check."""
         # This will fail at token validation, but not at password length
 
-        db = _make_db()
+        _make_db()
         # We expect BadSignature since we don't mock the serializer here,
         # but the 400 error comes from token, not from password length
         # So we need to mock the serializer too
@@ -1158,7 +1158,6 @@ class TestAcceptInvitation:
     def test_password_exactly_72_bytes_accepted(self):
         """72-byte password should pass the byte length check."""
         # 72 ASCII chars = 72 bytes
-        pw = "a" * 72
         # Will fail at token validation, but NOT at password check
         # We verify by mocking the serializer to fail after password check
         pass  # implicitly tested — 73-byte version above is rejected

@@ -659,7 +659,7 @@ class TestCreateProduct:
         db = _make_db()
         body = ProductCreate(catalog_number="CAT-NEW", name="New Product")
 
-        result = create_product(body=body, db=db)
+        create_product(body=body, db=db)
 
         db.add.assert_called_once()
         db.flush.assert_called_once()
@@ -783,7 +783,7 @@ class TestUpdateProduct:
         db.get.return_value = product
 
         body = ProductUpdate(name="New Name")
-        result = update_product(product_id=1, body=body, db=db)
+        update_product(product_id=1, body=body, db=db)
 
         assert product.name == "New Name"
         db.flush.assert_called_once()
@@ -1290,7 +1290,7 @@ class TestLookupProductMsds:
             "requires_safety_review": True,
         }
 
-        result = lookup_product_msds(product_id=1, db=db)
+        lookup_product_msds(product_id=1, db=db)
 
         assert product.msds_url == "https://found.com/msds.pdf"
         assert product.hazard_class == "Flammable"
@@ -1390,7 +1390,7 @@ class TestLookupProductMsds:
 
         mock_lookup.return_value = {}  # empty result
 
-        result = lookup_product_msds(product_id=1, db=db)
+        lookup_product_msds(product_id=1, db=db)
 
         db.flush.assert_called_once()
         mock_index.assert_called_once()

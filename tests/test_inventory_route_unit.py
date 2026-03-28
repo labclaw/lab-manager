@@ -726,7 +726,7 @@ class TestCreateInventoryItem:
         db = _make_db()
         body = InventoryItemCreate(product_id=1)
 
-        result = create_inventory_item(body=body, db=db)
+        create_inventory_item(body=body, db=db)
 
         db.add.assert_called_once()
         db.flush.assert_called_once()
@@ -1126,7 +1126,7 @@ class TestConsumeItem:
         body = ConsumeBody(
             quantity=Decimal("5"), consumed_by="bob", purpose="experiment"
         )
-        result = consume_item(item_id=1, body=body, db=db)
+        consume_item(item_id=1, body=body, db=db)
 
         mock_svc.consume.assert_called_once_with(
             1, Decimal("5"), "bob", "experiment", db

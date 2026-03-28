@@ -377,7 +377,7 @@ class TestGetPreferences:
     def test_creates_preferences_when_not_found(self):
         db = _mock_db_with_scalars_first(None)
         # When not found, it creates a new one and adds to session
-        result = get_preferences(db, staff_id=10)
+        get_preferences(db, staff_id=10)
         db.add.assert_called_once()
         added_obj = db.add.call_args[0][0]
         assert added_obj.staff_id == 10
@@ -425,14 +425,14 @@ class TestUpdatePreferences:
     def test_updates_single_field(self):
         pref = _make_preference(staff_id=10, email_weekly=False)
         db = _mock_db_with_scalars_first(pref)
-        result = update_preferences(db, staff_id=10, updates={"email_weekly": True})
+        update_preferences(db, staff_id=10, updates={"email_weekly": True})
         assert pref.email_weekly is True
         db.flush.assert_called_once()
 
     def test_updates_multiple_fields(self):
         pref = _make_preference(staff_id=10)
         db = _mock_db_with_scalars_first(pref)
-        result = update_preferences(
+        update_preferences(
             db,
             staff_id=10,
             updates={
@@ -486,7 +486,7 @@ class TestUpdatePreferences:
     def test_creates_preferences_if_not_found(self):
         """When preferences don't exist, get_preferences creates them first."""
         db = _mock_db_with_scalars_first(None)
-        result = update_preferences(db, staff_id=10, updates={"email_weekly": True})
+        update_preferences(db, staff_id=10, updates={"email_weekly": True})
         # get_preferences should have been called which creates the pref
         db.add.assert_called_once()
 
