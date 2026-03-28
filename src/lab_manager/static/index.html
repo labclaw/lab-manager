@@ -165,6 +165,11 @@ tailwind.config = {
         <span class="material-symbols-outlined text-xl">upload_file</span>
         Upload
       </a>
+      <a href="#chat" data-nav="chat"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-primary/5 text-slate-400">
+        <span class="material-symbols-outlined text-xl">forum</span>
+        Chat
+      </a>
     </nav>
 
     <!-- Sidebar footer: user profile -->
@@ -349,6 +354,42 @@ tailwind.config = {
         </div>
       </div>
 
+      <!-- ===== CHAT VIEW ===== -->
+      <div id="view-chat" class="hidden">
+        <div class="flex flex-col h-[calc(100vh-140px)] bg-surface-dark border border-border-dark rounded-xl overflow-hidden">
+          <!-- Chat header -->
+          <div class="flex items-center justify-between px-5 py-3 border-b border-border-dark">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary text-xl">forum</span>
+              <h2 class="text-base font-semibold text-white">Lab Chat</h2>
+            </div>
+            <div id="chat-status" class="text-xs text-slate-500 flex items-center">
+              <span class="w-2 h-2 rounded-full bg-slate-600 inline-block mr-1.5"></span>Connecting...
+            </div>
+          </div>
+          <!-- Messages -->
+          <div id="chat-messages" class="flex-1 overflow-y-auto p-5 space-y-1"></div>
+          <!-- Input -->
+          <div class="border-t border-border-dark p-4" id="chat-input-wrapper" style="position:relative;">
+            <div class="flex items-center gap-3">
+              <div class="flex-1 relative">
+                <input type="text" id="chat-input"
+                  placeholder="Type a message... Use @mention to talk to AI staff"
+                  autocomplete="off"
+                  class="w-full px-4 py-2.5 bg-background-dark border border-border-dark rounded-xl text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  onkeydown="handleChatKeydown(event)"
+                  oninput="handleChatInput(event)">
+              </div>
+              <button onclick="sendChatMessage()"
+                class="flex items-center gap-1.5 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/80 transition-colors flex-shrink-0">
+                <span class="material-symbols-outlined text-base">send</span>
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 </div>
@@ -390,6 +431,7 @@ tailwind.config = {
 <script src="/static/js/inventory.js"></script>
 <script src="/static/js/orders.js"></script>
 <script src="/static/js/upload.js"></script>
+<script src="/static/js/chat.js"></script>
 <script src="/static/js/app.js"></script>
 <script>
 // Global search handler (navigates to documents view with search)

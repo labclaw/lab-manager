@@ -14,7 +14,17 @@ from lab_manager.models.audit import AuditLog, log_change
 from lab_manager.models.alert import Alert, AlertType, AlertSeverity
 from lab_manager.models.equipment import Equipment, EquipmentStatus
 from lab_manager.models.order_request import OrderRequest, RequestStatus, RequestUrgency
+from lab_manager.models.notification import Notification, NotificationPreference
 from lab_manager.models.usage_event import UsageEvent
+from lab_manager.models.import_job import (
+    ImportJob,
+    ImportErrorRecord,
+    ImportType,
+    ImportStatus,
+)
+from lab_manager.models.reservation import Reservation, ReservationStatus
+from lab_manager.models.device import Device, DeviceStatus
+from lab_manager.models.knowledge import KnowledgeEntry, KnowledgeCategory
 
 __all__ = [
     "AuditMixin",
@@ -43,4 +53,16 @@ __all__ = [
     "OrderRequest",
     "RequestStatus",
     "RequestUrgency",
+    "Notification",
+    "NotificationPreference",
+    "ImportJob",
+    "ImportErrorRecord",
+    "ImportType",
+    "ImportStatus",
+    "Device",
+    "DeviceStatus",
+    "KnowledgeEntry",
+    "KnowledgeCategory",
+    "Reservation",
+    "ReservationStatus",
 ]

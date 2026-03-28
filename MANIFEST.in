@@ -3,3 +3,6 @@ include src/lab_manager/static/manifest.json
 include src/lab_manager/static/sw.js
 recursive-include src/lab_manager/static/js *.js
 recursive-include src/lab_manager/static/icons *
+recursive-include src/lab_manager/static/dist *
+recursive-include src/lab_manager/alembic *.py
+include src/lab_manager/alembic/script.py.mako

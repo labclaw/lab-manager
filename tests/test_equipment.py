@@ -24,6 +24,18 @@ def test_create_equipment(client):
     assert data["id"] is not None
 
 
+def test_create_equipment_empty_name_rejected(client):
+    r = client.post("/api/v1/equipment/", json={"name": ""})
+    assert r.status_code == 422
+
+
+def test_update_equipment_empty_name_rejected(client):
+    r = client.post("/api/v1/equipment/", json={"name": "Valid", "category": "x"})
+    eid = r.json()["id"]
+    r = client.patch(f"/api/v1/equipment/{eid}", json={"name": ""})
+    assert r.status_code == 422
+
+
 def test_get_equipment(client):
     r = client.post(
         "/api/v1/equipment/",

@@ -539,3 +539,90 @@ export const orderRequests = {
     }),
   stats: () => apiFetch<RequestStats>('/requests/stats'),
 }
+
+// Devices
+export interface Device {
+  id: number
+  device_id: string
+  hostname: string
+  ip_address?: string | null
+  tailscale_ip?: string | null
+  platform?: string | null
+  os_version?: string | null
+  status: 'online' | 'offline' | 'error'
+  last_heartbeat_at?: string | null
+  first_seen_at?: string
+  cpu_percent?: number | null
+  memory_percent?: number | null
+  memory_total_mb?: number | null
+  disk_percent?: number | null
+  disk_total_gb?: number | null
+  tailscale_online: boolean
+  tailscale_exit_node: boolean
+  notes?: string | null
+  extra?: Record<string, unknown>
+}
+
+export const devices = {
+  list: (page = 1, pageSize = 50, status?: string, search?: string) => {
+    let qs = `?page=${page}&page_size=${pageSize}`
+    if (status) qs += `&status=${status}`
+    if (search) qs += `&search=${encodeURIComponent(search)}`
+    return apiFetch<ApiResponse<Device>>(`/devices${qs}`)
+  },
+  get: (id: number) => apiFetch<Device>(`/devices/${id}`),
+  update: (id: number, data: { notes?: string; extra?: Record<string, unknown> }) =>
+    apiFetch<Device>(`/devices/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  markOffline: (id: number) =>
+    apiFetch<Device>(`/devices/${id}/offline`, { method: 'POST' }),
+}
+
+// Notifications
+export interface NotificationItem {
+  id: number
+  type: string
+  title: string
+  message: string
+  link?: string | null
+  is_read: boolean
+  read_at?: string | null
+  created_at?: string | null
+}
+
+export interface NotificationPreference {
+  id: number
+  staff_id: number
+  in_app: boolean
+  email_weekly: boolean
+  order_requests: boolean
+  document_reviews: boolean
+  inventory_alerts: boolean
+  team_changes: boolean
+}
+
+export const notifications = {
+  list: (unreadOnly = false, page = 1, pageSize = 20) =>
+    apiFetch<ApiResponse<NotificationItem>>(
+      `/notifications?unread_only=${unreadOnly}&page=${page}&page_size=${pageSize}`,
+    ),
+  unreadCount: () =>
+    apiFetch<{ unread_count: number }>('/notifications/count'),
+  markRead: (id: number) =>
+    apiFetch<NotificationItem>(`/notifications/${id}/read`, {
+      method: 'POST',
+    }),
+  markAllRead: () =>
+    apiFetch<{ marked: number }>('/notifications/read-all', {
+      method: 'POST',
+    }),
+  preferences: () =>
+    apiFetch<NotificationPreference>('/notifications/preferences'),
+  updatePreferences: (data: Partial<NotificationPreference>) =>
+    apiFetch<NotificationPreference>('/notifications/preferences', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+}
