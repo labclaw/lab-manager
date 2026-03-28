@@ -15,7 +15,8 @@ def _ensure_staff(db) -> int:
         return existing.id
     s = Staff(name="queue_test_user", email="queue@test.lab", role="member")
     db.add(s)
-    db.flush()
+    db.commit()
+    db.refresh(s)
     return s.id
 
 
