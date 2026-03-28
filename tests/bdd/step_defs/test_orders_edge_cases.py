@@ -83,7 +83,7 @@ def create_edge_order(api, edge_vendor, po):
         },
     )
     assert r.status_code == 201, r.text
-    return r.json()
+    return r.json()["order"]
 
 
 @given(
@@ -100,7 +100,7 @@ def create_edge_order_with_items(api, edge_vendor, ctx, po, n):
         },
     )
     assert r.status_code == 201, r.text
-    order = r.json()
+    order = r.json()["order"]
 
     items = []
     for i in range(n):

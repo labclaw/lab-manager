@@ -167,3 +167,35 @@ def test_evict_stale_entries(client, db_session):
     finally:
         tel_mod._MAX_STORE_SIZE = original_max
         tel_mod._rate_limits.clear()
+
+
+def test_rate_limit_concurrent_thread_safety(client, db_session):
+    """Concurrent requests for the same user+page must be rate-limited.
+
+    Without the lock, threads can both read the old timestamp and both
+    pass the rate-limit check before either writes the new one.
+    """
+    import threading
+
+    results: list[str] = []
+    barrier = threading.Barrier(2)
+
+    def post_event():
+        barrier.wait()
+        resp = client.post(
+            "/api/v1/telemetry/event",
+            params={"event_type": "page_view", "page": "/race-test"},
+        )
+        results.append(resp.json()["status"])
+
+    t1 = threading.Thread(target=post_event)
+    t2 = threading.Thread(target=post_event)
+    t1.start()
+    t2.start()
+    t1.join(timeout=5)
+    t2.join(timeout=5)
+
+    # One request must succeed, the other must be rate-limited.
+    # Without the lock this test is flaky because both can succeed.
+    assert results.count("ok") == 1
+    assert results.count("rate_limited") == 1

@@ -23,6 +23,7 @@ import { TeamPage } from '@/pages/TeamPage'
 import { ImportPage } from '@/pages/ImportPage'
 import { AlertsPage } from '@/pages/AlertsPage'
 import { RequestsPage } from '@/pages/RequestsPage'
+import { DevicesPage } from '@/pages/DevicesPage'
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -42,6 +43,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/cloud-brain': 'Cloud Brain',
   '/team': 'Team',
   '/requests': 'Supply Requests',
+  '/devices': 'Devices',
 }
 
 export default function App() {
@@ -135,7 +137,6 @@ export default function App() {
             showSearch={location.pathname !== '/ask'}
             onMobileMenuToggle={() => setMobileMenuOpen(prev => !prev)}
             userName={user.name}
-            alertCount={alertCount}
           />
           <main className="flex-1 overflow-y-auto p-3 md:p-6">
             <Routes>
@@ -157,6 +158,7 @@ export default function App() {
                 <Route path="requests" element={<RequestsPage onError={setError} />} />
                 <Route path="cloud-brain" element={<CloudBrainPage onError={setError} />} />
                 <Route path="team" element={<TeamPage onError={setError} />} />
+                <Route path="devices" element={<DevicesPage onError={setError} />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>

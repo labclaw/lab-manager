@@ -535,3 +535,44 @@ class TestEmailPoller:
         os.environ.pop("EMAIL_IMAP_USER", None)
         os.environ.pop("EMAIL_IMAP_PASSWORD", None)
         get_settings.cache_clear()
+
+    def test_run_poller_graceful_shutdown(self):
+        """run_poller exits within one interval when stop_poller() is called."""
+        import threading
+        import time
+
+        os.environ["EMAIL_IMAP_HOST"] = "imap.example.com"
+        os.environ["EMAIL_IMAP_USER"] = "lab@example.com"
+        os.environ["EMAIL_IMAP_PASSWORD"] = "secret"
+        os.environ["EMAIL_POLL_INTERVAL"] = "300"
+        get_settings.cache_clear()
+
+        from lab_manager.services.email_poller import run_poller, stop_poller
+
+        poll_calls = 0
+
+        def fake_poll_once():
+            nonlocal poll_calls
+            poll_calls += 1
+            return 0
+
+        with patch(
+            "lab_manager.services.email_poller.poll_once",
+            side_effect=fake_poll_once,
+        ):
+            t = threading.Thread(target=run_poller)
+            t.start()
+            # Wait for at least one poll cycle
+            time.sleep(0.5)
+            stop_poller()
+            t.join(timeout=5)
+
+        assert not t.is_alive(), "run_poller did not stop after stop_poller()"
+        assert poll_calls >= 1
+
+        # Clean up env
+        os.environ.pop("EMAIL_IMAP_HOST", None)
+        os.environ.pop("EMAIL_IMAP_USER", None)
+        os.environ.pop("EMAIL_IMAP_PASSWORD", None)
+        os.environ.pop("EMAIL_POLL_INTERVAL", None)
+        get_settings.cache_clear()
