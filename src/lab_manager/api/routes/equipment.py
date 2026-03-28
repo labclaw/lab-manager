@@ -38,7 +38,7 @@ _VALID_EQUIPMENT_STATUSES = {
 
 
 class EquipmentCreate(BaseModel):
-    name: str = Field(max_length=500)
+    name: str = Field(min_length=1, max_length=500)
     manufacturer: Optional[str] = Field(default=None, max_length=255)
     model: Optional[str] = Field(default=None, max_length=255)
     serial_number: Optional[str] = Field(default=None, max_length=255)
@@ -65,7 +65,7 @@ class EquipmentCreate(BaseModel):
 
 
 class EquipmentUpdate(BaseModel):
-    name: Optional[str] = Field(default=None, max_length=500)
+    name: Optional[str] = Field(default=None, min_length=1, max_length=500)
     manufacturer: Optional[str] = Field(default=None, max_length=255)
     model: Optional[str] = Field(default=None, max_length=255)
     serial_number: Optional[str] = Field(default=None, max_length=255)
