@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db, get_or_404
+from lab_manager.exceptions import NotFoundError
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.document import Document, DocumentStatus
 from lab_manager.models.order import Order, OrderItem, OrderStatus
@@ -494,7 +495,12 @@ def review_document(
     db: Session = Depends(get_db),
 ):
     """Approve or reject a document extraction."""
-    doc = get_or_404(db, Document, document_id, "Document")
+    # Acquire row lock to prevent TOCTOU race on concurrent approve requests.
+    doc = db.scalars(
+        select(Document).where(Document.id == document_id).with_for_update()
+    ).first()
+    if not doc:
+        raise NotFoundError("Document", document_id)
 
     # BUG 1 FIX: status guard — only allow review on needs_review
     if doc.status == DocumentStatus.processing:
