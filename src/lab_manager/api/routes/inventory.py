@@ -7,12 +7,13 @@ from decimal import Decimal
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db, get_or_404
+from lab_manager.exceptions import ValidationError
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.models.inventory import InventoryItem, InventoryStatus
 from lab_manager.models.product import Product
@@ -294,7 +295,20 @@ def item_history(item_id: int, db: Session = Depends(get_db)):
     "/{item_id}/consume", dependencies=[Depends(require_permission("log_consumption"))]
 )
 def consume_item(item_id: int, body: ConsumeBody, db: Session = Depends(get_db)):
-    return inv_svc.consume(item_id, body.quantity, body.consumed_by, body.purpose, db)
+    item = inv_svc.consume(item_id, body.quantity, body.consumed_by, body.purpose, db)
+    result = {
+        "id": item.id,
+        "product_id": item.product_id,
+        "quantity_on_hand": float(item.quantity_on_hand),
+        "status": item.status,
+    }
+    # Attach safety reminder for hazardous products
+    product = getattr(item, "product", None)
+    if product and getattr(product, "is_hazardous", False):
+        from lab_manager.services.safety import get_product_safety_info
+
+        result["safety_reminder"] = get_product_safety_info(product)
+    return result
 
 
 @router.post(

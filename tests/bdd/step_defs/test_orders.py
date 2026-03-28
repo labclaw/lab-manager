@@ -70,7 +70,7 @@ def create_order_given(api, vendor, po):
         },
     )
     assert r.status_code in (200, 201), r.text
-    return r.json()
+    return r.json()["order"]
 
 
 @given(
@@ -87,7 +87,7 @@ def create_order_with_items(api, vendor, ctx, po, n):
         },
     )
     assert r.status_code in (200, 201), r.text
-    order = r.json()
+    order = r.json()["order"]
 
     items = []
     for i in range(n):
@@ -175,7 +175,7 @@ def create_order_with_n_items(api, vendor, ctx, n):
         },
     )
     assert r.status_code in (200, 201), r.text
-    order = r.json()
+    order = r.json()["order"]
 
     items = []
     for i in range(n):
@@ -212,7 +212,7 @@ def create_order_when(api, vendor, po):
         },
     )
     assert r.status_code in (200, 201), r.text
-    return r.json()
+    return r.json()["order"]
 
 
 @when(

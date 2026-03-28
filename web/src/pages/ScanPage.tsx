@@ -235,7 +235,7 @@ function ScanResultCard({ item }: { readonly item: InventoryItem }) {
         </a>
         <button
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 text-xs font-medium hover:bg-emerald-500/20 transition-colors"
-          title="Log consumption (coming soon)"
+          title="Log consumption"
         >
           <Beaker className="size-3.5" />
           Log Consumption

@@ -6,7 +6,7 @@ Feature: Document Intake Pipeline
 
   # 创建新文档记录
   Scenario: Create a new document record
-    When I create a document "Scan_20260317_packing_list.jpg" at path "/uploads/Scan_20260317_packing_list.jpg"
+    When I create a document "Scan_20260317_packing_list.jpg" at path "Scan_20260317_packing_list.jpg"
     Then the document should be created with status "pending"
     And the document should have file_name "Scan_20260317_packing_list.jpg"
 
