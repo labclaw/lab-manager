@@ -5,7 +5,15 @@ from __future__ import annotations
 import logging
 from typing import Literal, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, UploadFile
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+)
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, field_validator
 from sqlalchemy import func, select
@@ -459,9 +467,37 @@ def get_document(document_id: int, db: Session = Depends(get_db)):
 def update_document(
     document_id: int, body: DocumentUpdate, db: Session = Depends(get_db)
 ):
-    """Partial update any document fields."""
+    """Partial update any document fields.
+
+    Status changes are restricted — use the /review endpoint for
+    approve/reject actions.  PATCH may only set status to values
+    that do not bypass the review workflow.
+    """
     doc = get_or_404(db, Document, document_id, "Document")
     updates = body.model_dump(exclude_unset=True)
+
+    # Block status changes that bypass the review workflow.
+    _REVIEW_STATUSES = {
+        DocumentStatus.approved,
+        DocumentStatus.rejected,
+        DocumentStatus.needs_review,
+    }
+    new_status = updates.get("status")
+    if new_status is not None:
+        new_status_enum = DocumentStatus(new_status)
+        if new_status_enum in _REVIEW_STATUSES:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"Cannot set status to '{new_status}' via PATCH. "
+                    f"Use the /review endpoint instead."
+                ),
+            )
+        if new_status_enum == DocumentStatus.deleted:
+            raise HTTPException(
+                status_code=422,
+                detail="Cannot delete via PATCH. Use DELETE instead.",
+            )
     if "vendor_name" in updates and updates["vendor_name"]:
         updates["vendor_name"] = normalize_vendor(updates["vendor_name"])
     for key, value in updates.items():
