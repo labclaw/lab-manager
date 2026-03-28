@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from lab_manager.models.alert import Alert
@@ -296,11 +297,32 @@ def persist_alerts(db: Session) -> tuple[list[Alert], list[dict]]:
     ).all()
     existing_keys = {(e[0], e[1], e[2]) for e in existing}
 
-    created: list[Alert] = []
+    to_create: list[dict] = []
     for a in current:
         key = (a["entity_type"], a["entity_id"], a["type"])
         if key in existing_keys:
             continue
+        to_create.append(a)
+
+    if not to_create:
+        return [], current
+
+    # Re-query right before insert to catch concurrent inserts.
+    keys_to_create = {(a["entity_type"], a["entity_id"], a["type"]) for a in to_create}
+    fresh_existing = db.execute(
+        select(Alert.entity_type, Alert.entity_id, Alert.alert_type).where(
+            Alert.is_resolved.is_(False),
+        )
+    ).all()
+    fresh_keys = {(e[0], e[1], e[2]) for e in fresh_existing}
+    truly_new = [
+        a
+        for a in to_create
+        if (a["entity_type"], a["entity_id"], a["type"]) not in fresh_keys
+    ]
+
+    created: list[Alert] = []
+    for a in truly_new:
         alert = Alert(
             alert_type=a["type"],
             severity=a["severity"],
@@ -312,7 +334,22 @@ def persist_alerts(db: Session) -> tuple[list[Alert], list[dict]]:
         created.append(alert)
 
     if created:
-        db.flush()
+        try:
+            db.flush()
+        except IntegrityError:
+            db.rollback()
+            # Re-identify which alerts actually made it in despite the race.
+            now_existing = db.execute(
+                select(Alert.entity_type, Alert.entity_id, Alert.alert_type).where(
+                    Alert.is_resolved.is_(False),
+                )
+            ).all()
+            now_keys = {(e[0], e[1], e[2]) for e in now_existing}
+            created = [
+                c
+                for c in created
+                if (c.entity_type, c.entity_id, c.alert_type) in now_keys
+            ]
         for a in created:
             db.refresh(a)
     return created, current
