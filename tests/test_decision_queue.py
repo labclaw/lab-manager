@@ -1,13 +1,28 @@
 """Test unified Decision Queue endpoint."""
 
+from sqlalchemy import select
+
 from lab_manager.models.alert import Alert
 from lab_manager.models.document import Document
 from lab_manager.models.order_request import OrderRequest
+from lab_manager.models.staff import Staff
+
+
+def _ensure_staff(db) -> int:
+    """Return the id of an existing staff row, creating one if needed."""
+    existing = db.scalars(select(Staff)).first()
+    if existing:
+        return existing.id
+    s = Staff(name="queue_test_user", email="queue@test.lab", role="member")
+    db.add(s)
+    db.flush()
+    return s.id
 
 
 def _seed_order_request(db, **overrides):
+    staff_id = _ensure_staff(db)
     defaults = {
-        "requested_by": 1,
+        "requested_by": staff_id,
         "description": "Test reagent",
         "quantity": 5,
         "status": "pending",
