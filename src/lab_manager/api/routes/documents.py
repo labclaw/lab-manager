@@ -456,7 +456,9 @@ def create_document(body: DocumentCreate, db: Session = Depends(get_db)):
     return document
 
 
-@router.get("/{document_id}", dependencies=[Depends(require_permission("view_documents"))])
+@router.get(
+    "/{document_id}", dependencies=[Depends(require_permission("view_documents"))]
+)
 def get_document(document_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, Document, document_id, "Document")
 

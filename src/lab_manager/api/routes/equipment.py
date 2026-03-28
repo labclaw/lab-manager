@@ -134,7 +134,9 @@ def create_equipment(body: EquipmentCreate, db: Session = Depends(get_db)):
     return equip
 
 
-@router.get("/{equipment_id}", dependencies=[Depends(require_permission("view_equipment"))])
+@router.get(
+    "/{equipment_id}", dependencies=[Depends(require_permission("view_equipment"))]
+)
 def get_equipment(equipment_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, Equipment, equipment_id, "Equipment")
 
