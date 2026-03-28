@@ -324,7 +324,7 @@ def open_item(
     db: Session,
 ) -> InventoryItem:
     """Mark item as opened (track opened_date for stability)."""
-    item = _get_inventory_or_404(db, inventory_id)
+    item = _get_inventory_or_404(db, inventory_id, for_update=True)
 
     if item.opened_date is not None:
         raise ValidationError("Item is already opened")
@@ -365,7 +365,7 @@ def get_stock_level(product_id: int, db: Session) -> dict:
 
 def get_low_stock(db: Session) -> list[dict]:
     """Products where total stock is below min_stock_level."""
-    rows = db.scalars(
+    result = db.execute(
         select(
             Product.id,
             Product.name,
@@ -390,11 +390,11 @@ def get_low_stock(db: Session) -> list[dict]:
             "product_id": r.id,
             "name": r.name,
             "catalog_number": r.catalog_number,
-            "min_stock_level": r.min_stock_level,
+            "min_stock_level": float(r.min_stock_level) if r.min_stock_level else 0,
             "total_quantity": float(r.total_qty),
         }
-        for r in rows
-        if float(r.total_qty) < r.min_stock_level
+        for r in result
+        if float(r.total_qty) < (float(r.min_stock_level) if r.min_stock_level else 0)
     ]
 
 

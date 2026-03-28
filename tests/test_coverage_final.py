@@ -8,27 +8,8 @@ import pytest
 
 
 # ---------------------------------------------------------------------------
-# pipeline.py line 44: reverse partial match (vendor name IN search string)
+# _find_vendor removed — reverse partial match no longer needed
 # ---------------------------------------------------------------------------
-
-
-class TestPipelineReversePartial:
-    def test_find_vendor_reverse_partial(self, db_session):
-        """Vendor name 'Sigma' found inside search string 'Sigma-Aldrich Chemicals'."""
-        from lab_manager.intake.pipeline import _find_vendor
-        from lab_manager.models.vendor import Vendor
-
-        # Use a short vendor name that won't match SQL LIKE %long_search%
-        v = Vendor(name="Sigma")
-        db_session.add(v)
-        db_session.flush()
-
-        # Search with a longer string containing the vendor name
-        # SQL `contains` checks: "Sigma" LIKE "%Sigma-Aldrich Chemicals%" -> False
-        # Python check: "sigma" in "sigma-aldrich chemicals" -> True (line 43-44)
-        result = _find_vendor("Sigma-Aldrich Chemicals Division", db_session)
-        assert result is not None
-        assert result.name == "Sigma"
 
 
 # ---------------------------------------------------------------------------

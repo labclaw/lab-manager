@@ -1,8 +1,37 @@
 """Tests for vendor URL registry and reorder URL generation."""
 
+from urllib.parse import parse_qs, urlparse
+
 import pytest
 
 from lab_manager.services.vendor_urls import VENDOR_SEARCH_URLS, get_reorder_url
+
+
+def _assert_https_host(url: str, expected_host: str):
+    parsed = urlparse(url)
+    assert parsed.scheme == "https"
+    assert parsed.netloc == expected_host
+    return parsed
+
+
+def _assert_query_param(url: str, expected_host: str, key: str, expected_value: str):
+    parsed = _assert_https_host(url, expected_host)
+    assert parse_qs(parsed.query).get(key) == [expected_value]
+    return parsed
+
+
+@pytest.fixture
+def client_without_search(client, monkeypatch):
+    monkeypatch.setattr(
+        "lab_manager.api.routes.vendors.index_vendor_record", lambda _: None
+    )
+    monkeypatch.setattr(
+        "lab_manager.api.routes.products.index_product_record", lambda _: None
+    )
+    monkeypatch.setattr(
+        "lab_manager.api.routes.inventory.index_inventory_record", lambda _: None
+    )
+    return client
 
 
 class TestVendorSearchUrls:
@@ -38,35 +67,42 @@ class TestGetReorderUrl:
     def test_substring_match_vendor_in_key(self):
         url = get_reorder_url("Bio-Rad Laboratories", "1234567")
         assert url is not None
-        assert "1234567" in url
+        parsed = _assert_query_param(url, "www.bio-rad.com", "query", "1234567")
+        assert parsed.path == "/en-us/search"
 
     def test_substring_match_key_in_vendor(self):
         url = get_reorder_url("VWR", "ABC-123")
         assert url is not None
-        assert "ABC-123" in url
+        parsed = _assert_query_param(url, "us.vwr.com", "query", "ABC-123")
+        assert parsed.path == "/store/search"
 
     def test_case_insensitive(self):
         url = get_reorder_url("ADDGENE", "12345")
         assert url is not None
-        assert "addgene.org" in url
+        parsed = _assert_query_param(url, "www.addgene.org", "q", "12345")
+        assert parsed.path == "/search/all/"
 
     def test_invitrogen_maps_to_thermofisher(self):
         url = get_reorder_url("Invitrogen", "INV-001")
         assert url is not None
-        assert "thermofisher.com" in url
-        assert "INV-001" in url
+        _assert_query_param(url, "www.thermofisher.com", "query", "INV-001")
 
     def test_milliporesigma_maps_to_sigmaaldrich(self):
         url = get_reorder_url("MilliporeSigma", "M5678")
         assert url is not None
-        assert "sigmaaldrich.com" in url
+        parsed = _assert_https_host(url, "www.sigmaaldrich.com")
+        assert parsed.path.split("/")[-1] == "M5678"
 
     def test_unknown_vendor_falls_back_to_google(self):
         url = get_reorder_url("Unknown Vendor Inc", "XYZ-999")
         assert url is not None
-        assert "google.com/search" in url
-        assert "Unknown Vendor Inc" in url
-        assert "XYZ-999" in url
+        parsed = _assert_query_param(
+            url,
+            "www.google.com",
+            "q",
+            "Unknown Vendor Inc XYZ-999 order",
+        )
+        assert parsed.path == "/search"
 
     def test_empty_vendor_returns_none(self):
         assert get_reorder_url("", "S1234") is None
@@ -84,20 +120,22 @@ class TestGetReorderUrl:
     def test_mcmaster_carr(self):
         url = get_reorder_url("McMaster-Carr", "91251A")
         assert url is not None
-        assert "mcmaster.com" in url
-        assert "91251A" in url
+        parsed = _assert_https_host(url, "www.mcmaster.com")
+        assert parsed.path.strip("/") == "91251A"
 
 
 class TestGetReorderUrlEndpoint:
     """Test the API endpoint for reorder URL generation."""
 
-    def test_reorder_url_with_known_vendor(self, client):
+    def test_reorder_url_with_known_vendor(self, client_without_search):
         # Create vendor
-        vr = client.post("/api/v1/vendors/", json={"name": "Sigma-Aldrich"})
+        vr = client_without_search.post(
+            "/api/v1/vendors/", json={"name": "Sigma-Aldrich"}
+        )
         vendor_id = vr.json()["id"]
 
         # Create product
-        pr = client.post(
+        pr = client_without_search.post(
             "/api/v1/products/",
             json={
                 "name": "Test Chemical",
@@ -108,26 +146,28 @@ class TestGetReorderUrlEndpoint:
         product_id = pr.json()["id"]
 
         # Create inventory item
-        ir = client.post(
+        ir = client_without_search.post(
             "/api/v1/inventory/",
             json={"product_id": product_id, "quantity_on_hand": 5},
         )
         item_id = ir.json()["id"]
 
         # Get reorder URL
-        resp = client.get(f"/api/v1/inventory/{item_id}/reorder-url")
+        resp = client_without_search.get(f"/api/v1/inventory/{item_id}/reorder-url")
         assert resp.status_code == 200
         data = resp.json()
         assert data["vendor"] == "Sigma-Aldrich"
         assert data["catalog_number"] == "S1234"
-        assert "sigmaaldrich.com" in data["url"]
-        assert "S1234" in data["url"]
+        parsed = _assert_https_host(data["url"], "www.sigmaaldrich.com")
+        assert parsed.path.split("/")[-1] == "S1234"
 
-    def test_reorder_url_unknown_vendor_google_fallback(self, client):
-        vr = client.post("/api/v1/vendors/", json={"name": "Unknown Lab Supply"})
+    def test_reorder_url_unknown_vendor_google_fallback(self, client_without_search):
+        vr = client_without_search.post(
+            "/api/v1/vendors/", json={"name": "Unknown Lab Supply"}
+        )
         vendor_id = vr.json()["id"]
 
-        pr = client.post(
+        pr = client_without_search.post(
             "/api/v1/products/",
             json={
                 "name": "Mystery Reagent",
@@ -137,32 +177,38 @@ class TestGetReorderUrlEndpoint:
         )
         product_id = pr.json()["id"]
 
-        ir = client.post(
+        ir = client_without_search.post(
             "/api/v1/inventory/",
             json={"product_id": product_id, "quantity_on_hand": 1},
         )
         item_id = ir.json()["id"]
 
-        resp = client.get(f"/api/v1/inventory/{item_id}/reorder-url")
+        resp = client_without_search.get(f"/api/v1/inventory/{item_id}/reorder-url")
         assert resp.status_code == 200
         data = resp.json()
-        assert "google.com/search" in data["url"]
+        parsed = _assert_query_param(
+            data["url"],
+            "www.google.com",
+            "q",
+            "Unknown Lab Supply UNK-001 order",
+        )
+        assert parsed.path == "/search"
 
-    def test_reorder_url_no_vendor_returns_none(self, client):
+    def test_reorder_url_no_vendor_returns_none(self, client_without_search):
         # Product with no vendor
-        pr = client.post(
+        pr = client_without_search.post(
             "/api/v1/products/",
             json={"name": "Orphan Product", "catalog_number": "ORP-001"},
         )
         product_id = pr.json()["id"]
 
-        ir = client.post(
+        ir = client_without_search.post(
             "/api/v1/inventory/",
             json={"product_id": product_id, "quantity_on_hand": 1},
         )
         item_id = ir.json()["id"]
 
-        resp = client.get(f"/api/v1/inventory/{item_id}/reorder-url")
+        resp = client_without_search.get(f"/api/v1/inventory/{item_id}/reorder-url")
         assert resp.status_code == 200
         data = resp.json()
         assert data["url"] is None

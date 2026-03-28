@@ -59,7 +59,7 @@ def create_documents_from_table(api, datatable):
             "/api/v1/documents/",
             json={
                 "file_name": row["file_name"],
-                "file_path": f"/uploads/{row['file_name']}",
+                "file_path": row["file_name"],
                 "status": row["status"],
                 "vendor_name": row["vendor_name"],
             },
@@ -95,7 +95,7 @@ def create_doc_with_extracted_data(api, ctx, status, datatable):
         "/api/v1/documents/",
         json={
             "file_name": f"doc_{status}.jpg",
-            "file_path": f"/uploads/doc_{status}.jpg",
+            "file_path": f"doc_{status}.jpg",
             "status": status,
             "document_type": doc_type,
             "vendor_name": vendor_name,
@@ -141,7 +141,7 @@ def create_doc_simple(api, status):
         "/api/v1/documents/",
         json={
             "file_name": f"doc_{status}_simple.jpg",
-            "file_path": f"/uploads/doc_{status}_simple.jpg",
+            "file_path": f"doc_{status}_simple.jpg",
             "status": status,
         },
     )
@@ -160,7 +160,7 @@ def create_bulk_documents(api, count, status):
             "/api/v1/documents/",
             json={
                 "file_name": f"bulk_{status}_{i}.jpg",
-                "file_path": f"/uploads/bulk_{status}_{i}.jpg",
+                "file_path": f"bulk_{status}_{i}.jpg",
                 "status": status,
             },
         )

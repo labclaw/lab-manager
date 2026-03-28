@@ -257,3 +257,18 @@ def test_get_nonexistent_request(student_client):
 def test_approve_nonexistent_request(admin_client):
     resp = admin_client.post("/api/v1/requests/9999/approve", json={})
     assert resp.status_code == 404
+
+
+def test_new_user_auto_creates_staff(client, db_session):
+    """A request from a brand-new user should auto-create a Staff record."""
+    new_user = f"new_user_{id(client)}"
+    client.headers["X-User"] = new_user
+    resp = _create_request(client)
+    assert resp.status_code == 201
+
+    # Verify staff was auto-created
+    from sqlalchemy import select
+
+    staff = db_session.scalars(select(Staff).where(Staff.name == new_user)).first()
+    assert staff is not None
+    assert staff.role == "grad_student"

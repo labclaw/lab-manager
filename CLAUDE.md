@@ -46,7 +46,8 @@ src/lab_manager/
     pipeline.py  — Legacy pipeline (v1)
   services/      — Search (Meilisearch), RAG (LiteLLM NL→SQL), alerts, analytics, audit, inventory lifecycle
   config.py      — Settings from env/.env
-scripts/         — CLI tools: pipeline_v2.py, run_ocr_benchmark.py, populate_db.py, index_meilisearch.py
+cli/            — CLI entry points: lab-populate-db, lab-index-search, lab-pipeline, etc.
+scripts/         — Deployment scripts: deploy.sh, backup_db.sh, health_check.sh
 tests/           — pytest suite (1010 tests)
 benchmarks/      — OCR benchmark outputs
 docs/            — Audit logs, analysis reports
