@@ -9,7 +9,6 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from lab_manager.api.deps import get_db, get_or_404
@@ -41,8 +40,8 @@ _MAX_QUANTITY = 1_000_000
 class OrderRequestCreate(BaseModel):
     product_id: Optional[int] = None
     vendor_id: Optional[int] = None
-    catalog_number: Optional[str] = Field(default=None, min_length=1, max_length=100)
-    description: Optional[str] = Field(default=None, min_length=1, max_length=1000)
+    catalog_number: Optional[str] = Field(default=None, max_length=100)
+    description: Optional[str] = Field(default=None, max_length=1000)
     quantity: Decimal = Field(
         default=Decimal("1"), gt=0, le=Decimal(str(_MAX_QUANTITY))
     )
@@ -87,16 +86,10 @@ def _get_current_staff(request: Request, db: Session) -> Staff:
     user_name = getattr(request.state, "user", "system")
     staff = db.scalars(select(Staff).where(Staff.name == user_name)).first()
     if not staff:
-        try:
-            staff = Staff(name=user_name, role="grad_student", is_active=True)
-            db.add(staff)
-            db.flush()
-        except IntegrityError:
-            # Concurrent request may have inserted this staff member
-            db.rollback()
-            staff = db.scalars(select(Staff).where(Staff.name == user_name)).first()
-            if not staff:
-                raise
+        # In dev mode (auth_enabled=false), auto-create a staff record
+        staff = Staff(name=user_name, role="grad_student", is_active=True)
+        db.add(staff)
+        db.flush()
     return staff
 
 
