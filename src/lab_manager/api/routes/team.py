@@ -363,20 +363,23 @@ def accept_invitation(
     email = data.get("email", "")
     role = data.get("role", "grad_student")
 
-    # Find the matching pending invitation
+    # Find the matching pending invitation with a row lock to prevent
+    # TOCTOU races when two concurrent requests use the same token.
     invitation = db.scalars(
-        select(Invitation).where(
-            Invitation.token == token, Invitation.status == "pending"
-        )
+        select(Invitation)
+        .where(Invitation.token == token, Invitation.status == "pending")
+        .with_for_update()
     ).first()
     if not invitation:
         raise HTTPException(
             status_code=400, detail="Invitation not found or already used"
         )
 
-    # Check if email already taken by active staff
+    # Check if email already taken by active staff (also under row lock)
     existing = db.scalars(
-        select(Staff).where(Staff.email == email, Staff.is_active.is_(True))
+        select(Staff)
+        .where(Staff.email == email, Staff.is_active.is_(True))
+        .with_for_update()
     ).first()
     if existing:
         raise HTTPException(

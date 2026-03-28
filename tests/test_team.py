@@ -7,6 +7,7 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
+from sqlalchemy import select
 from sqlmodel import Session, SQLModel, create_engine
 
 from lab_manager.api.auth import ROLE_LEVELS
@@ -408,6 +409,54 @@ class TestJoinInvitation:
             json={"password": "securepassword123"},
         )
         assert resp2.status_code in (400, 409)
+
+    def test_join_concurrent_accept_prevented(self, pi_client, team_db):
+        """Regression test for TOCTOU race in accept_invitation.
+
+        Before the fix, two concurrent requests with the same invitation
+        token could both pass the status == "pending" check and create
+        duplicate staff accounts.  With ``with_for_update()`` the second
+        transaction blocks until the first commits (at which point the
+        invitation is no longer pending).
+
+        Because SQLite (used in tests) serialises writes by default we
+        verify the serialised outcome: only one account is created.
+        """
+        from lab_manager.models.invitation import Invitation
+        from lab_manager.models.staff import Staff
+
+        token = self._create_invite(pi_client, email="race@lab.edu")
+
+        # First acceptance succeeds
+        resp1 = pi_client.post(
+            f"/api/v1/team/join/{token}",
+            json={"password": "securepassword123"},
+        )
+        assert resp1.status_code == 200
+
+        # Second acceptance must fail (token already used)
+        resp2 = pi_client.post(
+            f"/api/v1/team/join/{token}",
+            json={"password": "securepassword456"},
+        )
+        assert resp2.status_code in (400, 409)
+
+        # Exactly one staff record for this email
+        staff_rows = (
+            team_db.execute(select(Staff).where(Staff.email == "race@lab.edu"))
+            .scalars()
+            .all()
+        )
+        assert len(staff_rows) == 1
+
+        # Invitation is now accepted, not pending
+        inv_rows = (
+            team_db.execute(select(Invitation).where(Invitation.token == token))
+            .scalars()
+            .all()
+        )
+        assert len(inv_rows) == 1
+        assert inv_rows[0].status == "accepted"
 
 
 # ---------------------------------------------------------------------------
