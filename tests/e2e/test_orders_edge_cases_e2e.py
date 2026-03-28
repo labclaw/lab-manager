@@ -400,7 +400,7 @@ class TestOrderValidation:
         authenticated_client: TestClient | httpx.Client,
         test_vendor_id: int,
     ):
-        """POST /api/v1/orders/ handles duplicate PO number according to API contract."""
+        """POST /api/v1/orders/ rejects duplicate PO number for the same vendor."""
         po_number = "E2E-DUPLICATE-PO"
         # First create
         first_resp = authenticated_client.post(
@@ -415,8 +415,8 @@ class TestOrderValidation:
             "/api/v1/orders/",
             json={"po_number": po_number, "vendor_id": test_vendor_id},
         )
-        assert resp.status_code in (201, 409), (
-            f"Expected 201 or 409 for duplicate, got {resp.status_code}"
+        assert resp.status_code == 409, (
+            f"Expected 409 for duplicate, got {resp.status_code}"
         )
 
     def test_update_nonexistent_order(
