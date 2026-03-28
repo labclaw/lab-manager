@@ -377,6 +377,17 @@ class TestDispose:
         assert float(logs[0].quantity_used) == 7.5
         assert float(logs[0].quantity_remaining) == 0
 
+    @pytest.mark.parametrize(
+        "status",
+        [InventoryStatus.disposed, InventoryStatus.deleted],
+    )
+    def test_dispose_rejects_invalid_status(self, db_session, status):
+        inv = self._setup_inventory(db_session, 5.0)
+        inv.status = status
+        db_session.flush()
+        with pytest.raises(ValidationError, match="Cannot dispose"):
+            dispose(inv.id, "test", "Alice", db_session)
+
 
 # ---- open_item ----
 

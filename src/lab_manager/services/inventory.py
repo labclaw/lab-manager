@@ -303,6 +303,9 @@ def dispose(
     """Mark item as disposed (expired, contaminated, etc)."""
     item = _get_inventory_or_404(db, inventory_id, for_update=True)
 
+    if item.status in (InventoryStatus.disposed, InventoryStatus.deleted):
+        raise ValidationError(f"Cannot dispose {item.status} item")
+
     remaining = item.quantity_on_hand
     item.quantity_on_hand = Decimal("0")
     item.status = InventoryStatus.disposed
