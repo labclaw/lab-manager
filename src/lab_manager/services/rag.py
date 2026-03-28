@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 
 from sqlalchemy import text
 from sqlmodel import Session
@@ -539,6 +540,19 @@ def _fallback_search(question: str) -> dict:
 # Simple TTL cache for identical questions (5-minute window)
 _CACHE: dict[str, tuple[float, dict]] = {}
 _CACHE_TTL_S = 300  # 5 minutes
+_CACHE_MAX_SIZE = 500
+
+
+def _evict_cache() -> None:
+    """Remove stale entries and enforce max size on the RAG cache."""
+    now = time.time()
+    stale = [k for k, (ts, _) in _CACHE.items() if now - ts > _CACHE_TTL_S]
+    for k in stale:
+        del _CACHE[k]
+    if len(_CACHE) > _CACHE_MAX_SIZE:
+        oldest = sorted(_CACHE.items(), key=lambda item: item[1][0])
+        for k, _ in oldest[: len(_CACHE) - _CACHE_MAX_SIZE]:
+            del _CACHE[k]
 
 
 def _cache_key(question: str) -> str:
@@ -661,5 +675,6 @@ def ask(question: str, db: Session) -> dict:
             "aggregation": plan.get("aggregation", ""),
             "result_shape": plan.get("result", ""),
         }
+    _evict_cache()
     _CACHE[key] = (time.time(), result)
     return result

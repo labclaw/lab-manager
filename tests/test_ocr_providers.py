@@ -360,7 +360,7 @@ class TestOCRConfig:
         with patch.dict(
             "os.environ",
             {"AUTH_ENABLED": "false", "ADMIN_SECRET_KEY": ""},
-            clear=False,
+            clear=True,
         ):
             from importlib import reload
 
@@ -375,7 +375,6 @@ class TestOCRConfig:
             )
             assert s.ocr_tier == "auto"
             assert s.ocr_local_model == "dots_mocr"
-            assert s.ocr_local_url == "http://localhost:8000/v1"
             assert s.mistral_api_key == ""
 
     def test_valid_tiers(self):

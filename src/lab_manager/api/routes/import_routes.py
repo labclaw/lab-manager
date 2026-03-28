@@ -188,14 +188,15 @@ def import_vendors(
         new_vendors.append(Vendor(**data))
         imported += 1
 
-    if all_errors:
+    if not new_vendors and all_errors:
         return {"imported": 0, "errors": all_errors, "skipped": skipped}
 
     for v in new_vendors:
         db.add(v)
-    db.commit()
+    if new_vendors:
+        db.commit()
 
-    return {"imported": imported, "errors": [], "skipped": skipped}
+    return {"imported": imported, "errors": all_errors, "skipped": skipped}
 
 
 # ---------------------------------------------------------------------------
@@ -339,14 +340,15 @@ def import_products(
         new_products.append(Product(**data))
         imported += 1
 
-    if all_errors:
+    if not new_products and all_errors:
         return {"imported": 0, "errors": all_errors, "skipped": skipped}
 
     for p in new_products:
         db.add(p)
-    db.commit()
+    if new_products:
+        db.commit()
 
-    return {"imported": imported, "errors": [], "skipped": skipped}
+    return {"imported": imported, "errors": all_errors, "skipped": skipped}
 
 
 # ---------------------------------------------------------------------------
@@ -537,11 +539,12 @@ def import_inventory(
         new_items.append(InventoryItem(**data))
         imported += 1
 
-    if all_errors:
+    if not new_items and all_errors:
         return {"imported": 0, "errors": all_errors, "skipped": 0}
 
     for item in new_items:
         db.add(item)
-    db.commit()
+    if new_items:
+        db.commit()
 
-    return {"imported": imported, "errors": [], "skipped": 0}
+    return {"imported": imported, "errors": all_errors, "skipped": 0}

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -18,6 +19,7 @@ router = APIRouter(dependencies=[Depends(require_permission("view_analytics"))])
 
 # In-memory rate limiting: 1 event per user per page per minute
 _rate_limits: dict[str, float] = {}
+_rate_lock = threading.Lock()
 _RATE_LIMIT_WINDOW = 60  # seconds
 _MAX_STORE_SIZE = 10_000  # evict stale entries above this
 
@@ -46,13 +48,14 @@ def record_event(
     user = getattr(request.state, "user", "system")
     key = _rate_limit_key(user, page or "__global")
 
-    now = time.monotonic()
-    last = _rate_limits.get(key, 0)
-    if now - last < _RATE_LIMIT_WINDOW:
-        return {"status": "rate_limited"}
+    with _rate_lock:
+        now = time.monotonic()
+        last = _rate_limits.get(key, 0)
+        if now - last < _RATE_LIMIT_WINDOW:
+            return {"status": "rate_limited"}
 
-    _evict_stale()
-    _rate_limits[key] = now
+        _evict_stale()
+        _rate_limits[key] = now
 
     event = UsageEvent(
         user_email=user,

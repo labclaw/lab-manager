@@ -149,7 +149,7 @@ def create_vendor_with_priced_items(api, name):
         },
     )
     assert r.status_code == 201, r.text
-    order = r.json()
+    order = r.json()["order"]
 
     r = api.post(
         f"/api/v1/orders/{order['id']}/items",
@@ -184,7 +184,7 @@ def create_vendor_with_ordered_products(api, name):
         },
     )
     assert r.status_code == 201, r.text
-    order = r.json()
+    order = r.json()["order"]
 
     for i in range(3):
         r = api.post(
@@ -263,7 +263,7 @@ def create_docs_for_analytics(api, n):
             "/api/v1/documents/",
             json={
                 "file_name": f"analytics_doc_{i}.jpg",
-                "file_path": f"/uploads/analytics_doc_{i}.jpg",
+                "file_path": f"uploads/analytics_doc_{i}.jpg",
                 "status": "approved",
             },
         )
