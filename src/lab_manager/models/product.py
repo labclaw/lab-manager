@@ -62,11 +62,6 @@ class Product(AuditMixin, table=True):
     is_controlled: bool = Field(default=False)
     is_active: bool = Field(default=True)
 
-    # MSDS / safety data
-    hazard_class: Optional[str] = Field(default=None, max_length=100)
-    msds_url: Optional[str] = Field(default=None, max_length=500)
-    requires_safety_review: bool = Field(default=False)
-
     vendor: Optional["Vendor"] = Relationship(back_populates="products")
     order_items: List["OrderItem"] = Relationship(back_populates="product")
     inventory_items: List["InventoryItem"] = Relationship(back_populates="product")
