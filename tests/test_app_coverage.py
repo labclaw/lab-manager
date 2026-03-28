@@ -1402,6 +1402,6 @@ class TestCreateApp:
         get_settings.cache_clear()
         from lab_manager.api.app import create_app
 
-        app = create_app()
+        create_app()
         assert upload_dir.is_dir()
         get_settings.cache_clear()
