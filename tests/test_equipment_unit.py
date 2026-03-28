@@ -549,7 +549,6 @@ class TestDeleteEquipment:
 # ---------------------------------------------------------------------------
 
 
-
 class TestEquipmentStatusConstants:
     """Tests for status constants and valid status set."""
 

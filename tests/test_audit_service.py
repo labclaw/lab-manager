@@ -1,6 +1,5 @@
 """Tests for audit service — user context, auditing helpers, and audit log creation."""
 
-
 from sqlmodel import select
 
 from lab_manager.models.audit import AuditLog, log_change

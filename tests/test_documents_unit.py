@@ -793,9 +793,7 @@ class TestReviewDocument:
         bg_tasks = MagicMock()
         body = ReviewAction(action="approve", reviewed_by="admin")
 
-        review_document(
-            document_id=1, body=body, background_tasks=bg_tasks, db=db
-        )
+        review_document(document_id=1, body=body, background_tasks=bg_tasks, db=db)
         assert doc.status == DocumentStatus.approved
         assert doc.reviewed_by == "admin"
         db.flush.assert_called()
@@ -813,9 +811,7 @@ class TestReviewDocument:
             action="reject", reviewed_by="scientist", review_notes="Bad data"
         )
 
-        review_document(
-            document_id=1, body=body, background_tasks=bg_tasks, db=db
-        )
+        review_document(document_id=1, body=body, background_tasks=bg_tasks, db=db)
         assert doc.status == DocumentStatus.rejected
         assert doc.review_notes == "Bad data"
         assert doc.reviewed_by == "scientist"
@@ -848,9 +844,7 @@ class TestReviewDocument:
         bg_tasks = MagicMock()
         body = ReviewAction(action="approve")
 
-        review_document(
-            document_id=1, body=body, background_tasks=bg_tasks, db=db
-        )
+        review_document(document_id=1, body=body, background_tasks=bg_tasks, db=db)
         assert doc.status == "pending"
 
     def test_review_approved_returns_409(self):
@@ -863,9 +857,7 @@ class TestReviewDocument:
         bg_tasks = MagicMock()
         body = ReviewAction(action="reject")
 
-        review_document(
-            document_id=1, body=body, background_tasks=bg_tasks, db=db
-        )
+        review_document(document_id=1, body=body, background_tasks=bg_tasks, db=db)
         assert doc.status == "approved"
 
     def test_review_rejected_returns_409(self):
@@ -878,9 +870,7 @@ class TestReviewDocument:
         bg_tasks = MagicMock()
         body = ReviewAction(action="approve")
 
-        review_document(
-            document_id=1, body=body, background_tasks=bg_tasks, db=db
-        )
+        review_document(document_id=1, body=body, background_tasks=bg_tasks, db=db)
         assert doc.status == "rejected"
 
     def test_review_deleted_returns_409(self):
@@ -893,9 +883,7 @@ class TestReviewDocument:
         bg_tasks = MagicMock()
         body = ReviewAction(action="approve")
 
-        review_document(
-            document_id=1, body=body, background_tasks=bg_tasks, db=db
-        )
+        review_document(document_id=1, body=body, background_tasks=bg_tasks, db=db)
         assert doc.status == "deleted"
 
     def test_review_nonexistent_raises_not_found(self):
