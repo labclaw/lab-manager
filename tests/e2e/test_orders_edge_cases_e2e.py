@@ -438,6 +438,26 @@ class TestOrderValidation:
         resp = authenticated_client.delete("/api/v1/orders/999999")
         assert resp.status_code == 404, f"Expected 404, got {resp.status_code}"
 
+    def test_delete_already_deleted_order(
+        self, authenticated_client: TestClient | httpx.Client
+    ):
+        """DELETE /api/v1/orders/{id} rejects deleting an already-deleted order."""
+        vendor_resp = authenticated_client.post(
+            "/api/v1/vendors/", json={"name": "DeleteTest"}
+        )
+        vendor_id = vendor_resp.json()["id"]
+        order_resp = authenticated_client.post(
+            "/api/v1/orders/",
+            json={"vendor_id": vendor_id, "po_number": "DEL-TEST-001"},
+        )
+        order_id = order_resp.json()["order"]["id"]
+        # First delete succeeds
+        resp1 = authenticated_client.delete(f"/api/v1/orders/{order_id}")
+        assert resp1.status_code == 204
+        # Second delete should fail
+        resp2 = authenticated_client.delete(f"/api/v1/orders/{order_id}")
+        assert resp2.status_code == 422
+
 
 @pytest.mark.e2e
 class TestOrderSearch:

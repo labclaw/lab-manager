@@ -276,6 +276,12 @@ def update_order(order_id: int, body: OrderUpdate, db: Session = Depends(get_db)
 def delete_order(order_id: int, db: Session = Depends(get_db)):
     """Soft-delete: set status to 'deleted'."""
     order = get_or_404(db, Order, order_id, "Order")
+    if order.status in (
+        OrderStatus.deleted,
+        OrderStatus.received,
+        OrderStatus.cancelled,
+    ):
+        raise ValidationError(f"Cannot delete order with status '{order.status}'")
     order.status = OrderStatus.deleted
     db.flush()
     return None
