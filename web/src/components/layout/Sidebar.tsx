@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Building2,
   FlaskConical,
+  Monitor,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { auth } from '@/lib/api'
@@ -51,6 +52,7 @@ const navItems = [
   { path: '/upload', label: 'Upload', Icon: Upload },
   { path: '/import', label: 'Bulk Import', Icon: FileSpreadsheet },
   { path: '/cloud-brain', label: 'Cloud Brain', Icon: Sparkles },
+  { path: '/devices', label: 'Devices', Icon: Monitor },
   { path: '/team', label: 'Team', Icon: Users },
 ]
 

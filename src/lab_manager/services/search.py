@@ -322,6 +322,17 @@ def sync_all(db: Session) -> dict[str, int | dict[str, int]]:
     return counts
 
 
+def _safe_index(index_name: str, documents: list[dict]) -> None:
+    """Index documents, logging failures instead of raising."""
+    try:
+        client = get_search_client()
+        client.index(index_name).add_documents(documents, primary_key="id")
+    except Exception:
+        logger.warning(
+            "search index '%s' unavailable — skipping", index_name, exc_info=True
+        )
+
+
 def index_document_record(doc: Document) -> None:
     """Upsert a single Document into Meilisearch."""
     d: dict = {"id": doc.id}
@@ -335,8 +346,7 @@ def index_document_record(doc: Document) -> None:
         d["status"] = doc.status
     if doc.ocr_text:
         d["ocr_text"] = doc.ocr_text[:5000]
-    client = get_search_client()
-    client.index("documents").add_documents([d], primary_key="id")
+    _safe_index("documents", [d])
 
 
 def index_vendor_record(vendor: Vendor) -> None:
@@ -354,8 +364,7 @@ def index_vendor_record(vendor: Vendor) -> None:
         d["website"] = vendor.website
     if vendor.email:
         d["email"] = vendor.email
-    client = get_search_client()
-    client.index("vendors").add_documents([d], primary_key="id")
+    _safe_index("vendors", [d])
 
 
 def index_order_record(order: Order) -> None:
@@ -373,8 +382,7 @@ def index_order_record(order: Order) -> None:
         "vendor_id",
     ]
     d = _make_doc(order, fields)
-    client = get_search_client()
-    client.index("orders").add_documents([d], primary_key="id")
+    _safe_index("orders", [d])
 
 
 def index_order_item_record(item: OrderItem) -> None:
@@ -391,16 +399,14 @@ def index_order_item_record(item: OrderItem) -> None:
         "order_id",
     ]
     d = _make_doc(item, fields)
-    client = get_search_client()
-    client.index("order_items").add_documents([d], primary_key="id")
+    _safe_index("order_items", [d])
 
 
 def index_product_record(product: Product) -> None:
     """Upsert a single Product into Meilisearch."""
     fields = ["id", "catalog_number", "name", "category", "cas_number", "vendor_id"]
     d = _make_doc(product, fields)
-    client = get_search_client()
-    client.index("products").add_documents([d], primary_key="id")
+    _safe_index("products", [d])
 
 
 def index_inventory_record(item: InventoryItem) -> None:
@@ -419,8 +425,7 @@ def index_inventory_record(item: InventoryItem) -> None:
         d["status"] = item.status
     if item.notes:
         d["notes"] = item.notes
-    client = get_search_client()
-    client.index("inventory").add_documents([d], primary_key="id")
+    _safe_index("inventory", [d])
 
 
 def search(query: str, index: str = "products", limit: int = 20) -> list[dict]:

@@ -26,7 +26,7 @@ _VENDOR_SORTABLE = {"id", "created_at", "updated_at", "name", "email", "website"
 
 
 class VendorCreate(BaseModel):
-    name: str = Field(max_length=255)
+    name: str = Field(min_length=1, max_length=255)
     aliases: list[str] = []
     website: Optional[str] = Field(default=None, max_length=500)
     phone: Optional[str] = Field(default=None, max_length=50)
@@ -35,7 +35,7 @@ class VendorCreate(BaseModel):
 
 
 class VendorUpdate(BaseModel):
-    name: Optional[str] = Field(default=None, max_length=255)
+    name: Optional[str] = Field(default=None, min_length=1, max_length=255)
     aliases: Optional[list[str]] = None
     website: Optional[str] = Field(default=None, max_length=500)
     phone: Optional[str] = Field(default=None, max_length=50)

@@ -196,3 +196,47 @@ class TestAsk:
             assert result["answer"] == "There is 1 vendor."
             assert result["sql"] == "SELECT * FROM vendors"
             assert result["row_count"] == 1
+
+
+class TestCacheEviction:
+    """Regression tests for RAG cache unbounded growth (memory leak)."""
+
+    def setup_method(self):
+        from lab_manager.services.rag import _CACHE
+
+        _CACHE.clear()
+
+    def test_evict_removes_stale_entries(self):
+        """Expired entries should be purged even if never re-requested."""
+        import time
+
+        from lab_manager.services.rag import _CACHE, _CACHE_TTL_S, _evict_cache
+
+        # Insert a stale entry
+        _CACHE["old_key"] = (time.time() - _CACHE_TTL_S - 1, {"answer": "stale"})
+
+        _evict_cache()
+        assert "old_key" not in _CACHE
+
+    def test_evict_enforces_max_size(self):
+        """Cache should cap at _CACHE_MAX_SIZE entries, evicting oldest."""
+        import time
+
+        from lab_manager.services.rag import _CACHE, _CACHE_MAX_SIZE, _evict_cache
+
+        original_max = _CACHE_MAX_SIZE
+        # Temporarily lower the max to 3 for testing
+        import lab_manager.services.rag as rag_mod
+
+        rag_mod._CACHE_MAX_SIZE = 3
+        try:
+            for i in range(5):
+                _CACHE[f"key_{i}"] = (time.time(), {"answer": f"a_{i}"})
+            _evict_cache()
+            assert len(_CACHE) <= 3
+            # Oldest entries should have been evicted
+            assert "key_0" not in _CACHE
+            assert "key_1" not in _CACHE
+        finally:
+            rag_mod._CACHE_MAX_SIZE = original_max
+            _CACHE.clear()

@@ -13,34 +13,45 @@ from __future__ import annotations
 import imaplib
 import logging
 import os
-import time
+import threading
 
 logger = logging.getLogger(__name__)
 
 # Default polling interval: 5 minutes
 DEFAULT_POLL_INTERVAL = 300
 
+# Global shutdown event — set by stop_poller() to break the poll loop
+_shutdown_event = threading.Event()
+
 
 def _get_imap_config() -> dict:
-    """Read IMAP configuration from environment."""
+    """Read IMAP configuration from environment.
+
+    Password is read directly from env at connect time and never stored
+    in the returned dict to prevent accidental logging of credentials.
+    """
     host = os.environ.get("EMAIL_IMAP_HOST", "")
     user = os.environ.get("EMAIL_IMAP_USER", "")
-    password = os.environ.get("EMAIL_IMAP_PASSWORD", "")
     folder = os.environ.get("EMAIL_FOLDER", "INBOX")
     interval = int(os.environ.get("EMAIL_POLL_INTERVAL", str(DEFAULT_POLL_INTERVAL)))
     return {
         "host": host,
         "user": user,
-        "password": password,
         "folder": folder,
         "interval": interval,
     }
 
 
-def _connect_imap(config: dict) -> imaplib.IMAP4_SSL:
+def _get_imap_password() -> str:
+    """Read the IMAP password from the environment."""
+    return os.environ.get("EMAIL_IMAP_PASSWORD", "")
+
+
+def _connect_imap(config: dict, password: str) -> imaplib.IMAP4_SSL:
     """Connect and authenticate to IMAP server."""
+    password = os.environ.get("EMAIL_IMAP_PASSWORD", "")
     conn = imaplib.IMAP4_SSL(config["host"])
-    conn.login(config["user"], config["password"])
+    conn.login(config["user"], password)
     return conn
 
 
@@ -76,13 +87,17 @@ def poll_once() -> int:
     from lab_manager.services.email_intake import process_email
 
     config = _get_imap_config()
+    password = _get_imap_password()
     if not config["host"] or not config["user"]:
         logger.debug("Email polling not configured (missing EMAIL_IMAP_HOST/USER)")
+        return 0
+    if not password:
+        logger.debug("Email polling not configured (missing EMAIL_IMAP_PASSWORD)")
         return 0
 
     total_docs = 0
     try:
-        conn = _connect_imap(config)
+        conn = _connect_imap(config, password)
         try:
             raw_emails = _fetch_unseen_emails(conn, config["folder"])
             logger.info(
@@ -110,17 +125,23 @@ def poll_once() -> int:
 
 
 def run_poller() -> None:
-    """Run the email poller in a loop. Blocks forever.
+    """Run the email poller in a loop. Blocks until stop_poller() is called.
 
     Intended to be started in a background thread or separate process.
+    Graceful shutdown: call stop_poller() from another thread.
     """
     config = _get_imap_config()
+    password = _get_imap_password()
     if not config["host"] or not config["user"]:
         logger.warning(
             "Email poller not starting: EMAIL_IMAP_HOST and EMAIL_IMAP_USER required"
         )
         return
+    if not password:
+        logger.warning("Email poller not starting: EMAIL_IMAP_PASSWORD required")
+        return
 
+    _shutdown_event.clear()
     interval = config["interval"]
     logger.info(
         "Email poller starting: host=%s, user=%s, folder=%s, interval=%ds",
@@ -130,11 +151,23 @@ def run_poller() -> None:
         interval,
     )
 
-    while True:
+    while not _shutdown_event.is_set():
         try:
             count = poll_once()
             if count:
                 logger.info("Poll cycle: created %d document(s)", count)
         except Exception:
             logger.exception("Error in poll cycle")
-        time.sleep(interval)
+        # Use event.wait() instead of time.sleep() so stop_poller() can
+        # break out immediately instead of waiting up to `interval` seconds.
+        _shutdown_event.wait(timeout=interval)
+
+    logger.info("Email poller stopped")
+
+
+def stop_poller() -> None:
+    """Signal the email poller to stop. Returns immediately.
+
+    The poller thread will exit within one poll cycle.
+    """
+    _shutdown_event.set()

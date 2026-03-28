@@ -25,6 +25,7 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 import lab_manager.services.audit as _audit_svc  # noqa: F401
 from lab_manager.api.admin import setup_admin
 from lab_manager.api.deps import get_db
+from lab_manager.api.validation import is_valid_email_address
 from lab_manager.config import get_settings
 from lab_manager.database import get_engine
 from lab_manager.exceptions import BusinessError
@@ -92,6 +93,7 @@ _AUTH_ALLOWLIST_PREFIXES = (
     "/assets/",  # SPA build assets (JS/CSS bundles)
     "/icons/",  # Icon assets
     "/api/v1/team/join/",  # Invitation acceptance (public, token-verified)
+    "/ws/",  # WebSocket endpoints (chat, etc.)
 )
 
 # Session cookie config
@@ -707,7 +709,7 @@ def create_app() -> FastAPI:
                 status_code=422,
                 content={"detail": "Name must be between 1 and 200 characters"},
             )
-        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", admin_email):
+        if not is_valid_email_address(admin_email):
             return JSONResponse(
                 status_code=422,
                 content={"detail": "Invalid email address"},
@@ -783,14 +785,18 @@ def create_app() -> FastAPI:
         export,
         import_routes,
         inventory,
+        knowledge,
+        notifications,
         order_requests,
         orders,
         products,
+        safety,
         search,
         telemetry,
         vendors,
     )
     from lab_manager.api.routes import barcode  # noqa: E402
+    from lab_manager.api.routes import devices  # noqa: E402
 
     # Auth is handled by auth_middleware — rate limiting via route decorators
     api_router = APIRouter()
@@ -825,7 +831,13 @@ def create_app() -> FastAPI:
         import_routes.router, prefix="/api/v1/import", tags=["import"]
     )
     api_router.include_router(audit.router, prefix="/api/v1/audit", tags=["audit"])
+    api_router.include_router(safety.router, prefix="/api/v1/safety", tags=["safety"])
     api_router.include_router(alerts.router, prefix="/api/v1/alerts", tags=["alerts"])
+    api_router.include_router(
+        notifications.router,
+        prefix="/api/v1/notifications",
+        tags=["notifications"],
+    )
     api_router.include_router(
         telemetry.router, prefix="/api/v1/telemetry", tags=["telemetry"]
     )
@@ -835,11 +847,28 @@ def create_app() -> FastAPI:
     api_router.include_router(
         barcode.router, prefix="/api/v1/barcode", tags=["barcode"]
     )
+    api_router.include_router(
+        devices.router, prefix="/api/v1/devices", tags=["devices"]
+    )
+    api_router.include_router(
+        knowledge.router, prefix="/api/v1/knowledge", tags=["knowledge"]
+    )
 
+    from lab_manager.api.routes import chat as chat_routes
+    from lab_manager.api.routes import reservations as res_routes  # noqa: E402
     from lab_manager.api.routes import team
 
+    api_router.include_router(
+        res_routes.router, prefix="/api/v1/reservations", tags=["reservations"]
+    )
     api_router.include_router(team.router, prefix="/api/v1/team", tags=["team"])
+    api_router.include_router(chat_routes.router, prefix="/api/v1/chat", tags=["chat"])
     app.include_router(api_router)
+
+    # WebSocket chat endpoint (outside api_router to avoid auth middleware issues)
+    from starlette.routing import WebSocketRoute
+
+    app.routes.insert(0, WebSocketRoute("/ws/chat", chat_routes.websocket_chat))
 
     # --- Apply rate limiting decorators to GET /api/v1/ask endpoint ---
     # Rate limit: 10 requests per minute (same as POST)
