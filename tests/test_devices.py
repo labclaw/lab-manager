@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import uuid
 
+import pytest
+from lab_manager.config import get_settings
+
 
 def _heartbeat_payload(**overrides):
     """Build a default heartbeat payload with optional overrides."""
@@ -222,3 +225,66 @@ def test_list_pagination(client):
     assert data["page_size"] == 2
     assert len(data["items"]) == 2
     assert data["total"] == 5
+
+
+# --- Auth gate ---
+
+
+class TestDeviceAuthRequired:
+    """Verify device endpoints reject unauthenticated requests when auth is enabled."""
+
+    @pytest.fixture(autouse=True)
+    def _enable_auth(self, monkeypatch, db_session):
+        monkeypatch.setenv("AUTH_ENABLED", "true")
+        monkeypatch.setenv("API_KEY", "test-key-device-auth")
+        monkeypatch.setenv("ADMIN_PASSWORD", "admin-password")
+        monkeypatch.setenv("ADMIN_SECRET_KEY", "a" * 32)
+        get_settings.cache_clear()
+
+    def test_heartbeat_requires_auth(self, db_session):
+        from lab_manager.api.app import create_app
+        from fastapi.testclient import TestClient
+
+        app = create_app()
+        with TestClient(app) as c:
+            r = c.post(
+                "/api/v1/devices/heartbeat",
+                json=_heartbeat_payload(),
+            )
+            assert r.status_code == 401
+
+    def test_list_devices_requires_auth(self, db_session):
+        from lab_manager.api.app import create_app
+        from fastapi.testclient import TestClient
+
+        app = create_app()
+        with TestClient(app) as c:
+            r = c.get("/api/v1/devices/")
+            assert r.status_code == 401
+
+    def test_get_device_requires_auth(self, db_session):
+        from lab_manager.api.app import create_app
+        from fastapi.testclient import TestClient
+
+        app = create_app()
+        with TestClient(app) as c:
+            r = c.get("/api/v1/devices/1")
+            assert r.status_code == 401
+
+    def test_update_device_requires_auth(self, db_session):
+        from lab_manager.api.app import create_app
+        from fastapi.testclient import TestClient
+
+        app = create_app()
+        with TestClient(app) as c:
+            r = c.patch("/api/v1/devices/1", json={"notes": "hack"})
+            assert r.status_code == 401
+
+    def test_offline_requires_auth(self, db_session):
+        from lab_manager.api.app import create_app
+        from fastapi.testclient import TestClient
+
+        app = create_app()
+        with TestClient(app) as c:
+            r = c.post("/api/v1/devices/1/offline")
+            assert r.status_code == 401

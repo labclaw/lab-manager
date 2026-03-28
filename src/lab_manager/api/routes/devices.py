@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from lab_manager.api.auth import require_permission
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, paginate
 from lab_manager.models.device import Device, DeviceStatus
@@ -57,7 +58,11 @@ class DeviceUpdate(BaseModel):
 # --- Endpoints ---
 
 
-@router.post("/heartbeat", status_code=200)
+@router.post(
+    "/heartbeat",
+    status_code=200,
+    dependencies=[Depends(require_permission("manage_devices"))],
+)
 def heartbeat(body: HeartbeatPayload, db: Session = Depends(get_db)):
     """Receive heartbeat from device daemon. Upsert device record."""
     now = datetime.now(timezone.utc)
@@ -110,7 +115,7 @@ def heartbeat(body: HeartbeatPayload, db: Session = Depends(get_db)):
     return device
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(require_permission("view_equipment"))])
 def list_devices(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
@@ -136,12 +141,16 @@ def list_devices(
     return paginate(q, db, page, page_size)
 
 
-@router.get("/{device_id}")
+@router.get(
+    "/{device_id}", dependencies=[Depends(require_permission("view_equipment"))]
+)
 def get_device(device_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, Device, device_id, "Device")
 
 
-@router.patch("/{device_id}")
+@router.patch(
+    "/{device_id}", dependencies=[Depends(require_permission("manage_devices"))]
+)
 def update_device(device_id: int, body: DeviceUpdate, db: Session = Depends(get_db)):
     device = get_or_404(db, Device, device_id, "Device")
     for key, value in body.model_dump(exclude_unset=True).items():
@@ -151,7 +160,11 @@ def update_device(device_id: int, body: DeviceUpdate, db: Session = Depends(get_
     return device
 
 
-@router.post("/{device_id}/offline", status_code=200)
+@router.post(
+    "/{device_id}/offline",
+    status_code=200,
+    dependencies=[Depends(require_permission("manage_devices"))],
+)
 def mark_offline(device_id: int, db: Session = Depends(get_db)):
     device = get_or_404(db, Device, device_id, "Device")
     device.status = DeviceStatus.offline
