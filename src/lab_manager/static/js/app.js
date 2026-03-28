@@ -1,7 +1,7 @@
 // app.js — Router (hash-based), auth flow, sidebar active state, init
 "use strict";
 
-const VIEWS = ["dashboard", "documents", "review", "inventory", "orders", "upload"];
+const VIEWS = ["dashboard", "documents", "review", "inventory", "orders", "upload", "chat"];
 
 // --- Setup wizard (first-run) ---
 async function handleSetup(e) {
@@ -138,6 +138,7 @@ function handleRoute() {
   if (view === "inventory") loadInventory();
   if (view === "orders") loadOrders();
   if (view === "upload") loadUpload();
+  if (view === "chat") loadChat();
 }
 
 window.addEventListener("hashchange", handleRoute);

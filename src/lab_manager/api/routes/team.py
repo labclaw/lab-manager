@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import re
 import secrets
 from datetime import datetime, timezone
 from typing import Optional
@@ -17,6 +16,7 @@ from sqlalchemy.orm import Session
 from lab_manager.api.auth import ROLE_LEVELS, get_permissions, require_permission
 from lab_manager.api.deps import get_db
 from lab_manager.api.pagination import paginate
+from lab_manager.api.validation import is_valid_email_address
 from lab_manager.config import get_settings
 from lab_manager.models.invitation import Invitation
 from lab_manager.models.staff import Staff
@@ -27,8 +27,6 @@ router = APIRouter()
 
 # Invitation tokens expire after 7 days (seconds).
 _INVITE_MAX_AGE = 7 * 24 * 3600
-
-_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 def _get_invite_serializer() -> URLSafeTimedSerializer:
@@ -79,7 +77,7 @@ def create_invitation(
         raise HTTPException(
             status_code=422, detail="Name must be between 1 and 200 characters"
         )
-    if not _EMAIL_RE.match(email) or len(email) > 255:
+    if not is_valid_email_address(email):
         raise HTTPException(status_code=422, detail="Invalid email address")
     if role not in ROLE_LEVELS:
         raise HTTPException(status_code=422, detail=f"Invalid role: {role}")

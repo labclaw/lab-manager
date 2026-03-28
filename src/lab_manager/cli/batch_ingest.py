@@ -23,6 +23,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import httpx
 
@@ -386,7 +387,7 @@ def insert_document(
 
 def process_one(image_path: Path) -> dict:
     """Process a single document through full pipeline."""
-    result = {
+    result: dict[str, Any] = {
         "file": image_path.name,
         "timestamp": datetime.now().isoformat(),
         "ocr_model": OCR_MODEL,
@@ -526,7 +527,6 @@ def main():
         summary[result["status"]] = summary.get(result["status"], 0) + 1
         if result["status"] == "ok":
             summary["ok"] += 1
-            vendor = result.get("consensus", {}).get("_models", [])
             log.info(
                 "  → OK (db=%s, vendor=%s, type=%s, consensus=%d models)",
                 result["db_id"],
