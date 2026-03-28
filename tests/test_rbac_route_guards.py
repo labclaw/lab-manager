@@ -240,10 +240,10 @@ class TestOrderGuards:
         resp = pi_client.delete(f"/api/v1/orders/{oid}")
         assert resp.status_code == 204
 
-    def test_visitor_can_list_orders(self, visitor_client):
-        """GET /orders/ has no guard -- read is allowed for all authenticated users."""
+    def test_visitor_cannot_list_orders(self, visitor_client):
+        """GET /orders/ requires view_orders permission -- visitors get 403."""
         resp = visitor_client.get("/api/v1/orders/")
-        assert resp.status_code == 200
+        assert resp.status_code == 403
 
 
 # ---------------------------------------------------------------------------
