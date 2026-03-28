@@ -857,8 +857,12 @@ def create_app() -> FastAPI:
     api_router.include_router(ginkgo.router, prefix="/api/v1/ginkgo", tags=["ginkgo"])
 
     from lab_manager.api.routes import chat as chat_routes
+    from lab_manager.api.routes import reservations as res_routes  # noqa: E402
     from lab_manager.api.routes import team
 
+    api_router.include_router(
+        res_routes.router, prefix="/api/v1/reservations", tags=["reservations"]
+    )
     api_router.include_router(team.router, prefix="/api/v1/team", tags=["team"])
     api_router.include_router(chat_routes.router, prefix="/api/v1/chat", tags=["chat"])
     app.include_router(api_router)
