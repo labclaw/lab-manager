@@ -117,8 +117,14 @@ def receive_items(
                 f"Order item {order_item_id} belongs to order {order_item.order_id}, not {order_id}"
             )
 
+        product_id = order_item.product_id if order_item else ri.get("product_id")
+        if not product_id:
+            raise ValidationError(
+                "product_id is required when order_item_id is not provided"
+            )
+
         inv_kwargs = dict(
-            product_id=order_item.product_id if order_item else ri.get("product_id"),
+            product_id=product_id,
             lot_number=ri.get("lot_number")
             or (order_item.lot_number if order_item else None),
             quantity_on_hand=ri.get("quantity", 1),
