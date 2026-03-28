@@ -194,7 +194,7 @@ def import_vendors(
     for v in new_vendors:
         db.add(v)
     if new_vendors:
-        db.commit()
+        db.flush()
 
     return {"imported": imported, "errors": all_errors, "skipped": skipped}
 
@@ -346,7 +346,7 @@ def import_products(
     for p in new_products:
         db.add(p)
     if new_products:
-        db.commit()
+        db.flush()
 
     return {"imported": imported, "errors": all_errors, "skipped": skipped}
 
@@ -545,6 +545,6 @@ def import_inventory(
     for item in new_items:
         db.add(item)
     if new_items:
-        db.commit()
+        db.flush()
 
     return {"imported": imported, "errors": all_errors, "skipped": 0}
