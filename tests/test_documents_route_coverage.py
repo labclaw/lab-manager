@@ -763,3 +763,88 @@ class TestDocumentStats:
         assert resp.status_code == 200
         assert resp.json()["total_documents"] == 1
         assert "approved" in resp.json()["by_status"]
+
+
+# ---- Concurrent approve race condition ----
+
+
+class TestConcurrentApproveRace:
+    """Verify that concurrent approve calls on the same document don't create
+    duplicate Order records.  With the FOR UPDATE row lock the second request
+    should receive a 409 because the first has already set status=approved."""
+
+    @pytest.fixture()
+    def _setup(self, db_session, tmp_path):
+        d = tmp_path / "uploads"
+        d.mkdir()
+        os.environ["UPLOAD_DIR"] = str(d)
+        os.environ["AUTH_ENABLED"] = "false"
+        from lab_manager.config import get_settings
+
+        get_settings.cache_clear()
+
+        from lab_manager.api.app import create_app
+        from lab_manager.api.deps import get_db
+        from lab_manager.api.routes import documents
+        from lab_manager.models.document import Document, DocumentStatus
+
+        documents._run_extraction = lambda doc_id: None
+        documents._index_approved_doc = lambda doc_id: None
+
+        app = create_app()
+
+        def override_get_db():
+            yield db_session
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        # Seed a document in needs_review with extracted_data that would create an order.
+        doc = Document(
+            file_path="/tmp/test.png",
+            file_name="race_test.png",
+            status=DocumentStatus.needs_review,
+            vendor_name="RaceVendor",
+            extracted_data={
+                "vendor_name": "RaceVendor",
+                "items": [
+                    {
+                        "catalog_number": "RC-001",
+                        "description": "Race Reagent",
+                        "quantity": 2,
+                        "unit": "EA",
+                    }
+                ],
+            },
+        )
+        db_session.add(doc)
+        db_session.flush()
+        doc_id = doc.id
+
+        client = TestClient(app)
+        yield client, doc_id, db_session
+        get_settings.cache_clear()
+
+    def test_concurrent_approve_no_duplicate_orders(self, _setup):
+        """Two sequential approve calls: second should 409, only one Order created."""
+        from lab_manager.models.order import Order
+
+        client, doc_id, db = _setup
+
+        # First approve succeeds.
+        resp1 = client.post(
+            f"/api/v1/documents/{doc_id}/review",
+            json={"action": "approve", "reviewed_by": "reviewer1"},
+        )
+        assert resp1.status_code == 200
+        assert resp1.json()["status"] == "approved"
+
+        # Second approve should be rejected (already approved).
+        resp2 = client.post(
+            f"/api/v1/documents/{doc_id}/review",
+            json={"action": "approve", "reviewed_by": "reviewer2"},
+        )
+        assert resp2.status_code == 409
+
+        # Exactly one Order should exist for this document.
+        order_count = db.query(Order).filter(Order.document_id == doc_id).count()
+        assert order_count == 1
