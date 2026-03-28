@@ -308,7 +308,7 @@ def persist_alerts(db: Session) -> tuple[list[Alert], list[dict]]:
         return [], current
 
     # Re-query right before insert to catch concurrent inserts.
-    keys_to_create = {(a["entity_type"], a["entity_id"], a["type"]) for a in to_create}
+    _keys_to_create = {(a["entity_type"], a["entity_id"], a["type"]) for a in to_create}
     fresh_existing = db.execute(
         select(Alert.entity_type, Alert.entity_id, Alert.alert_type).where(
             Alert.is_resolved.is_(False),
