@@ -903,6 +903,252 @@ class TestUploadBadContentType:
         assert "upload" in name  # should be prefixed with "upload"
 
 
+
+class TestRunExtraction:
+    """Tests for _run_extraction covering OCR, extraction, and error paths."""
+
+    @pytest.fixture(autouse=True)
+    def _setup_env(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("UPLOAD_DIR", str(tmp_path / "uploads"))
+        monkeypatch.setenv("AUTH_ENABLED", "false")
+
+    def test_doc_not_found(self):
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        fake_session = MagicMock()
+        fake_session.scalars.return_value.first.return_value = None
+        fake_factory = MagicMock(return_value=fake_session)
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory):
+            doc_mod._run_extraction(99999)
+        fake_session.close.assert_called()
+
+    def test_ocr_failure(self, db_session):
+        from lab_manager.models.document import Document, DocumentStatus
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        doc = Document(file_path="/tmp/test_ocr.png", file_name="ocr_fail.png", status=DocumentStatus.processing)
+        db_session.add(doc)
+        db_session.commit()
+
+        fake_session = MagicMock()
+        fake_session.scalars.return_value.first.return_value = doc
+        fake_factory = MagicMock(return_value=fake_session)
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory), \
+             patch("lab_manager.intake.ocr.extract_text_from_image", side_effect=RuntimeError("OCR down")):
+            doc_mod._run_extraction(doc.id)
+
+        assert doc.status == DocumentStatus.needs_review
+        assert "OCR failed" in doc.review_notes
+
+    def test_empty_ocr_text(self, db_session):
+        from lab_manager.models.document import Document, DocumentStatus
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        doc = Document(file_path="/tmp/test_ocr_empty.png", file_name="ocr_empty.png", status=DocumentStatus.processing)
+        db_session.add(doc)
+        db_session.commit()
+
+        fake_session = MagicMock()
+        fake_session.scalars.return_value.first.return_value = doc
+        fake_factory = MagicMock(return_value=fake_session)
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory), \
+             patch("lab_manager.intake.ocr.extract_text_from_image", return_value="   "):
+            doc_mod._run_extraction(doc.id)
+
+        assert doc.status == DocumentStatus.ocr_failed
+
+    def test_extraction_success(self, db_session, monkeypatch):
+        from lab_manager.models.document import Document, DocumentStatus
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        monkeypatch.setenv("EXTRACTION_MODEL", "test-model")
+
+        doc = Document(file_path="/tmp/test_extract.png", file_name="extract.png", status=DocumentStatus.processing)
+        db_session.add(doc)
+        db_session.commit()
+
+        fake_session = MagicMock()
+        fake_session.scalars.return_value.first.return_value = doc
+        fake_factory = MagicMock(return_value=fake_session)
+
+        mock_ext = MagicMock()
+        mock_ext.document_type = "invoice"
+        mock_ext.vendor_name = "TestVendor"
+        mock_ext.confidence = 0.95
+        mock_ext.model_dump.return_value = {"vendor_name": "TestVendor", "document_type": "invoice"}
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory), \
+             patch("lab_manager.intake.ocr.extract_text_from_image", return_value="text"), \
+             patch("lab_manager.intake.extractor.extract_from_text", return_value=mock_ext), \
+             patch("lab_manager.api.routes.documents.normalize_vendor", return_value="TestVendor"):
+            doc_mod._run_extraction(doc.id)
+
+        assert doc.status == DocumentStatus.needs_review
+        assert doc.document_type == "invoice"
+        assert doc.extraction_confidence == 0.95
+
+    def test_extraction_failure_after_ocr(self, db_session):
+        from lab_manager.models.document import Document, DocumentStatus
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        doc = Document(file_path="/tmp/test_ext_fail.png", file_name="ext_fail.png", status=DocumentStatus.processing)
+        db_session.add(doc)
+        db_session.commit()
+
+        fake_session = MagicMock()
+        fake_session.scalars.return_value.first.return_value = doc
+        fake_factory = MagicMock(return_value=fake_session)
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory), \
+             patch("lab_manager.intake.ocr.extract_text_from_image", return_value="text"), \
+             patch("lab_manager.intake.extractor.extract_from_text", side_effect=RuntimeError("LLM timeout")):
+            doc_mod._run_extraction(doc.id)
+
+        assert doc.status == DocumentStatus.needs_review
+        assert "Extraction failed" in doc.review_notes
+
+    def test_unexpected_exception(self):
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        fake_session = MagicMock()
+        fake_session.scalars.side_effect = RuntimeError("DB lost")
+        fake_factory = MagicMock(return_value=fake_session)
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory):
+            doc_mod._run_extraction(42)
+
+        fake_session.rollback.assert_called()
+        fake_session.close.assert_called()
+
+
+# ---- _index_approved_doc background task ----
+
+
+class TestIndexApprovedDoc:
+    """Tests for _index_approved_doc covering indexing and error paths."""
+
+    @pytest.fixture(autouse=True)
+    def _setup_env(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("UPLOAD_DIR", str(tmp_path / "uploads"))
+        monkeypatch.setenv("AUTH_ENABLED", "false")
+
+    def test_doc_not_found(self):
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        fake_session = MagicMock()
+        fake_session.scalars.return_value.first.return_value = None
+        fake_factory = MagicMock(return_value=fake_session)
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory):
+            doc_mod._index_approved_doc(99999)
+        fake_session.close.assert_called()
+
+    def test_index_no_order(self, db_session):
+        from lab_manager.models.document import Document, DocumentStatus
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        doc = Document(file_path="/tmp/test_no_order.png", file_name="no_order.png", status=DocumentStatus.approved)
+        db_session.add(doc)
+        db_session.commit()
+
+        call_count = {"n": 0}
+        fake_session = MagicMock()
+
+        def _scalars(stmt):
+            r = MagicMock()
+            call_count["n"] += 1
+            r.first.return_value = doc if call_count["n"] == 1 else None
+            return r
+
+        fake_session.scalars.side_effect = _scalars
+        fake_factory = MagicMock(return_value=fake_session)
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory), \
+             patch("lab_manager.services.search.index_document_record"):
+            doc_mod._index_approved_doc(doc.id)
+
+        fake_session.close.assert_called()
+
+    def test_index_outer_exception(self):
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        fake_session = MagicMock()
+        fake_session.scalars.side_effect = RuntimeError("unrecoverable")
+        fake_factory = MagicMock(return_value=fake_session)
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory):
+            doc_mod._index_approved_doc(42)
+        fake_session.close.assert_called()
+
+    def test_index_with_order_vendor_items(self, db_session):
+        from lab_manager.models.document import Document, DocumentStatus
+        from unittest.mock import MagicMock, patch
+
+        import lab_manager.api.routes.documents as doc_mod
+
+        doc = Document(file_path="/tmp/test_full_idx.png", file_name="full_idx.png", status=DocumentStatus.approved)
+        db_session.add(doc)
+        db_session.commit()
+
+        mock_vendor = MagicMock(id=1)
+        mock_oi = MagicMock(id=10)
+        mock_oi.product = MagicMock(id=20)
+        mock_order = MagicMock(id=5, vendor=mock_vendor, items=[mock_oi])
+        mock_inv = MagicMock(id=30, order_item_id=10)
+
+        call_count = {"n": 0}
+        fake_session = MagicMock()
+
+        def _scalars(stmt):
+            r = MagicMock()
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                r.first.return_value = doc
+            elif call_count["n"] == 2:
+                r.first.return_value = mock_order
+            else:
+                r.all.return_value = [mock_inv]
+                r.first.return_value = None
+            return r
+
+        fake_session.scalars.side_effect = _scalars
+        fake_factory = MagicMock(return_value=fake_session)
+
+        with patch("lab_manager.database.get_session_factory", return_value=fake_factory), \
+             patch("lab_manager.services.search.index_document_record"), \
+             patch("lab_manager.services.search.index_vendor_record"), \
+             patch("lab_manager.services.search.index_order_record"), \
+             patch("lab_manager.services.search.index_order_item_record"), \
+             patch("lab_manager.services.search.index_product_record"), \
+             patch("lab_manager.services.search.index_inventory_record"):
+            doc_mod._index_approved_doc(doc.id)
+        fake_session.close.assert_called()
+
+
+# ---- CRUD endpoints: create, get, update, delete (lines 443-483) ----
+
+
 class TestDocumentCRUDEndpoints:
     @pytest.fixture()
     def crud_client(self, db_session):
@@ -973,13 +1219,13 @@ class TestDocumentCRUDEndpoints:
         resp = crud_client.patch(
             f"/api/v1/documents/{doc.id}",
             json={
-                "status": "processing",
+                "status": "approved",
                 "vendor_name": "Sigma-Aldrich",
             },
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert data["status"] == "processing"
+        assert data["status"] == "approved"
         # vendor_name should be normalized
         assert data["vendor_name"] == "Sigma-Aldrich"
 

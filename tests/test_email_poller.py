@@ -83,7 +83,7 @@ class TestConnectImap:
         monkeypatch.setenv("EMAIL_IMAP_PASSWORD", "my_pass")
 
         config = {"host": "imap.example.com", "user": "user@example.com"}
-        result = _connect_imap(config, "my_pass")
+        result = _connect_imap(config, "ignored_password")
 
         mock_imap_cls.assert_called_once_with("imap.example.com")
         mock_conn.login.assert_called_once_with("user@example.com", "my_pass")
