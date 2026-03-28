@@ -167,6 +167,39 @@ class TestReceiveItems:
         assert logs[0].action == ConsumptionAction.receive
         assert float(logs[0].quantity_remaining) == 2.0
 
+    def test_receive_rejects_already_received(self, db_session):
+        """Double-receive should fail: order already in received status."""
+        order, oi, _, _ = _make_order_with_item(db_session)
+        receive_items(
+            order_id=order.id,
+            items_received=[{"order_item_id": oi.id, "quantity": 5}],
+            location_id=None,
+            received_by="Alice",
+            db=db_session,
+        )
+        assert order.status == OrderStatus.received
+        with pytest.raises(ValidationError, match="already received"):
+            receive_items(
+                order_id=order.id,
+                items_received=[{"order_item_id": oi.id, "quantity": 5}],
+                location_id=None,
+                received_by="Bob",
+                db=db_session,
+            )
+
+    def test_receive_rejects_cancelled_order(self, db_session):
+        order, oi, _, _ = _make_order_with_item(db_session)
+        order.status = OrderStatus.cancelled
+        db_session.flush()
+        with pytest.raises(ValidationError, match="already cancelled"):
+            receive_items(
+                order_id=order.id,
+                items_received=[{"order_item_id": oi.id, "quantity": 1}],
+                location_id=None,
+                received_by="Alice",
+                db=db_session,
+            )
+
 
 # ---- consume ----
 
@@ -429,6 +462,22 @@ class TestTransfer:
         logs = list(db_session.exec(select(ConsumptionLog)).scalars().all())
         assert len(logs) == 1
         assert logs[0].action == ConsumptionAction.transfer
+
+    @pytest.mark.parametrize(
+        "status",
+        [
+            InventoryStatus.disposed,
+            InventoryStatus.depleted,
+            InventoryStatus.deleted,
+            InventoryStatus.expired,
+        ],
+    )
+    def test_transfer_rejects_inactive_status(self, db_session, status):
+        inv, new_loc = self._setup_inventory(db_session)
+        inv.status = status
+        db_session.flush()
+        with pytest.raises(ValidationError, match="Cannot transfer"):
+            transfer(inv.id, new_loc.id, "Alice", db_session)
 
 
 # ---- get_stock_level ----

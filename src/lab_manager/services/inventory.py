@@ -79,7 +79,9 @@ def receive_items(
     items_received: list of dicts with keys:
         order_item_id, quantity, lot_number (optional), expiry_date (optional)
     """
-    order = db.get(Order, order_id)
+    order = db.scalars(
+        select(Order).where(Order.id == order_id).with_for_update()
+    ).first()
     if not order:
         raise NotFoundError("Order", order_id)
 
@@ -219,6 +221,15 @@ def transfer(
 ) -> InventoryItem:
     """Move item to a different location."""
     item = _get_inventory_or_404(db, inventory_id, for_update=True)
+
+    if item.status in (
+        InventoryStatus.disposed,
+        InventoryStatus.depleted,
+        InventoryStatus.deleted,
+        InventoryStatus.expired,
+    ):
+        raise ValidationError(f"Cannot transfer {item.status} item")
+
     old_location_id = item.location_id
     item.location_id = new_location_id
 
