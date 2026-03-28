@@ -51,6 +51,20 @@ class Settings(BaseSettings):
         return self
 
     @model_validator(mode="after")
+    def _validate_public_auth_guard(self):
+        """Block AUTH_ENABLED=false on non-localhost domains (security guard)."""
+        if not self.auth_enabled and self.domain not in (
+            "localhost",
+            "127.0.0.1",
+            "::1",
+        ):
+            raise ValueError(
+                "AUTH_ENABLED=false is only allowed on localhost domains. "
+                "For production deployments, auth must remain enabled."
+            )
+        return self
+
+    @model_validator(mode="after")
     def _warn_default_admin_password(self):
         """Warn when ADMIN_PASSWORD is empty or a known default."""
         if self.auth_enabled:
@@ -62,9 +76,8 @@ class Settings(BaseSettings):
                 )
             elif pw.startswith("changeme"):
                 logger.warning(
-                    "ADMIN_PASSWORD is still a default value (%s). "
-                    "Change it to a strong password before deploying.",
-                    pw,
+                    "ADMIN_PASSWORD is still a default value. "
+                    "Change it to a strong password before deploying."
                 )
         return self
 
@@ -85,12 +98,16 @@ class Settings(BaseSettings):
     auth_enabled: bool = True
     secure_cookies: bool = False
 
+    # Deployment
+    domain: str = "localhost"
+
     # Document intake — OCR tiered detection
     # ocr_tier: "local" (vLLM only), "api" (cloud APIs), "auto" (local first, API fallback)
     ocr_tier: str = "auto"
     # OCR model: benchmark winner — llama-3.2-90b 100% success on sample documents
     ocr_model: str = "nvidia_nim/meta/llama-3.2-90b-vision-instruct"
-    ocr_local_model: str = "deepseek_ocr"  # provider name from OCR_PROVIDERS registry
+    # Local OCR default: dots.mocr 3B — open-source Elo #1 (1124.7)
+    ocr_local_model: str = "dots_mocr"  # provider name from OCR_PROVIDERS registry
     ocr_local_url: str = "http://localhost:8000/v1"  # vLLM endpoint for local models
     # Extraction model: GLM-5 82.4% success, 0.92 avg confidence on sample documents
     extraction_model: str = "nvidia_nim/z-ai/glm5"

@@ -7,7 +7,7 @@ import logging
 import shutil
 from pathlib import Path
 
-from sqlalchemy import func, literal, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from lab_manager.config import get_settings
@@ -16,35 +16,8 @@ from lab_manager.intake.extractor import (
 )
 from lab_manager.intake.ocr import extract_text_from_image
 from lab_manager.models.document import Document, DocumentStatus
-from lab_manager.models.vendor import Vendor
 
 logger = logging.getLogger(__name__)
-
-
-def _find_vendor(vendor_name: str, db: Session) -> Vendor | None:
-    """Find vendor by name or alias, case-insensitive."""
-    normalized = vendor_name.strip()
-    key = normalized.lower()
-    # Exact match (case-insensitive)
-    vendor = db.scalars(select(Vendor).where(func.lower(Vendor.name) == key)).first()
-    if vendor:
-        return vendor
-    # Substring match (either direction: query in vendor name, or vendor name in query)
-    vendor = db.scalars(
-        select(Vendor).where(
-            func.lower(Vendor.name).contains(key)
-            | literal(key).like(func.concat("%", func.lower(Vendor.name), "%"))
-        )
-    ).first()
-    if vendor:
-        return vendor
-    # Alias check — requires scanning JSON column
-    for v in db.scalars(select(Vendor).where(Vendor.aliases.isnot(None))).all():
-        for alias in v.aliases or []:
-            alias_lower = alias.lower()
-            if alias_lower in key or key in alias_lower:
-                return v
-    return None
 
 
 def process_document(image_path: Path, db: Session) -> Document:

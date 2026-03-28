@@ -13,19 +13,17 @@ import pytest
 
 
 class TestOcrExtract:
-    @patch("lab_manager.intake.ocr.genai.Client")
+    @patch("lab_manager.intake.ocr._ocr_api")
+    @patch("lab_manager.intake.ocr._ocr_local")
     @patch("lab_manager.intake.ocr.get_settings")
-    def test_extract_text_from_image(self, mock_settings, mock_client_cls, tmp_path):
+    def test_extract_text_from_image(
+        self, mock_settings, mock_local, mock_api, tmp_path
+    ):
         from lab_manager.intake.ocr import extract_text_from_image
 
-        mock_settings.return_value.extraction_api_key = "key"
-        mock_settings.return_value.extraction_model = "gemini-2.5-flash"
-
-        mock_client = MagicMock()
-        mock_client_cls.return_value = mock_client
-        mock_response = MagicMock()
-        mock_response.text = "OCR output text"
-        mock_client.models.generate_content.return_value = mock_response
+        mock_settings.return_value.ocr_tier = "auto"
+        mock_local.return_value = ""  # local fails, falls back to API
+        mock_api.return_value = "OCR output text"
 
         img = tmp_path / "test.png"
         img.write_bytes(b"\x89PNG fake image data")
@@ -33,63 +31,9 @@ class TestOcrExtract:
         result = extract_text_from_image(img)
         assert result == "OCR output text"
 
-
-# ---------------------------------------------------------------------------
-# intake/pipeline.py — _find_vendor, process_document
-# ---------------------------------------------------------------------------
-
-
-class TestPipeline:
-    def test_find_vendor_exact(self, db_session):
-        from lab_manager.intake.pipeline import _find_vendor
-        from lab_manager.models.vendor import Vendor
-
-        v = Vendor(name="Sigma-Aldrich")
-        db_session.add(v)
-        db_session.flush()
-
-        result = _find_vendor("Sigma-Aldrich", db_session)
-        assert result is not None
-        assert result.name == "Sigma-Aldrich"
-
-    def test_find_vendor_case_insensitive(self, db_session):
-        from lab_manager.intake.pipeline import _find_vendor
-        from lab_manager.models.vendor import Vendor
-
-        v = Vendor(name="Sigma-Aldrich")
-        db_session.add(v)
-        db_session.flush()
-
-        result = _find_vendor("sigma-aldrich", db_session)
-        assert result is not None
-
-    def test_find_vendor_partial(self, db_session):
-        from lab_manager.intake.pipeline import _find_vendor
-        from lab_manager.models.vendor import Vendor
-
-        v = Vendor(name="EMD Millipore Corporation")
-        db_session.add(v)
-        db_session.flush()
-
-        result = _find_vendor("EMD Millipore", db_session)
-        assert result is not None
-
-    def test_find_vendor_alias(self, db_session):
-        from lab_manager.intake.pipeline import _find_vendor
-        from lab_manager.models.vendor import Vendor
-
-        v = Vendor(name="Thermo Fisher", aliases=["ThermoFisher", "Life Technologies"])
-        db_session.add(v)
-        db_session.flush()
-
-        result = _find_vendor("Life Technologies", db_session)
-        assert result is not None
-
-    def test_find_vendor_not_found(self, db_session):
-        from lab_manager.intake.pipeline import _find_vendor
-
-        result = _find_vendor("NonexistentVendor12345", db_session)
-        assert result is None
+    # ---------------------------------------------------------------------------
+    # intake/pipeline.py — _find_vendor removed, vendor matching moved to services
+    # ---------------------------------------------------------------------------
 
     @patch("lab_manager.intake.pipeline.extract_text_from_image")
     @patch("lab_manager.intake.pipeline.extract_from_text")

@@ -109,7 +109,7 @@ def create_order(api, test_vendor, po):
         },
     )
     assert r.status_code in (200, 201), r.text
-    return r.json()
+    return r.json()["order"]
 
 
 @given(

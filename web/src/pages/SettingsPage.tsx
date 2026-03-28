@@ -535,7 +535,7 @@ export function SettingsPage({ onError }: Readonly<SettingsPageProps>) {
             description="Download all data tables as CSV files"
           />
 
-          <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50/50">
+          <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50/50 cursor-not-allowed opacity-50">
             <div className="flex items-center gap-3">
               <AlertTriangle className="size-4 text-gray-300" />
               <div>
@@ -543,10 +543,9 @@ export function SettingsPage({ onError }: Readonly<SettingsPageProps>) {
                 <p className="text-xs text-gray-400">Restore all settings to factory defaults</p>
               </div>
             </div>
-            <ComingSoon />
           </div>
 
-          <div className="flex items-center justify-between p-3 border border-red-200 rounded-lg bg-red-50/30">
+          <div className="flex items-center justify-between p-3 border border-red-200 rounded-lg bg-red-50/30 cursor-not-allowed opacity-50">
             <div className="flex items-center gap-3">
               <AlertTriangle className="size-4 text-red-300" />
               <div>
@@ -554,7 +553,6 @@ export function SettingsPage({ onError }: Readonly<SettingsPageProps>) {
                 <p className="text-xs text-red-300">Permanently remove all documents, orders, and inventory</p>
               </div>
             </div>
-            <ComingSoon />
           </div>
         </div>
       </SectionCard>
