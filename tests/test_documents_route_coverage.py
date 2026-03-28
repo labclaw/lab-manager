@@ -159,6 +159,7 @@ class TestUploadEdgeCases:
         from lab_manager.api.routes import documents
 
         app = create_app()
+        original_run_extraction = documents._run_extraction
         documents._run_extraction = lambda doc_id: None
 
         def override_get_db():
@@ -168,6 +169,7 @@ class TestUploadEdgeCases:
         with TestClient(app) as c:
             yield c, d
         get_settings.cache_clear()
+        documents._run_extraction = original_run_extraction
 
     def _make_png(self):
         import struct
@@ -256,6 +258,7 @@ class TestReviewDocumentGuards:
         from lab_manager.api.routes import documents
 
         app = create_app()
+        original_run_extraction = documents._run_extraction
         documents._run_extraction = lambda doc_id: None
 
         def override_get_db():
@@ -265,6 +268,7 @@ class TestReviewDocumentGuards:
         with TestClient(app) as c:
             yield c
         get_settings.cache_clear()
+        documents._run_extraction = original_run_extraction
 
     def _create_needs_review_doc(self, client):
         """Create a document in needs_review status via direct DB insert."""
@@ -315,6 +319,7 @@ class TestReviewDocumentGuards:
         from lab_manager.api.routes import documents
 
         app = create_app()
+        original_run_extraction = documents._run_extraction
         documents._run_extraction = lambda doc_id: None
 
         def override_get_db():
@@ -329,6 +334,7 @@ class TestReviewDocumentGuards:
             assert resp.status_code == 409
             assert "processed" in resp.json()["detail"].lower()
         get_settings.cache_clear()
+        documents._run_extraction = original_run_extraction
 
     def test_review_already_approved_rejected(self, db_session):
         from lab_manager.models.document import Document, DocumentStatus
@@ -352,6 +358,7 @@ class TestReviewDocumentGuards:
         from lab_manager.api.routes import documents
 
         app = create_app()
+        original_run_extraction = documents._run_extraction
         documents._run_extraction = lambda doc_id: None
 
         def override_get_db():
@@ -365,6 +372,7 @@ class TestReviewDocumentGuards:
             )
             assert resp.status_code == 409
         get_settings.cache_clear()
+        documents._run_extraction = original_run_extraction
 
     def test_review_reject_success(self, db_session):
         from lab_manager.models.document import Document, DocumentStatus
@@ -390,6 +398,7 @@ class TestReviewDocumentGuards:
         from lab_manager.api.routes import documents
 
         app = create_app()
+        original_run_extraction = documents._run_extraction
         documents._run_extraction = lambda doc_id: None
 
         def override_get_db():
@@ -408,6 +417,7 @@ class TestReviewDocumentGuards:
             assert resp.status_code == 200
             assert resp.json()["status"] == "rejected"
         get_settings.cache_clear()
+        documents._run_extraction = original_run_extraction
 
     def test_approve_creates_order(self, db_session):
         from lab_manager.models.document import Document, DocumentStatus
@@ -443,6 +453,8 @@ class TestReviewDocumentGuards:
         from lab_manager.api.routes import documents
 
         app = create_app()
+        original_run_extraction = documents._run_extraction
+        original_index_approved_doc = documents._index_approved_doc
         documents._run_extraction = lambda doc_id: None
         documents._index_approved_doc = lambda doc_id: None
 
@@ -458,6 +470,8 @@ class TestReviewDocumentGuards:
             assert resp.status_code == 200
             assert resp.json()["status"] == "approved"
         get_settings.cache_clear()
+        documents._run_extraction = original_run_extraction
+        documents._index_approved_doc = original_index_approved_doc
 
 
 # ---- _create_order_from_doc ----
@@ -840,6 +854,7 @@ class TestUploadBadContentType:
         from lab_manager.api.routes import documents
 
         app = create_app()
+        original_run_extraction = documents._run_extraction
         documents._run_extraction = lambda doc_id: None
 
         def override_get_db():
@@ -849,6 +864,7 @@ class TestUploadBadContentType:
         with TestClient(app) as c:
             yield c
         get_settings.cache_clear()
+        documents._run_extraction = original_run_extraction
 
     def test_upload_bad_content_type(self, upload_client):
         client = upload_client
@@ -903,7 +919,6 @@ class TestUploadBadContentType:
         assert "upload" in name  # should be prefixed with "upload"
 
 
-
 class TestRunExtraction:
     """Tests for _run_extraction covering OCR, extraction, and error paths."""
 
@@ -921,7 +936,9 @@ class TestRunExtraction:
         fake_session.scalars.return_value.first.return_value = None
         fake_factory = MagicMock(return_value=fake_session)
 
-        with patch("lab_manager.database.get_session_factory", return_value=fake_factory):
+        with patch(
+            "lab_manager.database.get_session_factory", return_value=fake_factory
+        ):
             doc_mod._run_extraction(99999)
         fake_session.close.assert_called()
 
@@ -931,7 +948,11 @@ class TestRunExtraction:
 
         import lab_manager.api.routes.documents as doc_mod
 
-        doc = Document(file_path="/tmp/test_ocr.png", file_name="ocr_fail.png", status=DocumentStatus.processing)
+        doc = Document(
+            file_path="/tmp/test_ocr.png",
+            file_name="ocr_fail.png",
+            status=DocumentStatus.processing,
+        )
         db_session.add(doc)
         db_session.commit()
 
@@ -939,8 +960,15 @@ class TestRunExtraction:
         fake_session.scalars.return_value.first.return_value = doc
         fake_factory = MagicMock(return_value=fake_session)
 
-        with patch("lab_manager.database.get_session_factory", return_value=fake_factory), \
-             patch("lab_manager.intake.ocr.extract_text_from_image", side_effect=RuntimeError("OCR down")):
+        with (
+            patch(
+                "lab_manager.database.get_session_factory", return_value=fake_factory
+            ),
+            patch(
+                "lab_manager.intake.ocr.extract_text_from_image",
+                side_effect=RuntimeError("OCR down"),
+            ),
+        ):
             doc_mod._run_extraction(doc.id)
 
         assert doc.status == DocumentStatus.needs_review
@@ -952,7 +980,11 @@ class TestRunExtraction:
 
         import lab_manager.api.routes.documents as doc_mod
 
-        doc = Document(file_path="/tmp/test_ocr_empty.png", file_name="ocr_empty.png", status=DocumentStatus.processing)
+        doc = Document(
+            file_path="/tmp/test_ocr_empty.png",
+            file_name="ocr_empty.png",
+            status=DocumentStatus.processing,
+        )
         db_session.add(doc)
         db_session.commit()
 
@@ -960,8 +992,12 @@ class TestRunExtraction:
         fake_session.scalars.return_value.first.return_value = doc
         fake_factory = MagicMock(return_value=fake_session)
 
-        with patch("lab_manager.database.get_session_factory", return_value=fake_factory), \
-             patch("lab_manager.intake.ocr.extract_text_from_image", return_value="   "):
+        with (
+            patch(
+                "lab_manager.database.get_session_factory", return_value=fake_factory
+            ),
+            patch("lab_manager.intake.ocr.extract_text_from_image", return_value="   "),
+        ):
             doc_mod._run_extraction(doc.id)
 
         assert doc.status == DocumentStatus.ocr_failed
@@ -974,7 +1010,11 @@ class TestRunExtraction:
 
         monkeypatch.setenv("EXTRACTION_MODEL", "test-model")
 
-        doc = Document(file_path="/tmp/test_extract.png", file_name="extract.png", status=DocumentStatus.processing)
+        doc = Document(
+            file_path="/tmp/test_extract.png",
+            file_name="extract.png",
+            status=DocumentStatus.processing,
+        )
         db_session.add(doc)
         db_session.commit()
 
@@ -986,12 +1026,26 @@ class TestRunExtraction:
         mock_ext.document_type = "invoice"
         mock_ext.vendor_name = "TestVendor"
         mock_ext.confidence = 0.95
-        mock_ext.model_dump.return_value = {"vendor_name": "TestVendor", "document_type": "invoice"}
+        mock_ext.model_dump.return_value = {
+            "vendor_name": "TestVendor",
+            "document_type": "invoice",
+        }
 
-        with patch("lab_manager.database.get_session_factory", return_value=fake_factory), \
-             patch("lab_manager.intake.ocr.extract_text_from_image", return_value="text"), \
-             patch("lab_manager.intake.extractor.extract_from_text", return_value=mock_ext), \
-             patch("lab_manager.api.routes.documents.normalize_vendor", return_value="TestVendor"):
+        with (
+            patch(
+                "lab_manager.database.get_session_factory", return_value=fake_factory
+            ),
+            patch(
+                "lab_manager.intake.ocr.extract_text_from_image", return_value="text"
+            ),
+            patch(
+                "lab_manager.intake.extractor.extract_from_text", return_value=mock_ext
+            ),
+            patch(
+                "lab_manager.api.routes.documents.normalize_vendor",
+                return_value="TestVendor",
+            ),
+        ):
             doc_mod._run_extraction(doc.id)
 
         assert doc.status == DocumentStatus.needs_review
@@ -1004,7 +1058,11 @@ class TestRunExtraction:
 
         import lab_manager.api.routes.documents as doc_mod
 
-        doc = Document(file_path="/tmp/test_ext_fail.png", file_name="ext_fail.png", status=DocumentStatus.processing)
+        doc = Document(
+            file_path="/tmp/test_ext_fail.png",
+            file_name="ext_fail.png",
+            status=DocumentStatus.processing,
+        )
         db_session.add(doc)
         db_session.commit()
 
@@ -1012,9 +1070,18 @@ class TestRunExtraction:
         fake_session.scalars.return_value.first.return_value = doc
         fake_factory = MagicMock(return_value=fake_session)
 
-        with patch("lab_manager.database.get_session_factory", return_value=fake_factory), \
-             patch("lab_manager.intake.ocr.extract_text_from_image", return_value="text"), \
-             patch("lab_manager.intake.extractor.extract_from_text", side_effect=RuntimeError("LLM timeout")):
+        with (
+            patch(
+                "lab_manager.database.get_session_factory", return_value=fake_factory
+            ),
+            patch(
+                "lab_manager.intake.ocr.extract_text_from_image", return_value="text"
+            ),
+            patch(
+                "lab_manager.intake.extractor.extract_from_text",
+                side_effect=RuntimeError("LLM timeout"),
+            ),
+        ):
             doc_mod._run_extraction(doc.id)
 
         assert doc.status == DocumentStatus.needs_review
@@ -1029,7 +1096,9 @@ class TestRunExtraction:
         fake_session.scalars.side_effect = RuntimeError("DB lost")
         fake_factory = MagicMock(return_value=fake_session)
 
-        with patch("lab_manager.database.get_session_factory", return_value=fake_factory):
+        with patch(
+            "lab_manager.database.get_session_factory", return_value=fake_factory
+        ):
             doc_mod._run_extraction(42)
 
         fake_session.rollback.assert_called()
@@ -1056,7 +1125,9 @@ class TestIndexApprovedDoc:
         fake_session.scalars.return_value.first.return_value = None
         fake_factory = MagicMock(return_value=fake_session)
 
-        with patch("lab_manager.database.get_session_factory", return_value=fake_factory):
+        with patch(
+            "lab_manager.database.get_session_factory", return_value=fake_factory
+        ):
             doc_mod._index_approved_doc(99999)
         fake_session.close.assert_called()
 
@@ -1066,7 +1137,11 @@ class TestIndexApprovedDoc:
 
         import lab_manager.api.routes.documents as doc_mod
 
-        doc = Document(file_path="/tmp/test_no_order.png", file_name="no_order.png", status=DocumentStatus.approved)
+        doc = Document(
+            file_path="/tmp/test_no_order.png",
+            file_name="no_order.png",
+            status=DocumentStatus.approved,
+        )
         db_session.add(doc)
         db_session.commit()
 
@@ -1082,8 +1157,12 @@ class TestIndexApprovedDoc:
         fake_session.scalars.side_effect = _scalars
         fake_factory = MagicMock(return_value=fake_session)
 
-        with patch("lab_manager.database.get_session_factory", return_value=fake_factory), \
-             patch("lab_manager.services.search.index_document_record"):
+        with (
+            patch(
+                "lab_manager.database.get_session_factory", return_value=fake_factory
+            ),
+            patch("lab_manager.services.search.index_document_record"),
+        ):
             doc_mod._index_approved_doc(doc.id)
 
         fake_session.close.assert_called()
@@ -1097,7 +1176,9 @@ class TestIndexApprovedDoc:
         fake_session.scalars.side_effect = RuntimeError("unrecoverable")
         fake_factory = MagicMock(return_value=fake_session)
 
-        with patch("lab_manager.database.get_session_factory", return_value=fake_factory):
+        with patch(
+            "lab_manager.database.get_session_factory", return_value=fake_factory
+        ):
             doc_mod._index_approved_doc(42)
         fake_session.close.assert_called()
 
@@ -1107,7 +1188,11 @@ class TestIndexApprovedDoc:
 
         import lab_manager.api.routes.documents as doc_mod
 
-        doc = Document(file_path="/tmp/test_full_idx.png", file_name="full_idx.png", status=DocumentStatus.approved)
+        doc = Document(
+            file_path="/tmp/test_full_idx.png",
+            file_name="full_idx.png",
+            status=DocumentStatus.approved,
+        )
         db_session.add(doc)
         db_session.commit()
 
@@ -1135,13 +1220,17 @@ class TestIndexApprovedDoc:
         fake_session.scalars.side_effect = _scalars
         fake_factory = MagicMock(return_value=fake_session)
 
-        with patch("lab_manager.database.get_session_factory", return_value=fake_factory), \
-             patch("lab_manager.services.search.index_document_record"), \
-             patch("lab_manager.services.search.index_vendor_record"), \
-             patch("lab_manager.services.search.index_order_record"), \
-             patch("lab_manager.services.search.index_order_item_record"), \
-             patch("lab_manager.services.search.index_product_record"), \
-             patch("lab_manager.services.search.index_inventory_record"):
+        with (
+            patch(
+                "lab_manager.database.get_session_factory", return_value=fake_factory
+            ),
+            patch("lab_manager.services.search.index_document_record"),
+            patch("lab_manager.services.search.index_vendor_record"),
+            patch("lab_manager.services.search.index_order_record"),
+            patch("lab_manager.services.search.index_order_item_record"),
+            patch("lab_manager.services.search.index_product_record"),
+            patch("lab_manager.services.search.index_inventory_record"),
+        ):
             doc_mod._index_approved_doc(doc.id)
         fake_session.close.assert_called()
 
@@ -1297,6 +1386,7 @@ class TestReviewPendingGuard:
         from lab_manager.api.routes import documents
 
         app = create_app()
+        original_run_extraction = documents._run_extraction
         documents._run_extraction = lambda doc_id: None
 
         def override_get_db():
@@ -1311,6 +1401,7 @@ class TestReviewPendingGuard:
             assert resp.status_code == 409
             assert "not been processed" in resp.json()["detail"].lower()
         get_settings.cache_clear()
+        documents._run_extraction = original_run_extraction
 
     def test_review_rejected_status_rejected(self, db_session):
         """Line 510-518: already rejected doc."""
@@ -1335,6 +1426,7 @@ class TestReviewPendingGuard:
         from lab_manager.api.routes import documents
 
         app = create_app()
+        original_run_extraction = documents._run_extraction
         documents._run_extraction = lambda doc_id: None
 
         def override_get_db():
@@ -1349,6 +1441,7 @@ class TestReviewPendingGuard:
             assert resp.status_code == 409
             assert "already" in resp.json()["detail"].lower()
         get_settings.cache_clear()
+        documents._run_extraction = original_run_extraction
 
     def test_review_deleted_status_rejected(self, db_session):
         """Line 510-518: deleted doc."""
@@ -1373,6 +1466,7 @@ class TestReviewPendingGuard:
         from lab_manager.api.routes import documents
 
         app = create_app()
+        original_run_extraction = documents._run_extraction
         documents._run_extraction = lambda doc_id: None
 
         def override_get_db():
@@ -1386,6 +1480,7 @@ class TestReviewPendingGuard:
             )
             assert resp.status_code == 409
         get_settings.cache_clear()
+        documents._run_extraction = original_run_extraction
 
     def test_approve_no_existing_order_no_data(self, db_session):
         """Line 528: approve with no existing order but no extracted_data."""
@@ -1411,6 +1506,8 @@ class TestReviewPendingGuard:
         from lab_manager.api.routes import documents
 
         app = create_app()
+        original_run_extraction = documents._run_extraction
+        original_index_approved_doc = documents._index_approved_doc
         documents._run_extraction = lambda doc_id: None
         documents._index_approved_doc = lambda doc_id: None
 
@@ -1426,3 +1523,5 @@ class TestReviewPendingGuard:
             assert resp.status_code == 200
             assert resp.json()["status"] == "approved"
         get_settings.cache_clear()
+        documents._run_extraction = original_run_extraction
+        documents._index_approved_doc = original_index_approved_doc
