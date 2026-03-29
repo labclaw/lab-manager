@@ -340,9 +340,10 @@ def open_item(
     if item.status in (
         InventoryStatus.disposed,
         InventoryStatus.deleted,
+        InventoryStatus.depleted,
         InventoryStatus.expired,
     ):
-        raise ValidationError(f"Cannot open {item.status} item")
+        raise ValidationError(f"Cannot open item in {item.status.value} state")
     if item.opened_date is not None:
         raise ValidationError("Item is already opened")
 
