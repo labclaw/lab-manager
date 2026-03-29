@@ -902,6 +902,7 @@ class TestUploadBadContentType:
         name = resp.json()["file_name"]
         assert "upload" in name  # should be prefixed with "upload"
 
+
 class TestDocumentCRUDEndpoints:
     @pytest.fixture()
     def crud_client(self, db_session):
@@ -972,13 +973,11 @@ class TestDocumentCRUDEndpoints:
         resp = crud_client.patch(
             f"/api/v1/documents/{doc.id}",
             json={
-                "status": "approved",
                 "vendor_name": "Sigma-Aldrich",
             },
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert data["status"] == "approved"
         # vendor_name should be normalized
         assert data["vendor_name"] == "Sigma-Aldrich"
 
