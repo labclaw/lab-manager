@@ -483,12 +483,14 @@ def create_app() -> FastAPI:
                 staff_active = staff.is_active
                 staff_pw_hash = staff.password_hash
                 staff_locked_until = staff.locked_until
+                staff_access_expires_at = staff.access_expires_at
             else:
                 staff_id = staff_name = staff_email = staff_pw_hash = None
                 staff_role = "visitor"
                 staff_role_level = 4
                 staff_active = False
                 staff_locked_until = None
+                staff_access_expires_at = None
         except Exception:
             logger.error("Login: database unavailable")
             return JSONResponse(
@@ -497,11 +499,16 @@ def create_app() -> FastAPI:
             )
 
         # Check account lock
-        if staff_locked_until and staff_locked_until > datetime.now(timezone.utc):
-            return JSONResponse(
-                status_code=403,
-                content={"detail": "Account temporarily locked. Try again later."},
-            )
+        now_utc = datetime.now(timezone.utc)
+        if staff_locked_until:
+            locked_until = staff_locked_until
+            if locked_until.tzinfo is None:
+                locked_until = locked_until.replace(tzinfo=timezone.utc)
+            if locked_until > now_utc:
+                return JSONResponse(
+                    status_code=403,
+                    content={"detail": "Account temporarily locked. Try again later."},
+                )
 
         # Constant-time: always run bcrypt to prevent timing oracle on user existence.
         _DUMMY_HASH = b"$2b$12$LJ3m4ys3Lg2VBe7MaBSW2.P68rAGkMgGMfkCGKEKeDqz4rMpWsSi6"
@@ -537,6 +544,16 @@ def create_app() -> FastAPI:
                 status_code=401,
                 content={"detail": "Invalid email or password"},
             )
+
+        if staff_access_expires_at:
+            access_expires_at = staff_access_expires_at
+            if access_expires_at.tzinfo is None:
+                access_expires_at = access_expires_at.replace(tzinfo=timezone.utc)
+            if access_expires_at < now_utc:
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Invalid email or password"},
+                )
 
         # Create signed session cookie with new token (session regeneration)
         serializer = _get_serializer()
