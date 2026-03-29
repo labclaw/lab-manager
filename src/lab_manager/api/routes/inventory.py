@@ -196,7 +196,7 @@ def _flatten_item(item: InventoryItem) -> dict:
     }
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(require_permission("view_inventory"))])
 def list_inventory(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
@@ -258,13 +258,13 @@ def create_inventory_item(body: InventoryItemCreate, db: Session = Depends(get_d
     return item
 
 
-@router.get("/low-stock")
+@router.get("/low-stock", dependencies=[Depends(require_permission("view_inventory"))])
 def low_stock(db: Session = Depends(get_db)):
     """Products below their reorder level."""
     return inv_svc.get_low_stock(db)
 
 
-@router.get("/expiring")
+@router.get("/expiring", dependencies=[Depends(require_permission("view_inventory"))])
 def expiring(days: int = Query(30, ge=1), db: Session = Depends(get_db)):
     """Items expiring within N days."""
     return inv_svc.get_expiring(db, days=days)
@@ -275,7 +275,11 @@ def expiring(days: int = Query(30, ge=1), db: Session = Depends(get_db)):
 # ---------------------------------------------------------------------------
 
 
-@router.get("/{item_id}", response_model=InventoryItemResponse)
+@router.get(
+    "/{item_id}",
+    response_model=InventoryItemResponse,
+    dependencies=[Depends(require_permission("view_inventory"))],
+)
 def get_inventory_item(item_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, InventoryItem, item_id, "Inventory item")
 
@@ -324,7 +328,9 @@ def delete_inventory_item(item_id: int, db: Session = Depends(get_db)):
     return None
 
 
-@router.get("/{item_id}/history")
+@router.get(
+    "/{item_id}/history", dependencies=[Depends(require_permission("view_inventory"))]
+)
 def item_history(item_id: int, db: Session = Depends(get_db)):
     """Consumption log for a specific inventory item."""
     return inv_svc.get_item_history(item_id, db)
@@ -365,7 +371,10 @@ def open_item(item_id: int, body: OpenBody, db: Session = Depends(get_db)):
     return inv_svc.open_item(item_id, body.opened_by, db)
 
 
-@router.get("/{item_id}/reorder-url")
+@router.get(
+    "/{item_id}/reorder-url",
+    dependencies=[Depends(require_permission("view_inventory"))],
+)
 def get_reorder_url_endpoint(item_id: int, db: Session = Depends(get_db)):
     """Generate a vendor website URL for reordering this item's product."""
     item = get_or_404(db, InventoryItem, item_id, "Inventory item")

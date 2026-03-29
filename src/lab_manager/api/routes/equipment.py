@@ -91,7 +91,7 @@ class EquipmentUpdate(BaseModel):
         return v
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(require_permission("view_equipment"))])
 def list_equipment(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
@@ -134,7 +134,9 @@ def create_equipment(body: EquipmentCreate, db: Session = Depends(get_db)):
     return equip
 
 
-@router.get("/{equipment_id}")
+@router.get(
+    "/{equipment_id}", dependencies=[Depends(require_permission("view_equipment"))]
+)
 def get_equipment(equipment_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, Equipment, equipment_id, "Equipment")
 
