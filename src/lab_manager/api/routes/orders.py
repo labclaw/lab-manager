@@ -27,6 +27,7 @@ router = APIRouter()
 _VALID_STATUS_TRANSITIONS: dict[str, set[str]] = {
     OrderStatus.pending.value: {
         OrderStatus.shipped.value,
+        OrderStatus.received.value,
         OrderStatus.cancelled.value,
         OrderStatus.deleted.value,
     },
