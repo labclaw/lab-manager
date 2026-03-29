@@ -6,7 +6,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
@@ -17,6 +17,7 @@ from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, ilike_col, paginate
 from lab_manager.exceptions import NotFoundError, ValidationError
 from lab_manager.models.order import Order, OrderItem, OrderStatus
+from lab_manager.models.vendor import Vendor
 from lab_manager.services.orders import build_duplicate_warning, find_duplicate_po
 from lab_manager.services.search import index_order_record
 
@@ -224,6 +225,20 @@ def create_order(body: OrderCreate, db: Session = Depends(get_db)):
         raise ValidationError(
             f"New orders must be created with status '{OrderStatus.pending.value}', got '{body.status}'"
         )
+
+    # Serialize duplicate checks for a given vendor so concurrent creates cannot
+    # both pass the check before either order is persisted.
+    if body.po_number and body.vendor_id is not None:
+        db.scalars(
+            select(Vendor).where(Vendor.id == body.vendor_id).with_for_update()
+        ).first()
+        dupes = find_duplicate_po(body.po_number, body.vendor_id, db)
+        if dupes:
+            raise HTTPException(
+                status_code=409,
+                detail="An order with this PO number already exists for this vendor",
+            )
+
     order = Order(**body.model_dump())
     db.add(order)
     db.flush()

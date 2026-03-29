@@ -392,10 +392,10 @@ class TestInputValidationE2E:
         )
         assert resp.status_code == 422, f"Expected 422, got {resp.status_code}"
 
-    def test_7_duplicate_po_number_warns(
+    def test_7_duplicate_po_number_blocked(
         self, authenticated_client: TestClient | httpx.Client, test_vendor_id: int
     ):
-        """Creating two orders with the same PO# returns a duplicate warning."""
+        """Creating two orders with the same PO# for the same vendor is blocked."""
         suffix = _unique_suffix()
         po = f"DUP-PO-{suffix}"
 
@@ -411,12 +411,8 @@ class TestInputValidationE2E:
             "/api/v1/orders/",
             json={"po_number": po, "vendor_id": test_vendor_id, "status": "pending"},
         )
-        # API warns but does not block (OCR re-scan use case)
-        assert resp2.status_code == 201
-        data2 = resp2.json()
-        assert "_duplicate_warning" in data2, (
-            f"Expected _duplicate_warning in response: {data2.keys()}"
-        )
+        assert resp2.status_code == 409, f"Expected 409, got {resp2.status_code}"
+        assert "already exists" in resp2.json()["detail"].lower()
 
     def test_8_duplicate_catalog_vendor_product(
         self, authenticated_client: TestClient | httpx.Client, test_vendor_id: int
