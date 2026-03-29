@@ -576,3 +576,158 @@ class TestEmailPoller:
         os.environ.pop("EMAIL_IMAP_PASSWORD", None)
         os.environ.pop("EMAIL_POLL_INTERVAL", None)
         get_settings.cache_clear()
+
+
+class TestNonMultipartEmail:
+    """Cover lines 96-102: non-multipart email parsing."""
+
+    def test_non_multipart_plain_text(self):
+        """Non-multipart plain text email extracts body_text."""
+        # Build a simple non-multipart text/plain email manually
+        raw = (
+            "From: plain@example.com\r\n"
+            "Subject: Plain Only\r\n"
+            "Date: Tue, 25 Mar 2026 12:00:00 -0400\r\n"
+            "Content-Type: text/plain\r\n"
+            "\r\n"
+            "Just a plain text body.\r\n"
+        )
+        parsed = parse_email(raw)
+        assert parsed.sender == "plain@example.com"
+        assert parsed.subject == "Plain Only"
+        assert "Just a plain text body." in parsed.body_text
+        assert parsed.body_html == ""
+
+    def test_non_multipart_html(self):
+        """Non-multipart HTML email extracts body_html."""
+        raw = (
+            "From: html@example.com\r\n"
+            "Subject: HTML Only\r\n"
+            "Content-Type: text/html\r\n"
+            "\r\n"
+            "<h1>HTML body</h1>\r\n"
+        )
+        parsed = parse_email(raw)
+        assert parsed.sender == "html@example.com"
+        assert "<h1>HTML body</h1>" in parsed.body_html
+
+
+class TestExtractAttachmentEdgeCases:
+    """Cover lines 117-118, 125-126, 129-134: attachment edge cases."""
+
+    def test_max_attachments_reached(self):
+        """Extracting beyond _MAX_ATTACHMENTS skips the excess attachment."""
+        from unittest.mock import MagicMock
+
+        from lab_manager.services.email_intake import (
+            _MAX_ATTACHMENTS,
+            _extract_attachment,
+        )
+
+        attachments = []
+        for i in range(_MAX_ATTACHMENTS):
+            attachments.append(
+                Attachment(
+                    filename=f"doc_{i}.pdf",
+                    content_type="application/pdf",
+                    data=b"pdf",
+                )
+            )
+
+        mock_part = MagicMock()
+        mock_part.get_filename.return_value = "overflow.pdf"
+        mock_part.get_content_type.return_value = "application/pdf"
+        mock_part.get_payload.return_value = b"extra data"
+
+        _extract_attachment(mock_part, attachments)
+        assert len(attachments) == _MAX_ATTACHMENTS
+
+    def test_empty_payload_skipped(self):
+        """Attachment with None payload is skipped."""
+        from unittest.mock import MagicMock
+
+        from lab_manager.services.email_intake import _extract_attachment
+
+        mock_part = MagicMock()
+        mock_part.get_filename.return_value = "empty.pdf"
+        mock_part.get_content_type.return_value = "application/pdf"
+        mock_part.get_payload.return_value = None
+
+        attachments: list[Attachment] = []
+        _extract_attachment(mock_part, attachments)
+        assert len(attachments) == 0
+
+    def test_attachment_too_large_skipped(self):
+        """Attachment exceeding _MAX_ATTACHMENT_BYTES is skipped."""
+        from unittest.mock import MagicMock
+
+        from lab_manager.services.email_intake import (
+            _MAX_ATTACHMENT_BYTES,
+            _extract_attachment,
+        )
+
+        large_data = b"x" * (_MAX_ATTACHMENT_BYTES + 1)
+        mock_part = MagicMock()
+        mock_part.get_filename.return_value = "huge.pdf"
+        mock_part.get_content_type.return_value = "application/pdf"
+        mock_part.get_payload.return_value = large_data
+
+        attachments: list[Attachment] = []
+        _extract_attachment(mock_part, attachments)
+        assert len(attachments) == 0
+
+
+class TestSanitizeFilename:
+    """Cover line 168: filename starting with dot."""
+
+    def test_dot_prefix_filename(self):
+        """Filenames starting with '.' get 'attachment' prepended."""
+        from lab_manager.services.email_intake import _sanitize_filename
+
+        result = _sanitize_filename(".hidden")
+        assert result.startswith("attachment")
+        assert ".hidden" in result
+
+    def test_normal_filename(self):
+        """Normal filenames are sanitized without prefix."""
+        from lab_manager.services.email_intake import _sanitize_filename
+
+        result = _sanitize_filename("report.pdf")
+        assert result == "report.pdf"
+
+    def test_empty_filename(self):
+        """Empty filename gets 'attachment' prefix."""
+        from lab_manager.services.email_intake import _sanitize_filename
+
+        result = _sanitize_filename("")
+        assert result.startswith("attachment")
+
+
+class TestProcessEmailJsonLargeAttachment:
+    """Cover lines 301-302: oversized attachment in JSON path."""
+
+    def test_json_oversized_attachment_skipped(self, db_session, tmp_path):
+        """Base64-decoded data exceeding max size is skipped."""
+        upload_dir = tmp_path / "uploads"
+        upload_dir.mkdir()
+        os.environ["UPLOAD_DIR"] = str(upload_dir)
+        get_settings.cache_clear()
+
+        from lab_manager.services.email_intake import _MAX_ATTACHMENT_BYTES
+
+        large_data = b"x" * (_MAX_ATTACHMENT_BYTES + 1)
+        large_b64 = base64.b64encode(large_data).decode()
+
+        docs = process_email_json(
+            sender="vendor@example.com",
+            subject="Huge file",
+            body_html="",
+            attachments_b64=[
+                {"filename": "huge.pdf", "content_base64": large_b64},
+            ],
+            db=db_session,
+        )
+
+        assert len(docs) == 0
+
+        get_settings.cache_clear()

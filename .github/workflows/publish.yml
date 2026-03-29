@@ -73,12 +73,15 @@ jobs:
 
       - name: Verify image
         run: |
+          # metadata-action strips 'v' prefix: git tag v0.1.14 → docker tag 0.1.14
+          IMAGE_TAG="${{ steps.version.outputs.tag }}"
+          IMAGE_TAG="${IMAGE_TAG#v}"
           # GHCR needs time to propagate the manifest after push
           for i in 1 2 3; do
-            if docker pull ghcr.io/${{ github.repository }}:${{ steps.version.outputs.tag }}; then
+            if docker pull "ghcr.io/${{ github.repository }}:${IMAGE_TAG}"; then
               break
             fi
             echo "Attempt $i: manifest not ready, waiting 10s..."
             sleep 10
           done
-          docker run --rm --entrypoint /app/.venv/bin/python ghcr.io/${{ github.repository }}:${{ steps.version.outputs.tag }} -c "import lab_manager; print('OK')"
+          docker run --rm --entrypoint /app/.venv/bin/python "ghcr.io/${{ github.repository }}:${IMAGE_TAG}" -c "import lab_manager; print('OK')"
