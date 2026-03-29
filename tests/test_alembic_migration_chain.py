@@ -80,7 +80,7 @@ def test_alembic_heads_succeeds():
     assert result.returncode == 0, (
         f"alembic heads failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
     )
-    lines = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
+    lines = [line.strip() for line in result.stdout.strip().split("\n") if line.strip()]
     assert len(lines) == 1, f"Expected exactly 1 head, got {len(lines)}: {lines}"
 
 
