@@ -176,7 +176,7 @@ class OrderResponse(BaseModel):
 # =====================
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(require_permission("view_orders"))])
 def list_orders(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
@@ -263,7 +263,11 @@ def create_order(body: OrderCreate, db: Session = Depends(get_db)):
     return {"order": order, "_duplicate_warning": duplicate_warning}
 
 
-@router.get("/{order_id}", response_model=OrderResponse)
+@router.get(
+    "/{order_id}",
+    response_model=OrderResponse,
+    dependencies=[Depends(require_permission("view_orders"))],
+)
 def get_order(order_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, Order, order_id, "Order")
 
@@ -322,7 +326,10 @@ def _ensure_order_mutable(order: Order) -> None:
 # =====================
 
 
-@router.get("/{order_id}/items")
+@router.get(
+    "/{order_id}/items",
+    dependencies=[Depends(require_permission("view_orders"))],
+)
 def list_order_items(
     order_id: int,
     page: int = Query(1, ge=1),
@@ -359,7 +366,10 @@ def create_order_item(
     return item
 
 
-@router.get("/{order_id}/items/{item_id}")
+@router.get(
+    "/{order_id}/items/{item_id}",
+    dependencies=[Depends(require_permission("view_orders"))],
+)
 def get_order_item(order_id: int, item_id: int, db: Session = Depends(get_db)):
     return _get_order_item_or_raise(db, order_id, item_id)
 
