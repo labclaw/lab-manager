@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import re
 import time
 
@@ -539,20 +540,22 @@ def _fallback_search(question: str) -> dict:
 
 # Simple TTL cache for identical questions (5-minute window)
 _CACHE: dict[str, tuple[float, dict]] = {}
+_CACHE_LOCK = threading.Lock()
 _CACHE_TTL_S = 300  # 5 minutes
 _CACHE_MAX_SIZE = 500
 
 
 def _evict_cache() -> None:
     """Remove stale entries and enforce max size on the RAG cache."""
-    now = time.time()
-    stale = [k for k, (ts, _) in _CACHE.items() if now - ts > _CACHE_TTL_S]
-    for k in stale:
-        del _CACHE[k]
-    if len(_CACHE) > _CACHE_MAX_SIZE:
-        oldest = sorted(_CACHE.items(), key=lambda item: item[1][0])
-        for k, _ in oldest[: len(_CACHE) - _CACHE_MAX_SIZE]:
+    with _CACHE_LOCK:
+        now = time.time()
+        stale = [k for k, (ts, _) in _CACHE.items() if now - ts > _CACHE_TTL_S]
+        for k in stale:
             del _CACHE[k]
+        if len(_CACHE) > _CACHE_MAX_SIZE:
+            oldest = sorted(_CACHE.items(), key=lambda item: item[1][0])
+            for k, _ in oldest[: len(_CACHE) - _CACHE_MAX_SIZE]:
+                del _CACHE[k]
 
 
 def _cache_key(question: str) -> str:
@@ -603,13 +606,14 @@ def ask(question: str, db: Session) -> dict:
     import time
 
     key = _cache_key(question)
-    if key in _CACHE:
-        cached_at, cached_result = _CACHE[key]
-        if time.time() - cached_at < _CACHE_TTL_S:
-            logger.info("Cache hit for question '%s'", question[:80])
-            return cached_result
-        else:
-            del _CACHE[key]
+    with _CACHE_LOCK:
+        if key in _CACHE:
+            cached_at, cached_result = _CACHE[key]
+            if time.time() - cached_at < _CACHE_TTL_S:
+                logger.info("Cache hit for question '%s'", question[:80])
+                return cached_result
+            else:
+                del _CACHE[key]
 
     # Step 0: Generate query plan (intent validation before SQL)
     plan = None
@@ -676,5 +680,6 @@ def ask(question: str, db: Session) -> dict:
             "result_shape": plan.get("result", ""),
         }
     _evict_cache()
-    _CACHE[key] = (time.time(), result)
+    with _CACHE_LOCK:
+        _CACHE[key] = (time.time(), result)
     return result
