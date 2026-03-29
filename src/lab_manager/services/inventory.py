@@ -333,7 +333,7 @@ def open_item(
     db: Session,
 ) -> InventoryItem:
     """Mark item as opened (track opened_date for stability)."""
-    item = _get_inventory_or_404(db, inventory_id)
+    item = _get_inventory_or_404(db, inventory_id, for_update=True)
 
     if item.status in _TERMINAL_STATUSES:
         raise ValidationError(f"Cannot open item in {item.status.value} state")

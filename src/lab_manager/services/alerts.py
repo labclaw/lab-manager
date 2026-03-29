@@ -325,17 +325,27 @@ def persist_alerts(db: Session) -> tuple[list[Alert], list[dict]]:
             db.flush()
         except IntegrityError:
             db.rollback()
-            now_existing = db.execute(
-                select(Alert.entity_type, Alert.entity_id, Alert.alert_type).where(
-                    Alert.is_resolved.is_(False),
+            # After rollback, all Alert objects in `created` are detached
+            # and were never persisted.  Re-query from DB instead of
+            # refreshing detached objects.
+            now_existing = (
+                db.execute(
+                    select(Alert).where(
+                        Alert.is_resolved.is_(False),
+                    )
                 )
-            ).all()
-            now_keys = {(e[0], e[1], e[2]) for e in now_existing}
+                .scalars()
+                .all()
+            )
+            now_map = {
+                (a.entity_type, a.entity_id, a.alert_type): a for a in now_existing
+            }
             created = [
-                c
+                now_map[key]
                 for c in created
-                if (c.entity_type, c.entity_id, c.alert_type) in now_keys
+                if (key := (c.entity_type, c.entity_id, c.alert_type)) in now_map
             ]
+            return created, current
         for a in created:
             db.refresh(a)
     return created, current
