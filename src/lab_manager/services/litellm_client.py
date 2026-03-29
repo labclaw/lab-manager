@@ -229,7 +229,10 @@ def response_text(response: Any) -> str:
     Returns:
         Extracted text string
     """
-    choice = response.choices[0]
+    choices = getattr(response, "choices", None)
+    if not choices:
+        return ""
+    choice = choices[0]
     content = choice.message.content
     if isinstance(content, str):
         return content.strip()
