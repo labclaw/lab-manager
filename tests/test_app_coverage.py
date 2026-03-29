@@ -1389,7 +1389,7 @@ class TestCreateApp:
 
         app = create_app()
         assert app.title == "LabClaw Lab Manager"
-        assert app.version == "0.1.9"
+        assert app.version == "0.1.13"
         get_settings.cache_clear()
 
     def test_upload_dir_created(self, tmp_path):

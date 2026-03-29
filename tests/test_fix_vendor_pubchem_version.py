@@ -159,24 +159,20 @@ class TestVersionFromFile:
 
     def test_app_version_matches_version_file(self, client):
         """The /api/health or OpenAPI schema must report version from VERSION file."""
-        from pathlib import Path
 
-        version_file = Path("/tmp/wt-fix-important/VERSION")
-        expected = version_file.read_text().strip()
+        from lab_manager.api.app import _read_version
 
-        # In dev mode, docs_url is available, check openapi schema
+        expected = _read_version()
         resp = client.get("/openapi.json")
         assert resp.status_code == 200
         assert resp.json()["info"]["version"] == expected
 
     def test_package_version_matches_version_file(self):
         """__version__ must match VERSION file content."""
-        from pathlib import Path
-
         from lab_manager import __version__
+        from lab_manager.api.app import _read_version
 
-        version_file = Path("/tmp/wt-fix-important/VERSION")
-        expected = version_file.read_text().strip()
+        expected = _read_version()
         assert __version__ == expected
 
     def test_read_version_fallback(self, tmp_path):
