@@ -234,7 +234,10 @@ def list_product_orders(
     return paginate(q, db, page, page_size)
 
 
-@router.get("/{product_id}/pubchem")
+@router.get(
+    "/{product_id}/pubchem",
+    dependencies=[Depends(require_permission("manage_products"))],
+)
 def get_pubchem_enrichment(product_id: int, db: Session = Depends(get_db)):
     """Fetch or refresh PubChem enrichment data for a product."""
     from lab_manager.services.pubchem import enrich_product
@@ -244,7 +247,11 @@ def get_pubchem_enrichment(product_id: int, db: Session = Depends(get_db)):
     return {"product_id": product_id, "enrichment": data}
 
 
-@router.post("/{product_id}/enrich", response_model=ProductResponse)
+@router.post(
+    "/{product_id}/enrich",
+    response_model=ProductResponse,
+    dependencies=[Depends(require_permission("manage_products"))],
+)
 def enrich_product_endpoint(product_id: int, db: Session = Depends(get_db)):
     """Enrich a product with PubChem data and persist to database."""
     from lab_manager.services.pubchem import enrich_product
