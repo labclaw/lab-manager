@@ -902,6 +902,7 @@ class TestUploadBadContentType:
         name = resp.json()["file_name"]
         assert "upload" in name  # should be prefixed with "upload"
 
+
 class TestDocumentCRUDEndpoints:
     @pytest.fixture()
     def crud_client(self, db_session):
