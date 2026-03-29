@@ -15,6 +15,7 @@ from lab_manager.models.order import Order, OrderItem, OrderStatus
 from lab_manager.models.product import Product
 from lab_manager.models.vendor import Vendor
 from lab_manager.services.inventory import (
+    _get_inventory_or_404,
     _to_decimal,
     adjust,
     consume,
@@ -469,6 +470,37 @@ class TestOpenItem:
         db_session.flush()
         with pytest.raises(ValidationError, match="Cannot open"):
             open_item(inv.id, "Alice", db_session)
+
+    def test_open_item_uses_for_update(self, db_session):
+        """open_item must use SELECT ... FOR UPDATE like other mutations.
+
+        Regression test: open_item previously called _get_inventory_or_404
+        without for_update=True, unlike consume/transfer/adjust/dispose.
+        """
+        from unittest.mock import patch
+
+        inv = self._setup_inventory(db_session)
+        inv_id = inv.id
+
+        calls = []
+        _real_get = (
+            _get_inventory_or_404.__wrapped__
+            if hasattr(_get_inventory_or_404, "__wrapped__")
+            else _get_inventory_or_404
+        )
+
+        def _spy(db, inventory_id, *, for_update=False):
+            calls.append({"inventory_id": inventory_id, "for_update": for_update})
+            return _real_get(db, inventory_id, for_update=for_update)
+
+        with patch(
+            "lab_manager.services.inventory._get_inventory_or_404",
+            side_effect=_spy,
+        ):
+            open_item(inv_id, "Alice", db_session)
+
+        assert len(calls) == 1
+        assert calls[0]["for_update"] is True, "open_item must use for_update=True"
 
 
 # ---- transfer ----

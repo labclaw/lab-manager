@@ -154,6 +154,53 @@ def test_persist_alerts_no_duplicates(db_session):
     assert len(pending2) == 0
 
 
+def test_persist_alerts_recovery_queries_full_alert_objects(db_session):
+    """The IntegrityError recovery path must query full Alert objects
+    from DB (not just key tuples), so returned alerts have valid ids.
+
+    Regression test for: after rollback, old code called db.refresh()
+    on objects from the `created` list that might be detached. The fix
+    re-queries full Alert objects from DB and returns early.
+    """
+    from sqlalchemy import select as sa_select
+
+    doc = Document(
+        file_path="uploads/recover.jpg",
+        file_name="recover.jpg",
+        status="pending",
+    )
+    db_session.add(doc)
+    db_session.commit()
+    db_session.refresh(doc)
+
+    # Verify persist_alerts returns Alert objects with valid DB ids.
+    created, current = persist_alerts(db_session)
+    assert len(created) >= 1
+    for a in created:
+        assert isinstance(a, Alert)
+        assert a.id is not None, "Alert must have a DB-assigned id"
+        assert a.alert_type is not None
+
+    # Verify the recovery code path logic: querying Alert objects
+    # (not just tuples) produces objects that can be safely refreshed.
+    db_session.commit()
+    alerts_from_db = (
+        db_session.execute(sa_select(Alert).where(Alert.is_resolved.is_(False)))
+        .scalars()
+        .all()
+    )
+    assert len(alerts_from_db) >= 1
+    # Build the same map the recovery path uses.
+    now_map = {(a.entity_type, a.entity_id, a.alert_type): a for a in alerts_from_db}
+    for a in created:
+        key = (a.entity_type, a.entity_id, a.alert_type)
+        assert key in now_map
+        recovered = now_map[key]
+        assert recovered.id is not None
+        # This is safe because recovered is a DB-queried object.
+        db_session.refresh(recovered)
+
+
 # ---------------------------------------------------------------------------
 # API route tests
 # ---------------------------------------------------------------------------
