@@ -25,12 +25,15 @@ _last_request_time: float = 0.0
 def _rate_limit() -> None:
     """Enforce minimum interval between PubChem requests."""
     global _last_request_time
+    sleep_duration = 0.0
     with _LOCK:
         now = time.monotonic()
         elapsed = now - _last_request_time
         if elapsed < _MIN_INTERVAL:
-            time.sleep(_MIN_INTERVAL - elapsed)
-        _last_request_time = time.monotonic()
+            sleep_duration = _MIN_INTERVAL - elapsed
+        _last_request_time = now + sleep_duration
+    if sleep_duration > 0:
+        time.sleep(sleep_duration)
 
 
 def _fetch_properties(
