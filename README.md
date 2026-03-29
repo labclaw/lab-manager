@@ -4,8 +4,7 @@
 [![Security](https://github.com/labclaw/lab-manager/actions/workflows/security.yml/badge.svg)](https://github.com/labclaw/lab-manager/actions/workflows/security.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-0.1.11-green.svg)](https://github.com/labclaw/lab-manager/releases)
-[![Version](https://img.shields.io/badge/version-0.1.11-green.svg)](https://github.com/labclaw/lab-manager/releases)
+[![Version](https://img.shields.io/badge/version-0.1.14-green.svg)](https://github.com/labclaw/lab-manager/releases)
 
 Lab Manager is a lab operations app for research groups that need one place to receive supplies, review scanned documents, track inventory, and keep an audit trail.
 
@@ -18,15 +17,13 @@ Core flow:
 
 ## Release Status
 
-`v0.1.11` is the current stable internal release. The maintained backend, database model, setup wizard, login flow, review queue, inventory lifecycle, export, search, and admin surface are validated on the release-critical suite and real-user smoke flows.
-`v0.1.11` is the current stable internal release. The maintained backend, database model, setup wizard, login flow, review queue, inventory lifecycle, export, search, and admin surface are validated on the release-critical suite and real-user smoke flows.
+`v0.1.14` is the current stable release. Backend, database model, setup wizard, login flow, review queue, inventory lifecycle, export, search, and admin surface are validated by 2299 tests (unit + BDD + e2e) and a 6-agent production audit.
 
 The React frontend in [`web/`](web/) is an in-progress replacement, not the default release surface. The shipped app currently relies on the backend-served UI under [`src/lab_manager/static/`](src/lab_manager/static/).
 
 ## Release Gate
 
-`v0.1.11` is release-gated by an explicit maintained suite, not by the full historical test tree.
-`v0.1.11` is release-gated by an explicit maintained suite, not by the full historical test tree.
+`v0.1.14` is release-gated by CI (22 checks) and the full test suite (2299 tests).
 
 Required checks:
 - `uv sync --dev --frozen`
@@ -45,7 +42,7 @@ What `scripts/run_release_gate.sh` covers:
 - dashboard, vendor/product/order creation, and CSV export
 - maintained API security smoke checks aligned to the current `/api/v1/*` contract
 
-The legacy `tests/bdd/...` layer is still useful as a cleanup backlog, but it is not currently stable enough to serve as the release gate.
+The BDD layer (253 passing scenarios) and e2e tests (461 passing) run as part of the full CI suite.
 
 ## Try It Locally
 

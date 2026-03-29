@@ -80,7 +80,9 @@ def test_config_returns_lab_identity(setup_client):
     data = resp.json()
     assert data["lab_name"] == "Test Lab"
     assert data["lab_subtitle"] == "Unit Testing"
-    assert data["version"] == "0.1.13"
+    from lab_manager import __version__
+
+    assert data["version"] == __version__
 
 
 def test_config_no_auth_required(setup_client):
