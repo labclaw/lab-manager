@@ -7,7 +7,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session
 
@@ -85,7 +85,12 @@ def list_vendors(
     "/", status_code=201, dependencies=[Depends(require_permission("manage_vendors"))]
 )
 def create_vendor(body: VendorCreate, db: Session = Depends(get_db)):
-    existing = db.scalars(select(Vendor).where(Vendor.name == body.name)).first()
+    stmt = (
+        select(Vendor)
+        .where(func.lower(Vendor.name) == func.lower(body.name))
+        .with_for_update()
+    )
+    existing = db.scalars(stmt).first()
     if existing:
         raise ConflictError(f"Vendor with name '{body.name}' already exists")
     vendor = Vendor(**body.model_dump())

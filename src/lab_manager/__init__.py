@@ -1,3 +1,14 @@
 """LabClaw Lab Manager — inventory management with OCR document intake."""
 
-__version__ = "0.1.13"
+from pathlib import Path as _Path
+
+
+def _read_version() -> str:
+    _version_file = _Path(__file__).resolve().parents[2] / "VERSION"
+    try:
+        return _version_file.read_text().strip()
+    except OSError:
+        return "0.0.0"
+
+
+__version__ = _read_version()

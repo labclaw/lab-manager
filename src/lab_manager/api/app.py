@@ -175,6 +175,17 @@ def _load_session_staff(session_cookie: str):
     return None
 
 
+def _read_version() -> str:
+    """Read version from VERSION file, falling back to package __version__."""
+    version_file = Path(__file__).resolve().parents[3] / "VERSION"
+    try:
+        return version_file.read_text().strip()
+    except OSError:
+        from lab_manager import __version__
+
+        return __version__
+
+
 def create_app() -> FastAPI:
     # Rebind logging to the current stderr for each app instance. Test suites
     # build many transient apps and capture streams; keeping the first stream
@@ -194,7 +205,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="LabClaw Lab Manager",
         description="Lab inventory management with OCR document intake",
-        version="0.1.9",
+        version=_read_version(),
         redirect_slashes=False,
         **docs_kwargs,
     )
