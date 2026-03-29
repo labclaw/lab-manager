@@ -456,6 +456,17 @@ MAX_RESULT_ROWS = 200
 _TIMEOUT_LITERAL = f"{int(SQL_TIMEOUT_S * 1000)}"  # milliseconds
 
 
+def _run_readonly_query(engine, sql: str) -> list[dict]:
+    """Execute *sql* on *engine* in a read-only transaction with a timeout."""
+    with engine.connect() as conn, conn.begin():
+        conn.execute(text("SET TRANSACTION READ ONLY"))
+        conn.execute(text(f"SET LOCAL statement_timeout = {_TIMEOUT_LITERAL}"))
+        result = conn.execute(text(sql))
+        columns = list(result.keys())
+        rows = [dict(zip(columns, row)) for row in result.fetchmany(MAX_RESULT_ROWS)]
+        return _serialize_rows(rows)
+
+
 def _execute_sql(db: Session, sql: str) -> list[dict]:
     """Execute a read-only SQL query and return results.
 
@@ -469,29 +480,9 @@ def _execute_sql(db: Session, sql: str) -> list[dict]:
     use_dedicated_readonly = readonly_engine is not get_engine()
 
     if use_dedicated_readonly:
-        # Dedicated readonly PG user — DB enforces SELECT-only
-        # Defense-in-depth: also set READ ONLY at transaction level
-        with readonly_engine.connect() as conn, conn.begin():
-            conn.execute(text("SET TRANSACTION READ ONLY"))
-            conn.execute(text(f"SET LOCAL statement_timeout = {_TIMEOUT_LITERAL}"))
-            result = conn.execute(text(sql))
-            columns = list(result.keys())
-            rows = [
-                dict(zip(columns, row)) for row in result.fetchmany(MAX_RESULT_ROWS)
-            ]
-            return _serialize_rows(rows)
+        return _run_readonly_query(readonly_engine, sql)
     else:
-        # Fallback: use a separate connection from the main engine to avoid
-        # contaminating the caller's session with SET TRANSACTION READ ONLY.
-        with get_engine().connect() as conn, conn.begin():
-            conn.execute(text("SET TRANSACTION READ ONLY"))
-            conn.execute(text(f"SET LOCAL statement_timeout = {_TIMEOUT_LITERAL}"))
-            result = conn.execute(text(sql))
-            columns = list(result.keys())
-            rows = [
-                dict(zip(columns, row)) for row in result.fetchmany(MAX_RESULT_ROWS)
-            ]
-            return _serialize_rows(rows)
+        return _run_readonly_query(get_engine(), sql)
 
 
 def _format_answer(question: str, sql: str, results: list[dict]) -> str:
@@ -603,8 +594,6 @@ def ask(question: str, db: Session) -> dict:
         question = question[:MAX_QUESTION_LENGTH]
 
     # Check cache for identical recent questions
-    import time
-
     key = _cache_key(question)
     with _CACHE_LOCK:
         if key in _CACHE:

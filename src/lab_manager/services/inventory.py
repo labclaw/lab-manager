@@ -16,6 +16,14 @@ from lab_manager.models.inventory import ACTIVE_STATUSES, InventoryItem, Invento
 from lab_manager.models.order import Order, OrderItem, OrderStatus
 from lab_manager.models.product import Product
 
+# Statuses where the item is no longer usable.
+_TERMINAL_STATUSES = (
+    InventoryStatus.disposed,
+    InventoryStatus.depleted,
+    InventoryStatus.deleted,
+    InventoryStatus.expired,
+)
+
 
 def _to_decimal(value: float) -> Decimal:
     """Convert float to Decimal, rejecting NaN and Infinity."""
@@ -173,12 +181,7 @@ def consume(
     quantity = _to_decimal(quantity)
     item = _get_inventory_or_404(db, inventory_id, for_update=True)
 
-    if item.status in (
-        InventoryStatus.disposed,
-        InventoryStatus.depleted,
-        InventoryStatus.deleted,
-        InventoryStatus.expired,
-    ):
+    if item.status in _TERMINAL_STATUSES:
         raise ValidationError(f"Cannot consume from {item.status} item")
     if quantity <= 0:
         raise ValidationError("Quantity must be positive")
@@ -221,12 +224,7 @@ def transfer(
     """Move item to a different location."""
     item = _get_inventory_or_404(db, inventory_id, for_update=True)
 
-    if item.status in (
-        InventoryStatus.disposed,
-        InventoryStatus.depleted,
-        InventoryStatus.deleted,
-        InventoryStatus.expired,
-    ):
+    if item.status in _TERMINAL_STATUSES:
         raise ValidationError(f"Cannot transfer {item.status} item")
 
     old_location_id = item.location_id
@@ -337,12 +335,7 @@ def open_item(
     """Mark item as opened (track opened_date for stability)."""
     item = _get_inventory_or_404(db, inventory_id)
 
-    if item.status in (
-        InventoryStatus.disposed,
-        InventoryStatus.deleted,
-        InventoryStatus.depleted,
-        InventoryStatus.expired,
-    ):
+    if item.status in _TERMINAL_STATUSES:
         raise ValidationError(f"Cannot open item in {item.status.value} state")
     if item.opened_date is not None:
         raise ValidationError("Item is already opened")
