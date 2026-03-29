@@ -15,6 +15,7 @@ _PROPERTIES = "MolecularWeight,MolecularFormula,CanonicalSMILES,IUPACName,CID"
 _TIMEOUT = 3.0  # seconds
 _CACHE: dict[str, dict[str, Any]] = {}
 _CACHE_MAX = 1024
+_LOCK = __import__("threading").Lock()
 
 # Rate limiting: PubChem allows 5 requests/second
 _MIN_INTERVAL = 0.2  # 200ms between requests
@@ -24,11 +25,12 @@ _last_request_time: float = 0.0
 def _rate_limit() -> None:
     """Enforce minimum interval between PubChem requests."""
     global _last_request_time
-    now = time.monotonic()
-    elapsed = now - _last_request_time
-    if elapsed < _MIN_INTERVAL:
-        time.sleep(_MIN_INTERVAL - elapsed)
-    _last_request_time = time.monotonic()
+    with _LOCK:
+        now = time.monotonic()
+        elapsed = now - _last_request_time
+        if elapsed < _MIN_INTERVAL:
+            time.sleep(_MIN_INTERVAL - elapsed)
+        _last_request_time = time.monotonic()
 
 
 def _fetch_properties(
@@ -134,8 +136,9 @@ def enrich_product(name: str, catalog_number: str | None = None) -> dict[str, An
     """
     # Check cache first
     cache_key = f"{name}|{catalog_number or ''}"
-    if cache_key in _CACHE:
-        return _CACHE[cache_key]
+    with _LOCK:
+        if cache_key in _CACHE:
+            return _CACHE[cache_key]
 
     # Try by name first
     props = _fetch_properties(name, "name")
@@ -160,11 +163,11 @@ def enrich_product(name: str, catalog_number: str | None = None) -> dict[str, An
 
 def _cache_put(key: str, value: dict[str, Any]) -> None:
     """Store result in cache, evicting oldest if full."""
-    if len(_CACHE) >= _CACHE_MAX:
-        # Evict first (oldest) entry
-        oldest = next(iter(_CACHE))
-        del _CACHE[oldest]
-    _CACHE[key] = value
+    with _LOCK:
+        if len(_CACHE) >= _CACHE_MAX:
+            oldest = next(iter(_CACHE))
+            del _CACHE[oldest]
+        _CACHE[key] = value
 
 
 def clear_cache() -> None:
