@@ -28,6 +28,56 @@ _MAX_ROWS = 5000
 _MAX_FILE_BYTES = 10 * 1024 * 1024
 
 
+def _parse_and_validate_csv(
+    file: UploadFile,
+    required_cols: set[str],
+    max_size: int = _MAX_FILE_BYTES,
+) -> tuple[Optional[list[dict]], dict]:
+    """Read, size-check, parse, and validate a CSV upload.
+
+    Returns ``(rows, error_response)``.  When *rows* is not ``None`` the
+    caller should proceed with domain-specific validation.  When *rows* is
+    ``None``, *error_response* is a ready-to-return dict.
+    """
+    content = file.file.read()
+    if len(content) > max_size:
+        return None, {
+            "imported": 0,
+            "errors": [
+                {"row": 0, "field": "", "message": "File too large (max 10 MB)"}
+            ],
+            "skipped": 0,
+        }
+
+    rows, parse_err = _parse_csv(content)
+    if parse_err:
+        return None, {
+            "imported": 0,
+            "errors": [{"row": 0, "field": "", "message": parse_err}],
+            "skipped": 0,
+        }
+    if not rows:
+        return None, {
+            "imported": 0,
+            "errors": [{"row": 0, "field": "", "message": "CSV file is empty"}],
+            "skipped": 0,
+        }
+
+    headers = set(rows[0].keys())
+    missing = required_cols - headers
+    if missing:
+        return None, {
+            "imported": 0,
+            "errors": [
+                {"row": 0, "field": f, "message": f"Missing required column: {f}"}
+                for f in sorted(missing)
+            ],
+            "skipped": 0,
+        }
+
+    return rows, {}
+
+
 def _parse_csv(content: bytes) -> tuple[list[dict], Optional[str]]:
     """Parse CSV bytes into a list of row dicts.
 
@@ -126,42 +176,9 @@ def import_vendors(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    content = file.file.read()
-    if len(content) > _MAX_FILE_BYTES:
-        return {
-            "imported": 0,
-            "errors": [
-                {"row": 0, "field": "", "message": "File too large (max 10 MB)"}
-            ],
-            "skipped": 0,
-        }
-
-    rows, parse_err = _parse_csv(content)
-    if parse_err:
-        return {
-            "imported": 0,
-            "errors": [{"row": 0, "field": "", "message": parse_err}],
-            "skipped": 0,
-        }
-    if not rows:
-        return {
-            "imported": 0,
-            "errors": [{"row": 0, "field": "", "message": "CSV file is empty"}],
-            "skipped": 0,
-        }
-
-    # Check required columns
-    headers = set(rows[0].keys())
-    missing = _VENDOR_REQUIRED - headers
-    if missing:
-        return {
-            "imported": 0,
-            "errors": [
-                {"row": 0, "field": f, "message": f"Missing required column: {f}"}
-                for f in missing
-            ],
-            "skipped": 0,
-        }
+    rows, err_resp = _parse_and_validate_csv(file, _VENDOR_REQUIRED)
+    if rows is None:
+        return err_resp
 
     # Build existing vendor name index for dedup
     existing_names: set[str] = set()
@@ -273,41 +290,9 @@ def import_products(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    content = file.file.read()
-    if len(content) > _MAX_FILE_BYTES:
-        return {
-            "imported": 0,
-            "errors": [
-                {"row": 0, "field": "", "message": "File too large (max 10 MB)"}
-            ],
-            "skipped": 0,
-        }
-
-    rows, parse_err = _parse_csv(content)
-    if parse_err:
-        return {
-            "imported": 0,
-            "errors": [{"row": 0, "field": "", "message": parse_err}],
-            "skipped": 0,
-        }
-    if not rows:
-        return {
-            "imported": 0,
-            "errors": [{"row": 0, "field": "", "message": "CSV file is empty"}],
-            "skipped": 0,
-        }
-
-    headers = set(rows[0].keys())
-    missing = _PRODUCT_REQUIRED - headers
-    if missing:
-        return {
-            "imported": 0,
-            "errors": [
-                {"row": 0, "field": f, "message": f"Missing required column: {f}"}
-                for f in sorted(missing)
-            ],
-            "skipped": 0,
-        }
+    rows, err_resp = _parse_and_validate_csv(file, _PRODUCT_REQUIRED)
+    if rows is None:
+        return err_resp
 
     # Preload vendor IDs for FK validation
     vendor_ids: set[int] = set()
@@ -478,41 +463,9 @@ def import_inventory(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    content = file.file.read()
-    if len(content) > _MAX_FILE_BYTES:
-        return {
-            "imported": 0,
-            "errors": [
-                {"row": 0, "field": "", "message": "File too large (max 10 MB)"}
-            ],
-            "skipped": 0,
-        }
-
-    rows, parse_err = _parse_csv(content)
-    if parse_err:
-        return {
-            "imported": 0,
-            "errors": [{"row": 0, "field": "", "message": parse_err}],
-            "skipped": 0,
-        }
-    if not rows:
-        return {
-            "imported": 0,
-            "errors": [{"row": 0, "field": "", "message": "CSV file is empty"}],
-            "skipped": 0,
-        }
-
-    headers = set(rows[0].keys())
-    missing = _INVENTORY_REQUIRED - headers
-    if missing:
-        return {
-            "imported": 0,
-            "errors": [
-                {"row": 0, "field": f, "message": f"Missing required column: {f}"}
-                for f in sorted(missing)
-            ],
-            "skipped": 0,
-        }
+    rows, err_resp = _parse_and_validate_csv(file, _INVENTORY_REQUIRED)
+    if rows is None:
+        return err_resp
 
     # Preload FK lookup sets
     product_ids: set[int] = set()
