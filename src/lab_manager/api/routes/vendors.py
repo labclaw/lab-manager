@@ -58,7 +58,7 @@ class VendorResponse(BaseModel):
     updated_at: datetime | None = None
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(require_permission("view_inventory"))])
 def list_vendors(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
@@ -96,7 +96,11 @@ def create_vendor(body: VendorCreate, db: Session = Depends(get_db)):
     return vendor
 
 
-@router.get("/{vendor_id}", response_model=VendorResponse)
+@router.get(
+    "/{vendor_id}",
+    response_model=VendorResponse,
+    dependencies=[Depends(require_permission("view_inventory"))],
+)
 def get_vendor(vendor_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, Vendor, vendor_id, "Vendor")
 
@@ -132,7 +136,10 @@ def delete_vendor(vendor_id: int, db: Session = Depends(get_db)):
     return None
 
 
-@router.get("/{vendor_id}/products")
+@router.get(
+    "/{vendor_id}/products",
+    dependencies=[Depends(require_permission("view_inventory"))],
+)
 def list_vendor_products(
     vendor_id: int,
     page: int = Query(1, ge=1),
@@ -144,7 +151,10 @@ def list_vendor_products(
     return paginate(q, db, page, page_size)
 
 
-@router.get("/{vendor_id}/orders")
+@router.get(
+    "/{vendor_id}/orders",
+    dependencies=[Depends(require_permission("view_inventory"))],
+)
 def list_vendor_orders(
     vendor_id: int,
     page: int = Query(1, ge=1),

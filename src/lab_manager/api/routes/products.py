@@ -104,7 +104,7 @@ class ProductResponse(BaseModel):
     updated_at: datetime | None = None
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(require_permission("view_inventory"))])
 def list_products(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
@@ -156,7 +156,11 @@ def create_product(body: ProductCreate, db: Session = Depends(get_db)):
     return product
 
 
-@router.get("/{product_id}", response_model=ProductResponse)
+@router.get(
+    "/{product_id}",
+    response_model=ProductResponse,
+    dependencies=[Depends(require_permission("view_inventory"))],
+)
 def get_product(product_id: int, db: Session = Depends(get_db)):
     return get_or_404(db, Product, product_id, "Product")
 
@@ -202,7 +206,10 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
     return None
 
 
-@router.get("/{product_id}/inventory")
+@router.get(
+    "/{product_id}/inventory",
+    dependencies=[Depends(require_permission("view_inventory"))],
+)
 def list_product_inventory(
     product_id: int,
     page: int = Query(1, ge=1),
@@ -218,7 +225,10 @@ def list_product_inventory(
     return paginate(q, db, page, page_size)
 
 
-@router.get("/{product_id}/orders")
+@router.get(
+    "/{product_id}/orders",
+    dependencies=[Depends(require_permission("view_inventory"))],
+)
 def list_product_orders(
     product_id: int,
     page: int = Query(1, ge=1),
