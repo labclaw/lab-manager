@@ -85,6 +85,9 @@ def list_vendors(
     "/", status_code=201, dependencies=[Depends(require_permission("manage_vendors"))]
 )
 def create_vendor(body: VendorCreate, db: Session = Depends(get_db)):
+    existing = db.scalars(select(Vendor).where(Vendor.name == body.name)).first()
+    if existing:
+        raise ConflictError(f"Vendor with name '{body.name}' already exists")
     vendor = Vendor(**body.model_dump())
     db.add(vendor)
     db.flush()
