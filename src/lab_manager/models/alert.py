@@ -39,6 +39,14 @@ class Alert(AuditMixin, table=True):
             name="ck_alerts_severity",
         ),
         sa.Index("ix_alert_entity", "entity_type", "entity_id"),
+        sa.Index(
+            "uq_alerts_unresolved_key",
+            "entity_type",
+            "entity_id",
+            "alert_type",
+            unique=True,
+            postgresql_where=sa.text("NOT is_resolved"),
+        ),
     )
 
     id: Optional[int] = Field(default=None, primary_key=True)
