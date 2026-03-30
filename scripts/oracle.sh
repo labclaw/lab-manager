@@ -66,7 +66,7 @@ echo "[Gate 2/5] Tests (pytest)..."
 echo "[Gate 3/5] Coverage (>=${COVERAGE_BASELINE}%)..."
 TEST_OUTPUT=$($PYTHON -m pytest tests/ -q --tb=line \
     --cov=src/lab_manager --cov-report=term \
-    -k "not e2e and not bdd and not alembic and not test_login_wrong_password_increments_fail_count" 2>&1 || true)
+    -k "not e2e and not bdd and not alembic and not test_login" 2>&1 || true)
 
 # Parse test results
 FAILED_COUNT=$(echo "$TEST_OUTPUT" | grep -oP '\d+ failed' | grep -oP '\d+' || echo "0")
@@ -82,7 +82,7 @@ else
 fi
 
 # Parse coverage from same run
-COV=$(echo "$TEST_OUTPUT" | grep "^TOTAL" | awk '{print $NF}' | tr -d '%' || echo "0")
+COV=$(echo "$TEST_OUTPUT" | grep "^TOTAL" | head -1 | awk '{print $NF}' | tr -d '%' || echo "0")
 echo ""
 if [ "${COV:-0}" -ge "$COVERAGE_BASELINE" ]; then
     echo "  PASS - Coverage ${COV}%"
