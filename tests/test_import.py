@@ -1,6 +1,9 @@
 """Tests for CSV bulk import endpoints."""
 
 import io
+from unittest.mock import patch
+
+from sqlalchemy.exc import IntegrityError
 
 
 def _csv_bytes(header: str, *rows: str) -> bytes:
@@ -290,3 +293,106 @@ class TestImportPartialSuccess:
         data = resp.json()
         assert data["imported"] == 2
         assert len(data["errors"]) >= 1
+
+
+# ---------------------------------------------------------------------------
+# Race condition tests
+# ---------------------------------------------------------------------------
+
+
+class TestImportRaceConditions:
+    """Concurrent imports with duplicate names/codes should not cause 500 errors."""
+
+    def test_vendor_duplicate_does_not_500(self, client):
+        """Second import of same vendor name returns 200, not 500."""
+        csv = _csv_bytes("name", "RaceVendor")
+        resp = _upload(client, "vendors", csv)
+        assert resp.json()["imported"] == 1
+
+        # Second import — same name already exists in DB
+        resp2 = _upload(client, "vendors", csv)
+        assert resp2.status_code == 200
+        data = resp2.json()
+        assert data["imported"] == 0
+        assert data["skipped"] == 1
+        assert data["errors"] == []
+
+    def test_vendor_duplicate_with_new_vendor(self, client):
+        """Mix of existing + new vendors: only new ones imported."""
+        csv1 = _csv_bytes("name", "ExistingVendor")
+        _upload(client, "vendors", csv1)
+
+        csv2 = _csv_bytes(
+            "name",
+            "ExistingVendor",  # duplicate
+            "NewVendor",  # new
+        )
+        resp2 = _upload(client, "vendors", csv2)
+        assert resp2.status_code == 200
+        data = resp2.json()
+        assert data["imported"] == 1
+        assert data["skipped"] == 1
+
+    def test_vendor_integrity_error_fallback(self, client, db_session):
+        """Simulate race: batch flush raises IntegrityError, falls back gracefully."""
+        csv = _csv_bytes("name", "ConcurrentVendor")
+
+        # Mock db.scalars to return empty list so the Python dedup check passes,
+        # then mock flush to raise IntegrityError on the batch flush attempt.
+        def selective_flush(*args, **kwargs):
+            raise IntegrityError("statement", "params", Exception("duplicate key"))
+
+        with patch.object(db_session, "scalars", return_value=[]):
+            with patch.object(db_session, "flush", side_effect=selective_flush):
+                resp = _upload(client, "vendors", csv)
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["imported"] == 0
+        assert data["skipped"] >= 1
+
+    def test_product_duplicate_does_not_500(self, client):
+        """Second import of same product returns 200, not 500."""
+        csv = _csv_bytes("catalog_number,name", "RACE-001,Race Product")
+        resp = _upload(client, "products", csv)
+        assert resp.json()["imported"] == 1
+
+        csv2 = _csv_bytes("catalog_number,name", "RACE-001,Race Product")
+        resp2 = _upload(client, "products", csv2)
+        assert resp2.status_code == 200
+        data = resp2.json()
+        assert data["imported"] == 0
+        assert data["skipped"] == 1
+        assert data["errors"] == []
+
+    def test_product_duplicate_with_new_product(self, client):
+        """Mix of existing + new products: only new ones imported."""
+        csv1 = _csv_bytes("catalog_number,name", "EXIST-001,Existing Product")
+        _upload(client, "products", csv1)
+
+        csv2 = _csv_bytes(
+            "catalog_number,name",
+            "EXIST-001,Existing Product",  # duplicate
+            "NEW-001,New Product",  # new
+        )
+        resp2 = _upload(client, "products", csv2)
+        assert resp2.status_code == 200
+        data = resp2.json()
+        assert data["imported"] == 1
+        assert data["skipped"] == 1
+
+    def test_product_integrity_error_fallback(self, client, db_session):
+        """Simulate race: product batch flush raises IntegrityError."""
+        csv = _csv_bytes("catalog_number,name", "SIM-001,SimProduct")
+
+        def selective_flush(*args, **kwargs):
+            raise IntegrityError("statement", "params", Exception("duplicate key"))
+
+        with patch.object(db_session, "scalars", return_value=[]):
+            with patch.object(db_session, "flush", side_effect=selective_flush):
+                resp = _upload(client, "products", csv)
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["imported"] == 0
+        assert data["skipped"] >= 1
