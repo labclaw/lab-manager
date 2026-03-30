@@ -115,9 +115,22 @@ def get_vendor(vendor_id: int, db: Session = Depends(get_db)):
 )
 def update_vendor(vendor_id: int, body: VendorUpdate, db: Session = Depends(get_db)):
     vendor = get_or_404(db, Vendor, vendor_id, "Vendor")
-    for key, value in body.model_dump(exclude_unset=True).items():
+    updates = body.model_dump(exclude_unset=True)
+    if "name" in updates and updates["name"].lower() != vendor.name.lower():
+        existing = db.scalars(
+            select(Vendor)
+            .where(func.lower(Vendor.name) == func.lower(updates["name"]))
+            .where(Vendor.id != vendor_id)
+        ).first()
+        if existing:
+            raise ConflictError(f"Vendor with name '{updates['name']}' already exists")
+    for key, value in updates.items():
         setattr(vendor, key, value)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise ConflictError("Vendor name must be unique")
     db.refresh(vendor)
     index_vendor_record(vendor)
     return vendor

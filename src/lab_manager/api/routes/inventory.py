@@ -307,7 +307,18 @@ def update_inventory_item(
             raise BusinessValidationError(
                 f"Cannot transition status from '{current}' to '{new_status}'"
             )
-    for key, value in body.model_dump(exclude_unset=True).items():
+    updates = body.model_dump(exclude_unset=True)
+    if "product_id" in updates and updates["product_id"] is not None:
+        get_or_404(db, Product, updates["product_id"], "Product")
+    if "location_id" in updates and updates["location_id"] is not None:
+        from lab_manager.models.location import StorageLocation
+
+        get_or_404(db, StorageLocation, updates["location_id"], "Location")
+    if "order_item_id" in updates and updates["order_item_id"] is not None:
+        from lab_manager.models.order import OrderItem
+
+        get_or_404(db, OrderItem, updates["order_item_id"], "Order item")
+    for key, value in updates.items():
         setattr(item, key, value)
     db.flush()
     db.refresh(item)
