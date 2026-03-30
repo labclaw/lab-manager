@@ -170,7 +170,12 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
 )
 def update_product(product_id: int, body: ProductUpdate, db: Session = Depends(get_db)):
     product = get_or_404(db, Product, product_id, "Product")
-    for key, value in body.model_dump(exclude_unset=True).items():
+    updates = body.model_dump(exclude_unset=True)
+    if "vendor_id" in updates and updates["vendor_id"] is not None:
+        from lab_manager.models.vendor import Vendor
+
+        get_or_404(db, Vendor, updates["vendor_id"], "Vendor")
+    for key, value in updates.items():
         setattr(product, key, value)
     try:
         db.flush()
