@@ -291,3 +291,23 @@ def test_staff_table_not_in_allowed_tables():
     from lab_manager.services.rag import _ALLOWED_TABLES
 
     assert "staff" not in _ALLOWED_TABLES
+
+
+# --- Additional forbidden SQL patterns (security hardening) ---
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT 1 INTERSECT SELECT * FROM vendors",
+        "SELECT 1 EXCEPT SELECT * FROM vendors",
+        "SELECT v.*, LATERAL (SELECT 1) x FROM vendors v",
+        "INSERT INTO vendors (name) VALUES ('x') RETURNING id",
+        "SELECT \$\$hidden text\$\$",
+    ],
+    ids=["intersect", "except", "lateral", "returning", "dollar_quote"],
+)
+def test_additional_forbidden_patterns(sql):
+    """INTERSECT, EXCEPT, LATERAL, RETURNING, and dollar-quoting must be blocked."""
+    with pytest.raises(ValueError):
+        _validate_sql(sql)
