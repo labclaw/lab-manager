@@ -237,6 +237,7 @@ def _index_approved_doc(doc_id: int) -> None:
     db: Session | None = None
     try:
         db = factory()
+        doc = db.scalars(select(Document).where(Document.id == doc_id)).first()
         if doc is None:
             return
         try:
