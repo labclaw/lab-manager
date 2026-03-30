@@ -251,9 +251,12 @@ def process_email(raw_email: str, db: Session) -> list[Document]:
         )
         documents.append(doc)
 
-    db.commit()
-    for doc in documents:
-        db.refresh(doc)
+    # Let the caller (get_db dependency) own the commit lifecycle.
+    # Flush is sufficient to get auto-generated IDs; the route or
+    # dependency injector will commit once the full request succeeds.
+    if documents:
+        for doc in documents:
+            db.refresh(doc)
 
     return documents
 
@@ -336,8 +339,8 @@ def process_email_json(
         )
         documents.append(doc)
 
+    # Let the caller (get_db dependency) own the commit lifecycle.
     if documents:
-        db.commit()
         for doc in documents:
             db.refresh(doc)
 

@@ -162,8 +162,9 @@ def _run_extraction(doc_id: int) -> None:
     from lab_manager.intake.ocr import extract_text_from_image
 
     factory = get_session_factory()
-    db = factory()
+    db: Session | None = None
     try:
+        db = factory()
         doc = db.scalars(select(Document).where(Document.id == doc_id)).first()
         if doc is None:
             logger.error("Document %d not found for extraction", doc_id)
@@ -210,9 +211,11 @@ def _run_extraction(doc_id: int) -> None:
         logger.info("Extraction complete for doc %d, status=%s", doc_id, doc.status)
     except Exception:
         logger.exception("Unexpected error in extraction for doc %d", doc_id)
-        db.rollback()
+        if db is not None:
+            db.rollback()
     finally:
-        db.close()
+        if db is not None:
+            db.close()
 
 
 def _index_approved_doc(doc_id: int) -> None:
@@ -231,8 +234,9 @@ def _index_approved_doc(doc_id: int) -> None:
     )
 
     factory = get_session_factory()
-    db = factory()
+    db: Session | None = None
     try:
+        db = factory()
         doc = db.scalars(select(Document).where(Document.id == doc_id)).first()
         if doc is None:
             return
@@ -294,7 +298,8 @@ def _index_approved_doc(doc_id: int) -> None:
     except Exception:
         logger.exception("Failed to index approved doc %d", doc_id)
     finally:
-        db.close()
+        if db is not None:
+            db.close()
 
 
 @router.post(
@@ -324,14 +329,13 @@ def upload_document(
             },
         )
 
-    # Read file content and check size
-    content = file.file.read()
+    # Read file content — stop at limit+1 to avoid loading oversized files
+    content = file.file.read(_MAX_UPLOAD_BYTES + 1)
     if len(content) > _MAX_UPLOAD_BYTES:
         return JSONResponse(
             status_code=413,
             content={
-                "detail": f"File too large ({len(content)} bytes). "
-                f"Maximum: {_MAX_UPLOAD_BYTES} bytes (50 MB)."
+                "detail": f"File too large. Maximum: {_MAX_UPLOAD_BYTES} bytes (50 MB)."
             },
         )
 
@@ -549,26 +553,28 @@ def review_document(
     if not doc:
         raise NotFoundError("Document", document_id)
 
-    # BUG 1 FIX: status guard — only allow review on needs_review
-    if doc.status == DocumentStatus.processing:
-        return JSONResponse(
-            status_code=409,
-            content={"detail": "Document is still being processed"},
-        )
-    if doc.status == DocumentStatus.pending:
-        return JSONResponse(
-            status_code=409,
-            content={"detail": "Document has not been processed yet"},
-        )
-    if doc.status in (
+    # Status guard — only allow review on needs_review status.
+    _BLOCKED_REVIEW_STATUSES = {
+        DocumentStatus.processing,
+        DocumentStatus.pending,
         DocumentStatus.approved,
         DocumentStatus.rejected,
         DocumentStatus.deleted,
-    ):
-        return JSONResponse(
-            status_code=409,
-            content={"detail": f"Document already {doc.status}"},
-        )
+        DocumentStatus.ocr_failed,
+        DocumentStatus.extracted,
+    }
+    if doc.status in _BLOCKED_REVIEW_STATUSES:
+        if doc.status == DocumentStatus.processing:
+            detail = "Document is still being processed"
+        elif doc.status == DocumentStatus.pending:
+            detail = "Document has not been processed yet"
+        elif doc.status == DocumentStatus.ocr_failed:
+            detail = "Document OCR failed and cannot be approved"
+        elif doc.status == DocumentStatus.extracted:
+            detail = "Document extraction is not yet complete"
+        else:
+            detail = f"Document already {doc.status}"
+        return JSONResponse(status_code=409, content={"detail": detail})
 
     if body.action == "approve":
         doc.status = DocumentStatus.approved
@@ -660,17 +666,26 @@ def _create_order_from_doc(doc: Document, db: Session):
     db.add(order)
     db.flush()
 
+    # Pre-fetch all existing products for this vendor in one query (Fix 2).
+    catalog_numbers = [
+        it.get("catalog_number")
+        for it in data.get("items", [])
+        if it.get("catalog_number") and vendor
+    ]
+    product_map: dict[str, Product] = {}
+    if catalog_numbers and vendor:
+        for p in db.scalars(
+            select(Product).where(
+                Product.vendor_id == vendor.id,
+                Product.catalog_number.in_(catalog_numbers),
+            )
+        ).all():
+            product_map[p.catalog_number] = p
+
     for item in data.get("items", []):
         # --- upsert Product ---
         catalog_number = item.get("catalog_number")
-        product = None
-        if catalog_number and vendor:
-            product = db.scalars(
-                select(Product).where(
-                    Product.catalog_number == catalog_number,
-                    Product.vendor_id == vendor.id,
-                )
-            ).first()
+        product = product_map.get(catalog_number) if catalog_number else None
         if not product and catalog_number:
             product = Product(
                 catalog_number=catalog_number,
@@ -681,6 +696,7 @@ def _create_order_from_doc(doc: Document, db: Session):
             )
             db.add(product)
             db.flush()
+            product_map[catalog_number] = product
 
         # --- create OrderItem ---
         oi = OrderItem(
@@ -699,17 +715,30 @@ def _create_order_from_doc(doc: Document, db: Session):
 
         # --- create InventoryItem ---
         if product:
+            inv = InventoryItem(
+                product_id=product.id,
+                order_item_id=oi.id,
+                lot_number=item.get("lot_number"),
+                quantity_on_hand=item.get("quantity") or 1,
+                unit=item.get("unit"),
+                status="available",
+                expiry_date=item.get("expiry_date"),
+            )
+            db.add(inv)
+            db.flush()  # get inv.id for consumption log
+
+            # ConsumptionLog receive entry (Fix 3)
+            from lab_manager.models.consumption import ConsumptionAction, ConsumptionLog
+
             db.add(
-                InventoryItem(
+                ConsumptionLog(
+                    inventory_id=inv.id,
                     product_id=product.id,
-                    order_item_id=oi.id,
-                    lot_number=item.get("lot_number"),
-                    quantity_on_hand=item.get("quantity") or 1,
-                    unit=item.get("unit"),
-                    status="available",
-                    expiry_date=date_type.fromisoformat(item["expiry_date"])
-                    if item.get("expiry_date")
-                    else None,
+                    quantity_used=0,
+                    quantity_remaining=inv.quantity_on_hand,
+                    consumed_by=doc.reviewed_by or "system",
+                    action=ConsumptionAction.receive,
+                    purpose=f"Received from document #{doc.id} approval",
                 )
             )
 

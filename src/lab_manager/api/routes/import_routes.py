@@ -39,7 +39,7 @@ def _parse_and_validate_csv(
     caller should proceed with domain-specific validation.  When *rows* is
     ``None``, *error_response* is a ready-to-return dict.
     """
-    content = file.file.read()
+    content = file.file.read(max_size + 1)
     if len(content) > max_size:
         return None, {
             "imported": 0,
