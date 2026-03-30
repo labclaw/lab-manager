@@ -30,6 +30,17 @@ from lab_manager.config import get_settings
 # ---------------------------------------------------------------------------
 
 
+@pytest.fixture(autouse=True)
+def _reset_session_factory():
+    import lab_manager.database as db_mod
+
+    orig_engine = db_mod._engine
+    orig_factory = db_mod._session_factory
+    yield
+    db_mod._engine = orig_engine
+    db_mod._session_factory = orig_factory
+
+
 @pytest.fixture
 def engine():
     eng = create_engine(
