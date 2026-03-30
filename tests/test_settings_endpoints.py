@@ -107,25 +107,21 @@ def settings_client(settings_engine, settings_db):
     get_settings.cache_clear()
 
 
-# --- /api/v1/config returns model info ---
+# --- /api/v1/config must NOT expose model names ---
 
 
-def test_config_returns_model_fields(settings_client):
-    """Config endpoint should include ocr_model, extraction_model, rag_model."""
+def test_config_hides_model_fields(settings_client):
+    """Config endpoint must not expose internal model names (security hardening)."""
     resp = settings_client.get("/api/v1/config")
     assert resp.status_code == 200
     data = resp.json()
     assert "lab_name" in data
     assert "version" in data
-    assert "ocr_model" in data
-    assert "extraction_model" in data
-    assert "rag_model" in data
-    assert "ocr_tier" in data
-    # Model values should be non-empty strings
-    assert isinstance(data["ocr_model"], str)
-    assert len(data["ocr_model"]) > 0
-    assert isinstance(data["extraction_model"], str)
-    assert len(data["extraction_model"]) > 0
+    # Model names must not leak to public endpoint
+    assert "ocr_model" not in data
+    assert "extraction_model" not in data
+    assert "rag_model" not in data
+    assert "ocr_tier" not in data
 
 
 # --- /api/v1/auth/me returns email and role ---

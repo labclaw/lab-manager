@@ -689,10 +689,6 @@ def create_app() -> FastAPI:
             "lab_name": cfg.lab_name,
             "lab_subtitle": cfg.lab_subtitle,
             "version": app.version,
-            "ocr_model": cfg.ocr_model,
-            "extraction_model": cfg.extraction_model,
-            "rag_model": cfg.rag_model,
-            "ocr_tier": cfg.ocr_tier,
         }
 
     # --- First-run setup endpoints (no auth required) ---
