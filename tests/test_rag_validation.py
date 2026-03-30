@@ -303,7 +303,7 @@ def test_staff_table_not_in_allowed_tables():
         "SELECT 1 EXCEPT SELECT * FROM vendors",
         "SELECT v.*, LATERAL (SELECT 1) x FROM vendors v",
         "INSERT INTO vendors (name) VALUES ('x') RETURNING id",
-        "SELECT \$\$hidden text\$\$",
+        "SELECT $$hidden text$$",
     ],
     ids=["intersect", "except", "lateral", "returning", "dollar_quote"],
 )
