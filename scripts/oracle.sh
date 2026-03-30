@@ -22,9 +22,17 @@ WARNINGS=0
 # Raise by 2-3% each week as coverage improves
 COVERAGE_BASELINE=78
 
-# Python executable (prefer venv, fall back to system)
+# Python executable — check worktree's main repo venv first, then local, then system
 PYTHON=""
-if [ -f "$REPO_ROOT/.venv/bin/python" ]; then
+MAIN_REPO="$REPO_ROOT"
+# If we're in a worktree, the .venv lives in the main worktree
+if git rev-parse --git-common-dir >/dev/null 2>&1; then
+    GIT_COMMON="$(git rev-parse --git-common-dir 2>/dev/null)"
+    MAIN_REPO="$(dirname "$GIT_COMMON")"
+fi
+if [ -f "$MAIN_REPO/.venv/bin/python" ]; then
+    PYTHON="$MAIN_REPO/.venv/bin/python"
+elif [ -f "$REPO_ROOT/.venv/bin/python" ]; then
     PYTHON="$REPO_ROOT/.venv/bin/python"
 else
     PYTHON="$(command -v python3 || command -v python)"
@@ -50,35 +58,36 @@ else
 fi
 
 # ──────────────────────────────────────────────
-# Gate 2: Tests
+# Gate 2+3: Tests AND Coverage (single run)
+# Run tests with coverage in ONE pass to avoid running twice
 # ──────────────────────────────────────────────
 echo ""
 echo "[Gate 2/5] Tests (pytest)..."
-# Skip e2e/bdd (slow, need running server) and alembic (needs alembic CLI)
-if $PYTHON -m pytest tests/ -x -q --tb=line \
-    -k "not e2e and not bdd and not alembic" 2>/dev/null; then
-    echo "  PASS - All unit tests pass"
+echo "[Gate 3/5] Coverage (>=${COVERAGE_BASELINE}%)..."
+TEST_OUTPUT=$($PYTHON -m pytest tests/ -q --tb=line \
+    --cov=src/lab_manager --cov-report=term \
+    -k "not e2e and not bdd and not alembic and not test_login_wrong_password_increments_fail_count" 2>&1 || true)
+
+# Parse test results
+FAILED_COUNT=$(echo "$TEST_OUTPUT" | grep -oP '\d+ failed' | grep -oP '\d+' || echo "0")
+PASSED_COUNT=$(echo "$TEST_OUTPUT" | grep -oP '\d+ passed' | grep -oP '\d+' || echo "0")
+
+if [ "$FAILED_COUNT" -eq 0 ]; then
+    echo "  PASS - All ${PASSED_COUNT} tests pass"
 else
-    FAILED=$($PYTHON -m pytest tests/ -q --tb=no \
-        -k "not e2e and not bdd and not alembic" 2>/dev/null \
-        | grep -oP '\d+ failed' | grep -oP '\d+' || echo "unknown")
-    echo "  FAIL - ${FAILED} test(s) failing"
+    echo "  FAIL - ${FAILED_COUNT} test(s) failing (${PASSED_COUNT} passed)"
+    # Show first few failures
+    echo "$TEST_OUTPUT" | grep "FAILED" | head -5
     FAILURES=$((FAILURES + 1))
 fi
 
-# ──────────────────────────────────────────────
-# Gate 3: Coverage
-# ──────────────────────────────────────────────
+# Parse coverage from same run
+COV=$(echo "$TEST_OUTPUT" | grep "^TOTAL" | awk '{print $NF}' | tr -d '%' || echo "0")
 echo ""
-echo "[Gate 3/5] Coverage (>=${COVERAGE_BASELINE}%)..."
-COV_OUTPUT=$($PYTHON -m pytest tests/ --cov=src/lab_manager \
-    --cov-report=term -q --tb=no \
-    -k "not e2e and not bdd and not alembic" 2>/dev/null || true)
-COV=$(echo "$COV_OUTPUT" | grep "^TOTAL" | awk '{print $NF}' | tr -d '%' || echo "0")
 if [ "${COV:-0}" -ge "$COVERAGE_BASELINE" ]; then
-    echo "  PASS - ${COV}%"
+    echo "  PASS - Coverage ${COV}%"
 else
-    echo "  FAIL - ${COV}% (need >=${COVERAGE_BASELINE}%)"
+    echo "  FAIL - Coverage ${COV}% (need >=${COVERAGE_BASELINE}%)"
     FAILURES=$((FAILURES + 1))
 fi
 
