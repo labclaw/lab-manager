@@ -653,17 +653,26 @@ def _create_order_from_doc(doc: Document, db: Session):
     db.add(order)
     db.flush()
 
+    # Pre-fetch all existing products for this vendor in one query (Fix 2).
+    catalog_numbers = [
+        it.get("catalog_number")
+        for it in data.get("items", [])
+        if it.get("catalog_number") and vendor
+    ]
+    product_map: dict[str, Product] = {}
+    if catalog_numbers and vendor:
+        for p in db.scalars(
+            select(Product).where(
+                Product.vendor_id == vendor.id,
+                Product.catalog_number.in_(catalog_numbers),
+            )
+        ).all():
+            product_map[p.catalog_number] = p
+
     for item in data.get("items", []):
         # --- upsert Product ---
         catalog_number = item.get("catalog_number")
-        product = None
-        if catalog_number and vendor:
-            product = db.scalars(
-                select(Product).where(
-                    Product.catalog_number == catalog_number,
-                    Product.vendor_id == vendor.id,
-                )
-            ).first()
+        product = product_map.get(catalog_number) if catalog_number else None
         if not product and catalog_number:
             product = Product(
                 catalog_number=catalog_number,
@@ -674,6 +683,7 @@ def _create_order_from_doc(doc: Document, db: Session):
             )
             db.add(product)
             db.flush()
+            product_map[catalog_number] = product
 
         # --- create OrderItem ---
         oi = OrderItem(
