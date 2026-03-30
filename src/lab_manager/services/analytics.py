@@ -247,17 +247,20 @@ def spending_by_month(db: Session, months: int = 12) -> list[dict]:
 
 
 def inventory_value(db: Session) -> dict:
-    total = db.execute(
+    q = (
         select(
             func.coalesce(
                 func.sum(InventoryItem.quantity_on_hand * OrderItem.unit_price), 0
-            )
-        ).outerjoin(OrderItem, InventoryItem.order_item_id == OrderItem.id)
-    ).scalar()
-    item_count = db.execute(select(func.count(InventoryItem.id))).scalar() or 0
+            ).label("total"),
+            func.count(InventoryItem.id).label("item_count"),
+        )
+        .outerjoin(OrderItem, InventoryItem.order_item_id == OrderItem.id)
+        .where(InventoryItem.status.in_(ACTIVE_STATUSES))
+    )
+    row = db.execute(q).one()
     return {
-        "total_value": _money(total),
-        "item_count": item_count,
+        "total_value": _money(row.total),
+        "item_count": row.item_count or 0,
     }
 
 
