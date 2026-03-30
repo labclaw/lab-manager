@@ -60,7 +60,6 @@ def upgrade() -> None:
         );
     """)
 
-    # Create indexes for import_jobs
     op.execute(
         "CREATE INDEX IF NOT EXISTS ix_import_jobs_status ON import_jobs (status);"
     )
@@ -68,7 +67,6 @@ def upgrade() -> None:
         "CREATE INDEX IF NOT EXISTS ix_import_jobs_created_at ON import_jobs (created_at);"
     )
 
-    # Create import_errors table
     op.execute("""
         CREATE TABLE IF NOT EXISTS import_errors (
             id SERIAL PRIMARY KEY,
@@ -82,7 +80,6 @@ def upgrade() -> None:
         );
     """)
 
-    # Create indexes for import_errors
     op.execute(
         "CREATE INDEX IF NOT EXISTS ix_import_errors_job_id ON import_errors (job_id);"
     )
@@ -92,16 +89,11 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # Drop indexes if they exist
     op.execute("DROP INDEX IF EXISTS ix_import_errors_job_row;")
     op.execute("DROP INDEX IF EXISTS ix_import_errors_job_id;")
     op.execute("DROP INDEX IF EXISTS ix_import_jobs_created_at;")
     op.execute("DROP INDEX IF EXISTS ix_import_jobs_status;")
-
-    # Drop tables if they exist
     op.execute("DROP TABLE IF EXISTS import_errors;")
     op.execute("DROP TABLE IF EXISTS import_jobs;")
-
-    # Drop enum types if they exist
     op.execute("DROP TYPE IF EXISTS import_status;")
     op.execute("DROP TYPE IF EXISTS import_type;")
