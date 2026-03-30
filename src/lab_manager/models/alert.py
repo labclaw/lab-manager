@@ -59,3 +59,4 @@ class Alert(AuditMixin, table=True):
     acknowledged_by: Optional[str] = Field(default=None, max_length=200)
     acknowledged_at: Optional[datetime] = Field(default=None)
     is_resolved: bool = Field(default=False)
+    resolved_at: Optional[datetime] = Field(default=None)

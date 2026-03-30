@@ -96,6 +96,7 @@ def resolve_alert(
     """Mark an alert as resolved."""
     alert = get_or_404(db, Alert, alert_id, "Alert")
     alert.is_resolved = True
+    alert.resolved_at = utcnow()
     if not alert.is_acknowledged:
         alert.is_acknowledged = True
         alert.acknowledged_at = utcnow()
