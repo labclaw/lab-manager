@@ -11,6 +11,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session
 
 from lab_manager.api.auth import require_permission
@@ -208,10 +209,25 @@ def import_vendors(
     if not new_vendors and all_errors:
         return {"imported": 0, "errors": all_errors, "skipped": skipped}
 
+    # Attempt batch insert; fall back to individual inserts on race condition.
     for v in new_vendors:
         db.add(v)
     if new_vendors:
-        db.flush()
+        try:
+            db.flush()
+        except IntegrityError:
+            db.rollback()
+            imported = 0
+            race_skipped = 0
+            for v in new_vendors:
+                db.add(v)
+                try:
+                    db.flush()
+                    imported += 1
+                except IntegrityError:
+                    db.rollback()
+                    race_skipped += 1
+            skipped += race_skipped
 
     return {"imported": imported, "errors": all_errors, "skipped": skipped}
 
@@ -328,10 +344,25 @@ def import_products(
     if not new_products and all_errors:
         return {"imported": 0, "errors": all_errors, "skipped": skipped}
 
+    # Attempt batch insert; fall back to individual inserts on race condition.
     for p in new_products:
         db.add(p)
     if new_products:
-        db.flush()
+        try:
+            db.flush()
+        except IntegrityError:
+            db.rollback()
+            imported = 0
+            race_skipped = 0
+            for p in new_products:
+                db.add(p)
+                try:
+                    db.flush()
+                    imported += 1
+                except IntegrityError:
+                    db.rollback()
+                    race_skipped += 1
+            skipped += race_skipped
 
     return {"imported": imported, "errors": all_errors, "skipped": skipped}
 
