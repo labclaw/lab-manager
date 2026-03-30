@@ -501,7 +501,12 @@ class TestLogin:
 
     def test_login_db_unavailable(self, client, db_session):
         """Cover lines 492-497: database exception during login."""
-        with patch("lab_manager.api.app.select", side_effect=Exception("db down")):
+        from sqlalchemy.exc import OperationalError
+
+        with patch(
+            "lab_manager.api.app.select",
+            side_effect=OperationalError("stmt", {}, Exception("db down")),
+        ):
             resp = client.post(
                 "/api/v1/auth/login",
                 json={"email": "user@test.com", "password": "password123"},
@@ -512,6 +517,7 @@ class TestLogin:
     def test_login_wrong_password_increments_fail_count(self, client, db_session):
         """Cover lines 519-535: failed login increments counter (or 503 if DB unavailable)."""
         import bcrypt
+        from contextlib import contextmanager
 
         from lab_manager.models.staff import Staff
 
@@ -525,12 +531,16 @@ class TestLogin:
         db_session.add(staff)
         db_session.commit()
 
-        resp = client.post(
-            "/api/v1/auth/login",
-            json={"email": "fail@test.com", "password": "wrongpassword"},
-        )
-        # May be 401 (normal) or 503 if the separate get_db_session for counter update fails
-        assert resp.status_code in (401, 503)
+        @contextmanager
+        def _test_db_session():
+            yield db_session
+
+        with patch("lab_manager.database.get_db_session", side_effect=_test_db_session):
+            resp = client.post(
+                "/api/v1/auth/login",
+                json={"email": "fail@test.com", "password": "wrongpassword"},
+            )
+            assert resp.status_code == 401
 
     def test_login_locked_account(self, client, db_session):
         """Cover line 501: login attempt on locked account."""
@@ -595,6 +605,7 @@ class TestLogin:
     def test_login_inactive_user_401(self, client, db_session):
         """Cover line 509: inactive user always gets 401 even with correct pw."""
         import bcrypt
+        from contextlib import contextmanager
 
         from lab_manager.models.staff import Staff
 
@@ -608,15 +619,21 @@ class TestLogin:
         db_session.add(staff)
         db_session.commit()
 
-        resp = client.post(
-            "/api/v1/auth/login",
-            json={"email": "inactive_user@test.com", "password": "password123"},
-        )
-        # May be 401 (normal) or 503 if DB session for counter update fails
-        assert resp.status_code in (401, 503)
+        @contextmanager
+        def _test_db_session():
+            yield db_session
+
+        with patch("lab_manager.database.get_db_session", side_effect=_test_db_session):
+            resp = client.post(
+                "/api/v1/auth/login",
+                json={"email": "inactive_user@test.com", "password": "password123"},
+            )
+            assert resp.status_code == 401
 
     def test_login_no_password_hash_401(self, client, db_session):
         """Cover line 509: staff exists but has no password_hash -> 401."""
+        from contextlib import contextmanager
+
         from lab_manager.models.staff import Staff
 
         staff = Staff(
@@ -628,11 +645,16 @@ class TestLogin:
         db_session.add(staff)
         db_session.commit()
 
-        resp = client.post(
-            "/api/v1/auth/login",
-            json={"email": "nohash@test.com", "password": "password123"},
-        )
-        assert resp.status_code == 401
+        @contextmanager
+        def _test_db_session():
+            yield db_session
+
+        with patch("lab_manager.database.get_db_session", side_effect=_test_db_session):
+            resp = client.post(
+                "/api/v1/auth/login",
+                json={"email": "nohash@test.com", "password": "password123"},
+            )
+            assert resp.status_code == 401
 
 
 # ---------------------------------------------------------------------------

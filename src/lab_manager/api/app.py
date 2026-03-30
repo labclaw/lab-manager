@@ -510,20 +510,16 @@ def create_app() -> FastAPI:
                 staff_active = False
                 staff_locked_until = None
                 staff_access_expires_at = None
-        except Exception as _login_exc:
-            from sqlalchemy.exc import DBAPIError as _DBE, OperationalError as _OE
+        except Exception as exc:
+            from sqlalchemy.exc import DBAPIError, OperationalError as OpErr
 
-            if isinstance(_login_exc, (_OE, _DBE)):
-                logger.error("Login: database unavailable")
+            if isinstance(exc, (OpErr, DBAPIError)):
+                logger.error("Login: database unavailable: %s", exc)
                 return JSONResponse(
                     status_code=503,
                     content={"detail": "Service temporarily unavailable"},
                 )
-            logger.exception("Login: unexpected error during staff lookup")
-            return JSONResponse(
-                status_code=503,
-                content={"detail": "Service temporarily unavailable"},
-            )
+            raise
 
         # Check account lock
         now_utc = datetime.now(timezone.utc)
@@ -565,20 +561,16 @@ def create_app() -> FastAPI:
                                     minutes=15
                                 )
                             fdb.commit()
-                except Exception as _flc_exc:
-                    from sqlalchemy.exc import (
-                        DBAPIError as _DBE,
-                        OperationalError as _OE,
-                    )
+                except Exception as exc:
+                    from sqlalchemy.exc import DBAPIError, OperationalError as OpErr
 
-                    if isinstance(_flc_exc, (_OE, _DBE)):
-                        logger.error("DB error updating failed_login_count")
+                    if isinstance(exc, (OpErr, DBAPIError)):
+                        logger.error("Failed to update failed_login_count: %s", exc)
                         return JSONResponse(
                             status_code=503,
                             content={"detail": "Service temporarily unavailable"},
                         )
-                    logger.exception("Unexpected error updating failed_login_count")
-                    raise
+                    logger.warning("Failed to update failed_login_count: %s", exc)
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Invalid email or password"},
@@ -631,13 +623,13 @@ def create_app() -> FastAPI:
                     s.failed_login_count = 0
                     s.locked_until = None
                 _db.commit()
-        except Exception as _lli_exc:
-            from sqlalchemy.exc import DBAPIError as _DBE, OperationalError as _OE
+        except Exception as exc:
+            from sqlalchemy.exc import DBAPIError, OperationalError as OpErr
 
-            if isinstance(_lli_exc, (_OE, _DBE)):
-                logger.error("DB error updating last_login_at")
+            if isinstance(exc, (OpErr, DBAPIError)):
+                logger.warning("Failed to update last_login_at (DB error): %s", exc)
             else:
-                logger.exception("Unexpected error updating last_login_at")
+                logger.warning("Failed to update last_login_at: %s", exc)
 
         # Record login usage event for DAU measurement
         from lab_manager.models.usage_event import UsageEvent as _UsageEvent
@@ -652,13 +644,13 @@ def create_app() -> FastAPI:
                     )
                 )
                 _db.commit()
-        except Exception as _ue_exc:
-            from sqlalchemy.exc import DBAPIError as _DBE, OperationalError as _OE
+        except Exception as exc:
+            from sqlalchemy.exc import DBAPIError, OperationalError as OpErr
 
-            if isinstance(_ue_exc, (_OE, _DBE)):
-                logger.warning("DB error recording login usage event")
+            if isinstance(exc, (OpErr, DBAPIError)):
+                logger.warning("Failed to record login usage event (DB error): %s", exc)
             else:
-                logger.exception("Unexpected error recording login usage event")
+                logger.warning("Failed to record login usage event: %s", exc)
         return response
 
     @app.get("/api/auth/me", include_in_schema=False)

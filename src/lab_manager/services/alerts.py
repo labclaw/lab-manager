@@ -288,10 +288,13 @@ def persist_alerts(db: Session) -> tuple[list[Alert], list[dict]]:
     Returns (newly_created_alerts, all_current_alert_dicts).
     """
     current = check_all_alerts(db)
-    # Build a set of (entity_type, entity_id, alert_type) for existing unresolved alerts.
+    # Build a set of (entity_type, entity_id, alert_type) for existing
+    # unresolved alerts AND alerts resolved within the last 7 days.
+    # Recently resolved alerts suppress recreation to avoid alert spam.
+    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
     existing = db.execute(
         select(Alert.entity_type, Alert.entity_id, Alert.alert_type).where(
-            Alert.is_resolved.is_(False)
+            (Alert.is_resolved.is_(False)) | (Alert.resolved_at >= cutoff)
         )
     ).all()
     existing_keys = {(e[0], e[1], e[2]) for e in existing}
@@ -308,15 +311,38 @@ def persist_alerts(db: Session) -> tuple[list[Alert], list[dict]]:
 
     created: list[Alert] = []
     for a in to_create:
-        alert = Alert(
-            alert_type=a["type"],
-            severity=a["severity"],
-            message=a["message"],
-            entity_type=a["entity_type"],
-            entity_id=a["entity_id"],
-        )
-        db.add(alert)
-        created.append(alert)
+        key = (a["entity_type"], a["entity_id"], a["type"])
+        # Check if there is an old resolved alert we can reopen instead of
+        # creating a duplicate.  This matters on SQLite which does not
+        # support partial unique indexes and would otherwise raise
+        # IntegrityError.
+        old = db.execute(
+            select(Alert)
+            .where(
+                Alert.entity_type == a["entity_type"],
+                Alert.entity_id == a["entity_id"],
+                Alert.alert_type == a["type"],
+                Alert.is_resolved.is_(True),
+            )
+            .order_by(Alert.resolved_at.desc())
+            .limit(1)
+        ).scalar_one_or_none()
+        if old is not None:
+            old.is_resolved = False
+            old.resolved_at = None
+            old.message = a["message"]
+            old.severity = a["severity"]
+            created.append(old)
+        else:
+            alert = Alert(
+                alert_type=a["type"],
+                severity=a["severity"],
+                message=a["message"],
+                entity_type=a["entity_type"],
+                entity_id=a["entity_id"],
+            )
+            db.add(alert)
+            created.append(alert)
 
     if created:
         from sqlalchemy.exc import IntegrityError
