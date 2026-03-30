@@ -36,6 +36,29 @@ def test_extracted_document_vendor_name_optional():
     assert doc.vendor_name is None
 
 
+def test_extracted_item_expiry_date_round_trip():
+    """expiry_date survives serialization and deserialization."""
+    from lab_manager.intake.schemas import ExtractedItem
+
+    item = ExtractedItem(
+        catalog_number="AB1031",
+        description="Test reagent",
+        quantity=1,
+        expiry_date="2027-06-15",
+    )
+    assert item.expiry_date == "2027-06-15"
+
+    # Round-trip through dict
+    data = item.model_dump()
+    assert data["expiry_date"] == "2027-06-15"
+    restored = ExtractedItem(**data)
+    assert restored.expiry_date == "2027-06-15"
+
+    # None when omitted
+    item_no_expiry = ExtractedItem(catalog_number="X1")
+    assert item_no_expiry.expiry_date is None
+
+
 def test_extraction_prompt_matches_valid_doc_types():
     """EXTRACTION_PROMPT doc_type list must match VALID_DOC_TYPES in schemas."""
     import re

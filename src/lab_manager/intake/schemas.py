@@ -37,6 +37,9 @@ class ExtractedItem(BaseModel):
         None, description="Storage temperature requirement"
     )
     unit_price: Optional[Decimal] = Field(None, description="Price per unit")
+    expiry_date: Optional[str] = Field(
+        None, description="Expiry date in ISO format YYYY-MM-DD"
+    )
 
 
 class ExtractedDocument(BaseModel):
