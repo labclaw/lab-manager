@@ -331,6 +331,11 @@ def upload_document(
 
     # Read file content — stop at limit+1 to avoid loading oversized files
     content = file.file.read(_MAX_UPLOAD_BYTES + 1)
+    if len(content) == 0:
+        return JSONResponse(
+            status_code=400,
+            content={"detail": "Empty file. Please upload a non-empty document."},
+        )
     if len(content) > _MAX_UPLOAD_BYTES:
         return JSONResponse(
             status_code=413,

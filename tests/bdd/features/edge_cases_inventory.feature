@@ -42,7 +42,7 @@ Feature: Edge Cases Inventory
     Given inventory with lot "LOT-001" for product A
     When I create another with lot "LOT-001" for product A
     Then warning should be issued
-    Or creation should proceed with warning
+    And creation should proceed with warning
 
   Scenario: Expiration date in past
     When I create inventory expired yesterday
@@ -64,7 +64,7 @@ Feature: Edge Cases Inventory
     Given location has 5 inventory items
     When I delete location
     Then operation should be blocked
-    Or inventory should be transferred first
+    And inventory should be transferred first
 
   Scenario: Product deletion with inventory
     Given product has active inventory

@@ -19,18 +19,18 @@ Feature: Edge Cases Products
   Scenario: Product catalog number with spaces
     When I create product with catalog "CAT 001"
     Then spaces should be handled
-    Or trimmed automatically
+    And trimmed automatically
 
   Scenario: Duplicate catalog number different vendor
     Given product "CAT-001" for vendor A
     When I create product "CAT-001" for vendor B
     Then creation should succeed
-    Or warning should be shown about cross-vendor duplicates
+    And warning should be shown about cross-vendor duplicates
 
   Scenario: Product with no vendor
     When I create product without vendor
     Then creation should fail
-    Or product should be "unassigned"
+    And product should be "unassigned"
 
   Scenario: Product price as zero
     When I create product with price 0

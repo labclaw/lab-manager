@@ -176,14 +176,18 @@ def _load_session_staff(session_cookie: str):
 
 
 def _read_version() -> str:
-    """Read version from VERSION file, falling back to package __version__."""
-    version_file = Path(__file__).resolve().parents[3] / "VERSION"
     try:
-        return version_file.read_text().strip()
-    except OSError:
-        from lab_manager import __version__
+        from importlib.metadata import version
 
-        return __version__
+        return version("lab-manager")
+    except Exception:
+        version_file = Path(__file__).resolve().parents[3] / "VERSION"
+        try:
+            return version_file.read_text().strip()
+        except OSError:
+            from lab_manager import __version__
+
+            return __version__
 
 
 def create_app() -> FastAPI:
@@ -506,8 +510,16 @@ def create_app() -> FastAPI:
                 staff_active = False
                 staff_locked_until = None
                 staff_access_expires_at = None
-        except Exception:
-            logger.error("Login: database unavailable")
+        except Exception as _login_exc:
+            from sqlalchemy.exc import DBAPIError as _DBE, OperationalError as _OE
+
+            if isinstance(_login_exc, (_OE, _DBE)):
+                logger.error("Login: database unavailable")
+                return JSONResponse(
+                    status_code=503,
+                    content={"detail": "Service temporarily unavailable"},
+                )
+            logger.exception("Login: unexpected error during staff lookup")
             return JSONResponse(
                 status_code=503,
                 content={"detail": "Service temporarily unavailable"},
@@ -553,8 +565,20 @@ def create_app() -> FastAPI:
                                     minutes=15
                                 )
                             fdb.commit()
-                except Exception:
-                    logger.warning("Failed to update failed_login_count")
+                except Exception as _flc_exc:
+                    from sqlalchemy.exc import (
+                        DBAPIError as _DBE,
+                        OperationalError as _OE,
+                    )
+
+                    if isinstance(_flc_exc, (_OE, _DBE)):
+                        logger.error("DB error updating failed_login_count")
+                        return JSONResponse(
+                            status_code=503,
+                            content={"detail": "Service temporarily unavailable"},
+                        )
+                    logger.exception("Unexpected error updating failed_login_count")
+                    raise
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Invalid email or password"},
@@ -607,8 +631,13 @@ def create_app() -> FastAPI:
                     s.failed_login_count = 0
                     s.locked_until = None
                 _db.commit()
-        except Exception:
-            logger.warning("Failed to update last_login_at")
+        except Exception as _lli_exc:
+            from sqlalchemy.exc import DBAPIError as _DBE, OperationalError as _OE
+
+            if isinstance(_lli_exc, (_OE, _DBE)):
+                logger.error("DB error updating last_login_at")
+            else:
+                logger.exception("Unexpected error updating last_login_at")
 
         # Record login usage event for DAU measurement
         from lab_manager.models.usage_event import UsageEvent as _UsageEvent
@@ -623,8 +652,13 @@ def create_app() -> FastAPI:
                     )
                 )
                 _db.commit()
-        except Exception:
-            logger.warning("Failed to record login usage event")
+        except Exception as _ue_exc:
+            from sqlalchemy.exc import DBAPIError as _DBE, OperationalError as _OE
+
+            if isinstance(_ue_exc, (_OE, _DBE)):
+                logger.warning("DB error recording login usage event")
+            else:
+                logger.exception("Unexpected error recording login usage event")
         return response
 
     @app.get("/api/auth/me", include_in_schema=False)
