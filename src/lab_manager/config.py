@@ -82,6 +82,24 @@ class Settings(BaseSettings):
         return self
 
     @model_validator(mode="after")
+    def _validate_api_key_role(self):
+        """Ensure api_key_role is a known role name."""
+        _VALID_ROLES = (
+            "pi",
+            "admin",
+            "postdoc",
+            "grad_student",
+            "tech",
+            "undergrad",
+            "visitor",
+        )
+        if self.api_key_role not in _VALID_ROLES:
+            raise ValueError(
+                f"API_KEY_ROLE must be one of {_VALID_ROLES}, got '{self.api_key_role}'"
+            )
+        return self
+
+    @model_validator(mode="after")
     def _warn_insecure_cookies(self):
         """Warn when auth is enabled on a non-localhost domain without secure cookies."""
         if (
@@ -109,6 +127,7 @@ class Settings(BaseSettings):
 
     # Auth
     api_key: str = ""
+    api_key_role: str = "admin"
     admin_secret_key: str = ""
     admin_password: str = ""
     auth_enabled: bool = True

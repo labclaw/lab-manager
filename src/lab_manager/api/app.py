@@ -360,13 +360,17 @@ def create_app() -> FastAPI:
                     if hmac.compare_digest(api_key, settings.api_key):
                         # When auth is enabled, API key clients are always "api-client"
                         # X-User header is ignored to prevent spoofing
+                        from lab_manager.api.auth import ROLE_LEVELS
+
+                        api_role = settings.api_key_role
+                        api_role_level = ROLE_LEVELS.get(api_role, 1)
                         user = "api-client"
                         staff_dict = {
                             "id": 0,
                             "name": "api-client",
                             "email": None,
-                            "role": "admin",
-                            "role_level": 1,
+                            "role": api_role,
+                            "role_level": api_role_level,
                         }
                         authenticated = True
 

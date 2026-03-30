@@ -59,3 +59,46 @@ def test_no_insecure_cookies_warning_on_localhost(monkeypatch, caplog):
             _env_file=None,
         )
     assert "SECURE_COOKIES is False" not in caplog.text
+
+
+def test_api_key_role_default_admin():
+    """api_key_role defaults to 'admin'."""
+    s = Settings(
+        database_url="sqlite://",
+        admin_secret_key="test",
+        _env_file=None,
+    )
+    assert s.api_key_role == "admin"
+
+
+def test_api_key_role_accepts_valid_roles():
+    """api_key_role accepts all known role names."""
+    for role in (
+        "pi",
+        "admin",
+        "postdoc",
+        "grad_student",
+        "tech",
+        "undergrad",
+        "visitor",
+    ):
+        s = Settings(
+            database_url="sqlite://",
+            admin_secret_key="test",
+            api_key_role=role,
+            _env_file=None,
+        )
+        assert s.api_key_role == role
+
+
+def test_api_key_role_rejects_invalid_role():
+    """api_key_role rejects unknown role names."""
+    import pytest
+
+    with pytest.raises(ValueError, match="API_KEY_ROLE must be one of"):
+        Settings(
+            database_url="sqlite://",
+            admin_secret_key="test",
+            api_key_role="superadmin",
+            _env_file=None,
+        )

@@ -512,3 +512,51 @@ class TestInvitationsManagement:
         pi_client.delete(f"/api/v1/team/invitations/{inv_id}")
         resp = pi_client.delete(f"/api/v1/team/invitations/{inv_id}")
         assert resp.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# Tests: Configurable API key role
+# ---------------------------------------------------------------------------
+
+
+class TestApiKeyRole:
+    def test_api_key_role_limits_permissions(self, team_engine, team_db):
+        """API key with role=postdoc cannot manage_users (403)."""
+        os.environ["AUTH_ENABLED"] = "true"
+        os.environ["ADMIN_SECRET_KEY"] = "test-secret-key-for-team-tests"
+        os.environ["API_KEY"] = "test-api-key-role"
+        os.environ["API_KEY_ROLE"] = "postdoc"
+        os.environ["SECURE_COOKIES"] = "false"
+        get_settings.cache_clear()
+
+        import lab_manager.database as db_module
+
+        original_engine = db_module._engine
+        original_factory = db_module._session_factory
+        db_module._engine = team_engine
+        db_module._session_factory = None
+
+        from lab_manager.api.app import create_app
+        from lab_manager.api.deps import get_db
+
+        app = create_app()
+
+        def override_get_db():
+            yield team_db
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        with TestClient(app) as c:
+            resp = c.get(
+                "/api/v1/team/",
+                headers={"X-Api-Key": "test-api-key-role"},
+            )
+            # postdoc does not have manage_users permission
+            assert resp.status_code == 403
+
+        db_module._engine = original_engine
+        db_module._session_factory = original_factory
+        os.environ.pop("API_KEY_ROLE", None)
+        os.environ.pop("API_KEY", None)
+        os.environ["AUTH_ENABLED"] = "false"
+        get_settings.cache_clear()
