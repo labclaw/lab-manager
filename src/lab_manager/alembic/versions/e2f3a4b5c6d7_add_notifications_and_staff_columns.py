@@ -1,7 +1,7 @@
 """add notifications tables and staff digital-staff columns
 
-Revision ID: a1b2c3d4e5f6
-Revises: 9b2c4d6e8f10
+Revision ID: e2f3a4b5c6d7
+Revises: d1e2f3a4e5f6a7b8c9d0e1f2a3
 Create Date: 2026-03-29
 
 """
@@ -12,8 +12,8 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision: str = "a1b2c3d4e5f6"
-down_revision: Union[str, None] = "9b2c4d6e8f10"
+revision: str = "e2f3a4b5c6d7"
+down_revision: Union[str, None] = "d1e2f3a4e5f6a7b8c9d0e1f2a3"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -79,7 +79,10 @@ def upgrade() -> None:
             server_default=sa.text("true"),
         ),
         sa.Column(
-            "team_changes", sa.Boolean(), nullable=False, server_default=sa.text("true")
+            "team_changes",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.text("true"),
         ),
         sa.Column(
             "created_at", sa.DateTime(), server_default=sa.func.now(), nullable=False
