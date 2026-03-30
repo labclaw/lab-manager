@@ -143,7 +143,6 @@ def create_invitation(
         "email": invitation.email,
         "name": invitation.name,
         "role": invitation.role,
-        "token": invitation.token,
         "status": invitation.status,
         "created_at": invitation.created_at.isoformat()
         if invitation.created_at

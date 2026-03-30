@@ -68,17 +68,6 @@ CREATE TABLE products (
     created_by VARCHAR(100)
 );
 
-CREATE TABLE staff (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(200) NOT NULL,
-    email VARCHAR(255) UNIQUE,
-    role VARCHAR(50) DEFAULT 'member',
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMPTZ,
-    updated_at TIMESTAMPTZ,
-    created_by VARCHAR(100)
-);
-
 CREATE TABLE locations (
     id SERIAL PRIMARY KEY,
     name VARCHAR(200) NOT NULL,
@@ -213,7 +202,7 @@ DATABASE SCHEMA:
 RULES:
 - Output ONLY the SQL query, nothing else. No markdown, no explanation.
 - Only SELECT queries. Never use INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE, GRANT, or REVOKE.
-- Only query these tables: vendors, products, staff, locations, documents, orders, order_items, inventory, consumption_log, alerts, audit_log.
+- Only query these tables: vendors, products, locations, documents, orders, order_items, inventory, consumption_log, alerts, audit_log.
 - Do NOT access system catalogs (pg_shadow, pg_authid, information_schema, pg_catalog).
 - Do NOT call functions with side effects (pg_terminate_backend, set_config, dblink, lo_import, etc.).
 - Use JOINs when the question involves related tables (e.g., vendor name for a product).
@@ -265,7 +254,8 @@ If there are many rows, summarize the key findings.
 # Dangerous SQL keywords/functions that must never appear in generated queries
 _FORBIDDEN_PATTERN = re.compile(
     r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|EXEC|EXECUTE"
-    r"|UNION|INTO\s+OUTFILE|COPY|DO\s*\$"
+    r"|UNION|INTERSECT|EXCEPT|INTO\s+OUTFILE|COPY|DO\s*\$"
+    r"|LATERAL|RETURNING"
     r"|EXPLAIN|CALL|PREPARE|LISTEN|NOTIFY"
     r"|SET\s+ROLE|SET\s+SESSION\s+AUTHORIZATION"
     r"|pg_read_file|pg_write_file|pg_ls_dir|pg_stat_file"
@@ -275,6 +265,9 @@ _FORBIDDEN_PATTERN = re.compile(
     r"|pg_catalog|information_schema|pg_stat_activity|current_setting)\b",
     re.IGNORECASE,
 )
+
+# Dollar-quoting ($$...$$) — can hide arbitrary text from inspection
+_DOLLAR_QUOTE_PATTERN = re.compile(r"\$\$")
 
 # Columns that must never appear in RAG queries (PII, credentials)
 _FORBIDDEN_COLUMNS = re.compile(r"\bpassword_hash\b", re.IGNORECASE)
@@ -289,7 +282,6 @@ _DANGEROUS_KEYWORDS = re.compile(
 _ALLOWED_TABLES = {
     "vendors",
     "products",
-    "staff",
     "locations",
     "documents",
     "orders",
@@ -392,6 +384,10 @@ def _validate_sql(sql: str) -> str:
 
     if _FORBIDDEN_PATTERN.search(sql):
         raise ValueError(f"Query contains forbidden keywords: {sql[:120]}...")
+
+    # Block dollar-quoted strings ($$...$$) — can hide arbitrary text from inspection
+    if _DOLLAR_QUOTE_PATTERN.search(sql):
+        raise ValueError("Dollar-quoting ($$) is not allowed")
 
     # Defense-in-depth: block dangerous keywords anywhere (catches CTE bypasses)
     if _DANGEROUS_KEYWORDS.search(sql):
