@@ -47,7 +47,7 @@ Feature: Concurrent Access
   Scenario: Bulk import concurrent safety
     When 2 imports run simultaneously
     Then both should complete successfully
-    Or one should wait for other to finish
+    And one should wait for other to finish
     And no data corruption should occur
 
   Scenario: Session isolation

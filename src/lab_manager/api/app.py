@@ -176,14 +176,18 @@ def _load_session_staff(session_cookie: str):
 
 
 def _read_version() -> str:
-    """Read version from VERSION file, falling back to package __version__."""
-    version_file = Path(__file__).resolve().parents[3] / "VERSION"
     try:
-        return version_file.read_text().strip()
-    except OSError:
-        from lab_manager import __version__
+        from importlib.metadata import version
 
-        return __version__
+        return version("lab-manager")
+    except Exception:
+        version_file = Path(__file__).resolve().parents[3] / "VERSION"
+        try:
+            return version_file.read_text().strip()
+        except OSError:
+            from lab_manager import __version__
+
+            return __version__
 
 
 def create_app() -> FastAPI:

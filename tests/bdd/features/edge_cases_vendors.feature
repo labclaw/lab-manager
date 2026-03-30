@@ -29,7 +29,7 @@ Feature: Edge Cases Vendors
   Scenario: Vendor with invalid phone
     When I create vendor with phone "abc123"
     Then creation should fail
-    Or phone should be stored as-is
+    And phone should be stored as-is
 
   Scenario: Vendor website validation
     When I create vendor with website "not-a-url"
@@ -39,19 +39,19 @@ Feature: Edge Cases Vendors
   Scenario: Vendor with multiple websites
     When I provide 3 website URLs
     Then primary should be stored
-    Or all should be stored
+    And all should be stored
 
   Scenario: Duplicate vendor name
     Given vendor "Sigma" exists
     When I create vendor "Sigma"
     Then creation should fail
-    Or duplicate warning should be shown
+    And duplicate warning should be shown
 
   Scenario: Vendor name case sensitivity
     Given vendor "Sigma" exists
     When I create vendor "SIGMA"
     Then should be treated as duplicate
-    Or case-insensitive warning
+    And case-insensitive warning
 
   Scenario: Vendor with special payment terms
     When I set payment terms to "Net 45, 2% discount"

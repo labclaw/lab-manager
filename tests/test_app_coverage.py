@@ -515,7 +515,7 @@ class TestLogin:
             assert "unavailable" in resp.json()["detail"].lower()
 
     def test_login_wrong_password_increments_fail_count(self, client, db_session):
-        """Cover lines 519-535: failed login increments counter."""
+        """Cover lines 519-535: failed login increments counter (or 503 if DB unavailable)."""
         import bcrypt
         from contextlib import contextmanager
 

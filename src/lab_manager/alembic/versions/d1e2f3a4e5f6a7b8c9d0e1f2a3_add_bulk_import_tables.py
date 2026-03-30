@@ -9,7 +9,6 @@ Create Date: 2026-03-27
 from typing import Sequence, Union
 
 from alembic import op
-import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "d1e2f3a4e5f6a7b8c9d0e1f2a3"
@@ -19,110 +18,82 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Create enum types
-    op.execute("CREATE TYPE import_type AS ENUM ('vendors', 'products', 'inventory')")
+    op.execute("""
+        DO $$
+        BEGIN
+            CREATE TYPE import_type AS ENUM ('vendors', 'products', 'inventory');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """)
+    op.execute("""
+        DO $$
+        BEGIN
+            CREATE TYPE import_status AS ENUM (
+                'uploading', 'validating', 'preview', 'importing', 'completed', 'failed', 'cancelled'
+            );
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """)
+
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS import_jobs (
+            id SERIAL PRIMARY KEY,
+            import_type import_type NOT NULL,
+            status import_status NOT NULL DEFAULT 'uploading',
+            original_filename VARCHAR(255) NOT NULL,
+            file_size_bytes INTEGER NOT NULL,
+            file_hash VARCHAR(64) NOT NULL,
+            total_rows INTEGER,
+            valid_rows INTEGER,
+            imported_rows INTEGER DEFAULT 0,
+            failed_rows INTEGER DEFAULT 0,
+            options JSONB DEFAULT '{}',
+            preview_data JSONB,
+            started_at TIMESTAMP WITH TIME ZONE,
+            completed_at TIMESTAMP WITH TIME ZONE,
+            created_by_id INTEGER REFERENCES staff(id) ON DELETE SET NULL,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+            created_by VARCHAR(100)
+        );
+    """)
+
     op.execute(
-        "CREATE TYPE import_status AS ENUM "
-        "('uploading', 'validating', 'preview', 'importing', 'completed', 'failed', 'cancelled')"
+        "CREATE INDEX IF NOT EXISTS ix_import_jobs_status ON import_jobs (status);"
+    )
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_import_jobs_created_at ON import_jobs (created_at);"
     )
 
-    # Create import_jobs table
-    op.create_table(
-        "import_jobs",
-        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column(
-            "import_type",
-            sa.Enum("vendors", "products", "inventory", name="import_type"),
-            nullable=False,
-        ),
-        sa.Column(
-            "status",
-            sa.Enum(
-                "uploading",
-                "validating",
-                "preview",
-                "importing",
-                "completed",
-                "failed",
-                "cancelled",
-                name="import_status",
-            ),
-            nullable=False,
-            server_default="uploading",
-        ),
-        sa.Column("original_filename", sa.String(255), nullable=False),
-        sa.Column("file_size_bytes", sa.Integer(), nullable=False),
-        sa.Column("file_hash", sa.String(64), nullable=False),
-        sa.Column("total_rows", sa.Integer(), nullable=True),
-        sa.Column("valid_rows", sa.Integer(), nullable=True),
-        sa.Column("imported_rows", sa.Integer(), server_default="0", nullable=True),
-        sa.Column("failed_rows", sa.Integer(), server_default="0", nullable=True),
-        sa.Column("options", sa.JSON(), server_default="{}", nullable=True),
-        sa.Column("preview_data", sa.JSON(), nullable=True),
-        sa.Column("started_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column(
-            "created_by_id",
-            sa.Integer(),
-            sa.ForeignKey("staff.id", ondelete="SET NULL"),
-            nullable=True,
-        ),
-        sa.Column(
-            "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
-            nullable=False,
-        ),
-        sa.Column(
-            "updated_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
-            nullable=False,
-        ),
-        sa.Column("created_by", sa.String(100), nullable=True),
-        sa.PrimaryKeyConstraint("id"),
-    )
-    # Indexes for import_jobs (match model __table_args__)
-    op.create_index("ix_import_jobs_status", "import_jobs", ["status"])
-    op.create_index("ix_import_jobs_created_at", "import_jobs", ["created_at"])
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS import_errors (
+            id SERIAL PRIMARY KEY,
+            job_id INTEGER NOT NULL REFERENCES import_jobs(id) ON DELETE CASCADE,
+            row_number INTEGER NOT NULL,
+            field VARCHAR(100),
+            error_type VARCHAR(50) NOT NULL,
+            message VARCHAR(500) NOT NULL,
+            raw_data TEXT,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+        );
+    """)
 
-    # Create import_errors table
-    op.create_table(
-        "import_errors",
-        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column(
-            "job_id",
-            sa.Integer(),
-            sa.ForeignKey("import_jobs.id", ondelete="CASCADE"),
-            nullable=False,
-        ),
-        sa.Column("row_number", sa.Integer(), nullable=False),
-        sa.Column("field", sa.String(100), nullable=True),
-        sa.Column("error_type", sa.String(50), nullable=False),
-        sa.Column("message", sa.String(500), nullable=False),
-        sa.Column("raw_data", sa.Text(), nullable=True),
-        sa.Column(
-            "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
-            nullable=False,
-        ),
-        sa.PrimaryKeyConstraint("id"),
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_import_errors_job_id ON import_errors (job_id);"
     )
-
-    # Create indexes
-    op.create_index("ix_import_errors_job_id", "import_errors", ["job_id"])
-    op.create_index(
-        "ix_import_errors_job_row", "import_errors", ["job_id", "row_number"]
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_import_errors_job_row ON import_errors (job_id, row_number);"
     )
 
 
 def downgrade() -> None:
-    op.drop_index("ix_import_errors_job_row", table_name="import_errors")
-    op.drop_index("ix_import_errors_job_id", table_name="import_errors")
-    op.drop_index("ix_import_jobs_created_at", table_name="import_jobs")
-    op.drop_index("ix_import_jobs_status", table_name="import_jobs")
-    op.drop_table("import_errors")
-    op.drop_table("import_jobs")
-    op.execute("DROP TYPE import_status")
-    op.execute("DROP TYPE import_type")
+    op.execute("DROP INDEX IF EXISTS ix_import_errors_job_row;")
+    op.execute("DROP INDEX IF EXISTS ix_import_errors_job_id;")
+    op.execute("DROP INDEX IF EXISTS ix_import_jobs_created_at;")
+    op.execute("DROP INDEX IF EXISTS ix_import_jobs_status;")
+    op.execute("DROP TABLE IF EXISTS import_errors;")
+    op.execute("DROP TABLE IF EXISTS import_jobs;")
+    op.execute("DROP TYPE IF EXISTS import_status;")
+    op.execute("DROP TYPE IF EXISTS import_type;")

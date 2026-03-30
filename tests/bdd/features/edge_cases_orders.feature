@@ -9,7 +9,7 @@ Feature: Edge Cases Orders
   Scenario: Order with no items
     When I create order without items
     Then order should be rejected
-    Or order should be created in "draft" status
+    And order should be created in "draft" status
 
   Scenario: Order with single item quantity zero
     When I create order with quantity 0
@@ -48,7 +48,7 @@ Feature: Edge Cases Orders
     Given order with PO "PO-001" exists
     When I create order with PO "PO-001"
     Then creation should fail
-    Or PO should be auto-modified
+    And PO should be auto-modified
 
   Scenario: Order modification after partial receipt
     Given order has 50 of 100 items received
@@ -61,13 +61,13 @@ Feature: Edge Cases Orders
     Given order has received items
     When I cancel order
     Then cancellation should be rejected
-    Or only unreceived items should cancel
+    And only unreceived items should cancel
 
   Scenario: Order with items from multiple vendors
     Given order has items from vendor A and B
     When I submit order
     Then it should be split into two orders
-    Or warning should explain multi-vendor issue
+    And warning should explain multi-vendor issue
 
   Scenario: Order total recalculation
     Given order with 3 items

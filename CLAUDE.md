@@ -48,7 +48,7 @@ src/lab_manager/
   config.py      — Settings from env/.env
 cli/            — CLI entry points: lab-populate-db, lab-index-search, lab-pipeline, etc.
 scripts/         — Deployment scripts: deploy.sh, backup_db.sh, health_check.sh
-tests/           — pytest suite (1010 tests)
+tests/           — pytest suite (run `pytest --co -q` for current count)
 benchmarks/      — OCR benchmark outputs
 docs/            — Audit logs, analysis reports
 ```
@@ -104,7 +104,31 @@ providers/more_ocr.py  — DeepSeek, GLM, PaddleOCR, Mistral, registries
 - **Full audit trail**: Every document is traced from raw scan → OCR → extraction → review → fix.
 - **Validation rules**: Catch known error patterns (VCAT codes as lot numbers, addresses as vendor names, etc.)
 
-## API Endpoints (82 endpoints across 14 route modules)
+### Anti-Sycophancy Rules (Vibe Physics Protocol)
+
+Inspired by Matthew Schwartz's "Vibe Physics" research (Anthropic 2026). These rules prevent AI from "pleasing" the user with seemingly correct but actually fabricated results:
+
+**FORBIDDEN PHRASES** — Never use these to skip steps:
+- "this becomes..."
+- "for consistency..."
+- "it follows that..."
+- "as expected..."
+- "clearly..."
+
+**REQUIRED BEHAVIORS**:
+1. **Show the work** — Either show the full calculation/derivation or say "I don't know"
+2. **Enumerate verification** — Never claim "verified" without listing exactly what was checked (e.g., "Verified Eq.3 against Eq.7 by substitution")
+3. **Report discrepancies honestly** — If results don't match expectations, report the discrepancy. NEVER adjust parameters/thresholds to force a match
+4. **Multi-round verification** — Finding one error is not enough. Continue checking until a complete pass finds zero new issues
+5. **No fabrication** — If a coefficient/constant is needed but unknown, say so. Never invent values and cite non-existent sources
+
+**RED FLAGS** (trigger immediate re-verification):
+- Results are "too perfect" (uncertainty bands unnaturally smooth)
+- Complex derivation completed suspiciously fast
+- Citation to "standard" or "well-known" result without specific reference
+- Parameter values changed between iterations without documented reason
+
+## API Endpoints (run `grep -r "@router" src/ | wc -l` for current count)
 
 | Category | Key Endpoints |
 |----------|--------------|

@@ -1,3 +1,9 @@
+# v0.1.15 (2026-03-30)
+
+## Fixed
+- **db**: Rewrite bulk_import migration to pure SQL for idempotency (double-enum bug)
+- **api**: Version field reads from importlib.metadata (works in Docker containers)
+
 # v0.1.10 (2026-03-26)
 
 ## Bug Fixes
