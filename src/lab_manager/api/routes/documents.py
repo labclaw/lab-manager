@@ -379,8 +379,18 @@ def upload_document(
 
 @router.get("/stats", dependencies=[Depends(require_permission("view_analytics"))])
 def document_stats(db: Session = Depends(get_db)):
-    """Dashboard stats."""
-    total = db.execute(select(func.count(Document.id))).scalar()
+    """Dashboard stats — consolidated into 3 queries."""
+    # Query 1: document counts via scalar subqueries
+    doc_stats = db.execute(
+        select(
+            select(func.count(Document.id)).scalar_subquery().label("total"),
+            select(func.count(Order.id)).scalar_subquery().label("total_orders"),
+            select(func.count(OrderItem.id)).scalar_subquery().label("total_items"),
+            select(func.count(Vendor.id)).scalar_subquery().label("total_vendors"),
+        )
+    ).one()
+
+    # Query 2: by_status and by_type
     by_status = dict(
         db.execute(
             select(Document.status, func.count(Document.id)).group_by(Document.status)
@@ -393,9 +403,8 @@ def document_stats(db: Session = Depends(get_db)):
             )
         ).all()
     )
-    total_orders = db.execute(select(func.count(Order.id))).scalar()
-    total_items = db.execute(select(func.count(OrderItem.id))).scalar()
-    total_vendors = db.execute(select(func.count(Vendor.id))).scalar()
+
+    # Query 3: top vendors
     top_vendors = db.execute(
         select(Vendor.name, func.count(Order.id))
         .join(Order, Order.vendor_id == Vendor.id)
@@ -404,12 +413,12 @@ def document_stats(db: Session = Depends(get_db)):
         .limit(10)
     ).all()
     return {
-        "total_documents": total,
+        "total_documents": doc_stats.total,
         "by_status": by_status,
         "by_type": by_type,
-        "total_orders": total_orders,
-        "total_items": total_items,
-        "total_vendors": total_vendors,
+        "total_orders": doc_stats.total_orders,
+        "total_items": doc_stats.total_items,
+        "total_vendors": doc_stats.total_vendors,
         "top_vendors": [{"name": n, "count": c} for n, c in top_vendors],
     }
 
