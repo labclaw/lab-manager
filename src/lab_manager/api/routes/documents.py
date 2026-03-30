@@ -324,14 +324,13 @@ def upload_document(
             },
         )
 
-    # Read file content and check size
-    content = file.file.read()
+    # Read file content — stop at limit+1 to avoid loading oversized files
+    content = file.file.read(_MAX_UPLOAD_BYTES + 1)
     if len(content) > _MAX_UPLOAD_BYTES:
         return JSONResponse(
             status_code=413,
             content={
-                "detail": f"File too large ({len(content)} bytes). "
-                f"Maximum: {_MAX_UPLOAD_BYTES} bytes (50 MB)."
+                "detail": f"File too large. Maximum: {_MAX_UPLOAD_BYTES} bytes (50 MB)."
             },
         )
 
