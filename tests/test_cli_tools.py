@@ -128,7 +128,7 @@ class TestProcessScans:
     def test_no_images(self, tmp_path, capsys):
         main = self._import_main()
         with patch.object(sys, "argv", ["prog", str(tmp_path)]):
-            with patch("lab_manager.cli.process_scans.get_engine") as mock_engine:
+            with patch("lab_manager.cli.process_scans.get_engine"):
                 main()
         out = capsys.readouterr().out
         assert "Found 0 images" in out
@@ -262,8 +262,6 @@ class TestPipelineV2:
 
     def test_process_one_empty_ocr(self, tmp_path):
         mod = self._import_module()
-        # Create a file at the expected location
-        data_dir = mod.PROJECT_ROOT / "data"
         entry = {"file": "test.jpg", "fullText": "(No text detected)"}
 
         with patch.object(Path, "exists", return_value=True):

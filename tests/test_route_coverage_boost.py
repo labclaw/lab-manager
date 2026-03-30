@@ -906,7 +906,7 @@ class TestOrderRequestsCoverage:
 
     def test_approve_requires_vendor(self, client, db):
         """Line 208: approve without vendor_id returns 400."""
-        seeds = self._seed(db)
+        self._seed(db)
 
         # Create request without vendor
         resp = client.post(
