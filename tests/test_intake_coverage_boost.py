@@ -127,6 +127,23 @@ class TestOcrNvidiaLastAttempt429Reraises:
             _ocr_nvidia(img, settings, "nvidia_nim/test-model")
 
 
+class TestOcrNvidiaZeroRetries:
+    """Cover line 248: post-loop RuntimeError when MAX_NVIDIA_RETRIES patched to 0."""
+
+    def test_zero_retries_raises(self, tmp_path):
+        from lab_manager.intake.ocr import _ocr_nvidia
+
+        img = tmp_path / "test.png"
+        img.write_bytes(b"\x89PNG")
+
+        settings = _make_settings(nvidia_build_api_key="nv-key")
+        with (
+            patch("lab_manager.intake.ocr.MAX_NVIDIA_RETRIES", 0),
+            pytest.raises(RuntimeError, match="NVIDIA OCR failed after retries"),
+        ):
+            _ocr_nvidia(img, settings, "nvidia_nim/test-model")
+
+
 class TestOcrApiProviderChain:
     """Cover lines 264, 270-273, 275-277: _ocr_api provider chain with success/failure."""
 
@@ -348,6 +365,24 @@ class TestExtractorNvidiaLastAttempt429:
             result = _extract_nvidia(SAMPLE_OCR, "nvidia_nim/meta/llama-3.2-90b")
             assert result is None
             # Should have logged errors
+            assert mock_logger.error.call_count >= 1
+
+
+class TestExtractorNvidiaZeroRetries:
+    """Cover lines 227-228: post-loop return None when MAX_NVIDIA_RETRIES patched to 0."""
+
+    def test_zero_retries_returns_none(self):
+        from lab_manager.intake.extractor import _extract_nvidia
+
+        with (
+            patch("lab_manager.intake.extractor.MAX_NVIDIA_RETRIES", 0),
+            patch("lab_manager.intake.extractor.get_settings") as mock_gs,
+            patch("lab_manager.intake.extractor.logger") as mock_logger,
+        ):
+            mock_gs.return_value = MagicMock(nvidia_build_api_key="nv-key")
+            result = _extract_nvidia(SAMPLE_OCR, "nvidia_nim/meta/llama-3.2-90b")
+            assert result is None
+            # Should log the exhaustion error
             assert mock_logger.error.call_count >= 1
 
 
