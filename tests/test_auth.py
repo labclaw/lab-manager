@@ -380,3 +380,45 @@ def test_escape_cell_formula_prefixes():
     assert _escape_cell("\ncmd") == "'\ncmd"
     assert _escape_cell(42) == 42
     assert _escape_cell(3.14) == 3.14
+
+
+# --- DB failure during failed_login_count should return 503 ---
+
+
+def test_login_returns_503_when_failed_count_db_fails(auth_client, staff_user):
+    """When the DB fails to update failed_login_count, login must return 503
+    instead of silently succeeding with 401 (which bypasses lockout)."""
+    from contextlib import contextmanager
+    from unittest.mock import patch
+
+    from sqlalchemy.exc import OperationalError
+
+    @contextmanager
+    def _broken_db_session():
+        raise OperationalError("statement", {}, Exception("db down"))
+
+    with patch("lab_manager.database.get_db_session", side_effect=_broken_db_session):
+        resp = auth_client.post(
+            "/api/v1/auth/login",
+            json={"email": "test@example.com", "password": "wrongpassword"},
+        )
+        assert resp.status_code == 503
+        assert "temporarily unavailable" in resp.json()["detail"].lower()
+
+
+def test_login_non_db_exception_still_returns_401(auth_client, staff_user):
+    """Non-DB exceptions during failed_login_count update are logged but don't
+    change the response -- still 401 (wrong password)."""
+    from contextlib import contextmanager
+    from unittest.mock import patch
+
+    @contextmanager
+    def _broken_db_session():
+        raise RuntimeError("unexpected bug")
+
+    with patch("lab_manager.database.get_db_session", side_effect=_broken_db_session):
+        resp = auth_client.post(
+            "/api/v1/auth/login",
+            json={"email": "test@example.com", "password": "wrongpassword"},
+        )
+        assert resp.status_code == 401
