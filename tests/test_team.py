@@ -304,7 +304,7 @@ class TestInvite:
         assert data["email"] == "newuser@lab.edu"
         assert data["role"] == "grad_student"
         assert data["status"] == "pending"
-        assert data["token"]
+        assert "token" not in data  # token must not leak in API response
 
     def test_invite_duplicate_email_rejected(self, pi_client, team_db):
         """Cannot invite the same email twice while pending."""
@@ -360,16 +360,21 @@ class TestInvite:
 
 
 class TestJoinInvitation:
-    def _create_invite(self, client, email="join@lab.edu", role="grad_student"):
+    def _create_invite(self, client, db, email="join@lab.edu", role="grad_student"):
+        """Create an invite and return the token from DB (not exposed in API)."""
+        from lab_manager.models.invitation import Invitation
+
         resp = client.post(
             "/api/v1/team/invite",
             json={"email": email, "name": "Joiner", "role": role},
         )
         assert resp.status_code == 200
-        return resp.json()["token"]
+        inv_id = resp.json()["id"]
+        inv = db.get(Invitation, inv_id)
+        return inv.token
 
     def test_join_success(self, pi_client, team_db):
-        token = self._create_invite(pi_client)
+        token = self._create_invite(pi_client, team_db)
         resp = pi_client.post(
             f"/api/v1/team/join/{token}",
             json={"password": "securepassword123"},
@@ -388,7 +393,7 @@ class TestJoinInvitation:
         assert resp.status_code == 400
 
     def test_join_short_password_rejected(self, pi_client, team_db):
-        token = self._create_invite(pi_client, email="short@lab.edu")
+        token = self._create_invite(pi_client, team_db, email="short@lab.edu")
         resp = pi_client.post(
             f"/api/v1/team/join/{token}",
             json={"password": "short"},
@@ -396,7 +401,7 @@ class TestJoinInvitation:
         assert resp.status_code == 422
 
     def test_join_token_cannot_be_reused(self, pi_client, team_db):
-        token = self._create_invite(pi_client, email="reuse@lab.edu")
+        token = self._create_invite(pi_client, team_db, email="reuse@lab.edu")
         # First join succeeds
         resp1 = pi_client.post(
             f"/api/v1/team/join/{token}",
@@ -425,7 +430,7 @@ class TestJoinInvitation:
         from lab_manager.models.invitation import Invitation
         from lab_manager.models.staff import Staff
 
-        token = self._create_invite(pi_client, email="race@lab.edu")
+        token = self._create_invite(pi_client, team_db, email="race@lab.edu")
 
         # First acceptance succeeds
         resp1 = pi_client.post(
@@ -507,3 +512,51 @@ class TestInvitationsManagement:
         pi_client.delete(f"/api/v1/team/invitations/{inv_id}")
         resp = pi_client.delete(f"/api/v1/team/invitations/{inv_id}")
         assert resp.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# Tests: Configurable API key role
+# ---------------------------------------------------------------------------
+
+
+class TestApiKeyRole:
+    def test_api_key_role_limits_permissions(self, team_engine, team_db):
+        """API key with role=postdoc cannot manage_users (403)."""
+        os.environ["AUTH_ENABLED"] = "true"
+        os.environ["ADMIN_SECRET_KEY"] = "test-secret-key-for-team-tests"
+        os.environ["API_KEY"] = "test-api-key-role"
+        os.environ["API_KEY_ROLE"] = "postdoc"
+        os.environ["SECURE_COOKIES"] = "false"
+        get_settings.cache_clear()
+
+        import lab_manager.database as db_module
+
+        original_engine = db_module._engine
+        original_factory = db_module._session_factory
+        db_module._engine = team_engine
+        db_module._session_factory = None
+
+        from lab_manager.api.app import create_app
+        from lab_manager.api.deps import get_db
+
+        app = create_app()
+
+        def override_get_db():
+            yield team_db
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        with TestClient(app) as c:
+            resp = c.get(
+                "/api/v1/team/",
+                headers={"X-Api-Key": "test-api-key-role"},
+            )
+            # postdoc does not have manage_users permission
+            assert resp.status_code == 403
+
+        db_module._engine = original_engine
+        db_module._session_factory = original_factory
+        os.environ.pop("API_KEY_ROLE", None)
+        os.environ.pop("API_KEY", None)
+        os.environ["AUTH_ENABLED"] = "false"
+        get_settings.cache_clear()
