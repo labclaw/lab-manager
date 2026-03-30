@@ -49,7 +49,7 @@ def _get_imap_password() -> str:
 
 def _connect_imap(config: dict, password: str) -> imaplib.IMAP4_SSL:
     """Connect and authenticate to IMAP server."""
-    conn = imaplib.IMAP4_SSL(config["host"])
+    conn = imaplib.IMAP4_SSL(config["host"], timeout=30)
     conn.login(config["user"], password)
     return conn
 
