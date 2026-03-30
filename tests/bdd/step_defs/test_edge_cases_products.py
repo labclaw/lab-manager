@@ -203,7 +203,6 @@ def create_special_chars(api):
         name="Reagent α & β (99.9%)",
         catalog_number="SPECIAL-001",
     )
-    ctx_holder = {"resp": r}
     return r
 
 
@@ -275,7 +274,7 @@ def assign_categories(api, ctx):
     vendor = _make_vendor(api)
     r = _make_product(api, vendor["id"])
     assert r.status_code in (200, 201), r.text
-    product = r.json()
+    r.json()
     # Schema handles categories per model — just verify product exists
     return r
 
@@ -285,7 +284,7 @@ def upload_image(api, ctx):
     vendor = _make_vendor(api)
     r = _make_product(api, vendor["id"])
     assert r.status_code in (200, 201), r.text
-    product = r.json()
+    r.json()
     # Image upload is a future feature — verify product endpoint works
     return r
 

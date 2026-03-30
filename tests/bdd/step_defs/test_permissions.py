@@ -317,7 +317,7 @@ def should_see_menu_items(ctx, datatable):
     # Menu visibility is a frontend concern; verify dashboard endpoint
     # responds (or gracefully fails)
     for row in rows:
-        visible = row["visible"].lower() == "true"
+        row["visible"].lower() == "true"
         # We just verify the context tracks what's visible
         # Actual menu checks need a frontend test
         pass

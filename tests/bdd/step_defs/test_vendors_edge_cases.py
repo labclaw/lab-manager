@@ -82,7 +82,7 @@ def ctx():
 
 @given(parsers.parse('I am authenticated as staff "{user}"'))
 def auth_as_staff(api, ctx, user):
-    r = api.post(
+    api.post(
         "/api/v1/staff/",
         json={
             "name": user,

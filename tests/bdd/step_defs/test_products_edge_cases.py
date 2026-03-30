@@ -82,7 +82,7 @@ def ctx():
 
 @given(parsers.parse('I am authenticated as staff "{user}"'))
 def auth_as_staff(api, ctx, user):
-    r = api.post(
+    api.post(
         "/api/v1/staff/",
         json={
             "name": user,
@@ -240,7 +240,7 @@ def product_with_qty(api, ctx, name, qty):
     )
     assert r.status_code in (200, 201), r.text
     product = r.json()
-    inv_r = api.post(
+    api.post(
         "/api/v1/inventory/",
         json={
             "product_id": product["id"],

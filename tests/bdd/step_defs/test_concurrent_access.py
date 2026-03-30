@@ -313,11 +313,6 @@ def queue_processes_them(ctx):
     pass
 
 
-@when("queue processes them")
-def queue_processes_them(ctx):
-    # Processing is implicit — writes already executed in the given step
-    pass
-
 
 # --- Then steps ---
 

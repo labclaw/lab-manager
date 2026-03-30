@@ -132,7 +132,7 @@ def _make_product(api, vendor_id, **overrides):
 def _make_inventory(
     api, quantity=10.0, lot_number=None, expiry_date=None, unit="bottle"
 ):
-    seq = next(_seq)
+    next(_seq)
     vendor = _make_vendor(api)
     product = _make_product(api, vendor["id"])
     payload = {

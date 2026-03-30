@@ -662,7 +662,7 @@ def waste_tracked(api, ctx):
     r = api.get(f"/api/v1/inventory/{item['id']}/history")
     assert r.status_code == 200, r.text
     logs = r.json()
-    waste_logs = [l for l in logs if "waste" in str(l.get("purpose", "")).lower()]
+    waste_logs = [entry for entry in logs if "waste" in str(entry.get("purpose", "")).lower()]
     assert len(waste_logs) > 0
 
 
