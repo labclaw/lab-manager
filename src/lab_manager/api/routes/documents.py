@@ -702,17 +702,30 @@ def _create_order_from_doc(doc: Document, db: Session):
 
         # --- create InventoryItem ---
         if product:
+            inv = InventoryItem(
+                product_id=product.id,
+                order_item_id=oi.id,
+                lot_number=item.get("lot_number"),
+                quantity_on_hand=item.get("quantity") or 1,
+                unit=item.get("unit"),
+                status="available",
+                expiry_date=item.get("expiry_date"),
+            )
+            db.add(inv)
+            db.flush()  # get inv.id for consumption log
+
+            # ConsumptionLog receive entry (Fix 3)
+            from lab_manager.models.consumption import ConsumptionAction, ConsumptionLog
+
             db.add(
-                InventoryItem(
+                ConsumptionLog(
+                    inventory_id=inv.id,
                     product_id=product.id,
-                    order_item_id=oi.id,
-                    lot_number=item.get("lot_number"),
-                    quantity_on_hand=item.get("quantity") or 1,
-                    unit=item.get("unit"),
-                    status="available",
-                    expiry_date=date_type.fromisoformat(item["expiry_date"])
-                    if item.get("expiry_date")
-                    else None,
+                    quantity_used=0,
+                    quantity_remaining=inv.quantity_on_hand,
+                    consumed_by=doc.reviewed_by or "system",
+                    action=ConsumptionAction.receive,
+                    purpose=f"Received from document #{doc.id} approval",
                 )
             )
 

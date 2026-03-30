@@ -572,6 +572,18 @@ class TestCreateOrderFromDoc:
         )
         assert inv is not None
 
+        # ConsumptionLog should have a receive entry for this inventory item
+        from lab_manager.models.consumption import ConsumptionAction, ConsumptionLog
+
+        log = (
+            db_session.query(ConsumptionLog)
+            .filter(ConsumptionLog.inventory_id == inv.id)
+            .first()
+        )
+        assert log is not None
+        assert log.action == ConsumptionAction.receive
+        assert log.quantity_remaining == 5
+
     def test_existing_product_reused(self, db_session):
         from lab_manager.api.routes.documents import _create_order_from_doc
         from lab_manager.models.document import Document, DocumentStatus
