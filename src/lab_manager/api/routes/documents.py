@@ -162,8 +162,9 @@ def _run_extraction(doc_id: int) -> None:
     from lab_manager.intake.ocr import extract_text_from_image
 
     factory = get_session_factory()
-    db = factory()
+    db: Session | None = None
     try:
+        db = factory()
         doc = db.scalars(select(Document).where(Document.id == doc_id)).first()
         if doc is None:
             logger.error("Document %d not found for extraction", doc_id)
@@ -210,9 +211,11 @@ def _run_extraction(doc_id: int) -> None:
         logger.info("Extraction complete for doc %d, status=%s", doc_id, doc.status)
     except Exception:
         logger.exception("Unexpected error in extraction for doc %d", doc_id)
-        db.rollback()
+        if db is not None:
+            db.rollback()
     finally:
-        db.close()
+        if db is not None:
+            db.close()
 
 
 def _index_approved_doc(doc_id: int) -> None:
@@ -231,9 +234,9 @@ def _index_approved_doc(doc_id: int) -> None:
     )
 
     factory = get_session_factory()
-    db = factory()
+    db: Session | None = None
     try:
-        doc = db.scalars(select(Document).where(Document.id == doc_id)).first()
+        db = factory()
         if doc is None:
             return
         try:
@@ -294,7 +297,8 @@ def _index_approved_doc(doc_id: int) -> None:
     except Exception:
         logger.exception("Failed to index approved doc %d", doc_id)
     finally:
-        db.close()
+        if db is not None:
+            db.close()
 
 
 @router.post(
