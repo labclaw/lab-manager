@@ -11,12 +11,12 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from lab_manager.api.auth import get_current_staff, require_permission
 from lab_manager.api.deps import get_db, get_or_404
 from lab_manager.api.pagination import apply_sort, paginate
 from lab_manager.exceptions import ConflictError, ForbiddenError
 from lab_manager.models.order import Order, OrderItem
 from lab_manager.models.order_request import OrderRequest, RequestStatus
-from lab_manager.models.staff import Staff
 
 router = APIRouter()
 
@@ -78,39 +78,20 @@ class OrderRequestResponse(BaseModel):
     reviewed_at: datetime | None = None
 
 
-# --- Helpers ---
-
-
-def _get_current_staff(request: Request, db: Session) -> Staff:
-    """Resolve the current user from request.state.user to a Staff record."""
-    user_name = getattr(request.state, "user", "system")
-    staff = db.scalars(select(Staff).where(Staff.name == user_name)).first()
-    if not staff:
-        # In dev mode (auth_enabled=false), auto-create a staff record
-        staff = Staff(name=user_name, role="grad_student", is_active=True)
-        db.add(staff)
-        db.flush()
-    return staff
-
-
-def _is_admin_or_pi(staff: Staff) -> bool:
-    return staff.role in ("admin", "pi")
-
-
 # --- Endpoints ---
 
 
-@router.get("/stats")
+@router.get("/stats", dependencies=[Depends(require_permission("request_order"))])
 def request_stats(
     request: Request,
     db: Session = Depends(get_db),
 ):
     """Count requests by status."""
-    staff = _get_current_staff(request, db)
+    staff = get_current_staff(request)
     q = select(OrderRequest.status, func.count(OrderRequest.id))
 
-    if not _is_admin_or_pi(staff):
-        q = q.where(OrderRequest.requested_by == staff.id)
+    if staff["role"] not in ("admin", "pi"):
+        q = q.where(OrderRequest.requested_by == staff["id"])
 
     rows = db.execute(q.group_by(OrderRequest.status)).all()
     counts = {s.value: 0 for s in RequestStatus}
@@ -120,7 +101,7 @@ def request_stats(
     return counts
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(require_permission("request_order"))])
 def list_requests(
     request: Request,
     page: int = Query(1, ge=1),
@@ -132,11 +113,11 @@ def list_requests(
     db: Session = Depends(get_db),
 ):
     """List requests. Students see own; PI/admin see all."""
-    staff = _get_current_staff(request, db)
+    staff = get_current_staff(request)
     q = select(OrderRequest)
 
-    if not _is_admin_or_pi(staff):
-        q = q.where(OrderRequest.requested_by == staff.id)
+    if staff["role"] not in ("admin", "pi"):
+        q = q.where(OrderRequest.requested_by == staff["id"])
 
     if status and status in _VALID_STATUSES:
         q = q.where(OrderRequest.status == status)
@@ -147,21 +128,23 @@ def list_requests(
     return paginate(q, db, page, page_size)
 
 
-@router.post("/", status_code=201)
+@router.post(
+    "/", status_code=201, dependencies=[Depends(require_permission("request_order"))]
+)
 def create_request(
     body: OrderRequestCreate,
     request: Request,
     db: Session = Depends(get_db),
 ):
     """Create a supply request (any authenticated user)."""
-    staff = _get_current_staff(request, db)
+    staff = get_current_staff(request)
 
     if body.urgency not in ("normal", "urgent"):
         body.urgency = "normal"
 
     req = OrderRequest(
         **body.model_dump(),
-        requested_by=staff.id,
+        requested_by=staff["id"],
         status="pending",
     )
     db.add(req)
@@ -170,23 +153,28 @@ def create_request(
     return req
 
 
-@router.get("/{request_id}")
+@router.get(
+    "/{request_id}", dependencies=[Depends(require_permission("request_order"))]
+)
 def get_request(
     request_id: int,
     request: Request,
     db: Session = Depends(get_db),
 ):
     """Get request detail. Students can only see own requests."""
-    staff = _get_current_staff(request, db)
+    staff = get_current_staff(request)
     req = get_or_404(db, OrderRequest, request_id, "OrderRequest")
 
-    if not _is_admin_or_pi(staff) and req.requested_by != staff.id:
+    if staff["role"] not in ("admin", "pi") and req.requested_by != staff["id"]:
         raise ForbiddenError("You can only view your own requests")
 
     return req
 
 
-@router.post("/{request_id}/approve")
+@router.post(
+    "/{request_id}/approve",
+    dependencies=[Depends(require_permission("approve_order_requests"))],
+)
 def approve_request(
     request_id: int,
     body: ReviewBody,
@@ -194,11 +182,7 @@ def approve_request(
     db: Session = Depends(get_db),
 ):
     """Approve a request. Creates an Order + OrderItem automatically. PI/admin only."""
-    staff = _get_current_staff(request, db)
-
-    if not _is_admin_or_pi(staff):
-        raise ForbiddenError("Only PI or admin can approve requests")
-
+    staff = get_current_staff(request)
     req = get_or_404(db, OrderRequest, request_id, "OrderRequest")
 
     if req.status != "pending":
@@ -231,7 +215,7 @@ def approve_request(
     # Update request
     now = datetime.now(timezone.utc)
     req.status = "approved"
-    req.reviewed_by = staff.id
+    req.reviewed_by = staff["id"]
     req.review_note = body.note
     req.order_id = order.id
     req.reviewed_at = now
@@ -241,7 +225,10 @@ def approve_request(
     return req
 
 
-@router.post("/{request_id}/reject")
+@router.post(
+    "/{request_id}/reject",
+    dependencies=[Depends(require_permission("approve_order_requests"))],
+)
 def reject_request(
     request_id: int,
     body: ReviewBody,
@@ -249,11 +236,7 @@ def reject_request(
     db: Session = Depends(get_db),
 ):
     """Reject a request with optional note. PI/admin only."""
-    staff = _get_current_staff(request, db)
-
-    if not _is_admin_or_pi(staff):
-        raise ForbiddenError("Only PI or admin can reject requests")
-
+    staff = get_current_staff(request)
     req = get_or_404(db, OrderRequest, request_id, "OrderRequest")
 
     if req.status != "pending":
@@ -261,7 +244,7 @@ def reject_request(
 
     now = datetime.now(timezone.utc)
     req.status = "rejected"
-    req.reviewed_by = staff.id
+    req.reviewed_by = staff["id"]
     req.review_note = body.note
     req.reviewed_at = now
     db.flush()
@@ -270,17 +253,19 @@ def reject_request(
     return req
 
 
-@router.post("/{request_id}/cancel")
+@router.post(
+    "/{request_id}/cancel", dependencies=[Depends(require_permission("request_order"))]
+)
 def cancel_request(
     request_id: int,
     request: Request,
     db: Session = Depends(get_db),
 ):
     """Cancel own pending request."""
-    staff = _get_current_staff(request, db)
+    staff = get_current_staff(request)
     req = get_or_404(db, OrderRequest, request_id, "OrderRequest")
 
-    if req.requested_by != staff.id:
+    if req.requested_by != staff["id"]:
         raise ForbiddenError("You can only cancel your own requests")
 
     if req.status != "pending":
