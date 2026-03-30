@@ -205,7 +205,12 @@ def list_orders(
         elif status_group == "past":
             q = q.where(Order.status.in_(["received", "cancelled"]))
         elif status_group == "drafts":
-            q = q.where(Order.status == "draft")
+            q = q.where(Order.status == "pending")
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown status_group '{status_group}'. Use 'active', 'past', or 'drafts'.",
+            )
     if po_number:
         q = q.where(ilike_col(Order.po_number, po_number))
     if date_from:

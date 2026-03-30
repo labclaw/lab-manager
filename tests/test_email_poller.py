@@ -85,7 +85,7 @@ class TestConnectImap:
         config = {"host": "imap.example.com", "user": "user@example.com"}
         result = _connect_imap(config, "my_pass")
 
-        mock_imap_cls.assert_called_once_with("imap.example.com")
+        mock_imap_cls.assert_called_once_with("imap.example.com", timeout=30)
         mock_conn.login.assert_called_once_with("user@example.com", "my_pass")
         assert result is mock_conn
 

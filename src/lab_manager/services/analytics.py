@@ -247,17 +247,20 @@ def spending_by_month(db: Session, months: int = 12) -> list[dict]:
 
 
 def inventory_value(db: Session) -> dict:
-    total = db.execute(
+    q = (
         select(
             func.coalesce(
                 func.sum(InventoryItem.quantity_on_hand * OrderItem.unit_price), 0
-            )
-        ).outerjoin(OrderItem, InventoryItem.order_item_id == OrderItem.id)
-    ).scalar()
-    item_count = db.execute(select(func.count(InventoryItem.id))).scalar() or 0
+            ).label("total"),
+            func.count(InventoryItem.id).label("item_count"),
+        )
+        .outerjoin(OrderItem, InventoryItem.order_item_id == OrderItem.id)
+        .where(InventoryItem.status.in_(ACTIVE_STATUSES))
+    )
+    row = db.execute(q).one()
     return {
-        "total_value": _money(total),
-        "item_count": item_count,
+        "total_value": _money(row.total),
+        "item_count": row.item_count or 0,
     }
 
 
@@ -378,29 +381,30 @@ def vendor_summary(db: Session, vendor_id: int) -> Optional[dict]:
     if not vendor:
         return None
 
-    products_supplied = (
-        db.execute(
-            select(func.count(Product.id)).where(Product.vendor_id == vendor_id)
-        ).scalar()
-        or 0
-    )
-
-    order_count = (
-        db.execute(
-            select(func.count(Order.id)).where(Order.vendor_id == vendor_id)
-        ).scalar()
-        or 0
-    )
-
-    total_spend_val = db.execute(
-        select(func.coalesce(func.sum(OrderItem.unit_price * OrderItem.quantity), 0))
-        .join(Order, OrderItem.order_id == Order.id)
-        .where(Order.vendor_id == vendor_id)
-    ).scalar()
-
-    last_order_date = db.execute(
-        select(func.max(Order.order_date)).where(Order.vendor_id == vendor_id)
-    ).scalar()
+    # Consolidate 4 scalar queries into 1 round-trip via scalar subqueries
+    stats = db.execute(
+        select(
+            select(func.count(Product.id))
+            .where(Product.vendor_id == vendor_id)
+            .scalar_subquery()
+            .label("products_supplied"),
+            select(func.count(Order.id))
+            .where(Order.vendor_id == vendor_id)
+            .scalar_subquery()
+            .label("order_count"),
+            select(
+                func.coalesce(func.sum(OrderItem.unit_price * OrderItem.quantity), 0)
+            )
+            .join(Order, OrderItem.order_id == Order.id)
+            .where(Order.vendor_id == vendor_id)
+            .scalar_subquery()
+            .label("total_spend"),
+            select(func.max(Order.order_date))
+            .where(Order.vendor_id == vendor_id)
+            .scalar_subquery()
+            .label("last_order_date"),
+        )
+    ).one()
 
     return {
         "id": vendor.id,
@@ -408,10 +412,10 @@ def vendor_summary(db: Session, vendor_id: int) -> Optional[dict]:
         "website": vendor.website,
         "phone": vendor.phone,
         "email": vendor.email,
-        "products_supplied": products_supplied,
-        "order_count": order_count,
-        "total_spend": _money(total_spend_val),
-        "last_order_date": _iso(last_order_date),
+        "products_supplied": stats.products_supplied or 0,
+        "order_count": stats.order_count or 0,
+        "total_spend": _money(stats.total_spend),
+        "last_order_date": _iso(stats.last_order_date),
     }
 
 
