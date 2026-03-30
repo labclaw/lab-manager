@@ -206,12 +206,16 @@ def create_completion(
     # Get client params (API keys, base URLs)
     client_params = get_client_params(model)
 
+    # Extract timeout before merging kwargs (default 60s to prevent indefinite hangs)
+    timeout = kwargs.pop("timeout", 60)
+
     # Merge with call params
     params = {
         **client_params,
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
+        "timeout": timeout,
         **kwargs,
     }
 
