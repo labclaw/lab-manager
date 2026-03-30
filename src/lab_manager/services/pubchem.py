@@ -23,17 +23,21 @@ _last_request_time: float = 0.0
 
 
 def _rate_limit() -> None:
-    """Enforce minimum interval between PubChem requests."""
+    """Enforce minimum interval between PubChem requests.
+
+    Uses slot-claiming: inside the lock we advance _last_request_time
+    to the moment the caller's request *will* fire, so the next thread
+    sees a future timestamp and computes its own wait accordingly.
+    The actual sleep happens outside the lock to avoid blocking others.
+    """
     global _last_request_time
-    sleep_duration = 0.0
     with _LOCK:
         now = time.monotonic()
-        elapsed = now - _last_request_time
-        if elapsed < _MIN_INTERVAL:
-            sleep_duration = _MIN_INTERVAL - elapsed
-        _last_request_time = now + sleep_duration
-    if sleep_duration > 0:
-        time.sleep(sleep_duration)
+        next_slot = max(now, _last_request_time + _MIN_INTERVAL)
+        _last_request_time = next_slot
+    wait = next_slot - now
+    if wait > 0:
+        time.sleep(wait)
 
 
 def _fetch_properties(
