@@ -270,3 +270,24 @@ def test_mixed_case_table_name_passes():
     """Allowed tables should match case-insensitively."""
     sql = "SELECT * FROM VENDORS"
     assert _validate_sql(sql) == sql.strip()
+
+
+def test_staff_table_not_allowed():
+    """Staff table must not be queryable via RAG (PII: emails, roles, login counts)."""
+    with pytest.raises(ValueError, match="not allowed"):
+        _validate_sql("SELECT * FROM staff")
+
+
+def test_staff_table_not_in_schema():
+    """Staff DDL must be absent from DB_SCHEMA to prevent LLM from learning about it."""
+    from lab_manager.services.rag import DB_SCHEMA
+
+    assert "CREATE TABLE staff" not in DB_SCHEMA
+    assert "staff" not in DB_SCHEMA
+
+
+def test_staff_table_not_in_allowed_tables():
+    """Staff must not appear in the _ALLOWED_TABLES set."""
+    from lab_manager.services.rag import _ALLOWED_TABLES
+
+    assert "staff" not in _ALLOWED_TABLES
