@@ -42,3 +42,13 @@ repos:
     rev: v8.30.0
     hooks:
       - id: gitleaks
+
+  - repo: local
+    hooks:
+      - id: oracle
+        name: Test Oracle (quality gate)
+        entry: bash scripts/oracle.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]

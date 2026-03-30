@@ -136,6 +136,59 @@ MISTRAL_API_KEY=...         # for Mistral Pixtral
 CLAUDE_MODEL=claude-opus-4-6  # override for claude CLI
 ```
 
+## Quality Gate (Iron Law)
+
+The oracle (`scripts/oracle.sh`) runs automatically via pre-commit hook. It checks:
+1. Lint (ruff, zero errors)
+2. Tests (pytest, all pass — excluding e2e/bdd/alembic)
+3. Coverage (>= 78%, will increase weekly)
+4. No new TODO/FIXME/HACK in staged changes
+5. Type check (pyright, if configured — non-blocking initially)
+
+**Any gate failure = commit blocked.** This is enforced by the pre-commit hook. Agents cannot bypass it (branch guard blocks `--no-verify`).
+
+If stuck after 3 fix attempts:
+1. Log the failure in PROGRESS.md (what failed, what you tried)
+2. Commit with `WIP:` prefix (oracle will still run but you can document the workaround)
+3. Do NOT create a PR for WIP commits
+
+## Progress Protocol
+
+### Session Start
+1. Read PROGRESS.md
+2. Summarize current state in one sentence (to verify understanding)
+3. Pick up from "Next Steps" top item
+
+### During Work
+Update PROGRESS.md after every:
+- Completed task (add to "Completed" with commit SHA)
+- Failed approach (add to "Dead Ends" with reason — this is critical for preventing repeats)
+- Metric change (update "Checkpoints" table)
+- Oracle run (add to "Oracle Pass History")
+
+### Session End
+1. Update "Current Status" with key metrics
+2. Update "Next Steps" based on what you learned
+3. Commit PROGRESS.md
+
+## PR Policy
+
+### Limits
+- Max 5 open PRs total (all repos combined)
+- Max 3 agents running concurrently
+- One agent = one branch = one PR
+
+### Serial vs Parallel Decision
+Check file overlap:
+- Same directory or same files → SERIAL (one agent does all, sequential commits)
+- Different repos or zero file overlap → PARALLEL OK (max 3)
+- Any doubt → default to SERIAL
+
+### Before Creating PR
+1. `bash scripts/oracle.sh` must PASS
+2. Rebase on latest main (no merge commits)
+3. PR body must include: What changed, Why, Test evidence
+
 ## Merge Policy (ABSOLUTE — NO EXCEPTIONS)
 
 - NEVER use `gh pr merge --admin`
