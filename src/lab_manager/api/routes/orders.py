@@ -285,6 +285,12 @@ def update_order(order_id: int, body: OrderUpdate, db: Session = Depends(get_db)
     updates = body.model_dump(exclude_unset=True)
     if "status" in updates:
         _validate_status_transition(order.status, updates["status"])
+    if "vendor_id" in updates and updates["vendor_id"] is not None:
+        get_or_404(db, Vendor, updates["vendor_id"], "Vendor")
+    if "document_id" in updates and updates["document_id"] is not None:
+        from lab_manager.models.document import Document
+
+        get_or_404(db, Document, updates["document_id"], "Document")
     for key, value in updates.items():
         setattr(order, key, value)
     db.flush()
