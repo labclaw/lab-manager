@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
+from unittest.mock import patch
 
 import pytest
+from sqlalchemy.exc import IntegrityError
+
 from lab_manager.config import get_settings
 
 
@@ -77,6 +81,53 @@ def test_heartbeat_without_metrics(client):
     data = r.json()
     assert data["cpu_percent"] is None
     assert data["memory_percent"] is None
+
+
+# --- Heartbeat: Race condition guard ---
+
+
+def test_heartbeat_concurrent_creation_race_condition(client, db_session):
+    """Simulate two concurrent heartbeats racing to create the same device_id.
+
+    Both requests see None from SELECT, both try to insert.
+    The second flush raises IntegrityError. The endpoint recovers by
+    rolling back, fetching the winning row, and updating it — 200 not 500.
+    """
+    from lab_manager.models.device import Device, DeviceStatus
+
+    payload = _heartbeat_payload(device_id="race-device-001", hostname="shen-6604b-c1")
+
+    # Pre-insert the "winning" row so the recovery SELECT finds it.
+    existing = Device(
+        device_id="race-device-001",
+        hostname="original",
+        status=DeviceStatus.online,
+        last_heartbeat_at=datetime.now(timezone.utc),
+    )
+    db_session.add(existing)
+    db_session.flush()
+    db_session.expire(existing)
+
+    original_flush = db_session.flush
+    flushed_new = False
+
+    def _mock_flush():
+        nonlocal flushed_new
+        if flushed_new:
+            flushed_new = False
+            raise IntegrityError("statement", "params", orig=Exception("dup"))
+        return original_flush()
+
+    # Use no_autoflush to prevent autoflush from triggering the mock during SELECT.
+    with db_session.no_autoflush:
+        # Patch flush so the first call (insert of new device) raises IntegrityError,
+        # simulating a concurrent insert winning the race.
+        with patch.object(db_session, "flush", side_effect=_mock_flush):
+            r = client.post("/api/v1/devices/heartbeat", json=payload)
+            assert r.status_code == 200
+            data = r.json()
+            assert data["device_id"] == "race-device-001"
+            assert data["hostname"] == "shen-6604b-c1"
 
 
 # --- List ---

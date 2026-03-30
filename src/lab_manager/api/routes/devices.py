@@ -8,6 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from lab_manager.api.auth import require_permission
@@ -90,7 +91,34 @@ def heartbeat(body: HeartbeatPayload, db: Session = Depends(get_db)):
             device.disk_percent = body.metrics.disk_percent
             device.disk_total_gb = body.metrics.disk_total_gb
         db.add(device)
-        db.flush()
+        try:
+            db.flush()
+        except IntegrityError:
+            # Concurrent heartbeat inserted the same device_id first.
+            # Roll back the failed insert and fetch the winning row.
+            db.rollback()
+            device = db.scalars(
+                select(Device).where(Device.device_id == body.device_id)
+            ).first()
+            if device is None:
+                raise
+            # Update the existing row with current heartbeat data.
+            device.hostname = body.hostname
+            device.ip_address = body.ip_address
+            device.tailscale_ip = body.tailscale_ip
+            device.platform = body.platform
+            device.os_version = body.os_version
+            device.tailscale_online = body.tailscale_online
+            device.tailscale_exit_node = body.tailscale_exit_node
+            device.status = DeviceStatus.online
+            device.last_heartbeat_at = now
+            if body.metrics:
+                device.cpu_percent = body.metrics.cpu_percent
+                device.memory_percent = body.metrics.memory_percent
+                device.memory_total_mb = body.metrics.memory_total_mb
+                device.disk_percent = body.metrics.disk_percent
+                device.disk_total_gb = body.metrics.disk_total_gb
+            db.flush()
         db.refresh(device)
         return device
 
