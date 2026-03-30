@@ -540,26 +540,28 @@ def review_document(
     if not doc:
         raise NotFoundError("Document", document_id)
 
-    # BUG 1 FIX: status guard — only allow review on needs_review
-    if doc.status == DocumentStatus.processing:
-        return JSONResponse(
-            status_code=409,
-            content={"detail": "Document is still being processed"},
-        )
-    if doc.status == DocumentStatus.pending:
-        return JSONResponse(
-            status_code=409,
-            content={"detail": "Document has not been processed yet"},
-        )
-    if doc.status in (
+    # Status guard — only allow review on needs_review status.
+    _BLOCKED_REVIEW_STATUSES = {
+        DocumentStatus.processing,
+        DocumentStatus.pending,
         DocumentStatus.approved,
         DocumentStatus.rejected,
         DocumentStatus.deleted,
-    ):
-        return JSONResponse(
-            status_code=409,
-            content={"detail": f"Document already {doc.status}"},
-        )
+        DocumentStatus.ocr_failed,
+        DocumentStatus.extracted,
+    }
+    if doc.status in _BLOCKED_REVIEW_STATUSES:
+        if doc.status == DocumentStatus.processing:
+            detail = "Document is still being processed"
+        elif doc.status == DocumentStatus.pending:
+            detail = "Document has not been processed yet"
+        elif doc.status == DocumentStatus.ocr_failed:
+            detail = "Document OCR failed and cannot be approved"
+        elif doc.status == DocumentStatus.extracted:
+            detail = "Document extraction is not yet complete"
+        else:
+            detail = f"Document already {doc.status}"
+        return JSONResponse(status_code=409, content={"detail": detail})
 
     if body.action == "approve":
         doc.status = DocumentStatus.approved
