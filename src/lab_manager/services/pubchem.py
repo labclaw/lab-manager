@@ -140,6 +140,11 @@ def enrich_product(name: str, catalog_number: str | None = None) -> dict[str, An
         iupac_name, pubchem_cid
 
     Returns empty dict if nothing found.
+
+    NOTE: This call is synchronous and blocks for 6-9s (up to 3 HTTP calls
+    with 3s timeout each + rate-limit sleeps). Should be moved to a background
+    task (e.g. via FastAPI BackgroundTasks or an async queue) in a future
+    iteration so it doesn't block the API response.
     """
     # Check cache first
     cache_key = f"{name}|{catalog_number or ''}"
