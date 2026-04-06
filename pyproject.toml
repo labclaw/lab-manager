@@ -22,7 +22,7 @@ dependencies = [
   "structlog>=24.0.0",
   "slowapi>=0.1.9",
   "httpx>=0.28.0",
-  "litellm>=1.82.4,<=1.82.6",  # SECURITY: 1.82.7+ compromised (supply chain attack 2026-03-24)
+  "litellm>=1.82.4,<=1.83.3",  # SECURITY: 1.82.7+ compromised (supply chain attack 2026-03-24)
 ]
 
 [project.scripts]
