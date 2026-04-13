@@ -21,7 +21,7 @@ dependencies = [
   "itsdangerous>=2.2.0",
   "structlog>=24.0.0",
   "slowapi>=0.1.9",
-  "httpx>=0.28.0",
+  "httpx>=0.28.1",
   "litellm>=1.82.4,<=1.82.6",  # SECURITY: 1.82.7+ compromised (supply chain attack 2026-03-24)
 ]
 
@@ -63,7 +63,7 @@ dev = [
   "pytest-asyncio>=0.24.0",
   "pytest-bdd>=8.0.0",
   "pytest-cov>=6.0.0",
-  "httpx>=0.28.0",
+  "httpx>=0.28.1",
   "ruff>=0.11.0",
   "mypy>=1.10.0",
   "bandit>=1.8.0",
