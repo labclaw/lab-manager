@@ -9,20 +9,20 @@ dependencies = [
   "sqlalchemy[asyncio]>=2.0.0",
   "psycopg[binary]>=3.2.0",
   "alembic>=1.14.0",
-  "sqladmin>=0.20.0",
-  "pydantic-settings>=2.6.0",
+  "sqladmin>=0.25.1",
+  "pydantic-settings>=2.14.2",
   "meilisearch>=0.33.0",
   "instructor>=1.7.0",
   "google-genai>=1.0.0",
-  "pillow>=11.2.1",
-  "python-multipart>=0.0.18",
+  "pillow>=12.2.0",
+  "python-multipart>=0.0.31",
   "python-ulid>=3.0.0",
   "bcrypt>=4.0.0",
   "itsdangerous>=2.2.0",
   "structlog>=24.0.0",
   "slowapi>=0.1.9",
   "httpx>=0.28.0",
-  "litellm>=1.82.4,<=1.82.6",  # SECURITY: 1.82.7+ compromised (supply chain attack 2026-03-24)
+  "litellm<=1.84.0,>=1.84.0",  # SECURITY: 1.82.7+ compromised (supply chain attack 2026-03-24)
 ]
 
 [project.scripts]
@@ -59,7 +59,7 @@ lab_manager = [
 
 [dependency-groups]
 dev = [
-  "pytest>=8.4.0",
+  "pytest>=9.0.3",
   "pytest-asyncio>=0.24.0",
   "pytest-bdd>=8.0.0",
   "pytest-cov>=6.0.0",
