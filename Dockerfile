@@ -9,7 +9,7 @@ COPY web/ ./web/
 RUN cd web && npm run build
 
 # --- Stage 2: Production image ---
-FROM python:3.12-slim
+FROM python:3.15-slim
 
 WORKDIR /app
 
